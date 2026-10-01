@@ -1,6 +1,13 @@
-# Optimization Cards: Paper Terminology and Implementation Templates
+# Optimization Card Templates: Paper Terminology and Implementation Mapping
 
-The paper describes nine performance issues. This directory contains 18
+RQ3 identifies nine recurring **Performance Issues**, each with an
+**Observed Pattern** and an **Optimization Direction**. The approach encodes
+each pattern–direction pair as an **optimization rule**, then adds
+**Rewrite Preconditions** to form an **optimization card**. Thus, cards are
+the approach's representation of optimization guidance; they are not the
+name of the RQ3 findings themselves.
+
+This directory contains 18
 implementation templates, identified by the IDs used in detection and rewrite
 logs. Several templates implement different rewrite forms within the same
 paper-level issue; the number of files is not the number of paper-level rules.
@@ -58,14 +65,20 @@ The figure presents a matched card as:
    the enclosing function and dependency context before applying the
    transformation.
 
-The templates retain detailed pattern and rewrite sections and use a uniform
-`Rewrite Preconditions` checklist heading:
+The six templates associated with the two cards in the figure (`C3`, `III4`,
+`C4`, `C5`, `C8`, `C10`) now start with the figure's three fields verbatim,
+including the optimization direction and the three standalone checklist
+items. These fields reproduce the matched `zrsh` example; the numbered
+implementation sections then describe each template's specific scope.
+Other templates retain their existing numbered sections.
+
+For the six figure-aligned templates:
 
 | Figure field | Where to find the content in an existing template |
 |---|---|
-| Observed Pattern | `What you're fixing`, pattern variants, and before-code examples |
-| Optimization Direction | `Direction`, rewrite forms, and rewrite templates |
-| Rewrite Preconditions | `Rewrite Preconditions`, with additional exclusions in `When to abstain` |
+| Observed Pattern | Opening `Observed Pattern`; concrete template scope in `Implementation-specific pattern` |
+| Optimization Direction | Opening `Optimization Direction` uses the figure wording; `Template strategy` and rewrite examples give implementation details |
+| Rewrite Preconditions | Opening `Rewrite Preconditions` uses the figure wording; numbered `Implementation-specific preconditions` supplies supporting checks |
 
 Post-rewrite checks and performance gates are additional validation steps.
 They do not replace establishing semantic preconditions. The same requirement
@@ -74,8 +87,9 @@ applies to every class, including control-flow and type/API rewrites.
 ## Shared context and matched instances
 
 `Source Region`, `Enclosing Function`, and `Dependency Context` in the figure
-are per-instance program context, not static fields to hard-code into every
-template. The region prompt builder supplies the editable region, surrounding
+are per-instance program context. The opening fields of the six aligned
+templates reproduce the figure instance for reference, while the region
+being optimized is supplied by the prompt builder. The region prompt builder supplies the editable region, surrounding
 function body, anchor-hit details, candidate cards, and available dependency
 context. This grounds a generic pattern in a concrete source location.
 

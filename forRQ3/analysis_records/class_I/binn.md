@@ -1,60 +1,60 @@
-# binn — Class I 差分对比数据(采集层,不含归类判定)
+# binn — Class I Differential evidence (collection stage; no classification decisions)
 
-**构建**:C = `clang-17 -O3 -flto -march=native -mno-avx512f -DNDEBUG -DBINN_NO_COMPRESS -g -Wl,--plugin-opt=save-temps`(`binn_roundtrip.c binn.c`)→ precodegen → `llvm-dis-17`;Rust = 实测二进制的 fat-LTO 全程序模块(`rust_harness/target/release/deps/binn_roundtrip-*.ll`,`cargo build --release` + `-Cdebuginfo=1 --emit=llvm-ir`,nightly-2024-01-15 = LLVM 17.0.6)。
+**Build**:C = `clang-17 -O3 -flto -march=native -mno-avx512f -DNDEBUG -DBINN_NO_COMPRESS -g -Wl,--plugin-opt=save-temps`(`binn_roundtrip.c binn.c`)→ precodegen → `llvm-dis-17`;Rust = the fat-LTO whole-program module of the measured binary(`rust_harness/target/release/deps/binn_roundtrip-*.ll`,`cargo build --release` + `-Cdebuginfo=1 --emit=llvm-ir`,nightly-2024-01-15 = LLVM 17.0.6).
 
-**归属**:按热函数 `define` 块统计,义务/对照构造按 `DILocation` scope 分 自身 / 内联继承 / nodbg。**C 侧 `AddValue`/`GetValue`/`AdvanceDataPos` 经 LTO 内联于 `main`,无独立定义**,其对照在 main 层。
+**Attribution**: Counts are collected per hot-function `define` region. Obligation and control constructs are attributed by `DILocation` scope to self / inherited from inlined functions / nodbg. **On the C side, `AddValue`/`GetValue`/`AdvanceDataPos` are inlined into `main` by LTO and have no standalone definitions**, so their comparison is made at the main level.
 
-## Workload: build_serialize_100k  (M1=1.530;RQ1 gap = +40.9% → **回归**)
+## Workload: build_serialize_100k  (M1=1.530;RQ1 gap = +40.9% → **regression**)
 
-**① 账本**(100k int32):
+**① Hotspot inventory**(100k int32):
 
-| 函数 | self% | ≥5% |
+| Function | self% | ≥5% |
 |---|---:|:-:|
 | `binn::AddValue` | 86.3 | ✓ |
 | `binn_roundtrip::main` | 12.9 | ✓ |
 
-## Workload: iterate_decode_100k  (M1=1.450;RQ1 gap = +27.9% → **回归**)
+## Workload: iterate_decode_100k  (M1=1.450;RQ1 gap = +27.9% → **regression**)
 
-**① 账本**:
+**① Hotspot inventory**:
 
-| 函数 | self% | ≥5% |
+| Function | self% | ≥5% |
 |---|---:|:-:|
 | `binn_roundtrip::main` | 55.4 | ✓ |
 | `binn::GetValue` | 29.5 | ✓ |
 | `binn::AdvanceDataPos` | 14.4 | ✓ |
 
-**② 每个热函数的优化后 IR 构造计数**:
+**② Construct counts in optimized IR for each hot function**:
 
-| 函数 | 义务/对照构造(Rust) | Rust load/store/gep/**tbaa** | C load/store/gep/**tbaa** |
+| Function | Obligation/control constructs (Rust) | Rust load/store/gep/**tbaa** | C load/store/gep/**tbaa** |
 |---|---|---|---|
-| `binn::AddValue` | Option 拆包 继承 1 + nodbg 1;memcpy self 2 | 32 / 28 / 37 / **0** | 内联于 main |
-| `binn::GetValue` | memset self 1 | 30 / 31 / 57 / **0** | 内联于 main |
-| `binn::AdvanceDataPos` | 八类全零 | 9 / 0 / 15 / **0** | 内联于 main |
-| `binn_roundtrip::main` | unwind nodbg 19;Option 拆包 继承 9 + nodbg 13;overflow 继承 2;memset/memcpy(对照,继承 binn_free 等) | 124 / 105 / 153 / **0** | 119 / 116 / 178 / **230** |
+| `binn::AddValue` | Option unwrapping inherited 1 + nodbg 1;memcpy self 2 | 32 / 28 / 37 / **0** | Inlined into main |
+| `binn::GetValue` | memset self 1 | 30 / 31 / 57 / **0** | Inlined into main |
+| `binn::AdvanceDataPos` | Zero in all eight categories | 9 / 0 / 15 / **0** | Inlined into main |
+| `binn_roundtrip::main` | unwind nodbg 19;Option unwrapping inherited 9 + nodbg 13;overflow inherited 2;memset/memcpy(control, inherited binn_free and others) | 124 / 105 / 153 / **0** | 119 / 116 / 178 / **230** |
 
-**③ 指令区域大小(Rust/C 行)与开放扫描**:
+**③ Instruction-region sizes (Rust/C lines) and open-ended scan**:
 
-| 函数 | Rust 行 | C 行 | 开放扫描(Rust-only 符号) |
+| Function | Rust lines | C lines | Open-ended scan (Rust-only symbols) |
 |---|---:|---:|---|
-| `binn::AddValue` | 427 | 内联于 main | — |
-| `binn::GetValue` | 307 | 内联于 main | — |
-| `binn::AdvanceDataPos` | 131 | 内联于 main | — |
-| `binn_roundtrip::main` | 1659 | 1894 | `std::io::stdio` ×20+6、`llvm.assume` ×10、`alloc::raw_vec`/`alloc::alloc`/`__rust_no_alloc_shim`(harness 框架) |
+| `binn::AddValue` | 427 | Inlined into main | — |
+| `binn::GetValue` | 307 | Inlined into main | — |
+| `binn::AdvanceDataPos` | 131 | Inlined into main | — |
+| `binn_roundtrip::main` | 1659 | 1894 | `std::io::stdio` ×20+6, `llvm.assume` ×10, `alloc::raw_vec`/`alloc::alloc`/`__rust_no_alloc_shim`(harness infrastructure) |
 
-注:main Rust 1659 < C 1894(静态少);Rust-only 符号集中于 harness main 的 std::io/alloc(打印+分配框架),非被翻译库差分。
+Note: main has Rust 1659 < C 1894 static lines. Rust-only symbols are concentrated in the std::io/alloc printing and allocation infrastructure of harness main, rather than in the translated library.
 
-**④ 查法2:优化成功痕迹(C 有 / Rust 少)**:
+**④ Inspection method 2: Evidence of successful optimization (present in C / less frequent in Rust)**:
 
-| 函数 | bswap R/C | vector`<N>` R/C | call/invoke R/C |
+| Function | bswap R/C | vector`<N>` R/C | call/invoke R/C |
 |---|---|---|---|
-| `binn::AddValue` | 0 / 内联 | 0 / 内联 | 2 / 内联 |
+| `binn::AddValue` | 0 / inlined | 0 / inlined | 2 / inlined |
 | `binn_roundtrip::main` | 0 / 0 | 0 / 3 | 73 / 23 |
 
-注:bswap 全 0;向量两侧都极少(typed 序列化无向量化);**call Rust 73 ≫ C 23(Rust 未内联更多 → II② 候选)**。无向量/bswap 差分——binn 的 gap 在查法1 的 C1(Option 拆包密集)+ C3。
+Note: bswap counts are all 0; vectors are rare on both sides (no vectorization in typed serialization). **Calls: Rust 73 ≫ C 23 (more calls remain uninlined in Rust → candidate for II②)**. There is no vector/bswap difference; the binn gap falls under C1 (frequent Option unwrapping) + C3 in inspection method 1.
 
 ---
 
-**采集层小结(不含归类,仅记差分事实)**:
-- **C1 冗余检查分支**:`AddValue` Option 拆包(`malloc_fn`)Rust 2 vs C 0;`main` Option 拆包 Rust 22(继承 9 + nodbg 13)+ overflow 2 + unwind 19 vs C 0——序列化/解码循环密集的空指针拆包与溢出检查是 binn 的主要前端多生成。
-- **C3 冗余访存 / 别名缺失**:全部热函数 Rust `!tbaa` 恒为 0;C 侧 `main` 达 **230**(库函数内联其中)。
-- **C2 饱和 cast**:binn 无浮点,两侧 `fptosi.sat` 为 0(不适用)。
+**Collection-stage summary (differential observations only; no classification decisions)**:
+- **C1 Redundant check branches**: `AddValue` Option unwrapping (`malloc_fn`): Rust 2 vs C 0; `main` Option unwrapping: Rust 22 (inherited 9 + nodbg 13) + overflow 2 + unwind 19 vs C 0. Frequent null-pointer unwrapping and overflow checks in serialization/decoding loops are the main additional work generated by the frontend for binn.
+- **C3 Redundant memory accesses / missing alias information**: Rust `!tbaa` is consistently 0 in all hot functions; C `main` reaches **230** (with library functions inlined into it).
+- **C2 Saturating casts**: binn has no floating-point operations; `fptosi.sat` is 0 on both sides (not applicable).

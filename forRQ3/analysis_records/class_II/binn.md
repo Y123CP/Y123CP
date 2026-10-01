@@ -1,33 +1,33 @@
-# binn — Class II 差分数据(优化器少做的优化,采集层,不含归类判定)
+# binn — Class II differential evidence (missed optimizer transformations; collection stage, no classification decisions)
 
-**采集(修正方法,见 `_method.md`)**:单合并正则 `'loop-vectorize|slp-vectorizer|inline'`;两侧 debug info;两侧 no-LTO 对称——C = per-TU `clang-17 -O3 -march=native -mno-avx512f -DNDEBUG -DBINN_NO_COMPRESS -gline-tables-only -c binn.c`(`main` 取 binn_roundtrip.c);Rust = c2rust 库 crate `rust_raw` **`cargo +nightly-2024-01-15`**(rustc 1.77 = LLVM 17,override rust_raw 自带 LLVM16 pin,与 clang-17 对称)`CARGO_PROFILE_RELEASE_LTO=off` + `-Cremark=all`(passed 由缺失对应 missed 推断)。**后端对称订正**:早期用 rust_raw 自带 LLVM16,本轮强制 LLVM17;结论(无退化)复现。
+**Collection (corrected method; see `_method.md`)**: One combined regex `'loop-vectorize|slp-vectorizer|inline'`; debug information on both sides; symmetric no-LTO builds. C = per-TU `clang-17 -O3 -march=native -mno-avx512f -DNDEBUG -DBINN_NO_COMPRESS -gline-tables-only -c binn.c` (`main` from binn_roundtrip.c). Rust = c2rust library crate `rust_raw`, **`cargo +nightly-2024-01-15`** (rustc 1.77 = LLVM 17; overrides rust_raw's LLVM16 pin to match clang-17), `CARGO_PROFILE_RELEASE_LTO=off` + `-Cremark=all` (passed inferred from absence of corresponding missed remarks). **Backend-symmetry correction**: Earlier collection used rust_raw's bundled LLVM16; this round forced LLVM17 and reproduced the no-degradation conclusion.
 
-**热函数账本(复用 Class I)**:
+**Hot-function inventory (reused from Class I)**:
 - build_serialize_100k(M1=1.530,gap +40.9%):`AddValue` 86.3% / `main` 12.9%
 - iterate_decode_100k(M1=1.450,gap +27.9%):`main` 55.4% / `GetValue` 29.5% / `AdvanceDataPos` 14.4%
 
 ---
 
-## II① 向量化损失 —— 无(两侧对称)
+## II① Vectorization loss — None (symmetric)
 
-| pass | Rust(热/库) | C(热/库) |
+| pass | Rust (hot/library) | C (hot/library) |
 |---|---|---|
 | loop-vectorize passed | 0 / 0 | 0 / 0 |
-| slp-vectorizer passed | 0 / 1(L342 非热) | 0 / 5(binn.c:293 非热) |
+| slp-vectorizer passed | 0 / 1 (L342, non-hot) | 0 / 5 (binn.c:293, non-hot) |
 
-两侧均不向量化任何热路径循环。热函数内 Rust 6 条 SLP remark 全是 `not beneficial cost 0>=0`(向量器**主动放弃** cost-中性的 2-store 相邻字节写,`AdvanceDataPos` L618/L638、`GetValue` L1723),与 C 行为同性质,非损失。binn = typed 序列化 + 标量 byte-swap 拷贝,无数据并行循环。**delta = 0。**
+Neither side vectorizes any hot-path loop. All 6 Rust SLP remarks in hot functions are `not beneficial cost 0>=0`: the vectorizer **deliberately rejects** cost-neutral adjacent-byte writes with 2 stores (`AdvanceDataPos` L618/L638, `GetValue` L1723). This matches the nature of C's decisions and is not a loss. binn performs typed serialization and scalar byte-swap copies, without data-parallel loops. **delta = 0.**
 
-## II② 内联损失 —— 无(对称)
+## II② Inlining loss — None (symmetric)
 
-- **热函数内联对称**:两侧都吸收同一批小 helper(`copy_be16/32/64`、`compress_int`、`strlen2`、`CheckAllocation`、`binn_get_type_info`、`IsValidBinnHeader`),Rust 侧这些已被 MIR/LLVM 折叠进热体(无 un-inline remark)。
-- **唯一 caller-side 非对称:反而对 Rust 有利**——`type_family → AddValue`(binn.c:959 / binn.rs:1079):LLVM17 下 **C 仍 miss(cost=450>250)、Rust 内联成功**(零 inline-missed 行)。非 Rust 退化。
-- 热函数作为 callee 不内联进各自 wrapper 是**共享决策**(cost 两侧几乎相同:`AddValue` 1040/1170、`GetValue` 525/690、`AdvanceDataPos` 270/270,均 ≫ thr),非 Rust artifact。
-- **纠正早期 fat-LTO 假象**:此前在 fat-LTO harness 上手采得 `copy_value` 未内联(cost 超阈值)= ●。公平 no-LTO 库 crate 下,`copy_value` 与 4 个热函数**无任何内联关系**(无 caller/callee remark 连接)——那是 fat-LTO harness 采集口径伪影,不是热路径内联损失。
+- **Symmetric hot-function inlining**: Both sides absorb the same small helpers (`copy_be16/32/64`, `compress_int`, `strlen2`, `CheckAllocation`, `binn_get_type_info`, `IsValidBinnHeader`). MIR/LLVM has already folded these into the Rust hot bodies (no not-inlined remarks).
+- **The only caller-side asymmetry favors Rust**: `type_family → AddValue` (binn.c:959 / binn.rs:1079). Under LLVM17, **C still misses (cost=450>250), while Rust inlines successfully** (zero inline-missed lines). This is not Rust degradation.
+- Not inlining the hot functions as callees into their wrappers is a **shared decision**, with nearly identical costs (`AddValue` 1040/1170, `GetValue` 525/690, `AdvanceDataPos` 270/270, all ≫ thr), rather than a Rust artifact.
+- **Correction of an earlier fat-LTO artifact**: Manual collection on the fat-LTO harness previously labeled `copy_value` not being inlined (cost above threshold) as ●. Under fair no-LTO library-crate collection, `copy_value` has **no inlining relationship** with the 4 hot functions (no connecting caller/callee remarks). The earlier result was a fat-LTO harness collection artifact, not a hot-path inlining loss.
 
-## 与 Class I 的交叉
+## Relationship to Class I
 
-binn 无 Class II 缺口。其 +40.9%/+27.9% 的 gap 由 **Class I 驱动**:C1(序列化/解码循环里密集的 Option 拆包 `main` 22 + `AddValue` 2)+ C3(全热函数 `!tbaa`=0,`main` 达 230)。Class II 通道对 binn **不解释 gap**。
+binn has no Class II gap. Its +40.9%/+27.9% gaps are **driven by Class I**: C1 (frequent Option unwrapping in serialization/decoding loops: `main` 22 + `AddValue` 2) + C3 (`!tbaa`=0 in all Rust hot functions, versus 230 in C `main`). Class II **does not explain the binn gap**.
 
-## 小结
+## Summary
 
-binn = **Class II 无退化**(向量化 delta=0、内联对称)。修正方法(flag-fixed + no-LTO + debuginfo 对称)证明 c2rust 输出在 binn 热路径的向量化与内联行为**与 C 参考一致**;binn 的退化纯属 Class I(C1+C3)。这也是一个方法学教训:fat-LTO harness 采集会伪造内联损失(`copy_value`),必须用 no-LTO 库 crate 对称复核。
+binn has **no Class II degradation** (vectorization delta=0; symmetric inlining). The corrected method (fixed flags + no-LTO + symmetric debug information) shows that vectorization and inlining in c2rust's binn hot paths **match the C reference**; degradation is entirely Class I (C1+C3). The methodological lesson is that fat-LTO harness collection can produce spurious inlining loss (`copy_value`), requiring symmetric no-LTO library-crate verification.

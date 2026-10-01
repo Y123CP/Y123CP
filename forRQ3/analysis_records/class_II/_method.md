@@ -1,59 +1,59 @@
-# Class II 采集方法(优化器少做的优化,M-b)
+# Class II collection method (missed optimizer transformations, M-b)
 
-**层面界定**:Class II = 对回归热函数,**C 优化器成功、Rust(c2rust 输出)失败或未做**的优化。对应 RQ3 查法2("Rust 缺了 C 有的好东西")。与 Class I 正交:Class I 是 Rust 相对 C **多生成**的义务工作(义务符号存活);Class II 是 Rust 相对 C **少做**的优化(优化机会被放弃)。
+**Scope**: Class II concerns optimizations that **succeed in C but fail or are not performed in Rust (c2rust output)** within hot functions of regressed workloads. It corresponds to RQ3 inspection method 2: optimizations present in C but missing from Rust. It is orthogonal to Class I: Class I captures obligation work **additionally generated** in Rust relative to C (surviving obligation symbols); Class II captures optimizations **performed less often** in Rust (abandoned opportunities).
 
-## 采集通道:编译器 remark
+## Collection channel: Compiler remarks
 
-同一 LLVM 17.0.6 后端(clang-17 == rustc nightly-2024-01-15),让两侧编译器**自述**每个优化点的成败:
-- **Rust**:`RUSTFLAGS="-Cdebuginfo=1 -Ctarget-cpu=native -Ctarget-feature=-avx512f -Cllvm-args=-pass-remarks[-missed/-analysis]=<regex>"`(remark 带 `!dbg` 源码位置)。
-- **C**:`clang-17 -O3 -march=native -mno-avx512f -gline-tables-only -c <lib>.c -o /dev/null -Rpass[-missed/-analysis]=<regex>`。
+Use the same LLVM 17.0.6 backend (clang-17 == rustc nightly-2024-01-15) and have both compilers **report** success or failure at each optimization site:
+- **Rust**: `RUSTFLAGS="-Cdebuginfo=1 -Ctarget-cpu=native -Ctarget-feature=-avx512f -Cllvm-args=-pass-remarks[-missed/-analysis]=<regex>"` (remarks include `!dbg` source locations).
+- **C**: `clang-17 -O3 -march=native -mno-avx512f -gline-tables-only -c <lib>.c -o /dev/null -Rpass[-missed/-analysis]=<regex>`.
 
-### 采集陷阱(四个必守点,任一不守即得假数据)
+### Collection pitfalls (four requirements; violating any produces misleading data)
 
-1. **同名 flag 不叠加,单合并正则**。`clang -Rpass=` 与 rustc `-pass-remarks=` 各取**单个正则,后者覆盖前者**。分开传 `=loop-vectorize` `=slp-vectorizer` `=inline` 会被最后一个静默覆盖(只剩 `inline`、向量化恒 0 → 假"全损失")。必须写成一个合并正则:`-Rpass='loop-vectorize|slp-vectorizer|inline'`。
-2. **两侧都要 debug info**。clang-17 的**向量化** remark 无 `-g` 不发射(内联 remark 不需要)。C 加 `-gline-tables-only`、Rust 加 `-Cdebuginfo=1`,否则得假"C 也没向量化"。
-3. **两侧 no-LTO 对称**。fat-LTO 把向量化/内联推迟到 **link 阶段 plugin**,per-CGU `-Cllvm-args`/`-Cremark` 常**采不到**(实测 heman/libzahl/binn 的库 crate fat-LTO 下向量化 passed=0=漏采;内联则因全程序合并致 cost 虚高膨胀,伪造损失如 binn `copy_value`、heman "cost 6325")。故两侧都用 no-LTO 镜像看优化器对**模块内代码形态**的固有决策:C = per-TU `-c` 去 `-flto`;Rust = c2rust 库 crate(`rust_raw`)单独 no-LTO release,不用 harness fat-LTO。(例外:bzip2 是 self-contained bin,其 CGU 布局使 fat-LTO 与 no-LTO 报**同一批**向量化 remark、未漏采;但为全语料统一口径,一律用 no-LTO。)此镜像反映 c2rust 代码形态的**固有**可优化性,与实测二进制绝对性能是两回事。
-4. **rust_raw 自带 LLVM 16 pin,必须 override 到 LLVM 17**(最隐蔽)。所有 `rust_raw/rust-toolchain.toml` 都 pin `nightly-2023-04-15`=rustc 1.70=**LLVM 16**(c2rust 输出旧 pin)。在 rust_raw 目录 `cargo build` 不加 `+nightly-2024-01-15` 就用 LLVM 16 → 与 C 的 clang-17/LLVM17 **后端不对称**(向量化/内联能力不同,违反 fair build 核心)。**必须 `cargo +nightly-2024-01-15 build`**(=rustc 1.77=LLVM 17.0.6)。实测:LLVM16→17 会改变**裸指针向量化判定**(libzahl 7 处 `cannot identify array bounds` 在 16 是 artifact、17 消失),但**不改 inline cost model**(xxHash cost 395>375 两版一致)——故向量化损失须 LLVM17 对称验证,内联损失版本稳健。某些 toolchain rustc `-Cllvm-args=-pass-remarks` 不发,改用 rustc 原生 `-Cremark=all`(`note:` 行,passed token `(success)`)。
+1. **Repeated flags do not accumulate; use one combined regex.** Both clang `-Rpass=` and rustc `-pass-remarks=` accept **one regex; later occurrences override earlier ones**. Passing `=loop-vectorize`, `=slp-vectorizer`, and `=inline` separately silently retains only the last (`inline`), making vectorization appear consistently 0 and falsely suggesting complete loss. Use a combined regex: `-Rpass='loop-vectorize|slp-vectorizer|inline'`.
+2. **Enable debug information on both sides.** clang-17 does not emit **vectorization** remarks without `-g` (inlining remarks do not require it). Add `-gline-tables-only` for C and `-Cdebuginfo=1` for Rust; otherwise C also appears to lack vectorization.
+3. **Use symmetric no-LTO builds.** fat-LTO postpones vectorization/inlining to the **link-stage plugin**, where per-CGU `-Cllvm-args`/`-Cremark` often **miss the remarks**. In observed fat-LTO builds of the heman/libzahl/binn library crates, vectorization passed=0 reflected missing collection; whole-program merging inflated inlining costs, producing apparent losses such as binn `copy_value` and heman "cost 6325". Therefore, use no-LTO counterparts on both sides to inspect intrinsic optimizer decisions on **module-local code structure**: C = per-TU `-c` without `-flto`; Rust = a standalone no-LTO release build of the c2rust library crate (`rust_raw`), without harness fat-LTO. Exception: bzip2 is a self-contained binary whose CGU layout yields **the same** vectorization remarks under fat-LTO and no-LTO, without missing collection. Nevertheless, use no-LTO uniformly across the corpus. This counterpart reflects the **intrinsic** optimizability of c2rust code structure, which is distinct from the absolute performance of the measured binary.
+4. **Override the LLVM 16 pin bundled with rust_raw to LLVM 17** (the least obvious pitfall). All `rust_raw/rust-toolchain.toml` files pin `nightly-2023-04-15` = rustc 1.70 = **LLVM 16**, an old pin in c2rust output. Running `cargo build` in rust_raw without `+nightly-2024-01-15` therefore uses LLVM 16, creating **backend asymmetry** with C's clang-17/LLVM17 (different vectorization/inlining capabilities), contrary to the fair-build requirement. **Use `cargo +nightly-2024-01-15 build`** (= rustc 1.77 = LLVM 17.0.6). Observed LLVM16→17 changes affect **raw-pointer vectorization decisions**: the 7 libzahl `cannot identify array bounds` sites are LLVM 16 artifacts that disappear in 17. They **do not change the inline cost model** in the observed xxHash case (cost 395>375 in both versions). Vectorization loss therefore requires symmetric LLVM17 verification; the inlining loss is version-robust. Some toolchains emit nothing for rustc `-Cllvm-args=-pass-remarks`; use native rustc `-Cremark=all` instead (`note:` lines, with `(success)` as the passed token).
 
-两个方向:
-- **II① 向量化损失**:pass = `loop-vectorize`(循环向量化)+ `slp-vectorizer`(直线代码 SLP 打包)。
-  - passed 措辞:`vectorized loop` / `SLP vectorized` / `Stores SLP vectorized` / `Vectorized horizontal reduction`(cost 为负=有利)。
-  - missed 措辞:`loop not vectorized` / `Cannot SLP vectorize: impossible with available factors` / `not beneficial cost N>=N`。
-- **II② 内联损失**:pass = `inline`。
-  - missed 措辞:`'callee' not inlined into 'caller' because too costly to inline (cost=X, threshold=Y)` / `should never be inlined`。
-  - 机制:c2rust 生成的函数体膨胀(义务检查 + 无 `#[inline]` 提示)使 cost 超 LLVM inline threshold,C 里被内联的小函数在 Rust 里保持 out-of-line call。
+Two directions:
+- **II① Vectorization loss**: pass = `loop-vectorize` (loop vectorization) + `slp-vectorizer` (packing straight-line code with SLP).
+  - Passed wording: `vectorized loop` / `SLP vectorized` / `Stores SLP vectorized` / `Vectorized horizontal reduction` (negative cost = beneficial).
+  - Missed wording: `loop not vectorized` / `Cannot SLP vectorize: impossible with available factors` / `not beneficial cost N>=N`.
+- **II② Inlining loss**: pass = `inline`.
+  - Missed wording: `'callee' not inlined into 'caller' because too costly to inline (cost=X, threshold=Y)` / `should never be inlined`.
+  - Mechanism: c2rust-generated function-body inflation (obligation checks + missing `#[inline]` hints) pushes cost above LLVM's inline threshold. Small functions inlined in C remain out-of-line calls in Rust.
 
-### 其余「少做优化」通道已查证穷尽(全 pass 枚举)
+### Exhaustive check of other missed-optimization channels (all-pass enumeration)
 
-用全 pass 正则(Rust `-Cremark=all` / C `-Rpass-missed='.*'`)在 bzip2/xxHash/libzahl/heman 热函数上枚举,除 vectorize/inline 外只有 licm/gvn/loop-unroll/loop-idiom/loop-delete 发 remark:
-- **licm / gvn 的 `load not eliminated` / `can't hoist load with loop-invariant address` missed 簇 → 归 Class I C3**(别名缺失),不重复立 II 规则。措辞纯别名类(Rust 缺 `noalias`/`!tbaa` → 内存优化器保守),是 C3 冗余访存的优化器-remark 视角(libzahl `zrsh` gvn missed 46/16 = class_I 记录的 C3 load 73/24 同现象两口径);计数 per-instance 被宏展开/force-inline 混淆,以 C3 的 IR 访存计数为准。
-- **loop-unroll / loop-idiom / loop-delete**:两侧 parity,无缺口。
-- **loop-unswitch / gvn-sink / machine-licm**:LLVM17 两侧零发射,无可采。
-- xxHash 的 licm/gvn C-passed≫Rust 是 II② 内联损失的**下游**(force-inline 融合体上运作),非独立通道。
+Enumeration with an all-pass regex (Rust `-Cremark=all` / C `-Rpass-missed='.*'`) in bzip2/xxHash/libzahl/heman hot functions finds only licm/gvn/loop-unroll/loop-idiom/loop-delete remarks beyond vectorize/inline:
+- **licm/gvn clusters of `load not eliminated` / `can't hoist load with loop-invariant address` misses belong to Class I C3** (missing alias information), rather than duplicate Class II rules. Their wording concerns aliasing (Rust lacks `noalias`/`!tbaa`, so memory optimizations are conservative). This is the optimizer-remark view of C3 redundant memory accesses: libzahl `zrsh` gvn missed 46/16 and the class_I C3 load counts 73/24 describe the same phenomenon through different measures. Macro expansion/force-inlining confounds per-instance counts; use C3 IR memory-access counts as the reference.
+- **loop-unroll / loop-idiom / loop-delete**: Parity on both sides; no gap.
+- **loop-unswitch / gvn-sink / machine-licm**: Neither LLVM17 side emits remarks; nothing can be collected.
+- xxHash licm/gvn C-passed≫Rust is **downstream of** II② inlining loss (these passes operate on the force-inlined combined body), rather than an independent channel.
 
-⇒ **Class II 限定 II① 向量化 + II② 内联两方向,作为独立通道集合是穷尽的**(全 pass 枚举验证)。
+⇒ **Class II is limited to II① vectorization and II② inlining, an exhaustive set of independent channels** under the all-pass enumeration.
 
-## 过滤规则(去框架噪声)
+## Filtering rules (remove infrastructure noise)
 
-- **向量化** remark 的位置是 callsite 源码 `文件:行`,按此过滤到**被翻译库源码 .rs**(排除 `/rustc/` std、harness `main.rs` 框架部分)。
-- **内联** remark 位置是 callee 定义处,须按 **caller ∈ 热函数 且 callee ∈ 库内部函数** 过滤;并额外排除两类假损失:
-  - **框架条目**:callee/caller 含 `core/alloc/std/demangle/gimli/miniz/backtrace/fmt/panic`(`panic=abort` 下 backtrace/格式化残留,不属被翻译库);`cost=never` 的 `noinline`(by-design)。
-  - **cross-crate(LTO-resolvable)**:no-LTO 库 crate 采集里跨 crate 的 callee 报 not-inlined,但实测 fat-LTO 二进制在 link 阶段会内联它 → **不算真损失**(如 bzip2 `BZ2_hbCreateDecodeTables×20` 在 huffman crate)。真内联损失须是**同 crate/同 TU 内**因 c2rust 代码膨胀致 cost 越过阈值的条目。
-  - **已内联(不同阶段都算已内联)**:callee 若被 rustc MIR inliner 在 LLVM 前折叠(LLVM 无 remark),或被 LLVM 内联器折叠(发 success remark),都是**已内联**而非损失。勿因"无 inline-pass remark"或"有 inline-missed 但另有 success"误判。(libcsv `csv_increase_buffer` 在 LLVM17 下经 **LLVM 内联器**显式 success、cost 110/250——非早期以为的 MIR 提前折叠;但两种终态都是"已内联"。)
+- **Vectorization** remark locations are call-site source `file:line` locations. Filter these to **translated library .rs source files**, excluding `/rustc/` std and infrastructure portions of harness `main.rs`.
+- **Inlining** remark locations refer to callee definitions. Filter by **caller ∈ hot functions and callee ∈ internal library functions**; also exclude the following spurious losses:
+  - **Infrastructure entries**: callee/caller contains `core/alloc/std/demangle/gimli/miniz/backtrace/fmt/panic` (backtrace/formatting remnants under `panic=abort`, outside the translated library); `cost=never` for intentional `noinline`.
+  - **Cross-crate (LTO-resolvable)**: A cross-crate callee reported as not inlined in a no-LTO library-crate build may be inlined at link time in the measured fat-LTO binary. **This is not a true loss**; an example is bzip2 `BZ2_hbCreateDecodeTables×20` in the huffman crate. True inlining losses must occur **within the same crate/TU** because c2rust body inflation pushes cost above the threshold.
+  - **Already inlined (at any stage)**: A callee folded by rustc's MIR inliner before LLVM (no LLVM remark), or by LLVM's inliner (success remark), is **already inlined**, not lost. Neither absence of an inline-pass remark nor an inline-missed remark accompanied by a success establishes a loss. In LLVM17, libcsv `csv_increase_buffer` explicitly succeeds through the **LLVM inliner**, cost 110/250, contrary to the earlier interpretation of early MIR folding; both final states nevertheless mean already inlined.
 
-## 计数口径(去重单位)
+## Counting convention (deduplication unit)
 
-计数单位统一为 **unique `(file,line,col)` 站点**(或热 kernel 站点),**不用 raw remark 实例数**。同一源站点会被多次报告:(a) header-only / force-inline 的 callee 每份内联一条(xxHash C SLP raw 78 = **14 unique 站点**被内联进 ~40 caller;bzip2 C 侧库全量聚合 passed 同理 raw 虚高);(b) 流水线多轮跑同一 pass。**raw 聚合数跨侧/跨项目不可比,严禁进 ≥3 门槛**。门槛与 ● 判定一律锚定**热函数内 unique 站点**(bzip2 5 个热循环、xxHash accumulate 4 caller、libzahl zmul_ll 2 callee)。各 md 表中的库全量聚合数仅作背景,不作跨项目对比或门槛依据。
+Use **unique `(file,line,col)` sites** (or hot-kernel sites), **not raw remark instances**. A source site can be reported repeatedly: (a) a header-only / force-inlined callee produces a remark per inlined copy (xxHash C SLP raw 78 = **14 unique sites** inlined into ~40 callers; full-library C passed totals in bzip2 are similarly inflated); (b) the pipeline runs a pass repeatedly. **Raw aggregates are not comparable across sides/projects and must not enter the ≥3 threshold.** Thresholds and ● judgments always use **unique sites within hot functions** (bzip2 5 hot loops; xxHash accumulate 4 callers; libzahl zmul_ll 2 callees). Full-library aggregate counts in the project tables provide background only, not cross-project comparisons or admission evidence.
 
-## 置信定义(●/◐)
+## Confidence definitions (●/◐)
 
-- **●(强,解释 gap)**:同源逻辑下 **C passed 而 Rust missed**——纯优化器差异(同一 LLVM),c2rust 的 IR 形态让优化器放弃了 C 能做成的优化。
-- **◐(中,不解释 gap 但改写有益)**:两侧都 missed,或 Rust passed ≥ C——gap 不由此优化差异产生,但主动改写(引导向量化/加内联提示)仍可让 Rust 绝对变快。
+- **● (strong; explains the gap)**: For corresponding source logic, **C passed while Rust missed**. This is an optimizer difference under the same LLVM: c2rust's IR structure causes the optimizer to abandon an optimization that succeeds in C.
+- **◐ (moderate; does not explain the gap, but rewriting can help)**: Both sides missed, or Rust passed ≥ C. The gap does not arise from this optimization difference, but an explicit rewrite (guiding vectorization/adding inline hints) may still improve Rust's absolute performance.
 
-## 门槛(同 Class I)
+## Threshold (same as Class I)
 
-一条规则 ≥3 支持实例;实例 = ≥3 种模式(同层面)**或**同一模式在 ≥3 个热函数/站点。跨项目广度不作准入,仅如实报告。
+A rule requires ≥3 supporting instances: ≥3 patterns in the same dimension **or** the same pattern in ≥3 hot functions/sites. Cross-project breadth is reported but is not an admission criterion.
 
-## 账本口径
+## Hotspot inventory convention
 
-复用 Class I 的热函数账本(perf self%,≥5% 门槛,workload 经 RQ1 判为回归);Class II 只在这些热函数(及其内联体)内统计 remark。
+Reuse the Class I hot-function inventory (perf self%, ≥5% threshold, workloads classified as regressions in RQ1). Class II counts remarks only within these hot functions and their inlined bodies.

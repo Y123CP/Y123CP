@@ -1,6 +1,31 @@
-# Rule C3: Redundant Memory Access (Aliasing Gap)
+# Rule C3: Obscured Memory Access Properties
 
-## 1. What you're fixing
+Implementation template: Redundant Memory Access (Aliasing Gap).
+
+The three fields below reproduce the matched `zrsh` example in the paper
+figure. For another region, instantiate the observed pattern from that
+region and establish applicability using the implementation-specific
+pattern and conditions below. The figure's ellipses denote omitted detail.
+
+## Observed Pattern
+
+Raw-pointer buffer traversal through `(*a).chars.offset(i)`.
+
+## Optimization Direction
+
+Recover valid &[T]/&mut [T] views to expose access properties to LLVM, ...
+
+## Rewrite Preconditions
+
+- [ ] The buffer extent can be established.
+- [ ] All accesses remain within this buffer extent.
+- [ ] No conflicting access occurs while the mutable slice is live.
+
+...
+
+---
+
+## 1. Implementation-specific pattern
 
 c2rust-emitted IR carries **no TBAA metadata** on `load` / `store` /
 `getelementptr` through raw pointers (`*mut T` / `*const T`). Without
@@ -14,7 +39,7 @@ The compiler tells you via remarks like `gvn: load of type X not
 eliminated` or `licm: failed to move load with loop-invariant address
 because the loop may invalidate its value`.
 
-**Direction**: recover LLVM's aliasing knowledge in one of two ways:
+**Template strategy**: recover LLVM's aliasing knowledge in one of two ways:
 
 - **S1 — change the signature**: `*mut T` → `&mut T` / `&mut [T]`. The
   Rust reference carries `noalias` by default; LICM/GVN recover across
@@ -164,7 +189,7 @@ skip, and say which one you looked for.
 
 ---
 
-## 3. Rewrite Preconditions
+## 3. Implementation-specific preconditions
 
 Establish every applicable item below from the source region, enclosing
 function, and relevant type, global, function, and project-local call-site
@@ -176,13 +201,13 @@ replace it.
 
 ### 3.1 S1 and local memory-view recovery
 
-- [ ] **The buffer extent can be established.** Identify the allocation and
+- [ ] **Buffer extent evidence.** Identify the allocation and
   a justified element count from the enclosing function and dependency
   context; a length parameter or field alone is not evidence of capacity.
-- [ ] **All accesses remain within this buffer extent.** Establish bounds
+- [ ] **Access bounds evidence.** Establish bounds
   for every index, range, widened access, and boundary path, including any
   adjacent-element access such as `i - 1`.
-- [ ] **No conflicting access occurs while the mutable slice is live.**
+- [ ] **Access compatibility evidence.**
   Account for other views, raw pointers, callbacks, and callees; all accesses
   during the borrow must respect its exclusivity. Use one mutable view or
   proven-disjoint reborrows rather than overlapping mutable slices.

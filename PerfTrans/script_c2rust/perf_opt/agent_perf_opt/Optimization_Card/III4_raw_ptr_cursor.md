@@ -1,6 +1,31 @@
-# Rule III④: Raw-pointer Cursor → Slice / Iterator
+# Rule III④: Obscured Memory Access Properties
 
-## 1. What you're fixing
+Implementation template: Raw-pointer Cursor → Slice / Iterator.
+
+The three fields below reproduce the matched `zrsh` example in the paper
+figure. For another region, instantiate the observed pattern from that
+region and establish applicability using the implementation-specific
+pattern and conditions below. The figure's ellipses denote omitted detail.
+
+## Observed Pattern
+
+Raw-pointer buffer traversal through `(*a).chars.offset(i)`.
+
+## Optimization Direction
+
+Recover valid &[T]/&mut [T] views to expose access properties to LLVM, ...
+
+## Rewrite Preconditions
+
+- [ ] The buffer extent can be established.
+- [ ] All accesses remain within this buffer extent.
+- [ ] No conflicting access occurs while the mutable slice is live.
+
+...
+
+---
+
+## 1. Implementation-specific pattern
 
 The function contains **raw-pointer cursor** patterns. c2rust preserved
 C's per-element pointer arithmetic instead of Rust's slice / iterator
@@ -20,7 +45,7 @@ Two shapes (the driver tells you the exact sites and `pattern_kind`):
 `<method>` ∈ `{ offset, wrapping_offset, add, sub, wrapping_add,
 wrapping_sub }`.
 
-**Direction**: rewrite the raw pointer + length (or sentinel) into
+**Template strategy**: rewrite the raw pointer + length (or sentinel) into
 `&[T]` / `&mut [T]` with indexing or iteration.
 
 ---
@@ -192,7 +217,7 @@ This is the general shape of the rule: the win comes from restoring what
 the compiler may assume, not from the checks removed. When a rewrite can
 buy only one of the two, buy the aliasing.
 
-## 4. Rewrite Preconditions
+## 4. Implementation-specific preconditions
 
 Establish every applicable item below from the source region, enclosing
 function, and relevant type, global, function, and project-local call-site
@@ -202,13 +227,13 @@ no applicable card remains. Coordinate overlapping directions in one rewrite.
 Build, functional, and performance checks follow this assessment and do not
 replace it.
 
-- [ ] **The buffer extent can be established.** Identify the allocation and
+- [ ] **Buffer extent evidence.** Identify the allocation and
   a justified element count from the enclosing function and dependency
   context; a length parameter or field alone is not evidence of capacity.
-- [ ] **All accesses remain within this buffer extent.** Establish bounds
+- [ ] **Access bounds evidence.** Establish bounds
   for every index, range, widened access, and boundary path, including any
   adjacent-element access such as `i - 1`.
-- [ ] **No conflicting access occurs while the mutable slice is live.**
+- [ ] **Access compatibility evidence.**
   Account for other views, raw pointers, callbacks, and callees; all accesses
   during the borrow must respect its exclusivity. Use one mutable view or
   proven-disjoint reborrows rather than overlapping mutable slices.

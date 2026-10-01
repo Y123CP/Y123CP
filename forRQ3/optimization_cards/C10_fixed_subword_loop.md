@@ -1,6 +1,31 @@
-# Rule C10: Fixed-Length Sub-Word Loop
+# Rule C10: Scalar Element-Wise Processing
 
-## 1. What you're fixing
+Implementation template: Fixed-Length Sub-Word Loop.
+
+The three fields below reproduce the matched `zrsh` example in the paper
+figure. For another region, instantiate the observed pattern from that
+region and establish applicability using the implementation-specific
+pattern and conditions below. The figure's ellipses denote omitted detail.
+
+## Observed Pattern
+
+A unit-stride loop advances i by one and accesses adjacent elements at offsets i and i−1.
+
+## Optimization Direction
+
+Process independent regions in parallel, ...
+
+## Rewrite Preconditions
+
+- [ ] The recurrence admits an equivalent block-wise formulation.
+- [ ] Required inputs can be read before overlapping outputs are written.
+- [ ] Boundary cases preserve the original semantics.
+
+...
+
+---
+
+## 1. Implementation-specific pattern
 
 A loop whose **trip count is a compile-time constant smaller than a machine
 word**, whose iterations carry nothing to one another, and whose body touches
@@ -175,7 +200,7 @@ trivial; otherwise abstain.
 
 ---
 
-## 3. Rewrite Preconditions
+## 3. Implementation-specific preconditions
 
 Establish every applicable item below from the source region, enclosing
 function, and relevant type, global, function, and project-local call-site
@@ -185,15 +210,15 @@ no applicable card remains. Coordinate overlapping directions in one rewrite.
 Build, functional, and performance checks follow this assessment and do not
 replace it.
 
-- [ ] **The recurrence admits an equivalent block-wise formulation.**
+- [ ] **Block equivalence evidence.**
   Derive equivalence for this template's operation and state, rather than
   inferring independence from unit stride or adjacent element accesses.
   For independent element operations, establish that grouping their scalar
   steps produces the same result and final state.
-- [ ] **Required inputs can be read before overlapping outputs are written.**
+- [ ] **Read-before-write evidence.**
   Account for dependencies within and across blocks. Preserve values needed
   by later iterations, or establish that the input is never overwritten.
-- [ ] **Boundary cases preserve the original semantics.** Cover empty input,
+- [ ] **Boundary semantics evidence.** Cover empty input,
   the first and last elements, complete blocks, partial tails, and the
   original stopping condition and final state.
 - [ ] **The trip count is established independently.** The original loop

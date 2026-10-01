@@ -11,7 +11,7 @@ build scripts and raw measurements behind every research question.
 |---|---|---|
 | [`forRQ1/`](#forrq1--performance-divergence) | §Study, RQ1 | How much slower/faster is c2rust output than C? |
 | [`forRQ2/`](#forrq2--cost-decomposition) | §Study, RQ2 | Is the gap extra instructions (R_inst) or higher CPI (R_CPI)? |
-| [`forRQ3/`](#forrq3--optimization-rule-discovery) | §Study, RQ3 | The nine optimization rules and the evidence behind them |
+| [`forRQ3/`](#forrq3--performance-issue-patterns) | §Study, RQ3 | Nine recurring performance issues, their optimization directions, and supporting analysis |
 | [`forRQ4/`](#forrq4--optimization-effectiveness) | §Evaluation, RQ4 | PerfTrans vs. Raw vs. Codex on 12 projects / 41 operations |
 | [`forRQ5/`](#forrq5--ablation-study) | §Evaluation, RQ5 | Refined and rule-free ablation; accepted-rewrite analysis |
 | [`PerfTrans/`](#perftrans--implementation) | §Approach | Complete source code of PerfTrans |
@@ -174,43 +174,59 @@ Cost label: *Work* = R_inst ≥ 1.05; *CPI* = R_CPI ≥ 1.05; *Both* = both.
 
 ---
 
-## forRQ3 — Optimization Rule Discovery
+## forRQ3 — Performance Issue Patterns
 
-> *What actionable optimization rules can be derived for translated Rust?*
+RQ3 identifies nine recurring performance issues and their corresponding
+optimization directions. Start with the [RQ3 reading guide](forRQ3/README.md).
 
 ```
 forRQ3/
+├── README.md                     # paper terminology and reading guide
 ├── analysis_records/
 │   ├── class_I/<project>.md      # optimized-IR comparison (C vs Rust) of hot functions
 │   ├── class_II/<project>.md     # LLVM optimization-remark comparison
-│   ├── class_III/                # source-level inspection, consolidation into patterns
-│   └── */cluster.md              # grouping of instances into Observed Patterns
-├── optimization_cards/           # the rules as consumed by PerfTrans (one card per source shape)
-│   └── README.md                 # card format
-└── scripts/                      # evidence collectors used during the study
+│   ├── class_III/               # source-level inspection
+│   └── */cluster.md             # working records of evidence grouping
+├── optimization_cards/          # implementation card templates used by the approach
+│   └── README.md                # paper-issue mapping, card fields, and template scope
+└── scripts/                     # evidence collection and attribution utilities
     ├── opt_remarks_collector.py  # source-mapped LLVM remarks (C and Rust)
     ├── perf_annotate.py          # hot-function ranking (≥ 80% of sampled cycles)
-    ├── source_patterns.py        # Rust source-pattern scanner
-    └── facet_coverage.py         # card → rule mapping (RULE_OF)
+    ├── source_patterns.py       # Rust source-pattern scanner
+    └── facet_coverage.py        # implementation ID → optimization-direction mapping
 ```
 
-The analysis records are the analysts' working notes (partly written in
-Chinese); each record gives the source region, the construct, the mechanism
-and the supporting evidence (IR counts, remark text, source excerpt).
+The analysis records are working notes, provided in English. They preserve
+observations, collection-method corrections, and intermediate groupings.
+Their historical Class I/II/III labels and rule counts should not be read as
+the final paper taxonomy. The paper presents two residual-runtime issues,
+two missed-compiler-transformation issues, and five source-level issues.
 
-**Rule ↔ optimization card mapping** (`scripts/facet_coverage.py`, `RULE_OF`):
+In the approach, an **optimization rule** pairs an **Observed Pattern** with
+an **Optimization Direction**. Adding **Rewrite Preconditions** produces an
+**optimization card**. The `optimization_cards/` directory contains 18
+implementation templates for these cards, rather than 18 RQ3 issues. It is a
+reviewer-facing copy of the templates in PerfTrans's `Optimization_Card/`.
 
-| Group | Rule (paper) | Cards |
+**Paper performance issues and implementation IDs**
+(`scripts/facet_coverage.py`, `RULE_OF`):
+
+| Group | Performance issue in the paper | Implementation IDs |
 |---|---|---|
-| Residual runtime work | Residual Bounds-Check Elimination | C1 |
-| | Range-Proven Conversion Simplification | C2 |
-| Missed compiler transformations | Vectorization Restoration | II_vec |
-| | Hot-Callee Inlining Restoration | II_inl (+ II_iso) |
-| Recurring source-level patterns | Invariant Dispatch Specialization | III1, C6, C11 |
-| | Owned Buffer Management | C7, III2 |
-| | Typed Memory Operations | III3, C9, C12 |
-| | Data-Level Parallelism Exposure | C4, C5, C8, C10 |
-| | Memory Property Recovery | C3, III4, II_const |
+| Residual runtime work | Residual Bounds Checks | C1 |
+| | Redundant Conversion Saturation | C2 |
+| Missed compiler transformations | Missed Loop Vectorization | II_vec |
+| | Missed Hot-Callee Inlining | II_inl (+ II_iso) |
+| Recurring source-level patterns | Repeated Invariant Dispatch | III1, C6, C11 |
+| | Inefficient Buffer Management | C7, III2 |
+| | Byte-Oriented Memory Operations | III3, C9, C12 |
+| | Scalar Element-Wise Processing | C4, C5, C8, C10 |
+| | Obscured Memory Access Properties | C3, III4, II_const |
+
+The mapping groups implementation IDs for attribution; it does not establish
+an additional paper issue for each template or historical variant. `C9` and
+`II_iso` have deterministic implementation paths without Markdown cards.
+See the [card-template guide](forRQ3/optimization_cards/README.md) for details.
 
 ---
 
@@ -364,7 +380,7 @@ PerfTrans/
 │   │   ├── hot_probe/                # §Hotspot Localization + §Optimization Pattern Detection
 │   │   │                             #   (class_I = optimized IR, class_II = remarks, class_III = source)
 │   │   └── agent_perf_opt/           # §LLM-Based Optimization + §Validation
-│   │       ├── Optimization_Card/    #   the rule cards (same as forRQ3/optimization_cards)
+│   │       ├── Optimization_Card/    #   optimization card templates (mirrored in forRQ3/optimization_cards)
 │   │       ├── gates.py, measurement.py   # functional gate, incremental + cumulative performance gates
 │   │       └── ablation_freeform.py  #   RQ5 rule-free arm
 │   ├── profiling/                    # perf record / perf stat / TMA / optimization remarks

@@ -1,46 +1,46 @@
-# bzip2 — Class II 差分数据(优化器少做的优化,采集层,不含归类判定)
+# bzip2 — Class II differential evidence (missed optimizer transformations; collection stage, no classification decisions)
 
-**采集(修正方法,见 `_method.md`)**:单合并正则;两侧 debug info;两侧 no-LTO 对称——C = per-TU `clang-17 -O3 -march=native -mno-avx512f -gline-tables-only -DNDEBUG -D_FILE_OFFSET_BITS=64 -c`(7 个库 TU);Rust = c2rust crate `rust_raw` 强制 no-LTO(`CARGO_PROFILE_RELEASE_LTO=off CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1` + `-Cremark=all`,该 toolchain `-pass-remarks` 不发)。同一 LLVM 17.0.6(nightly-2024-01-15)。内联通道排除 cross-crate(LTO-resolvable)+ framework-noinline。
+**Collection (corrected method; see `_method.md`)**: One combined regex; debug information on both sides; symmetric no-LTO builds. C = per-TU `clang-17 -O3 -march=native -mno-avx512f -gline-tables-only -DNDEBUG -D_FILE_OFFSET_BITS=64 -c` (7 library TUs). Rust = c2rust crate `rust_raw`, forced no-LTO (`CARGO_PROFILE_RELEASE_LTO=off CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1` + `-Cremark=all`; this toolchain emits nothing for `-pass-remarks`). Both use LLVM 17.0.6 (nightly-2024-01-15). The inlining channel excludes cross-crate (LTO-resolvable) and framework-noinline entries.
 
-> **Rust passed 经双 build 交叉验证为真实(非漏采)**:no-LTO 新 build 与既有 fat-LTO `lto_remarks.log` 报**同一批** Rust 向量化成功(decompress.rs:2504/2553/2959 loop-vec + 3008 SLP)。故 bzip2 的 Rust 向量化 passed 是真值,早期"R0"是旧的错数字(与 heman 的 fat-LTO 漏采不同——bzip2 两种 build 一致)。
+> **Rust passed counts were cross-checked between two builds and are real, rather than missed collection**: The new no-LTO build and existing fat-LTO `lto_remarks.log` report **the same** successful Rust vectorizations (decompress.rs:2504/2553/2959 loop-vec + 3008 SLP). Thus, the bzip2 Rust vectorization passed counts are valid; the earlier "R0" was incorrect. Unlike heman's missing fat-LTO remarks, bzip2 is consistent across both build forms.
 
-**热函数账本(复用 Class I,decompress workload:M1=1.348,gap +15.5%)**:`BZ2_decompress` 61.21%(c2rust 输出为 ~2880 行单体状态机,decompress.rs:191–3071)+ `BZ2_bzDecompress` 37.58%(控制包装,两侧零可向量化循环,非损失来源)。
+**Hot-function inventory (reused from Class I; decompress workload: M1=1.348, gap +15.5%)**: `BZ2_decompress` 61.21% (c2rust output is a monolithic ~2880-line state machine, decompress.rs:191–3071) + `BZ2_bzDecompress` 37.58% (control wrapper; neither side has vectorizable loops, so this is not a loss source).
 
-> **计数口径**:下表为 raw remark 计数(C 侧库全量含宏展开 `GET_BITS` 的多份 load 站点,聚合数偏高、**不作跨项目对比**);● 判定与 ≥3 门槛一律锚定**热函数内 unique 站点**——即下方 5 个热解码循环,与去重口径无关。
+> **Counting convention**: The table below contains raw remark counts. Full-library C totals include multiple load sites from `GET_BITS` macro expansion, inflating aggregates; **do not use them for cross-project comparisons**. ● judgments and the ≥3 threshold always use **unique sites within hot functions**, specifically the 5 hot decoding loops below, unaffected by aggregate deduplication conventions.
 
 ---
 
-## II① 向量化损失 —— ●(真实,残余 5 个热循环)
+## II① Vectorization loss — ● (real; 5 remaining hot loops)
 
-| pass | 侧 | 热函数 passed / missed | 库全量 passed / missed |
+| pass | Side | Hot-function passed / missed | Full-library passed / missed |
 |---|---|---:|---:|
 | **loop-vectorize** | C | **8** / 54 | 23 / 227 |
 | | Rust | **3** / 58 | 18 / 135 |
 | **slp-vectorizer** | C | **5** / 382 | 14 / 1295 |
 | | Rust | **2** / 16 | 2 / 193 |
 
-- Rust 热函数确实做成的:`decompress.rs:2504`(=C cftab 累加循环)、`:2553`(=C cftabCopy)、`:2959`(=C maxLen 扫描);SLP `mtfa[kk]=…` store(=C 同站点)。**Rust 并非全输**,与 C 有交集。
-- **残余真损失(C 向量化 / Rust miss)**:
+- Successful Rust hot-function sites: `decompress.rs:2504` (= C cftab accumulation loop), `:2553` (= C cftabCopy), `:2959` (= C maxLen scan); SLP `mtfa[kk]=…` store (= the corresponding C site). **Rust does not lose every optimization**; some successes overlap with C.
+- **Remaining true losses (C vectorized / Rust missed)**:
 
-| C 站点(decompress.c) | 宽度 | 源码语义 | Rust |
+| C site (decompress.c) | Width | Source semantics | Rust |
 |---|---|---|---|
-| `:311` | 32 | `for(v;v<nGroups;v++) pos[v]=v`(selector 初始化) | missed |
-| `:316` | 16 | `while(v>0){pos[v]=pos[v-1];v--;}`(MTF selector 左移) | missed |
-| `:409/416` | 4/4 | `while(es>0){…}`(RLE run-expand) | missed |
-| `:447` | 32 | `while(nn>0){…}`(MTF value copy) | missed |
+| `:311` | 32 | `for(v;v<nGroups;v++) pos[v]=v` (selector initialization) | missed |
+| `:316` | 16 | `while(v>0){pos[v]=pos[v-1];v--;}` (MTF selector left shift) | missed |
+| `:409/416` | 4/4 | `while(es>0){…}` (RLE run-expand) | missed |
+| `:447` | 32 | `while(nn>0){…}` (MTF value copy) | missed |
 
-**Rust 放弃原因**(`BZ2_decompress` 内直方图):**53× `could not determine number of loop iterations`** + **45× `value that could not be identified as reduction is used outside the loop`**(+1 switch,+1 unsafe-dep)。
+**Reasons for Rust rejection** (histogram within `BZ2_decompress`): **53× `could not determine number of loop iterations`** + **45× `value that could not be identified as reduction is used outside the loop`** (+1 switch, +1 unsafe-dep).
 
-**根因(承重,已确认)**:(i) c2rust 每次数组索引前的 `panic_bounds_check` 分支 = 循环**第二个出口** → LLVM 算不出 countable trip-count;(ii) signed `c_int` 归纳变量 + loop-carried 变量写回 `(*s).save_*` 状态字段 → 值"在循环外被使用",击溃 reduction/IV 识别。二者精确命中 C 向量化的 RLE `while(es>0)/(nn>0)` 与 MTF-selector `while(v>0)` 循环。
+**Root causes (central and confirmed)**: (i) c2rust's `panic_bounds_check` branch before each array access adds a **second loop exit**, preventing LLVM from determining a countable trip count; (ii) signed `c_int` induction variables and writes of loop-carried variables back to `(*s).save_*` state fields make values "used outside the loop," defeating reduction/IV recognition. These mechanisms occur precisely in the RLE `while(es>0)/(nn>0)` and MTF-selector `while(v>0)` loops vectorized in C.
 
-## II② 内联损失 —— 无
+## II② Inlining loss — None
 
-剔除 cross-crate(LTO-resolvable)与 framework-noinline 后,in-crate cost-based 内联损失两侧皆 0:Rust **成功内联**所有真实热 callee(`makeMaps_d`、`unRLE_obuf_to_output_FAST/SMALL`、`BZ2_indexIntoF`、`BZ2_bz__AssertH__fail`),与 C 一致。bzip2 的 gap 不在内联。
+After excluding cross-crate (LTO-resolvable) and framework-noinline entries, both sides have 0 in-crate cost-based inlining losses. Rust **successfully inlines** all actual hot callees (`makeMaps_d`, `unRLE_obuf_to_output_FAST/SMALL`, `BZ2_indexIntoF`, `BZ2_bz__AssertH__fail`), matching C. Inlining does not account for the bzip2 gap.
 
-## 与 Class I 的交叉(重要)
+## Relationship to Class I (important)
 
-bzip2 向量化损失根因 = **Class I C1(冗余边界检查)的二阶后果**:C1 记录的 `panic_bounds_check` 分支不仅本身多执行,还在每个热循环插入第二出口、破坏 countability → 向量器放弃。同一 c2rust 缺陷在 Class I 表现为"多做检查"、Class II 表现为"少做向量化"——加强 C1,但不改 C1 规则。(回填 class_I:那里旧查法2 用 objdump 静态计数误判"Rust 向量 ≥ C",被本 remark 通道证伪。)
+The root cause of bzip2 vectorization loss is a **second-order consequence of Class I C1 (redundant bounds checks)**. The `panic_bounds_check` branches recorded under C1 both execute additional work themselves and add a second exit to each hot loop, breaking countability and causing the vectorizer to reject the loop. The same c2rust defect manifests as additional checks in Class I and missed vectorization in Class II. This reinforces C1 without changing the C1 rule. Correction to class_I: its earlier inspection method 2 used static objdump counts to infer "Rust vectors ≥ C"; the remark channel refutes that interpretation.
 
-## 小结
+## Summary
 
-bzip2 = **Class II 向量化损失 ●(真实,残余 5 个热解码循环,C w4–32 / Rust miss),内联无损失**。根因是 c2rust 的边界检查 panic 分支(第二出口)+ signed-int 循环 + 状态字段写回,破坏 trip-count 可判定性。与 xxHash(内联→unroll→SLP)、libzahl(裸指针别名)同属"c2rust 代码形态破坏向量化前提"缺口层面,触发子机制不同(countability vs 别名 vs unroll)。
+bzip2 has **Class II vectorization loss ● (real; 5 remaining hot decoding loops, C w4–32 / Rust missed), with no inlining loss**. c2rust's bounds-check panic branches (second exits), signed-int loops, and state-field writebacks break trip-count analyzability. Alongside xxHash (inlining→unrolling→SLP) and libzahl (raw-pointer aliasing), this belongs to the gap dimension where c2rust code structure breaks vectorization prerequisites, with different triggering mechanisms (countability vs aliasing vs unrolling).
