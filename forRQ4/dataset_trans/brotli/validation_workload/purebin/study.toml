@@ -1,0 +1,116 @@
+# ============================================================================
+                                                       
+#
+                                     
+                                                                           
+                                                        
+                                                                      
+                                                        
+                                                                 
+#
+                                           
+#   bash perf_run.sh script_c2rust/.venv/bin/python \
+#       dataset_trans/run_validation.py \
+#       dataset_trans/brotli/validation_workload/purebin/study.toml
+# ============================================================================
+
+[study]
+project     = "brotli"
+compare     = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+report_mode = "per_input"
+
+[builds.c]
+binary_path = "dataset_trans/brotli/validation_workload/purebin/bin/brotli_c"
+[builds.raw]
+binary_path = "dataset_trans/brotli/validation_workload/purebin/bin/brotli_raw"
+[builds.stage_a]
+binary_path = "dataset_trans/brotli/validation_workload/purebin/bin/brotli_stage_a"
+
+[builds.codex]
+binary_path = "dataset_trans/brotli/validation_workload/purebin/bin/brotli_codex"
+[builds.freeform]
+binary_path = "dataset_trans/brotli/validation_workload/purebin/bin/brotli_freeform"
+[builds.full]                                  # full arm = 3_perf_opt (rule-guided)
+binary_path = "dataset_trans/brotli/validation_workload/purebin/bin/brotli_full"
+
+[measure]
+warmup_runs  = 5
+measure_runs = 30
+required_cv  = 0.03
+max_load     = 1.0
+cv_retries   = 2
+pin_cpu      = 16
+order        = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+
+[gates]
+equivalence = "stdout_sha256"
+
+[[operations]]
+name = "compress"                 # q{0,1,3,5,9} matrix
+args = ["compress", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "dataset_trans/brotli/validation_workload/inputs/silesia-xml"
+  iters = 1
+  stdout_sha256 = "a30058cc0e6a2ced1e5a4fe4f1284285fa95d4e7b90c56fce3f9f35b0513790e"
+  [[operations.inputs]]
+  name = "rand-1m.bin"            # incompressible: uncompressed-block paths
+  path = "dataset_trans/brotli/validation_workload/inputs/rand-1m.bin"
+  iters = 12
+  stdout_sha256 = "2e5b690c65443eeb4b65d399b472a8ad1302be84361cfd460bad97be3f4e10a6"
+
+[[operations]]
+name = "compress_hq"              # q10 zopfli + q11 hq-zopfli
+args = ["compress_hq", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "dickens-96k.bin"
+  path = "dataset_trans/brotli/validation_workload/inputs/dickens-96k.bin"
+  iters = 2
+  stdout_sha256 = "9a83c8a51e3b76a4c663bcc3707d560f4c5311735edab7de3440bd78912f47b7"
+
+[[operations]]
+name = "decompress"               # one-shot decode
+args = ["decompress", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml.br"
+  path = "dataset_trans/brotli/validation_workload/inputs/silesia-xml.br"
+  iters = 45
+  stdout_sha256 = "2db24a8a7c0e0e2ad2197536f792f79ba366836a80eacd4468b0878566924e8f"
+  [[operations.inputs]]
+  name = "silesia-dickens.br"
+  path = "dataset_trans/brotli/validation_workload/inputs/silesia-dickens.br"
+  iters = 8
+  stdout_sha256 = "32bd9424a1d0c96aa11ed7d2137312b6a60d9a8402884fb05209373ea9d650d7"
+
+[[operations]]
+name = "stream_roundtrip"         # TakeOutput windows + metadata + 7B decode
+args = ["stream_roundtrip", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "dataset_trans/brotli/validation_workload/inputs/silesia-xml"
+  iters = 3
+  stdout_sha256 = "d0616a9fea733efe9854395ae891183b12bdb57a69ddb6996bf93881fe118c5f"
+
+[[operations]]
+name = "dict_roundtrip"           # shared raw dictionary encode + decode
+args = ["dict_roundtrip", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "dataset_trans/brotli/validation_workload/inputs/silesia-xml"
+  iters = 3
+  stdout_sha256 = "72856f39c2fd08f1821cbcf82c435a4efb606c44dec104f6fc810ad5fb401e08"
+
+[[operations]]
+name = "misc"                     # versions/estimates/error surface
+args = ["misc", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "silesia-xml.br"
+  path = "dataset_trans/brotli/validation_workload/inputs/silesia-xml.br"
+  iters = 50
+  stdout_sha256 = "1612059b2ba740e72865b074d5c2992dbba1ee694e4e54648c905323767ba0fa"

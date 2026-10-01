@@ -1,0 +1,238 @@
+{
+  "hot_function": {
+    "symbol": "xmlParserGrow",
+    "location": "src/parserInternals.rs:1910-1954",
+    "workload": "html_push_parse",
+    "hot_region": "src/parserInternals.rs:1910-1954",
+    "rust_source": "pub extern \"C\" fn xmlParserGrow(mut ctxt: xmlParserCtxtPtr) -> c_int { unsafe {\n    let mut in_0: xmlParserInputPtr = (*ctxt).input;\n    let mut buf: xmlParserInputBufferPtr = (*in_0).buf;\n    let mut curEnd: ptrdiff_t = (*in_0).end.offset_from((*in_0).cur) as ptrdiff_t;\n    let mut curBase: ptrdiff_t = (*in_0).cur.offset_from((*in_0).base) as ptrdiff_t;\n    let mut ret: c_int = 0;\n    if buf.is_null() {\n        return 0 as c_int;\n    }\n    if (*ctxt).progressive != 0 && (*ctxt).inputNr <= 1 as c_int {\n        return 0 as c_int;\n    }\n    if (*buf).encoder.is_null() && (*buf).readcallback.is_none() {\n        return 0 as c_int;\n    }\n    if (*buf).error != 0 as c_int {\n        return -(1 as c_int);\n    }\n    if (curEnd > XML_MAX_LOOKUP_LIMIT as ptrdiff_t || curBase > XML_MAX_LOOKUP_LIMIT as ptrdiff_t)\n        && (*ctxt).options & XML_PARSE_HUGE as c_int == 0 as c_int\n    {\n        xmlErrMemory(\n            ctxt,\n            b\"Huge input lookup\\0\" as *const u8 as *const c_char,\n        );\n        xmlHaltParser(ctxt);\n        return -(1 as c_int);\n    }\n    if curEnd >= INPUT_CHUNK as ptrdiff_t {\n        return 0 as c_int;\n    }\n    ret = xmlParserInputBufferGrow(buf, INPUT_CHUNK);\n    xmlBufUpdateInput((*buf).buffer, in_0, curBase as size_t);\n    if ret < 0 as c_int {\n        xmlFatalErr(\n            ctxt,\n            (*buf).error as xmlParserErrors,\n            ::core::ptr::null::<c_char>(),\n        );\n        if (*buf).error == XML_ERR_NO_MEMORY as c_int {\n            xmlHaltParser(ctxt);\n        }\n    }\n    return ret;\n} }",
+    "signature": "pub extern \"C\" fn xmlParserGrow(mut ctxt: xmlParserCtxtPtr) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.0535,
+      "call_count": null,
+      "retired_instructions": 1042460337,
+      "instructions_per_call": null,
+      "cpi": 0.298,
+      "tma": {
+        "scope": "process",
+        "retiring": 55.096498330094484,
+        "frontend_bound": 30.042227530080183,
+        "bad_speculation": 4.756478362319564,
+        "backend_bound": 10.10479577750577,
+        "memory_bound": 5.644617152766263,
+        "core_bound": 4.460178624739506,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0044
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1931,
+        "message": "'xmlErrMemory' inlined into 'xmlParserGrow' with (cost=130, threshold=250) at callsite xmlParserGrow:21:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1935,
+        "message": "'xmlHaltParser' not inlined into 'xmlParserGrow' because too costly to inline (cost=260, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1941,
+        "message": "'xmlParserInputBufferGrow' not inlined into 'xmlParserGrow' because too costly to inline (cost=545, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1942,
+        "message": "'xmlBufUpdateInput' inlined into 'xmlParserGrow' with (cost=95, threshold=250) at callsite xmlParserGrow:32:5;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1944,
+        "message": "'xmlFatalErr' not inlined into 'xmlParserGrow' because too costly to inline (cost=1025, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1950,
+        "message": "'xmlHaltParser' not inlined into 'xmlParserGrow' because too costly to inline (cost=260, threshold=45)"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1942,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1946,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1949,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1910,
+        "message": "X86 DAG->DAG Instruction Selection: Function: xmlParserGrow: MI Instruction count changed from 0 to 157; Delta: 157"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1910,
+        "message": "Machine Common Subexpression Elimination: Function: xmlParserGrow: MI Instruction count changed from 157 to 152; Delta: -5"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1910,
+        "message": "Peephole Optimizations: Function: xmlParserGrow: MI Instruction count changed from 152 to 147; Delta: -5"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1910,
+        "message": "Eliminate PHI nodes for register allocation: Function: xmlParserGrow: MI Instruction count changed from 147 to 155; Delta: 8"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1910,
+        "message": "Two-Address instruction pass: Function: xmlParserGrow: MI Instruction count changed from 155 to 159; Delta: 4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1910,
+        "message": "Register Coalescer: Function: xmlParserGrow: MI Instruction count changed from 159 to 138; Delta: -21"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1910,
+        "message": "6 virtual registers copies 1.765601e+00 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1910,
+        "message": "Virtual Register Rewriter: Function: xmlParserGrow: MI Instruction count changed from 138 to 135; Delta: -3"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 1910,
+        "message": "120 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1910,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: xmlParserGrow: MI Instruction count changed from 135 to 151; Delta: 16"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1910,
+        "message": "Control Flow Optimizer: Function: xmlParserGrow: MI Instruction count changed from 151 to 129; Delta: -22"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1910,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: xmlParserGrow: MI Instruction count changed from 129 to 130; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1911,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1919,
+        "message": "BasicBlock: bb3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1922,
+        "message": "BasicBlock: bb7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1925,
+        "message": "BasicBlock: bb12"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1954,
+        "message": "BasicBlock: bb32"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1928,
+        "message": "BasicBlock: bb14"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1929,
+        "message": "BasicBlock: bb16"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1938,
+        "message": "BasicBlock: bb21"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1941,
+        "message": "BasicBlock: bb2.i7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1946,
+        "message": "BasicBlock: bb26"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1910,
+        "message": "115 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

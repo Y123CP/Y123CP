@@ -1,0 +1,915 @@
+{
+  "hot_function": {
+    "symbol": "inflate_fast",
+    "location": "src/zlib/inffast.rs:72-432",
+    "workload": "zlib_compress_uncompress",
+    "hot_region": "src/zlib/inffast.rs:72-432",
+    "rust_source": "pub extern \"C\" fn inflate_fast(mut strm: z_streamp, mut start: c_uint) { unsafe {\n    let mut state: *mut inflate_state = ::core::ptr::null_mut::<inflate_state>();\n    let mut in_0: *mut c_uchar = ::core::ptr::null_mut::<c_uchar>();\n    let mut last: *mut c_uchar = ::core::ptr::null_mut::<c_uchar>();\n    let mut out: *mut c_uchar = ::core::ptr::null_mut::<c_uchar>();\n    let mut beg: *mut c_uchar = ::core::ptr::null_mut::<c_uchar>();\n    let mut end: *mut c_uchar = ::core::ptr::null_mut::<c_uchar>();\n    let mut wsize: c_uint = 0;\n    let mut whave: c_uint = 0;\n    let mut wnext: c_uint = 0;\n    let mut window: *mut c_uchar = ::core::ptr::null_mut::<c_uchar>();\n    let mut hold: c_ulong = 0;\n    let mut bits: c_uint = 0;\n    let mut lcode: *const code = ::core::ptr::null::<code>();\n    let mut dcode: *const code = ::core::ptr::null::<code>();\n    let mut lmask: c_uint = 0;\n    let mut dmask: c_uint = 0;\n    let mut here: code = code {\n        op: 0,\n        bits: 0,\n        val: 0,\n    };\n    let mut op: c_uint = 0;\n    let mut len: c_uint = 0;\n    let mut dist: c_uint = 0;\n    let mut from: *mut c_uchar = ::core::ptr::null_mut::<c_uchar>();\n    state = (*strm).state as *mut inflate_state;\n    in_0 = (*strm).next_in as *mut c_uchar;\n    last = in_0.offset(\n        ((*strm).avail_in as c_uint).wrapping_sub(5 as c_uint) as isize,\n    );\n    out = (*strm).next_out as *mut c_uchar;\n    beg = out.offset(-((start as uInt).wrapping_sub((*strm).avail_out) as isize));\n    end = out.offset(\n        ((*strm).avail_out as c_uint).wrapping_sub(257 as c_uint)\n            as isize,\n    );\n    wsize = (*state).wsize;\n    whave = (*state).whave;\n    wnext = (*state).wnext;\n    window = (*state).window;\n    hold = (*state).hold;\n    bits = (*state).bits;\n    lcode = (*state).lencode;\n    dcode = (*state).distcode;\n    lmask = ((1 as c_uint) << (*state).lenbits).wrapping_sub(1 as c_uint);\n    dmask =\n        ((1 as c_uint) << (*state).distbits).wrapping_sub(1 as c_uint);\n    let mut current_block_141: u64;\n    's_94: loop {\n        if bits < 15 as c_uint {\n            let fresh0 = in_0;\n            in_0 = in_0.offset(1);\n            hold = hold.wrapping_add((*fresh0 as c_ulong) << bits);\n            bits = bits.wrapping_add(8 as c_uint);\n            let fresh1 = in_0;\n            in_0 = in_0.offset(1);\n            hold = hold.wrapping_add((*fresh1 as c_ulong) << bits);\n            bits = bits.wrapping_add(8 as c_uint);\n        }\n        here = *lcode.offset((hold & lmask as c_ulong) as isize);\n        loop {\n            op = here.bits as c_uint;\n            hold >>= op;\n            bits = bits.wrapping_sub(op);\n            op = here.op as c_uint;\n            if op == 0 as c_uint {\n                let fresh2 = out;\n                out = out.offset(1);\n                *fresh2 = here.val as c_uchar;\n                current_block_141 = 5689001924483802034;\n                break;\n            } else if op & 16 as c_uint != 0 {\n                len = here.val as c_uint;\n                op &= 15 as c_uint;\n                if op != 0 {\n                    if bits < op {\n                        let fresh3 = in_0;\n                        in_0 = in_0.offset(1);\n                        hold = hold.wrapping_add((*fresh3 as c_ulong) << bits);\n                        bits = bits.wrapping_add(8 as c_uint);\n                    }\n                    len = len.wrapping_add(\n                        hold as c_uint\n                            & ((1 as c_uint) << op)\n                                .wrapping_sub(1 as c_uint),\n                    );\n                    hold >>= op;\n                    bits = bits.wrapping_sub(op);\n                }\n                if bits < 15 as c_uint {\n                    let fresh4 = in_0;\n                    in_0 = in_0.offset(1);\n                    hold = hold.wrapping_add((*fresh4 as c_ulong) << bits);\n                    bits = bits.wrapping_add(8 as c_uint);\n                    let fresh5 = in_0;\n                    in_0 = in_0.offset(1);\n                    hold = hold.wrapping_add((*fresh5 as c_ulong) << bits);\n                    bits = bits.wrapping_add(8 as c_uint);\n                }\n                here = *dcode.offset((hold & dmask as c_ulong) as isize);\n                current_block_141 = 4617688975773714446;\n                break;\n            } else if op & 64 as c_uint == 0 as c_uint {\n                here = *lcode.offset((here.val as c_ulong).wrapping_add(\n                    hold & ((1 as c_uint) << op).wrapping_sub(1 as c_uint)\n                        as c_ulong,\n                ) as isize);\n            } else if op & 32 as c_uint != 0 {\n                current_block_141 = 13505557363059842426;\n                break;\n            } else {\n                current_block_141 = 9180031981464905198;\n                break;\n            }\n        }\n        match current_block_141 {\n            4617688975773714446 => {\n                loop {\n                    op = here.bits as c_uint;\n                    hold >>= op;\n                    bits = bits.wrapping_sub(op);\n                    op = here.op as c_uint;\n                    if op & 16 as c_uint != 0 {\n                        dist = here.val as c_uint;\n                        op &= 15 as c_uint;\n                        if bits < op {\n                            let fresh6 = in_0;\n                            in_0 = in_0.offset(1);\n                            hold = hold.wrapping_add((*fresh6 as c_ulong) << bits);\n                            bits = bits.wrapping_add(8 as c_uint);\n                            if bits < op {\n                                let fresh7 = in_0;\n                                in_0 = in_0.offset(1);\n                                hold = hold.wrapping_add((*fresh7 as c_ulong) << bits);\n                                bits = bits.wrapping_add(8 as c_uint);\n                            }\n                        }\n                        dist = dist.wrapping_add(\n                            hold as c_uint\n                                & ((1 as c_uint) << op)\n                                    .wrapping_sub(1 as c_uint),\n                        );\n                        hold >>= op;\n                        bits = bits.wrapping_sub(op);\n                        op = out.offset_from(beg) as c_long as c_uint;\n                        if dist > op {\n                            current_block_141 = 5235537862154438448;\n                            break;\n                        } else {\n                            current_block_141 = 6072622540298447352;\n                            break;\n                        }\n                    } else if op & 64 as c_uint == 0 as c_uint {\n                        here = *dcode.offset(\n                            (here.val as c_ulong).wrapping_add(\n                                hold & ((1 as c_uint) << op)\n                                    .wrapping_sub(1 as c_uint)\n                                    as c_ulong,\n                            ) as isize,\n                        );\n                    } else {\n                        (*strm).msg = b\"invalid distance code\\0\" as *const u8\n                            as *const c_char\n                            as *mut c_char;\n                        (*state).mode = BAD;\n                        break 's_94;\n                    }\n                }\n                match current_block_141 {\n                    6072622540298447352 => {\n                        from = out.offset(-(dist as isize));\n                        loop {\n                            let fresh26 = from;\n                            from = from.offset(1);\n                            let fresh27 = out;\n                            out = out.offset(1);\n                            *fresh27 = *fresh26;\n                            let fresh28 = from;\n                            from = from.offset(1);\n                            let fresh29 = out;\n                            out = out.offset(1);\n                            *fresh29 = *fresh28;\n                            let fresh30 = from;\n                            from = from.offset(1);\n                            let fresh31 = out;\n                            out = out.offset(1);\n                            *fresh31 = *fresh30;\n                            len = len.wrapping_sub(3 as c_uint);\n                            if !(len > 2 as c_uint) {\n                                break;\n                            }\n                        }\n                        if len != 0 {\n                            let fresh32 = from;\n                            from = from.offset(1);\n                            let fresh33 = out;\n                            out = out.offset(1);\n                            *fresh33 = *fresh32;\n                            if len > 1 as c_uint {\n                                let fresh34 = from;\n                                from = from.offset(1);\n                                let fresh35 = out;\n                                out = out.offset(1);\n                                *fresh35 = *fresh34;\n                            }\n                        }\n                    }\n                    _ => {\n                        op = dist.wrapping_sub(op);\n                        if op > whave {\n                            if (*state).sane != 0 {\n                                (*strm).msg = b\"invalid distance too far back\\0\" as *const u8\n                                    as *const c_char\n                                    as *mut c_char;\n                                (*state).mode = BAD;\n                                break;\n                            }\n                        }\n                        from = window;\n                        if wnext == 0 as c_uint {\n                            from = from.offset(wsize.wrapping_sub(op) as isize);\n                            if op < len {\n                                len = len.wrapping_sub(op);\n                                loop {\n                                    let fresh8 = from;\n                                    from = from.offset(1);\n                                    let fresh9 = out;\n                                    out = out.offset(1);\n                                    *fresh9 = *fresh8;\n                                    op = op.wrapping_sub(1);\n                                    if !(op != 0) {\n                                        break;\n                                    }\n                                }\n                                from = out.offset(-(dist as isize));\n                            }\n                        } else if wnext < op {\n                            from = from.offset(wsize.wrapping_add(wnext).wrapping_sub(op) as isize);\n                            op = op.wrapping_sub(wnext);\n                            if op < len {\n                                len = len.wrapping_sub(op);\n                                loop {\n                                    let fresh10 = from;\n                                    from = from.offset(1);\n                                    let fresh11 = out;\n                                    out = out.offset(1);\n                                    *fresh11 = *fresh10;\n                                    op = op.wrapping_sub(1);\n                                    if !(op != 0) {\n                                        break;\n                                    }\n                                }\n                                from = window;\n                                if wnext < len {\n                                    op = wnext;\n                                    len = len.wrapping_sub(op);\n                                    loop {\n                                        let fresh12 = from;\n                                        from = from.offset(1);\n                                        let fresh13 = out;\n                                        out = out.offset(1);\n                                        *fresh13 = *fresh12;\n                                        op = op.wrapping_sub(1);\n                                        if !(op != 0) {\n                                            break;\n                                        }\n                                    }\n                                    from = out.offset(-(dist as isize));\n                                }\n                            }\n                        } else {\n                            from = from.offset(wnext.wrapping_sub(op) as isize);\n                            if op < len {\n                                len = len.wrapping_sub(op);\n                                loop {\n                                    let fresh14 = from;\n                                    from = from.offset(1);\n                                    let fresh15 = out;\n                                    out = out.offset(1);\n                                    *fresh15 = *fresh14;\n                                    op = op.wrapping_sub(1);\n                                    if !(op != 0) {\n                                        break;\n                                    }\n                                }\n                                from = out.offset(-(dist as isize));\n                            }\n                        }\n                        while len > 2 as c_uint {\n                            let fresh16 = from;\n                            from = from.offset(1);\n                            let fresh17 = out;\n                            out = out.offset(1);\n                            *fresh17 = *fresh16;\n                            let fresh18 = from;\n                            from = from.offset(1);\n                            let fresh19 = out;\n                            out = out.offset(1);\n                            *fresh19 = *fresh18;\n                            let fresh20 = from;\n                            from = from.offset(1);\n                            let fresh21 = out;\n                            out = out.offset(1);\n                            *fresh21 = *fresh20;\n                            len = len.wrapping_sub(3 as c_uint);\n                        }\n                        if len != 0 {\n                            let fresh22 = from;\n                            from = from.offset(1);\n                            let fresh23 = out;\n                            out = out.offset(1);\n                            *fresh23 = *fresh22;\n                            if len > 1 as c_uint {\n                                let fresh24 = from;\n                                from = from.offset(1);\n                                let fresh25 = out;\n                                out = out.offset(1);\n                                *fresh25 = *fresh24;\n                            }\n                        }\n                    }\n                }\n            }\n            9180031981464905198 => {\n                (*strm).msg = b\"invalid literal/length code\\0\" as *const u8\n                    as *const c_char\n                    as *mut c_char;\n                (*state).mode = BAD;\n                break;\n            }\n            13505557363059842426 => {\n                (*state).mode = TYPE;\n                break;\n            }\n            _ => {}\n        }\n        if !(in_0 < last && out < end) {\n            break;\n        }\n    }\n    len = bits >> 3 as c_int;\n    in_0 = in_0.offset(-(len as isize));\n    bits = bits.wrapping_sub(len << 3 as c_int);\n    hold &= ((1 as c_uint) << bits).wrapping_sub(1 as c_uint)\n        as c_ulong;\n    (*strm).next_in = in_0 as *mut Bytef;\n    (*strm).next_out = out as *mut Bytef;\n    (*strm).avail_in = (if in_0 < last {\n        5 as c_long + last.offset_from(in_0) as c_long\n    } else {\n        5 as c_long - in_0.offset_from(last) as c_long\n    }) as c_uint as uInt;\n    (*strm).avail_out = (if out < end {\n        257 as c_long + end.offset_from(out) as c_long\n    } else {\n        257 as c_long - out.offset_from(end) as c_long\n    }) as c_uint as uInt;\n    (*state).hold = hold;\n    (*state).bits = bits;\n} }",
+    "signature": "pub extern \"C\" fn inflate_fast(mut strm: z_streamp, mut start: c_uint)",
+    "profile": {
+      "self_time_ratio": 0.1002,
+      "call_count": null,
+      "retired_instructions": 1022282235,
+      "instructions_per_call": null,
+      "cpi": 0.585,
+      "tma": {
+        "scope": "process",
+        "retiring": 49.972377692631504,
+        "frontend_bound": 15.116888479665324,
+        "bad_speculation": 10.008721640783417,
+        "backend_bound": 24.90201218691976,
+        "memory_bound": 17.164257741817703,
+        "core_bound": 7.737754445102055,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.017
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_vec": {
+        "NonReductionValueUsedOutsideLoop": 2,
+        "CantComputeNumberOfIterations": 2
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 132,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 172,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 283,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 283,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 292,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 125,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 151,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 165,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 201,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 249,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 254,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 259,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 270,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 276,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 283,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 352,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 319,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 334,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 301,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 366,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 371,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 376,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 384,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 390,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "other",
+        "status": "missed",
+        "line": 361,
+        "message": "the cost-model indicates that interleaving is not beneficial"
+      },
+      {
+        "pass": "other",
+        "status": "missed",
+        "line": 244,
+        "message": "the cost-model indicates that interleaving is not beneficial"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 225,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 225,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 225,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 144,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 144,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 144,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 72,
+        "message": "X86 DAG->DAG Instruction Selection: Function: inflate_fast: MI Instruction count changed from 0 to 1191; Delta: 1191"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 72,
+        "message": "Early Tail Duplication: Function: inflate_fast: MI Instruction count changed from 1191 to 1189; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 72,
+        "message": "Early Machine Loop Invariant Code Motion: Function: inflate_fast: MI Instruction count changed from 1189 to 1169; Delta: -20"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 72,
+        "message": "Machine Common Subexpression Elimination: Function: inflate_fast: MI Instruction count changed from 1169 to 1154; Delta: -15"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 72,
+        "message": "Machine code sinking: Function: inflate_fast: MI Instruction count changed from 1154 to 1153; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 72,
+        "message": "Peephole Optimizations: Function: inflate_fast: MI Instruction count changed from 1153 to 1131; Delta: -22"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 72,
+        "message": "Process Implicit Definitions: Function: inflate_fast: MI Instruction count changed from 1131 to 1104; Delta: -27"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 72,
+        "message": "Eliminate PHI nodes for register allocation: Function: inflate_fast: MI Instruction count changed from 1104 to 1482; Delta: 378"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 72,
+        "message": "Two-Address instruction pass: Function: inflate_fast: MI Instruction count changed from 1482 to 1690; Delta: 208"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 72,
+        "message": "Register Coalescer: Function: inflate_fast: MI Instruction count changed from 1690 to 951; Delta: -739"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 321,
+        "message": "1 virtual registers copies 6.014331e-01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 121,
+        "message": "26 spills 5.518333e+00 total spills cost 57 folded spills 5.937551e+00 total folded spills cost 141 reloads 7.512726e+00 total reloads cost 23 folded reloads 2.915310e+00 total folded reloads cost 101 virtual registers copies 1.085106e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 72,
+        "message": "39 spills 1.851833e+01 total spills cost 57 folded spills 5.937551e+00 total folded spills cost 149 reloads 9.830413e+00 total reloads cost 23 folded reloads 2.915310e+00 total folded reloads cost 110 virtual registers copies 1.904123e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 72,
+        "message": "Greedy Register Allocator: Function: inflate_fast: MI Instruction count changed from 951 to 1153; Delta: 202"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 72,
+        "message": "Virtual Register Rewriter: Function: inflate_fast: MI Instruction count changed from 1153 to 1141; Delta: -12"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 72,
+        "message": "144 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 72,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: inflate_fast: MI Instruction count changed from 1141 to 1175; Delta: 34"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 72,
+        "message": "Control Flow Optimizer: Function: inflate_fast: MI Instruction count changed from 1175 to 1004; Delta: -171"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 72,
+        "message": "Branch Probability Basic Block Placement: Function: inflate_fast: MI Instruction count changed from 1004 to 1005; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 72,
+        "message": "X86 vzeroupper inserter: Function: inflate_fast: MI Instruction count changed from 1005 to 1006; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 72,
+        "message": "X86 LEA Fixup: Function: inflate_fast: MI Instruction count changed from 1006 to 1020; Delta: 14"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 72,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: inflate_fast: MI Instruction count changed from 1020 to 1021; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 98,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 125,
+        "message": "BasicBlock: bb2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 132,
+        "message": "BasicBlock: bb4"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: bb7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 175,
+        "message": "BasicBlock: bb18"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 176,
+        "message": "BasicBlock: bb19"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 141,
+        "message": "BasicBlock: bb23.thread"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 409,
+        "message": "BasicBlock: bb92"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 409,
+        "message": "BasicBlock: bb92"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 148,
+        "message": "BasicBlock: bb9"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 151,
+        "message": "BasicBlock: bb10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 155,
+        "message": "BasicBlock: bb12"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 162,
+        "message": "BasicBlock: bb14"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 165,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 172,
+        "message": "BasicBlock: bb23"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 225,
+        "message": "BasicBlock: bb34"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 227,
+        "message": "BasicBlock: bb35"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 197,
+        "message": "BasicBlock: bb25"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb27"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 282,
+        "message": "BasicBlock: bb38"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 309,
+        "message": "BasicBlock: bb60"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 321,
+        "message": "BasicBlock: bb63.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 321,
+        "message": "BasicBlock: bb63.prol.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 319,
+        "message": "BasicBlock: bb63.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 321,
+        "message": "BasicBlock: bb63.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 243,
+        "message": "BasicBlock: bb39"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 244,
+        "message": "BasicBlock: vector.memcheck227"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 244,
+        "message": "BasicBlock: vector.ph294"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 249,
+        "message": "BasicBlock: vector.body305"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 261,
+        "message": "BasicBlock: middle.block291"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 303,
+        "message": "BasicBlock: bb55.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 303,
+        "message": "BasicBlock: vector.memcheck126"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 303,
+        "message": "BasicBlock: scalar.ph130"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 303,
+        "message": "BasicBlock: bb55.prol.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 301,
+        "message": "BasicBlock: bb55.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 303,
+        "message": "BasicBlock: bb55.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 354,
+        "message": "BasicBlock: bb76.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 354,
+        "message": "BasicBlock: vector.memcheck202"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 354,
+        "message": "BasicBlock: scalar.ph205"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 354,
+        "message": "BasicBlock: bb76.prol.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 352,
+        "message": "BasicBlock: bb76.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 354,
+        "message": "BasicBlock: bb76.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 249,
+        "message": "BasicBlock: bb40"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 265,
+        "message": "BasicBlock: bb42.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 270,
+        "message": "BasicBlock: bb43"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 276,
+        "message": "BasicBlock: bb45"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 321,
+        "message": "BasicBlock: vector.memcheck176"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 321,
+        "message": "BasicBlock: bb63.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 321,
+        "message": "BasicBlock: bb63.preheader449"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 321,
+        "message": "BasicBlock: bb65.loopexit.unr-lcssa"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 303,
+        "message": "BasicBlock: bb55.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 303,
+        "message": "BasicBlock: bb55.preheader447"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 301,
+        "message": "BasicBlock: bb55"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 354,
+        "message": "BasicBlock: bb76.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 354,
+        "message": "BasicBlock: bb76.preheader450"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 352,
+        "message": "BasicBlock: bb76"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 361,
+        "message": "BasicBlock: bb82.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 361,
+        "message": "BasicBlock: bb83.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 361,
+        "message": "BasicBlock: vector.memcheck"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 361,
+        "message": "BasicBlock: vector.memcheck"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 361,
+        "message": "BasicBlock: vector.ph"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 366,
+        "message": "BasicBlock: vector.body"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 361,
+        "message": "BasicBlock: middle.block"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 366,
+        "message": "BasicBlock: bb83"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 379,
+        "message": "BasicBlock: bb84"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 384,
+        "message": "BasicBlock: bb85"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 390,
+        "message": "BasicBlock: bb87"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 303,
+        "message": "BasicBlock: vector.ph132"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 301,
+        "message": "BasicBlock: vector.body143"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 303,
+        "message": "BasicBlock: middle.block129"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 354,
+        "message": "BasicBlock: vector.ph207"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 352,
+        "message": "BasicBlock: vector.body218"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 354,
+        "message": "BasicBlock: middle.block204"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 321,
+        "message": "BasicBlock: vector.ph181"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 319,
+        "message": "BasicBlock: vector.body193"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 321,
+        "message": "BasicBlock: middle.block178"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 326,
+        "message": "BasicBlock: bb65"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 336,
+        "message": "BasicBlock: vector.memcheck151"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 336,
+        "message": "BasicBlock: scalar.ph154"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 336,
+        "message": "BasicBlock: bb68.prol.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 334,
+        "message": "BasicBlock: bb68.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 336,
+        "message": "BasicBlock: bb68.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 336,
+        "message": "BasicBlock: bb68.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 336,
+        "message": "BasicBlock: bb68.preheader448"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 334,
+        "message": "BasicBlock: bb68"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 334,
+        "message": "BasicBlock: vector.body167"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 340,
+        "message": "BasicBlock: bb70"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 413,
+        "message": "BasicBlock: bb98"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 72,
+        "message": "998 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

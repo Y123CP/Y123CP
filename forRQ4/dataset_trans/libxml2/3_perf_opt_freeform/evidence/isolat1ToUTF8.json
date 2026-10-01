@@ -1,0 +1,262 @@
+{
+  "hot_function": {
+    "symbol": "isolat1ToUTF8",
+    "location": "src/encoding.rs:1337-1390",
+    "workload": "encoding_suite",
+    "hot_region": "src/encoding.rs:1337-1390",
+    "rust_source": "pub unsafe extern \"C\" fn isolat1ToUTF8(\n    mut out: *mut c_uchar,\n    mut outlen: *mut c_int,\n    mut in_0: *const c_uchar,\n    mut inlen: *mut c_int,\n) -> c_int {\n    let mut outstart: *mut c_uchar = out;\n    let mut base: *const c_uchar = in_0;\n    let mut outend: *mut c_uchar = ::core::ptr::null_mut::<c_uchar>();\n    let mut inend: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut instop: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    if out.is_null() || in_0.is_null() || outlen.is_null() || inlen.is_null() {\n        return XML_ENC_ERR_INTERNAL as c_int;\n    }\n    outend = out.offset(*outlen as isize);\n    inend = in_0.offset(*inlen as isize);\n    instop = inend;\n    while in_0 < inend && out < outend.offset(-(1 as c_int as isize)) {\n        if *in_0 as c_int >= 0x80 as c_int {\n            let fresh28 = out;\n            out = out.offset(1);\n            *fresh28 = (*in_0 as c_int >> 6 as c_int\n                & 0x1f as c_int\n                | 0xc0 as c_int) as c_uchar;\n            let fresh29 = out;\n            out = out.offset(1);\n            *fresh29 = (*in_0 as c_int & 0x3f as c_int\n                | 0x80 as c_int) as c_uchar;\n            in_0 = in_0.offset(1);\n        }\n        if instop.offset_from(in_0) as c_long\n            > outend.offset_from(out) as c_long\n        {\n            instop = in_0.offset(outend.offset_from(out) as c_long as isize);\n        }\n        while in_0 < instop && (*in_0 as c_int) < 0x80 as c_int {\n            let fresh30 = in_0;\n            in_0 = in_0.offset(1);\n            let fresh31 = out;\n            out = out.offset(1);\n            *fresh31 = *fresh30;\n        }\n    }\n    if in_0 < inend && out < outend && (*in_0 as c_int) < 0x80 as c_int {\n        let fresh32 = in_0;\n        in_0 = in_0.offset(1);\n        let fresh33 = out;\n        out = out.offset(1);\n        *fresh33 = *fresh32;\n    }\n    *outlen = out.offset_from(outstart) as c_long as c_int;\n    *inlen = in_0.offset_from(base) as c_long as c_int;\n    return *outlen;\n}",
+    "signature": "pub unsafe extern \"C\" fn isolat1ToUTF8(\n    mut out: *mut c_uchar,\n    mut outlen: *mut c_int,\n    mut in_0: *const c_uchar,\n    mut inlen: *mut c_int,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.1235,
+      "call_count": null,
+      "retired_instructions": 2296359269,
+      "instructions_per_call": null,
+      "cpi": 0.318,
+      "tma": {
+        "scope": "process",
+        "retiring": 49.93366650993116,
+        "frontend_bound": 29.874323170069932,
+        "bad_speculation": 4.441194287271203,
+        "backend_bound": 15.750816032727712,
+        "memory_bound": 3.789000631798132,
+        "core_bound": 11.961815400929579,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0024
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1355,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1363,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1372,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1380,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1389,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1337,
+        "message": "X86 DAG->DAG Instruction Selection: Function: isolat1ToUTF8: MI Instruction count changed from 0 to 118; Delta: 118"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1337,
+        "message": "Early Tail Duplication: Function: isolat1ToUTF8: MI Instruction count changed from 118 to 117; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1337,
+        "message": "Eliminate PHI nodes for register allocation: Function: isolat1ToUTF8: MI Instruction count changed from 117 to 160; Delta: 43"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1337,
+        "message": "Two-Address instruction pass: Function: isolat1ToUTF8: MI Instruction count changed from 160 to 185; Delta: 25"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1337,
+        "message": "Register Coalescer: Function: isolat1ToUTF8: MI Instruction count changed from 185 to 106; Delta: -79"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1355,
+        "message": "4 virtual registers copies 1.656637e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1337,
+        "message": "11 virtual registers copies 1.786726e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1337,
+        "message": "Virtual Register Rewriter: Function: isolat1ToUTF8: MI Instruction count changed from 106 to 101; Delta: -5"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 1337,
+        "message": "40 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1337,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: isolat1ToUTF8: MI Instruction count changed from 101 to 131; Delta: 30"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1337,
+        "message": "Control Flow Optimizer: Function: isolat1ToUTF8: MI Instruction count changed from 131 to 121; Delta: -10"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1337,
+        "message": "Branch Probability Basic Block Placement: Function: isolat1ToUTF8: MI Instruction count changed from 121 to 120; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1337,
+        "message": "X86 LEA Fixup: Function: isolat1ToUTF8: MI Instruction count changed from 120 to 121; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1348,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1390,
+        "message": "BasicBlock: bb34"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1351,
+        "message": "BasicBlock: bb8"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1355,
+        "message": "BasicBlock: bb11"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1372,
+        "message": "BasicBlock: bb19.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1372,
+        "message": "BasicBlock: bb19"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1354,
+        "message": "BasicBlock: bb23"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1380,
+        "message": "BasicBlock: bb26"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1380,
+        "message": "BasicBlock: bb29"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1337,
+        "message": "101 instructions in function"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1355,
+        "message": "5 virtual registers copies 9.983411e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1355,
+        "message": "BasicBlock: bb11.i19"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1372,
+        "message": "BasicBlock: bb19.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1372,
+        "message": "BasicBlock: bb19.i23"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1354,
+        "message": "BasicBlock: bb23.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1354,
+        "message": "BasicBlock: bb23.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1380,
+        "message": "BasicBlock: bb26.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1380,
+        "message": "BasicBlock: bb29.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

@@ -1,0 +1,513 @@
+{
+  "hot_function": {
+    "symbol": "png_read_IDAT_data",
+    "location": "src/libpng/pngrutil.rs:2316-2425",
+    "workload": "png_palette_roundtrip",
+    "hot_region": "src/libpng/pngrutil.rs:2316-2425",
+    "rust_source": "pub extern \"C\" fn png_read_IDAT_data(\n    mut png_ptr: png_structrp,\n    mut output: png_bytep,\n    mut avail_out: png_alloc_size_t,\n) { unsafe {\n    (*png_ptr).zstream.next_out = output as *mut Bytef;\n    (*png_ptr).zstream.avail_out = 0 as uInt;\n    if output.is_null() {\n        avail_out = 0 as png_alloc_size_t;\n    }\n    loop {\n        let mut ret: c_int = 0;\n        let mut tmpbuf: [png_byte; 1024] = [0; 1024];\n        if (*png_ptr).zstream.avail_in == 0 as c_uint {\n            let mut avail_in: uInt = 0;\n            let mut buffer: png_bytep = ::core::ptr::null_mut::<png_byte>();\n            while (*png_ptr).idat_size == 0 as c_uint {\n                png_crc_finish(png_ptr, 0 as png_uint_32);\n                (*png_ptr).idat_size = png_read_chunk_header(png_ptr);\n                if (*png_ptr).chunk_name != png_IDAT {\n                    png_error(\n                        png_ptr,\n                        b\"Not enough image data\\0\" as *const u8 as png_const_charp,\n                    );\n                }\n            }\n            avail_in = (*png_ptr).IDAT_read_size;\n            if avail_in > (*png_ptr).idat_size {\n                avail_in = (*png_ptr).idat_size;\n            }\n            buffer = png_read_buffer(\n                png_ptr,\n                avail_in as png_alloc_size_t,\n                0 as c_int,\n            );\n            png_crc_read(png_ptr, buffer, avail_in as png_uint_32);\n            (*png_ptr).idat_size = ((*png_ptr).idat_size as c_uint)\n                .wrapping_sub(avail_in as c_uint)\n                as png_uint_32 as png_uint_32;\n            (*png_ptr).zstream.next_in = buffer as *const Bytef;\n            (*png_ptr).zstream.avail_in = avail_in;\n        }\n        if !output.is_null() {\n            let mut out: uInt = ZLIB_IO_MAX;\n            if out as png_alloc_size_t > avail_out {\n                out = avail_out as uInt;\n            }\n            avail_out = (avail_out as c_ulong)\n                .wrapping_sub(out as c_ulong)\n                as png_alloc_size_t as png_alloc_size_t;\n            (*png_ptr).zstream.avail_out = out;\n        } else {\n            (*png_ptr).zstream.next_out = &raw mut tmpbuf as *mut png_byte as *mut Bytef;\n            (*png_ptr).zstream.avail_out = ::core::mem::size_of::<[png_byte; 1024]>() as uInt;\n        }\n        ret = png_zlib_inflate(png_ptr, 0 as c_int);\n        if !output.is_null() {\n            avail_out = (avail_out as c_ulong)\n                .wrapping_add((*png_ptr).zstream.avail_out as c_ulong)\n                as png_alloc_size_t as png_alloc_size_t;\n        } else {\n            avail_out = (avail_out as c_ulong).wrapping_add(\n                (::core::mem::size_of::<[png_byte; 1024]>() as usize)\n                    .wrapping_sub((*png_ptr).zstream.avail_out as usize)\n                    as c_ulong,\n            ) as png_alloc_size_t as png_alloc_size_t;\n        }\n        (*png_ptr).zstream.avail_out = 0 as uInt;\n        if ret == Z_STREAM_END {\n            (*png_ptr).zstream.next_out = ::core::ptr::null_mut::<Bytef>();\n            (*png_ptr).mode |= PNG_AFTER_IDAT as c_uint;\n            (*png_ptr).flags |= PNG_FLAG_ZSTREAM_ENDED;\n            if (*png_ptr).zstream.avail_in > 0 as c_uint\n                || (*png_ptr).idat_size > 0 as c_uint\n            {\n                png_chunk_benign_error(\n                    png_ptr,\n                    b\"Extra compressed data\\0\" as *const u8 as png_const_charp,\n                );\n            }\n            break;\n        } else {\n            if ret != Z_OK {\n                png_zstream_error(png_ptr, ret);\n                if !output.is_null() {\n                    png_chunk_error(png_ptr, (*png_ptr).zstream.msg as png_const_charp);\n                } else {\n                    png_chunk_benign_error(png_ptr, (*png_ptr).zstream.msg as png_const_charp);\n                    return;\n                }\n            }\n            if !(avail_out > 0 as png_alloc_size_t) {\n                break;\n            }\n        }\n    }\n    if avail_out > 0 as png_alloc_size_t {\n        if !output.is_null() {\n            png_error(\n                png_ptr,\n                b\"Not enough image data\\0\" as *const u8 as png_const_charp,\n            );\n        } else {\n            png_chunk_benign_error(\n                png_ptr,\n                b\"Too much image data\\0\" as *const u8 as png_const_charp,\n            );\n        }\n    }\n} }",
+    "signature": "pub extern \"C\" fn png_read_IDAT_data(\n    mut png_ptr: png_structrp,\n    mut output: png_bytep,\n    mut avail_out: png_alloc_size_t,\n)",
+    "profile": {
+      "self_time_ratio": 0.0316,
+      "call_count": null,
+      "retired_instructions": 434629829,
+      "instructions_per_call": null,
+      "cpi": 0.434,
+      "tma": {
+        "scope": "process",
+        "retiring": 61.96259108596522,
+        "frontend_bound": 25.706056873302018,
+        "bad_speculation": 2.303737076310097,
+        "backend_bound": 10.027614964422664,
+        "memory_bound": 7.857355224782812,
+        "core_bound": 2.170259739639852,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.002
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_vec": {
+        "NonReductionValueUsedOutsideLoop": 1,
+        "CantComputeNumberOfIterations": 1
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2333,
+        "message": "'png_crc_finish' inlined into 'png_read_IDAT_data' with (cost=365, threshold=525) at callsite png_read_IDAT_data:17:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2334,
+        "message": "'png_read_chunk_header' not inlined into 'png_read_IDAT_data' because too costly to inline (cost=725, threshold=525)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2346,
+        "message": "'_ZN21optipng_0_7_7_cleaned3src6libpng8pngrutil15png_read_buffer17h74ff945762a04a58E' inlined into 'png_read_IDAT_data' with (cost=-14865, threshold=250) at callsite png_read_IDAT_data:30:22;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2336,
+        "message": "'png_error' not inlined into 'png_read_IDAT_data' because too costly to inline (cost=35, threshold=0)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2371,
+        "message": "'_ZN21optipng_0_7_7_cleaned3src6libpng8pngrutil16png_zlib_inflate17hecf6669438bc7e78E' inlined into 'png_read_IDAT_data' with (cost=-14940, threshold=325) at callsite png_read_IDAT_data:55:15;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2399,
+        "message": "'png_zstream_error' inlined into 'png_read_IDAT_data' with (cost=55, threshold=250) at callsite png_read_IDAT_data:83:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2401,
+        "message": "'png_chunk_error' not inlined into 'png_read_IDAT_data' because too costly to inline (cost=110, threshold=0)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2403,
+        "message": "'png_chunk_benign_error' inlined into 'png_read_IDAT_data' with (cost=120, threshold=250) at callsite png_read_IDAT_data:87:21;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2391,
+        "message": "'png_chunk_benign_error' inlined into 'png_read_IDAT_data' with (cost=120, threshold=250) at callsite png_read_IDAT_data:75:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2414,
+        "message": "'png_error' not inlined into 'png_read_IDAT_data' because too costly to inline (cost=35, threshold=0)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2419,
+        "message": "'png_chunk_benign_error' inlined into 'png_read_IDAT_data' with (cost=120, threshold=250) at callsite png_read_IDAT_data:103:13;"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2332,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2332,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2335,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2329,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2329,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2374,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2379,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2342,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2342,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2352,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 2332,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 2323,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2329,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2332,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 2332,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2342,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2352,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2374,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2379,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2386,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2387,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2388,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2389,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 2401,
+        "message": "load of type ptr eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 2403,
+        "message": "load of type ptr eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2335,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2332,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2332,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2332,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2316,
+        "message": "X86 DAG->DAG Instruction Selection: Function: png_read_IDAT_data: MI Instruction count changed from 0 to 446; Delta: 446"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2316,
+        "message": "Merge disjoint stack slots: Function: png_read_IDAT_data: MI Instruction count changed from 446 to 431; Delta: -15"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2316,
+        "message": "Remove dead machine instructions: Function: png_read_IDAT_data: MI Instruction count changed from 431 to 430; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2316,
+        "message": "Early Machine Loop Invariant Code Motion: Function: png_read_IDAT_data: MI Instruction count changed from 430 to 431; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2316,
+        "message": "Machine Common Subexpression Elimination: Function: png_read_IDAT_data: MI Instruction count changed from 431 to 430; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2316,
+        "message": "Peephole Optimizations: Function: png_read_IDAT_data: MI Instruction count changed from 430 to 428; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2316,
+        "message": "X86 Fixup SetCC: Function: png_read_IDAT_data: MI Instruction count changed from 428 to 432; Delta: 4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2316,
+        "message": "Eliminate PHI nodes for register allocation: Function: png_read_IDAT_data: MI Instruction count changed from 432 to 457; Delta: 25"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2316,
+        "message": "Two-Address instruction pass: Function: png_read_IDAT_data: MI Instruction count changed from 457 to 480; Delta: 23"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2316,
+        "message": "Register Coalescer: Function: png_read_IDAT_data: MI Instruction count changed from 480 to 408; Delta: -72"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2332,
+        "message": "9 virtual registers copies 6.553678e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2323,
+        "message": "1 spills 1.799224e+00 total spills cost 4 reloads 6.522189e+00 total reloads cost 23 virtual registers copies 8.676021e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2316,
+        "message": "4 spills 4.799224e+00 total spills cost 4 reloads 6.522189e+00 total reloads cost 47 virtual registers copies 8.731856e+02 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2316,
+        "message": "Greedy Register Allocator: Function: png_read_IDAT_data: MI Instruction count changed from 408 to 414; Delta: 6"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2316,
+        "message": "Virtual Register Rewriter: Function: png_read_IDAT_data: MI Instruction count changed from 414 to 394; Delta: -20"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 2316,
+        "message": "1336 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2316,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: png_read_IDAT_data: MI Instruction count changed from 394 to 376; Delta: -18"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2316,
+        "message": "Machine Late Instructions Cleanup Pass: Function: png_read_IDAT_data: MI Instruction count changed from 376 to 375; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2316,
+        "message": "Control Flow Optimizer: Function: png_read_IDAT_data: MI Instruction count changed from 375 to 324; Delta: -51"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2316,
+        "message": "Branch Probability Basic Block Placement: Function: png_read_IDAT_data: MI Instruction count changed from 324 to 335; Delta: 11"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2316,
+        "message": "X86 vzeroupper inserter: Function: png_read_IDAT_data: MI Instruction count changed from 335 to 338; Delta: 3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2316,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: png_read_IDAT_data: MI Instruction count changed from 338 to 339; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2328,
+        "message": "BasicBlock: bb2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2360,
+        "message": "BasicBlock: bb18"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2332,
+        "message": "BasicBlock: bb4.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2332,
+        "message": "BasicBlock: bb4"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2334,
+        "message": "BasicBlock: png_crc_finish.exit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2342,
+        "message": "BasicBlock: bb10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2352,
+        "message": "BasicBlock: bb51"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2368,
+        "message": "BasicBlock: bb17"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2407,
+        "message": "BasicBlock: bb40"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2384,
+        "message": "BasicBlock: _ZN21optipng_0_7_7_cleaned3src6libpng8pngrutil16png_zlib_inflate17hecf6669438bc7e78E.exit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2385,
+        "message": "BasicBlock: bb27"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2389,
+        "message": "BasicBlock: bb29"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2412,
+        "message": "BasicBlock: bb43"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2425,
+        "message": "BasicBlock: bb50"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2316,
+        "message": "318 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

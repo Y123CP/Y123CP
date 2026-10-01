@@ -1,0 +1,225 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -2.4665879781858795,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -2.26938896110596,
+            "aggregate_ci_low_pct": -2.663786995265799,
+            "aggregate_pct": -2.4665879781858795,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -1.4717,
+                "ci_low_pct": -3.0784,
+                "insns_delta_pct": -1.5851,
+                "mean_delta_pct": -2.275,
+                "op": "cache_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.7313,
+                "ci_low_pct": -2.1546,
+                "insns_delta_pct": 2.6624,
+                "mean_delta_pct": -1.943,
+                "op": "lz77_blocksplit_analysis",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -2.9615,
+                "ci_low_pct": -3.1388,
+                "insns_delta_pct": -0.9808,
+                "mean_delta_pct": -3.0502,
+                "op": "raw_deflate",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.3398,
+                "ci_low_pct": -2.6422,
+                "insns_delta_pct": 0.0524,
+                "mean_delta_pct": -1.991,
+                "op": "tree_codegen",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -2.9573,
+                "ci_low_pct": -3.1903,
+                "insns_delta_pct": -1.0217,
+                "mean_delta_pct": -3.0738,
+                "op": "zlib_compress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.2815709676337129,
+            "aggregate_ci_low_pct": 0.039700854395077936,
+            "aggregate_pct": 0.16063591101439542,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.1924,
+                "ci_low_pct": 0.0847,
+                "insns_delta_pct": -0.0019,
+                "mean_delta_pct": 0.1386,
+                "op": "raw_deflate",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.7324,
+                "ci_low_pct": 0.0353,
+                "insns_delta_pct": -0.0316,
+                "mean_delta_pct": 0.3838,
+                "op": "tree_codegen",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "per_op_uncertain"
+              },
+              {
+                "ci_high_pct": 0.0519,
+                "ci_low_pct": -0.1328,
+                "insns_delta_pct": -0.0122,
+                "mean_delta_pct": -0.0405,
+                "op": "zlib_compress",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "raw_deflate",
+          "tree_codegen",
+          "zlib_compress"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "lz77_blocksplit_analysis"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "b64f66c04174dd16ef949722e8282a5a0f02882c",
+      "changeset_id": "legacy-f0f5104921bd61e7",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-d4618e79dcdc5ac2",
+          "replacement_function_source": "#[inline]\npub unsafe fn ZopfliCalculateEntropy(\n    mut count: *const size_t,\n    mut n: size_t,\n    mut bitlengths: *mut c_double,\n) {\n    static mut kInvLog2: c_double = 1.4426950408889f64;\n    let mut sum: c_uint = 0 as c_uint;\n    let mut i: size_t = 0;\n    let inv_log2 = kInvLog2;\n\n    while i < n {\n        // SAFETY: caller provides `count` valid for reads of `n` consecutive elements.\n        sum = (sum as size_t).wrapping_add(unsafe { *count.add(i) }) as c_uint;\n        i += 1;\n    }\n\n    let log2sum: c_double = (if sum == 0 as c_uint {\n        log(n as c_double)\n    } else {\n        log(sum as c_double)\n    }) * inv_log2;\n\n    i = 0;\n    while i < n {\n        // SAFETY: caller provides `count` valid for reads of `n` consecutive elements.\n        let c = unsafe { *count.add(i) };\n        let mut v = if c == 0 as size_t {\n            log2sum\n        } else {\n            log2sum - log(c as c_double) * inv_log2\n        };\n        if v < 0.0f64 && v > -1e-5f64 {\n            v = 0.0f64;\n        }\n        // SAFETY: caller provides `bitlengths` valid for writes of `n` consecutive elements.\n        unsafe { *bitlengths.add(i) = v };\n        i += 1;\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "4722ac85e756d6cc7a5e406dcd7ebd35c4f5050371a9b81c80029aa3d879dd38",
+            "file_hint": "src/tree.rs",
+            "qualified_name": "crate::ZopfliCalculateEntropy",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "ZopfliCalculateEntropy-a52684a63b43",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "ZopfliCalculateEntropy",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "05a645cd563f429e96059cf84a35668cef57d34fc33ff4d4da3b54520d307c5e",
+            "edit_id": "edit-replace-d4618e79dcdc5ac2",
+            "end_byte": 3302,
+            "operation_id": "replace-d4618e79dcdc5ac2",
+            "relative_path": "src/tree.rs",
+            "replacement_text": "#[inline]\npub unsafe fn ZopfliCalculateEntropy(\n    mut count: *const size_t,\n    mut n: size_t,\n    mut bitlengths: *mut c_double,\n) {\n    static mut kInvLog2: c_double = 1.4426950408889f64;\n    let mut sum: c_uint = 0 as c_uint;\n    let mut i: size_t = 0;\n    let inv_log2 = kInvLog2;\n\n    while i < n {\n        // SAFETY: caller provides `count` valid for reads of `n` consecutive elements.\n        sum = (sum as size_t).wrapping_add(unsafe { *count.add(i) }) as c_uint;\n        i += 1;\n    }\n\n    let log2sum: c_double = (if sum == 0 as c_uint {\n        log(n as c_double)\n    } else {\n        log(sum as c_double)\n    }) * inv_log2;\n\n    i = 0;\n    while i < n {\n        // SAFETY: caller provides `count` valid for reads of `n` consecutive elements.\n        let c = unsafe { *count.add(i) };\n        let mut v = if c == 0 as size_t {\n            log2sum\n        } else {\n            log2sum - log(c as c_double) * inv_log2\n        };\n        if v < 0.0f64 && v > -1e-5f64 {\n            v = 0.0f64;\n        }\n        // SAFETY: caller provides `bitlengths` valid for writes of `n` consecutive elements.\n        unsafe { *bitlengths.add(i) = v };\n        i += 1;\n    }\n}",
+            "start_byte": 2127
+          }
+        ],
+        "facts": {
+          "fn_name": "ZopfliCalculateEntropy",
+          "target_span_hash": "4722ac85e756d6cc7a5e406dcd7ebd35c4f5050371a9b81c80029aa3d879dd38"
+        },
+        "operation_id": "replace-d4618e79dcdc5ac2"
+      }
+    ],
+    "resolved_head": "b64f66c04174dd16ef949722e8282a5a0f02882c"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/tree.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,1765 @@
+{
+  "hot_function": {
+    "symbol": "deflate_slow",
+    "location": "src/zlib/deflate.rs:1960-2221",
+    "workload": "zlib_deflate_inflate_stream",
+    "hot_region": "src/zlib/deflate.rs:1960-2221",
+    "rust_source": "unsafe extern \"C\" fn deflate_slow(\n    mut s: *mut deflate_state,\n    mut flush: c_int,\n) -> block_state {\n    let mut hash_head: IPos = 0;\n    let mut bflush: c_int = 0;\n    loop {\n        if (*s).lookahead < MIN_LOOKAHEAD as c_uint {\n            fill_window(s);\n            if (*s).lookahead < MIN_LOOKAHEAD as c_uint && flush == Z_NO_FLUSH {\n                return need_more;\n            }\n            if (*s).lookahead == 0 as c_uint {\n                break;\n            }\n        }\n        hash_head = NIL as IPos;\n        if (*s).lookahead >= MIN_MATCH as c_uint {\n            (*s).ins_h = ((*s).ins_h << (*s).hash_shift\n                ^ *(*s)\n                    .window\n                    .offset(((*s).strstart as c_uint).wrapping_add(\n                        (3 as c_int - 1 as c_int) as c_uint,\n                    ) as isize) as uInt)\n                & (*s).hash_mask;\n            let ref mut fresh2 = *(*s).prev.offset(((*s).strstart & (*s).w_mask) as isize);\n            *fresh2 = *(*s).head.offset((*s).ins_h as isize);\n            hash_head = *fresh2 as IPos;\n            *(*s).head.offset((*s).ins_h as isize) = (*s).strstart as Pos as Posf;\n        }\n        (*s).prev_length = (*s).match_length;\n        (*s).prev_match = (*s).match_start as IPos;\n        (*s).match_length = (MIN_MATCH - 1 as c_int) as uInt;\n        if hash_head != NIL as c_uint\n            && (*s).prev_length < (*s).max_lazy_match\n            && ((*s).strstart as IPos).wrapping_sub(hash_head)\n                <= ((*s).w_size as c_uint)\n                    .wrapping_sub(MIN_LOOKAHEAD as c_uint)\n        {\n            (*s).match_length = longest_match(s, hash_head);\n            if (*s).match_length <= 5 as c_uint && (*s).strategy == Z_FILTERED {\n                (*s).match_length = (MIN_MATCH - 1 as c_int) as uInt;\n            }\n        }\n        if (*s).prev_length >= MIN_MATCH as c_uint\n            && (*s).match_length <= (*s).prev_length\n        {\n            let mut max_insert: uInt = (*s)\n                .strstart\n                .wrapping_add((*s).lookahead)\n                .wrapping_sub(MIN_MATCH as uInt);\n            let mut len: uch = ((*s).prev_length as c_uint)\n                .wrapping_sub(3 as c_uint) as uch;\n            let mut dist: ush = ((*s).strstart as IPos)\n                .wrapping_sub(1 as IPos)\n                .wrapping_sub((*s).prev_match) as ush;\n            *(*s).d_buf.offset((*s).last_lit as isize) = dist as ushf;\n            let fresh3 = (*s).last_lit;\n            (*s).last_lit = (*s).last_lit.wrapping_add(1);\n            *(*s).l_buf.offset(fresh3 as isize) = len as uchf;\n            dist = dist.wrapping_sub(1);\n            (*s).dyn_ltree[(*(&raw const _length_code as *const uch).offset(len as isize)\n                as c_int\n                + LITERALS\n                + 1 as c_int) as usize]\n                .fc\n                .freq = (*s).dyn_ltree[(*(&raw const _length_code as *const uch)\n                .offset(len as isize) as c_int\n                + LITERALS\n                + 1 as c_int) as usize]\n                .fc\n                .freq\n                .wrapping_add(1);\n            (*s).dyn_dtree[(if (dist as c_int) < 256 as c_int {\n                *(&raw const _dist_code as *const uch).offset(dist as isize) as c_int\n            } else {\n                *(&raw const _dist_code as *const uch).offset(\n                    (256 as c_int\n                        + (dist as c_int >> 7 as c_int))\n                        as isize,\n                ) as c_int\n            }) as usize]\n                .fc\n                .freq = (*s).dyn_dtree[(if (dist as c_int) < 256 as c_int\n            {\n                *(&raw const _dist_code as *const uch).offset(dist as isize) as c_int\n            } else {\n                *(&raw const _dist_code as *const uch).offset(\n                    (256 as c_int\n                        + (dist as c_int >> 7 as c_int))\n                        as isize,\n                ) as c_int\n            }) as usize]\n                .fc\n                .freq\n                .wrapping_add(1);\n            bflush = ((*s).last_lit\n                == ((*s).lit_bufsize as c_uint).wrapping_sub(1 as c_uint))\n                as c_int;\n            (*s).lookahead = ((*s).lookahead as c_uint).wrapping_sub(\n                ((*s).prev_length as c_uint).wrapping_sub(1 as c_uint),\n            ) as uInt as uInt;\n            (*s).prev_length = ((*s).prev_length as c_uint)\n                .wrapping_sub(2 as c_uint) as uInt\n                as uInt;\n            loop {\n                (*s).strstart = (*s).strstart.wrapping_add(1);\n                if (*s).strstart <= max_insert {\n                    (*s).ins_h = ((*s).ins_h << (*s).hash_shift\n                        ^ *(*s)\n                            .window\n                            .offset(((*s).strstart as c_uint).wrapping_add(\n                                (3 as c_int - 1 as c_int)\n                                    as c_uint,\n                            ) as isize) as uInt)\n                        & (*s).hash_mask;\n                    let ref mut fresh4 = *(*s).prev.offset(((*s).strstart & (*s).w_mask) as isize);\n                    *fresh4 = *(*s).head.offset((*s).ins_h as isize);\n                    hash_head = *fresh4 as IPos;\n                    *(*s).head.offset((*s).ins_h as isize) = (*s).strstart as Pos as Posf;\n                }\n                (*s).prev_length = (*s).prev_length.wrapping_sub(1);\n                if !((*s).prev_length != 0 as c_uint) {\n                    break;\n                }\n            }\n            (*s).match_available = 0 as c_int;\n            (*s).match_length = (MIN_MATCH - 1 as c_int) as uInt;\n            (*s).strstart = (*s).strstart.wrapping_add(1);\n            if bflush != 0 {\n                _tr_flush_block(\n                    s,\n                    if (*s).block_start >= 0 as c_long {\n                        (*s).window\n                            .offset((*s).block_start as c_uint as isize)\n                            as *mut Bytef as *mut charf\n                    } else {\n                        ::core::ptr::null_mut::<charf>()\n                    },\n                    ((*s).strstart as c_long - (*s).block_start) as ulg,\n                    0 as c_int,\n                );\n                (*s).block_start = (*s).strstart as c_long;\n                flush_pending((*s).strm);\n                if (*(*s).strm).avail_out == 0 as c_uint {\n                    return (if 0 as c_int != 0 {\n                        finish_started as c_int\n                    } else {\n                        need_more as c_int\n                    }) as block_state;\n                }\n            }\n        } else if (*s).match_available != 0 {\n            let mut cc: uch = *(*s).window.offset(\n                ((*s).strstart as c_uint).wrapping_sub(1 as c_uint)\n                    as isize,\n            ) as uch;\n            *(*s).d_buf.offset((*s).last_lit as isize) = 0 as ushf;\n            let fresh5 = (*s).last_lit;\n            (*s).last_lit = (*s).last_lit.wrapping_add(1);\n            *(*s).l_buf.offset(fresh5 as isize) = cc as uchf;\n            (*s).dyn_ltree[cc as usize].fc.freq =\n                (*s).dyn_ltree[cc as usize].fc.freq.wrapping_add(1);\n            bflush = ((*s).last_lit\n                == ((*s).lit_bufsize as c_uint).wrapping_sub(1 as c_uint))\n                as c_int;\n            if bflush != 0 {\n                _tr_flush_block(\n                    s,\n                    if (*s).block_start >= 0 as c_long {\n                        (*s).window\n                            .offset((*s).block_start as c_uint as isize)\n                            as *mut Bytef as *mut charf\n                    } else {\n                        ::core::ptr::null_mut::<charf>()\n                    },\n                    ((*s).strstart as c_long - (*s).block_start) as ulg,\n                    0 as c_int,\n                );\n                (*s).block_start = (*s).strstart as c_long;\n                flush_pending((*s).strm);\n            }\n            (*s).strstart = (*s).strstart.wrapping_add(1);\n            (*s).lookahead = (*s).lookahead.wrapping_sub(1);\n            if (*(*s).strm).avail_out == 0 as c_uint {\n                return need_more;\n            }\n        } else {\n            (*s).match_available = 1 as c_int;\n            (*s).strstart = (*s).strstart.wrapping_add(1);\n            (*s).lookahead = (*s).lookahead.wrapping_sub(1);\n        }\n    }\n    if (*s).match_available != 0 {\n        let mut cc_0: uch = *(*s).window.offset(\n            ((*s).strstart as c_uint).wrapping_sub(1 as c_uint) as isize,\n        ) as uch;\n        *(*s).d_buf.offset((*s).last_lit as isize) = 0 as ushf;\n        let fresh6 = (*s).last_lit;\n        (*s).last_lit = (*s).last_lit.wrapping_add(1);\n        *(*s).l_buf.offset(fresh6 as isize) = cc_0 as uchf;\n        (*s).dyn_ltree[cc_0 as usize].fc.freq =\n            (*s).dyn_ltree[cc_0 as usize].fc.freq.wrapping_add(1);\n        bflush = ((*s).last_lit\n            == ((*s).lit_bufsize as c_uint).wrapping_sub(1 as c_uint))\n            as c_int;\n        (*s).match_available = 0 as c_int;\n    }\n    (*s).insert = (if (*s).strstart < (MIN_MATCH - 1 as c_int) as c_uint {\n        (*s).strstart as c_uint\n    } else {\n        (MIN_MATCH - 1 as c_int) as c_uint\n    }) as uInt;\n    if flush == Z_FINISH {\n        _tr_flush_block(\n            s,\n            if (*s).block_start >= 0 as c_long {\n                (*s).window\n                    .offset((*s).block_start as c_uint as isize)\n                    as *mut Bytef as *mut charf\n            } else {\n                ::core::ptr::null_mut::<charf>()\n            },\n            ((*s).strstart as c_long - (*s).block_start) as ulg,\n            1 as c_int,\n        );\n        (*s).block_start = (*s).strstart as c_long;\n        flush_pending((*s).strm);\n        if (*(*s).strm).avail_out == 0 as c_uint {\n            return (if 1 as c_int != 0 {\n                finish_started as c_int\n            } else {\n                need_more as c_int\n            }) as block_state;\n        }\n        return finish_done;\n    }\n    if (*s).last_lit != 0 {\n        _tr_flush_block(\n            s,\n            if (*s).block_start >= 0 as c_long {\n                (*s).window\n                    .offset((*s).block_start as c_uint as isize)\n                    as *mut Bytef as *mut charf\n            } else {\n                ::core::ptr::null_mut::<charf>()\n            },\n            ((*s).strstart as c_long - (*s).block_start) as ulg,\n            0 as c_int,\n        );\n        (*s).block_start = (*s).strstart as c_long;\n        flush_pending((*s).strm);\n        if (*(*s).strm).avail_out == 0 as c_uint {\n            return (if 0 as c_int != 0 {\n                finish_started as c_int\n            } else {\n                need_more as c_int\n            }) as block_state;\n        }\n    }\n    return block_done;\n}",
+    "signature": "unsafe extern \"C\" fn deflate_slow(\n    mut s: *mut deflate_state,\n    mut flush: c_int,\n) -> block_state",
+    "profile": {
+      "self_time_ratio": 0.535,
+      "call_count": null,
+      "retired_instructions": 8579798223,
+      "instructions_per_call": null,
+      "cpi": 0.363,
+      "tma": {
+        "scope": "process",
+        "retiring": 58.973188258271996,
+        "frontend_bound": 14.441456009498266,
+        "bad_speculation": 8.878766115020278,
+        "backend_bound": 17.70658961720946,
+        "memory_bound": 11.468527430525548,
+        "core_bound": 6.238062186683912,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0123
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C1": 1,
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_vec": {
+        "NonReductionValueUsedOutsideLoop": 1,
+        "CantComputeNumberOfIterations": 1
+      },
+      "II_inl": {
+        "TooCostly": 10
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2043,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2033,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1968,
+        "message": "'_ZN21optipng_0_7_7_cleaned3src4zlib7deflate11fill_window17h29a2804f4423b937E' not inlined into '_ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E' because too costly to inline (cost=750, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2198,
+        "message": "'_tr_flush_block' not inlined into '_ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E' because too costly to inline (cost=2535, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2211,
+        "message": "'_ZN21optipng_0_7_7_cleaned3src4zlib7deflate13flush_pending17h7d3abab26935e8f8E' not inlined into '_ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E' because too costly to inline (cost=250, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2174,
+        "message": "'_tr_flush_block' not inlined into '_ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E' because too costly to inline (cost=2655, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2187,
+        "message": "'_ZN21optipng_0_7_7_cleaned3src4zlib7deflate13flush_pending17h7d3abab26935e8f8E' not inlined into '_ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E' because too costly to inline (cost=250, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1999,
+        "message": "'_ZN21optipng_0_7_7_cleaned3src4zlib7deflate13longest_match17h0cce781343b37a67E' not inlined into '_ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E' because too costly to inline (cost=425, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2127,
+        "message": "'_tr_flush_block' not inlined into '_ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E' because too costly to inline (cost=2535, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2140,
+        "message": "'_ZN21optipng_0_7_7_cleaned3src4zlib7deflate13flush_pending17h7d3abab26935e8f8E' not inlined into '_ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E' because too costly to inline (cost=250, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2090,
+        "message": "'_tr_flush_block' not inlined into '_ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E' because too costly to inline (cost=2535, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2103,
+        "message": "'_ZN21optipng_0_7_7_cleaned3src4zlib7deflate13flush_pending17h7d3abab26935e8f8E' not inlined into '_ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E' because too costly to inline (cost=250, threshold=250)"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2066,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2079,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2081,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2068,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2068,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2068,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2068,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2069,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2069,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2075,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2075,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2076,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2076,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2076,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2076,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2077,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2077,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2079,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2079,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1967,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1967,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1969,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1977,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2009,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2059,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2103,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2104,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2140,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2143,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2144,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2150,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1990,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1990,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1990,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1991,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1991,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1991,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1978,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1978,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1978,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1978,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1979,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1979,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1981,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1981,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1984,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1984,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1985,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1985,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1985,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1985,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1986,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1986,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1988,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1988,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1988,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1994,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1994,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1995,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1995,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1996,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1996,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2000,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2000,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2007,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2007,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2016,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2016,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2016,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2016,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2017,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2019,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2019,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2056,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2057,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2057,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2086,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2088,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2092,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2092,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2093,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2093,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2102,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2112,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2112,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2113,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2113,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2114,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2114,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2117,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2117,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2117,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2117,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2118,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2120,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2120,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2123,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2124,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2124,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2129,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2129,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2130,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2136,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2139,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2142,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2149,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2149,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 1966,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1967,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1969,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 1977,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1990,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1991,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1978,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1978,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1979,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1981,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1984,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1985,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1985,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1986,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1986,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1988,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1988,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1988,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1994,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1995,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1996,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2000,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2004,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 2005,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2007,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2009,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2015,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2016,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2016,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2017,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2019,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2026,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2026,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2043,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2056,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2057,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2059,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2060,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2066,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2068,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2068,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2069,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2075,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2076,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2076,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2077,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2077,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2079,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2079,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2079,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2081,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 2081,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2088,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2092,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2093,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2102,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2103,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2104,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2104,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2112,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2113,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2114,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2117,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2117,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2118,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2120,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2122,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2123,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2124,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2129,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2130,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2136,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2139,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2140,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2142,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2143,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2144,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2144,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2149,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2150,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2153,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2154,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2155,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2157,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2157,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2158,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2160,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2162,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2168,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2197,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2200,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2201,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2210,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2211,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2212,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2212,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2176,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2177,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2186,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2187,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2188,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2188,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2004,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2015,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2060,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2065,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2065,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2065,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1960,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E: MI Instruction count changed from 0 to 426; Delta: 426"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1960,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E: MI Instruction count changed from 426 to 425; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1960,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E: MI Instruction count changed from 425 to 423; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1960,
+        "message": "Peephole Optimizations: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E: MI Instruction count changed from 423 to 419; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1960,
+        "message": "X86 Fixup SetCC: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E: MI Instruction count changed from 419 to 420; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1960,
+        "message": "Process Implicit Definitions: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E: MI Instruction count changed from 420 to 415; Delta: -5"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1960,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E: MI Instruction count changed from 415 to 443; Delta: 28"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1960,
+        "message": "Two-Address instruction pass: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E: MI Instruction count changed from 443 to 484; Delta: 41"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1960,
+        "message": "Register Coalescer: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E: MI Instruction count changed from 484 to 347; Delta: -137"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1966,
+        "message": "6 virtual registers copies 4.118852e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1960,
+        "message": "11 virtual registers copies 4.443884e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1960,
+        "message": "Virtual Register Rewriter: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E: MI Instruction count changed from 347 to 331; Delta: -16"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 1960,
+        "message": "56 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1960,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E: MI Instruction count changed from 331 to 343; Delta: 12"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1960,
+        "message": "Control Flow Optimizer: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E: MI Instruction count changed from 343 to 324; Delta: -19"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1960,
+        "message": "X86 LEA Fixup: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E: MI Instruction count changed from 324 to 326; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1960,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate12deflate_slow17h81ba47e181588606E: MI Instruction count changed from 326 to 327; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2131,
+        "message": "BasicBlock: bb63"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2136,
+        "message": "BasicBlock: bb65"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2142,
+        "message": "BasicBlock: bb69"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1967,
+        "message": "BasicBlock: bb1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1968,
+        "message": "BasicBlock: bb2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1969,
+        "message": "BasicBlock: bb2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1972,
+        "message": "BasicBlock: bb7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1977,
+        "message": "BasicBlock: bb11"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1978,
+        "message": "BasicBlock: bb14"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1994,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1995,
+        "message": "BasicBlock: bb16"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1999,
+        "message": "BasicBlock: bb17"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2000,
+        "message": "BasicBlock: bb19"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2001,
+        "message": "BasicBlock: bb20"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2004,
+        "message": "BasicBlock: bb27thread-pre-split"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2004,
+        "message": "BasicBlock: bb27"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2015,
+        "message": "BasicBlock: bb29"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2082,
+        "message": "BasicBlock: bb43"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2066,
+        "message": "BasicBlock: bb40"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2068,
+        "message": "BasicBlock: bb41"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2092,
+        "message": "BasicBlock: bb46"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2094,
+        "message": "BasicBlock: bb47"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1990,
+        "message": "BasicBlock: bb14.thread"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2112,
+        "message": "BasicBlock: bb58"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2113,
+        "message": "BasicBlock: bb59"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2129,
+        "message": "BasicBlock: bb62"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2148,
+        "message": "BasicBlock: bb72"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2099,
+        "message": "BasicBlock: bb49"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2153,
+        "message": "BasicBlock: bb8"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2154,
+        "message": "BasicBlock: bb74"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2168,
+        "message": "BasicBlock: bb78"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2176,
+        "message": "BasicBlock: bb82"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2178,
+        "message": "BasicBlock: bb83"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2197,
+        "message": "BasicBlock: bb90"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2200,
+        "message": "BasicBlock: bb91"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2202,
+        "message": "BasicBlock: bb93"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2183,
+        "message": "BasicBlock: bb85"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2207,
+        "message": "BasicBlock: bb95"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2221,
+        "message": "BasicBlock: bb103"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2043,
+        "message": "BasicBlock: panic62"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1960,
+        "message": "306 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

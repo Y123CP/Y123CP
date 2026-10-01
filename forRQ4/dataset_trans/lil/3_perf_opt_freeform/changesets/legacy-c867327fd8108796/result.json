@@ -1,0 +1,206 @@
+{
+  "applied_rules": [
+    "freeform"
+  ],
+  "commit_sha": "3fc6eb0",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.3189607759457727,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.1195280257096919,
+            "aggregate_ci_low_pct": -0.7574495776012373,
+            "aggregate_pct": -0.3189607759457727,
+            "checkpoint": 20,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.277,
+                "ci_low_pct": -1.463,
+                "insns_delta_pct": 0.5524,
+                "mean_delta_pct": -0.593,
+                "op": "native_call_state",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "per_op_uncertain"
+              },
+              {
+                "ci_high_pct": 0.0657,
+                "ci_low_pct": -0.1555,
+                "insns_delta_pct": 0.1561,
+                "mean_delta_pct": -0.0449,
+                "op": "subst_list_pipeline",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.15620361847372843,
+            "aggregate_ci_low_pct": -1.8257723123457557,
+            "aggregate_pct": -0.8347843469360136,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.0524,
+                "ci_low_pct": -0.1613,
+                "insns_delta_pct": -0.0231,
+                "mean_delta_pct": -0.0544,
+                "op": "builtin_script_matrix",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.0761,
+                "ci_low_pct": -0.2687,
+                "insns_delta_pct": 0.0371,
+                "mean_delta_pct": -0.0963,
+                "op": "expr_embedded_builtins",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 1.2593,
+                "ci_low_pct": -6.1668,
+                "insns_delta_pct": 0.5394,
+                "mean_delta_pct": -2.4537,
+                "op": "native_call_state",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              },
+              {
+                "ci_high_pct": 1.1146,
+                "ci_low_pct": -2.584,
+                "insns_delta_pct": 0.1423,
+                "mean_delta_pct": -0.7347,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "native_call_state",
+          "subst_list_pipeline"
+        ],
+        "reason": "accepted",
+        "triggering_op": "subst_list_pipeline"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "48eae7f70e1c39cadc748b0f591154f3a40d9f7d",
+      "changeset_id": "legacy-c867327fd8108796",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-39ba1f96fa71054f",
+          "replacement_function_source": "unsafe fn hm_destroy(mut hm: *mut hashmap_t) {\n    let hm_view = unsafe { &*hm }; // SAFETY: caller provides a valid pointer to hashmap_t for the duration of this function.\n    let cells = hm_view.cell.as_ptr();\n    let mut i: usize = 0;\n    while i < HASHMAP_CELLS as usize {\n        let cell = unsafe { &*cells.add(i) }; // SAFETY: i is bounded by HASHMAP_CELLS, matching the array length.\n        let mut e = cell.e;\n        let end = unsafe { e.add(cell.c as usize) }; // SAFETY: end pointer is one-past the allocated range of `cell.e` entries.\n        while e != end {\n            unsafe { free((*e).k as *mut c_void) }; // SAFETY: preserves original behavior by freeing each stored key pointer.\n            e = unsafe { e.add(1) }; // SAFETY: loop invariant maintains e within [start, end].\n        }\n        unsafe { free(cell.e as *mut c_void) }; // SAFETY: preserves original behavior by freeing the cell entry buffer pointer.\n        i += 1;\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "690d87514ae6174b542c4305979666a6f148cbbae87e3168fff630b9135c2a78",
+            "file_hint": "src/lil.rs",
+            "qualified_name": "crate::hm_destroy",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "hm_destroy-eab944ca9f22",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "hm_destroy",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "5f17a192cac1125dbe645029de43ccf2a287dad85a08732f55f3a96072242a53",
+            "edit_id": "edit-replace-39ba1f96fa71054f",
+            "end_byte": 7025,
+            "operation_id": "replace-39ba1f96fa71054f",
+            "relative_path": "src/lil.rs",
+            "replacement_text": "unsafe fn hm_destroy(mut hm: *mut hashmap_t) {\n    let hm_view = unsafe { &*hm }; // SAFETY: caller provides a valid pointer to hashmap_t for the duration of this function.\n    let cells = hm_view.cell.as_ptr();\n    let mut i: usize = 0;\n    while i < HASHMAP_CELLS as usize {\n        let cell = unsafe { &*cells.add(i) }; // SAFETY: i is bounded by HASHMAP_CELLS, matching the array length.\n        let mut e = cell.e;\n        let end = unsafe { e.add(cell.c as usize) }; // SAFETY: end pointer is one-past the allocated range of `cell.e` entries.\n        while e != end {\n            unsafe { free((*e).k as *mut c_void) }; // SAFETY: preserves original behavior by freeing each stored key pointer.\n            e = unsafe { e.add(1) }; // SAFETY: loop invariant maintains e within [start, end].\n        }\n        unsafe { free(cell.e as *mut c_void) }; // SAFETY: preserves original behavior by freeing the cell entry buffer pointer.\n        i += 1;\n    }\n}",
+            "start_byte": 6519
+          }
+        ],
+        "facts": {
+          "fn_name": "hm_destroy",
+          "target_span_hash": "690d87514ae6174b542c4305979666a6f148cbbae87e3168fff630b9135c2a78"
+        },
+        "operation_id": "replace-39ba1f96fa71054f"
+      }
+    ],
+    "resolved_head": "48eae7f70e1c39cadc748b0f591154f3a40d9f7d"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/lil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

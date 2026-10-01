@@ -1,0 +1,226 @@
+{
+  "applied_rules": [
+    "C3,C10,C1,C2"
+  ],
+  "commit_sha": "791de8b",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.13903065111692425,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.065718131950852,
+            "aggregate_ci_low_pct": -0.34377943418470047,
+            "aggregate_pct": -0.13903065111692425,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.5076,
+                "ci_low_pct": -0.2009,
+                "insns_delta_pct": -0.0138,
+                "mean_delta_pct": 0.1534,
+                "op": "encode_buffer",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.1754,
+                "ci_low_pct": -0.6874,
+                "insns_delta_pct": -1.3462,
+                "mean_delta_pct": -0.4314,
+                "op": "stream_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -0.1606222436861443,
+            "aggregate_ci_low_pct": -0.79446281366743,
+            "aggregate_pct": -0.47754252867678715,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -0.0487,
+                "ci_low_pct": -0.0784,
+                "insns_delta_pct": -0.0048,
+                "mean_delta_pct": -0.0636,
+                "op": "api_sweep",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.0344,
+                "ci_low_pct": -2.8222,
+                "insns_delta_pct": -1.9827,
+                "mean_delta_pct": -1.9283,
+                "op": "decode_buffer",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2461,
+                "ci_low_pct": -1.4222,
+                "insns_delta_pct": 0.0035,
+                "mean_delta_pct": -0.588,
+                "op": "encode_buffer",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 1.6824,
+                "ci_low_pct": -1.5376,
+                "insns_delta_pct": 0.7611,
+                "mean_delta_pct": 0.0724,
+                "op": "lowlevel_probe",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              },
+              {
+                "ci_high_pct": 0.0859,
+                "ci_low_pct": -0.0299,
+                "insns_delta_pct": -0.0123,
+                "mean_delta_pct": 0.028,
+                "op": "shared_dict_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.0183,
+                "ci_low_pct": -0.7898,
+                "insns_delta_pct": -1.3318,
+                "mean_delta_pct": -0.3857,
+                "op": "stream_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_buffer",
+          "stream_roundtrip"
+        ],
+        "reason": "accepted",
+        "triggering_op": "encode_buffer"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "467bbce209d60c98ee359271ddcc262a59bfec23",
+      "changeset_id": "legacy-77152418d7fc9ed0",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-05c249ffe7a16f54",
+          "replacement_function_source": "// Applied rules: [C3, C10, C1, C2]\n// Skipped rules: []\n#[inline]\npub unsafe fn BrotliPopulationCostLiteral(\n    mut histogram: *const HistogramLiteral,\n) -> c_double {\n    static mut kOneSymbolHistogramCost: c_double = 12 as c_int as c_double;\n    static mut kTwoSymbolHistogramCost: c_double = 20 as c_int as c_double;\n    static mut kThreeSymbolHistogramCost: c_double = 28 as c_int as c_double;\n    static mut kFourSymbolHistogramCost: c_double = 37 as c_int as c_double;\n\n    let data_size: size_t = HistogramDataSizeLiteral() as size_t;\n    let mut count: c_int = 0 as c_int;\n    let mut s: [size_t; 5] = [0; 5];\n    let mut bits: c_double = 0.0f64;\n    let mut i: size_t = 0;\n\n    let total_count = (*histogram).total_count_;\n    let data = (&(*histogram).data_) as *const [uint32_t; 256];\n\n    if total_count == 0 as size_t {\n        return kOneSymbolHistogramCost;\n    }\n\n    i = 0 as size_t;\n    while i < data_size {\n        let v = unsafe {\n            // SAFETY: `histogram` is a valid pointer per function contract and `i < data_size == 256`,\n            // so `i` is in-bounds for `data_`.\n            *(*data).get_unchecked(i as usize)\n        };\n        if v > 0 as uint32_t {\n            unsafe {\n                // SAFETY: `count` starts at 0 and this store occurs before increment; the loop breaks\n                // once `count > 4`, so the write index is always in 0..5.\n                *s.get_unchecked_mut(count as usize) = i;\n            }\n            count += 1;\n            if count > 4 as c_int {\n                break;\n            }\n        }\n        i = i.wrapping_add(1);\n    }\n\n    if count == 1 as c_int {\n        return kOneSymbolHistogramCost;\n    }\n    if count == 2 as c_int {\n        return kTwoSymbolHistogramCost + total_count as c_double;\n    }\n    if count == 3 as c_int {\n        let histo0: uint32_t = unsafe {\n            // SAFETY: `count == 3` means `s[0]`, `s[1]`, and `s[2]` were initialized from indices\n            // found while scanning `data_`, each in 0..data_size == 256.\n            *(*data).get_unchecked(*s.get_unchecked(0) as usize)\n        };\n        let histo1: uint32_t = unsafe {\n            // SAFETY: same proof as for `histo0`; `s[1]` is initialized and in 0..256.\n            *(*data).get_unchecked(*s.get_unchecked(1) as usize)\n        };\n        let histo2: uint32_t = unsafe {\n            // SAFETY: same proof as for `histo0`; `s[2]` is initialized and in 0..256.\n            *(*data).get_unchecked(*s.get_unchecked(2) as usize)\n        };\n        let histomax: uint32_t =\n            brotli_max_uint32_t(histo0, brotli_max_uint32_t(histo1, histo2)) as uint32_t;\n        return kThreeSymbolHistogramCost\n            + (2 as uint32_t).wrapping_mul(histo0.wrapping_add(histo1).wrapping_add(histo2))\n                as c_double\n            - histomax as c_double;\n    }\n    if count == 4 as c_int {\n        let mut histo: [uint32_t; 4] = [\n            unsafe {\n                // SAFETY: `count == 4` means `s[0..4]` are initialized and each stored source index\n                // came from scanning `data_`, so each is in 0..256.\n                *(*data).get_unchecked(*s.get_unchecked(0) as usize)\n            },\n            unsafe {\n                // SAFETY: same proof as above for `s[1]`.\n                *(*data).get_unchecked(*s.get_unchecked(1) as usize)\n            },\n            unsafe {\n                // SAFETY: same proof as above for `s[2]`.\n                *(*data).get_unchecked(*s.get_unchecked(2) as usize)\n            },\n            unsafe {\n                // SAFETY: same proof as above for `s[3]`.\n                *(*data).get_unchecked(*s.get_unchecked(3) as usize)\n            },\n        ];\n        let mut h23: uint32_t = 0;\n        let mut histomax_0: uint32_t = 0;\n\n        i = 0 as size_t;\n        while i < 4 as size_t {\n            let mut j: size_t = 0;\n            j = i.wrapping_add(1 as size_t);\n            while j < 4 as size_t {\n                if histo[j as usize] > histo[i as usize] {\n                    let mut __brotli_swap_tmp: uint32_t = histo[j as usize];\n                    histo[j as usize] = histo[i as usize];\n                    histo[i as usize] = __brotli_swap_tmp;\n                }\n                j = j.wrapping_add(1);\n            }\n            i = i.wrapping_add(1);\n        }\n        h23 = histo[2 as c_int as usize].wrapping_add(histo[3 as c_int as usize]);\n        histomax_0 = brotli_max_uint32_t(h23, histo[0 as c_int as usize]);\n        return kFourSymbolHistogramCost\n            + (3 as uint32_t).wrapping_mul(h23) as c_double\n            + (2 as uint32_t)\n                .wrapping_mul(histo[0 as c_int as usize].wrapping_add(histo[1 as c_int as usize]))\n                as c_double\n            - histomax_0 as c_double;\n    }\n\n    let mut max_depth: size_t = 1 as size_t;\n    let mut depth_histo: [uint32_t; 18] = [\n        0 as c_int as uint32_t,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n    ];\n    let log2total: c_double = FastLog2(total_count) as c_double;\n\n    i = 0 as size_t;\n    while i < data_size {\n        let hist_i = unsafe {\n            // SAFETY: `i < data_size == 256`, so `i` is in-bounds for `data_`.\n            *(*data).get_unchecked(i as usize)\n        };\n        if hist_i > 0 as uint32_t {\n            let log2p: c_double = log2total - FastLog2(hist_i as size_t);\n            let mut depth: size_t = unsafe {\n                // SAFETY:\n                //  1. Origin: `log2p = log2(total_count) - log2(hist_i)` with `hist_i > 0` and `total_count > 0`.\n                //  2. Finite: `FastLog2` on positive finite integer inputs is finite, so their difference is finite.\n                //  3. Lower: `hist_i <= total_count` for a histogram bin count, so `log2p >= 0.0`, hence `0.0 <= log2p + 0.5`.\n                //  4. Upper: `hist_i >= 1`, `total_count` is a `size_t`, so `log2p <= log2(total_count) <= size_t::BITS as f64`;\n                //     therefore `log2p + 0.5` is far below `size_t::MAX as f64`.\n                (log2p + 0.5f64).to_int_unchecked::<size_t>()\n            };\n            bits += hist_i as c_double * log2p;\n            if depth > 15 as size_t {\n                depth = 15 as size_t;\n            }\n            if depth > max_depth {\n                max_depth = depth;\n            }\n            depth_histo[depth as usize] = depth_histo[depth as usize].wrapping_add(1);\n            i = i.wrapping_add(1);\n        } else {\n            let mut reps: uint32_t = 1 as uint32_t;\n            let mut k: size_t = 0;\n            k = i.wrapping_add(1 as size_t);\n            while k < data_size\n                && unsafe {\n                    // SAFETY: loop condition guarantees `k < data_size == 256`, so `k` is in-bounds for `data_`.\n                    *(*data).get_unchecked(k as usize)\n                } == 0 as uint32_t\n            {\n                reps = reps.wrapping_add(1);\n                k = k.wrapping_add(1);\n            }\n            i = (i as c_ulong).wrapping_add(reps as c_ulong) as size_t as size_t;\n            if i == data_size {\n                break;\n            }\n            if reps < 3 as uint32_t {\n                depth_histo[0 as c_int as usize] = (depth_histo[0 as c_int as usize] as c_uint)\n                    .wrapping_add(reps as c_uint)\n                    as uint32_t as uint32_t;\n            } else {\n                reps = (reps as c_uint).wrapping_sub(2 as c_uint) as uint32_t as uint32_t;\n                while reps > 0 as uint32_t {\n                    depth_histo[BROTLI_REPEAT_ZERO_CODE_LENGTH as usize] =\n                        depth_histo[BROTLI_REPEAT_ZERO_CODE_LENGTH as usize].wrapping_add(1);\n                    bits += 3 as c_int as c_double;\n                    reps >>= 3 as c_int;\n                }\n            }\n        }\n    }\n    bits += (18 as size_t).wrapping_add((2 as size_t).wrapping_mul(max_depth)) as c_double;\n    bits += BrotliBitsEntropy(\n        &raw mut depth_histo as *mut uint32_t,\n        BROTLI_CODE_LENGTH_CODES as size_t,\n    );\n    return bits;\n}",
+          "rule_id": "C3,C10,C1,C2",
+          "target": {
+            "declaration_hash": "379056bb09e3d8d9e98c76fd3c0eca561df474c8c73fd1ef3319a902ddb3e5aa",
+            "file_hint": "src/enc/bit_cost.rs",
+            "qualified_name": "crate::BrotliPopulationCostLiteral",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "BrotliPopulationCostLiteral-584967f630a7",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "BrotliPopulationCostLiteral",
+        "rule_id": "C3,C10,C1,C2"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "647c51f1d15fe65b77b139435753f8ab0cad5d6d7c188c08b0a91572cac0010d",
+            "edit_id": "edit-replace-05c249ffe7a16f54",
+            "end_byte": 8035,
+            "operation_id": "replace-05c249ffe7a16f54",
+            "relative_path": "src/enc/bit_cost.rs",
+            "replacement_text": "// Applied rules: [C3, C10, C1, C2]\n// Skipped rules: []\n#[inline]\npub unsafe fn BrotliPopulationCostLiteral(\n    mut histogram: *const HistogramLiteral,\n) -> c_double {\n    static mut kOneSymbolHistogramCost: c_double = 12 as c_int as c_double;\n    static mut kTwoSymbolHistogramCost: c_double = 20 as c_int as c_double;\n    static mut kThreeSymbolHistogramCost: c_double = 28 as c_int as c_double;\n    static mut kFourSymbolHistogramCost: c_double = 37 as c_int as c_double;\n\n    let data_size: size_t = HistogramDataSizeLiteral() as size_t;\n    let mut count: c_int = 0 as c_int;\n    let mut s: [size_t; 5] = [0; 5];\n    let mut bits: c_double = 0.0f64;\n    let mut i: size_t = 0;\n\n    let total_count = (*histogram).total_count_;\n    let data = (&(*histogram).data_) as *const [uint32_t; 256];\n\n    if total_count == 0 as size_t {\n        return kOneSymbolHistogramCost;\n    }\n\n    i = 0 as size_t;\n    while i < data_size {\n        let v = unsafe {\n            // SAFETY: `histogram` is a valid pointer per function contract and `i < data_size == 256`,\n            // so `i` is in-bounds for `data_`.\n            *(*data).get_unchecked(i as usize)\n        };\n        if v > 0 as uint32_t {\n            unsafe {\n                // SAFETY: `count` starts at 0 and this store occurs before increment; the loop breaks\n                // once `count > 4`, so the write index is always in 0..5.\n                *s.get_unchecked_mut(count as usize) = i;\n            }\n            count += 1;\n            if count > 4 as c_int {\n                break;\n            }\n        }\n        i = i.wrapping_add(1);\n    }\n\n    if count == 1 as c_int {\n        return kOneSymbolHistogramCost;\n    }\n    if count == 2 as c_int {\n        return kTwoSymbolHistogramCost + total_count as c_double;\n    }\n    if count == 3 as c_int {\n        let histo0: uint32_t = unsafe {\n            // SAFETY: `count == 3` means `s[0]`, `s[1]`, and `s[2]` were initialized from indices\n            // found while scanning `data_`, each in 0..data_size == 256.\n            *(*data).get_unchecked(*s.get_unchecked(0) as usize)\n        };\n        let histo1: uint32_t = unsafe {\n            // SAFETY: same proof as for `histo0`; `s[1]` is initialized and in 0..256.\n            *(*data).get_unchecked(*s.get_unchecked(1) as usize)\n        };\n        let histo2: uint32_t = unsafe {\n            // SAFETY: same proof as for `histo0`; `s[2]` is initialized and in 0..256.\n            *(*data).get_unchecked(*s.get_unchecked(2) as usize)\n        };\n        let histomax: uint32_t =\n            brotli_max_uint32_t(histo0, brotli_max_uint32_t(histo1, histo2)) as uint32_t;\n        return kThreeSymbolHistogramCost\n            + (2 as uint32_t).wrapping_mul(histo0.wrapping_add(histo1).wrapping_add(histo2))\n                as c_double\n            - histomax as c_double;\n    }\n    if count == 4 as c_int {\n        let mut histo: [uint32_t; 4] = [\n            unsafe {\n                // SAFETY: `count == 4` means `s[0..4]` are initialized and each stored source index\n                // came from scanning `data_`, so each is in 0..256.\n                *(*data).get_unchecked(*s.get_unchecked(0) as usize)\n            },\n            unsafe {\n                // SAFETY: same proof as above for `s[1]`.\n                *(*data).get_unchecked(*s.get_unchecked(1) as usize)\n            },\n            unsafe {\n                // SAFETY: same proof as above for `s[2]`.\n                *(*data).get_unchecked(*s.get_unchecked(2) as usize)\n            },\n            unsafe {\n                // SAFETY: same proof as above for `s[3]`.\n                *(*data).get_unchecked(*s.get_unchecked(3) as usize)\n            },\n        ];\n        let mut h23: uint32_t = 0;\n        let mut histomax_0: uint32_t = 0;\n\n        i = 0 as size_t;\n        while i < 4 as size_t {\n            let mut j: size_t = 0;\n            j = i.wrapping_add(1 as size_t);\n            while j < 4 as size_t {\n                if histo[j as usize] > histo[i as usize] {\n                    let mut __brotli_swap_tmp: uint32_t = histo[j as usize];\n                    histo[j as usize] = histo[i as usize];\n                    histo[i as usize] = __brotli_swap_tmp;\n                }\n                j = j.wrapping_add(1);\n            }\n            i = i.wrapping_add(1);\n        }\n        h23 = histo[2 as c_int as usize].wrapping_add(histo[3 as c_int as usize]);\n        histomax_0 = brotli_max_uint32_t(h23, histo[0 as c_int as usize]);\n        return kFourSymbolHistogramCost\n            + (3 as uint32_t).wrapping_mul(h23) as c_double\n            + (2 as uint32_t)\n                .wrapping_mul(histo[0 as c_int as usize].wrapping_add(histo[1 as c_int as usize]))\n                as c_double\n            - histomax_0 as c_double;\n    }\n\n    let mut max_depth: size_t = 1 as size_t;\n    let mut depth_histo: [uint32_t; 18] = [\n        0 as c_int as uint32_t,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n    ];\n    let log2total: c_double = FastLog2(total_count) as c_double;\n\n    i = 0 as size_t;\n    while i < data_size {\n        let hist_i = unsafe {\n            // SAFETY: `i < data_size == 256`, so `i` is in-bounds for `data_`.\n            *(*data).get_unchecked(i as usize)\n        };\n        if hist_i > 0 as uint32_t {\n            let log2p: c_double = log2total - FastLog2(hist_i as size_t);\n            let mut depth: size_t = unsafe {\n                // SAFETY:\n                //  1. Origin: `log2p = log2(total_count) - log2(hist_i)` with `hist_i > 0` and `total_count > 0`.\n                //  2. Finite: `FastLog2` on positive finite integer inputs is finite, so their difference is finite.\n                //  3. Lower: `hist_i <= total_count` for a histogram bin count, so `log2p >= 0.0`, hence `0.0 <= log2p + 0.5`.\n                //  4. Upper: `hist_i >= 1`, `total_count` is a `size_t`, so `log2p <= log2(total_count) <= size_t::BITS as f64`;\n                //     therefore `log2p + 0.5` is far below `size_t::MAX as f64`.\n                (log2p + 0.5f64).to_int_unchecked::<size_t>()\n            };\n            bits += hist_i as c_double * log2p;\n            if depth > 15 as size_t {\n                depth = 15 as size_t;\n            }\n            if depth > max_depth {\n                max_depth = depth;\n            }\n            depth_histo[depth as usize] = depth_histo[depth as usize].wrapping_add(1);\n            i = i.wrapping_add(1);\n        } else {\n            let mut reps: uint32_t = 1 as uint32_t;\n            let mut k: size_t = 0;\n            k = i.wrapping_add(1 as size_t);\n            while k < data_size\n                && unsafe {\n                    // SAFETY: loop condition guarantees `k < data_size == 256`, so `k` is in-bounds for `data_`.\n                    *(*data).get_unchecked(k as usize)\n                } == 0 as uint32_t\n            {\n                reps = reps.wrapping_add(1);\n                k = k.wrapping_add(1);\n            }\n            i = (i as c_ulong).wrapping_add(reps as c_ulong) as size_t as size_t;\n            if i == data_size {\n                break;\n            }\n            if reps < 3 as uint32_t {\n                depth_histo[0 as c_int as usize] = (depth_histo[0 as c_int as usize] as c_uint)\n                    .wrapping_add(reps as c_uint)\n                    as uint32_t as uint32_t;\n            } else {\n                reps = (reps as c_uint).wrapping_sub(2 as c_uint) as uint32_t as uint32_t;\n                while reps > 0 as uint32_t {\n                    depth_histo[BROTLI_REPEAT_ZERO_CODE_LENGTH as usize] =\n                        depth_histo[BROTLI_REPEAT_ZERO_CODE_LENGTH as usize].wrapping_add(1);\n                    bits += 3 as c_int as c_double;\n                    reps >>= 3 as c_int;\n                }\n            }\n        }\n    }\n    bits += (18 as size_t).wrapping_add((2 as size_t).wrapping_mul(max_depth)) as c_double;\n    bits += BrotliBitsEntropy(\n        &raw mut depth_histo as *mut uint32_t,\n        BROTLI_CODE_LENGTH_CODES as size_t,\n    );\n    return bits;\n}",
+            "start_byte": 2283
+          }
+        ],
+        "facts": {
+          "fn_name": "BrotliPopulationCostLiteral",
+          "target_span_hash": "379056bb09e3d8d9e98c76fd3c0eca561df474c8c73fd1ef3319a902ddb3e5aa"
+        },
+        "operation_id": "replace-05c249ffe7a16f54"
+      }
+    ],
+    "resolved_head": "467bbce209d60c98ee359271ddcc262a59bfec23"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/enc/bit_cost.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

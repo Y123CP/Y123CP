@@ -1,0 +1,94 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "7304eb112acd23f8d73a3456b7965ddcf748bd3e",
+      "changeset_id": "legacy-0e6e70c497c5294a",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-7312da2cead4dbc3",
+          "replacement_function_source": "unsafe fn setup_match_struct(\n    mut match_1: *mut match_struct,\n    mut needle: *const c_char,\n    mut haystack: *const c_char,\n) {\n    let needle_len = strlen(needle) as c_int;\n    let haystack_len = strlen(haystack) as c_int;\n\n    // SAFETY: `match_1` is assumed valid by the original function contract.\n    unsafe {\n        (*match_1).needle_len = needle_len;\n        (*match_1).haystack_len = haystack_len;\n    }\n\n    if haystack_len > MATCH_MAX_LEN || needle_len > haystack_len {\n        return;\n    }\n\n    if ::core::mem::size_of::<c_char>() as usize > 1usize {\n        let mut i: c_int = 0;\n        while i < needle_len {\n            // SAFETY: `needle` points to a NUL-terminated string of length at least `needle_len`,\n            // `match_1` is valid, and `i < needle_len <= MATCH_MAX_LEN <= 1024`.\n            unsafe {\n                (*match_1).lower_needle[i as usize] =\n                    tolower(*needle.offset(i as isize) as c_int) as c_char;\n            }\n            i += 1;\n        }\n\n        let mut i_0: c_int = 0;\n        while i_0 < haystack_len {\n            // SAFETY: `haystack` points to a NUL-terminated string of length at least `haystack_len`,\n            // `match_1` is valid, and `i_0 < haystack_len <= MATCH_MAX_LEN <= 1024`.\n            unsafe {\n                (*match_1).lower_haystack[i_0 as usize] =\n                    tolower(*haystack.offset(i_0 as isize) as c_int) as c_char;\n            }\n            i_0 += 1;\n        }\n    } else {\n        // SAFETY: `__ctype_tolower_loc` returns a valid pointer to the ctype lowercase table\n        // for the current locale, as required by the original libc-based implementation.\n        let tolower_tab = unsafe { *__ctype_tolower_loc() };\n\n        let mut i: c_int = 0;\n        while i < needle_len {\n            // SAFETY: `needle` points to a NUL-terminated string of length at least `needle_len`,\n            // `tolower_tab` is valid, `match_1` is valid, and `i < needle_len <= MATCH_MAX_LEN <= 1024`.\n            unsafe {\n                (*match_1).lower_needle[i as usize] =\n                    *tolower_tab.offset(*needle.offset(i as isize) as c_int as isize) as c_char;\n            }\n            i += 1;\n        }\n\n        let mut i_0: c_int = 0;\n        while i_0 < haystack_len {\n            // SAFETY: `haystack` points to a NUL-terminated string of length at least `haystack_len`,\n            // `tolower_tab` is valid, `match_1` is valid, and `i_0 < haystack_len <= MATCH_MAX_LEN <= 1024`.\n            unsafe {\n                (*match_1).lower_haystack[i_0 as usize] =\n                    *tolower_tab.offset(*haystack.offset(i_0 as isize) as c_int as isize) as c_char;\n            }\n            i_0 += 1;\n        }\n    }\n\n    // SAFETY: `haystack` and `match_1` are valid per the original function contract.\n    unsafe {\n        precompute_bonus(haystack, &raw mut (*match_1).match_bonus as *mut score_t);\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "3692338f1d644928d3462cb3a8e11b89e5dfdf35188ba5ec02adb9bbce603adf",
+            "file_hint": "src/match.rs",
+            "qualified_name": "crate::setup_match_struct",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "setup_match_struct-6bff029c9e88",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "setup_match_struct",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "b1181cb5c8730b65be90541fd044694c4fb662dd02e53d774a3e44a58c4b02f3",
+            "edit_id": "edit-replace-7312da2cead4dbc3",
+            "end_byte": 5398,
+            "operation_id": "replace-7312da2cead4dbc3",
+            "relative_path": "src/match.rs",
+            "replacement_text": "unsafe fn setup_match_struct(\n    mut match_1: *mut match_struct,\n    mut needle: *const c_char,\n    mut haystack: *const c_char,\n) {\n    let needle_len = strlen(needle) as c_int;\n    let haystack_len = strlen(haystack) as c_int;\n\n    // SAFETY: `match_1` is assumed valid by the original function contract.\n    unsafe {\n        (*match_1).needle_len = needle_len;\n        (*match_1).haystack_len = haystack_len;\n    }\n\n    if haystack_len > MATCH_MAX_LEN || needle_len > haystack_len {\n        return;\n    }\n\n    if ::core::mem::size_of::<c_char>() as usize > 1usize {\n        let mut i: c_int = 0;\n        while i < needle_len {\n            // SAFETY: `needle` points to a NUL-terminated string of length at least `needle_len`,\n            // `match_1` is valid, and `i < needle_len <= MATCH_MAX_LEN <= 1024`.\n            unsafe {\n                (*match_1).lower_needle[i as usize] =\n                    tolower(*needle.offset(i as isize) as c_int) as c_char;\n            }\n            i += 1;\n        }\n\n        let mut i_0: c_int = 0;\n        while i_0 < haystack_len {\n            // SAFETY: `haystack` points to a NUL-terminated string of length at least `haystack_len`,\n            // `match_1` is valid, and `i_0 < haystack_len <= MATCH_MAX_LEN <= 1024`.\n            unsafe {\n                (*match_1).lower_haystack[i_0 as usize] =\n                    tolower(*haystack.offset(i_0 as isize) as c_int) as c_char;\n            }\n            i_0 += 1;\n        }\n    } else {\n        // SAFETY: `__ctype_tolower_loc` returns a valid pointer to the ctype lowercase table\n        // for the current locale, as required by the original libc-based implementation.\n        let tolower_tab = unsafe { *__ctype_tolower_loc() };\n\n        let mut i: c_int = 0;\n        while i < needle_len {\n            // SAFETY: `needle` points to a NUL-terminated string of length at least `needle_len`,\n            // `tolower_tab` is valid, `match_1` is valid, and `i < needle_len <= MATCH_MAX_LEN <= 1024`.\n            unsafe {\n                (*match_1).lower_needle[i as usize] =\n                    *tolower_tab.offset(*needle.offset(i as isize) as c_int as isize) as c_char;\n            }\n            i += 1;\n        }\n\n        let mut i_0: c_int = 0;\n        while i_0 < haystack_len {\n            // SAFETY: `haystack` points to a NUL-terminated string of length at least `haystack_len`,\n            // `tolower_tab` is valid, `match_1` is valid, and `i_0 < haystack_len <= MATCH_MAX_LEN <= 1024`.\n            unsafe {\n                (*match_1).lower_haystack[i_0 as usize] =\n                    *tolower_tab.offset(*haystack.offset(i_0 as isize) as c_int as isize) as c_char;\n            }\n            i_0 += 1;\n        }\n    }\n\n    // SAFETY: `haystack` and `match_1` are valid per the original function contract.\n    unsafe {\n        precompute_bonus(haystack, &raw mut (*match_1).match_bonus as *mut score_t);\n    }\n}",
+            "start_byte": 2882
+          }
+        ],
+        "facts": {
+          "fn_name": "setup_match_struct",
+          "target_span_hash": "3692338f1d644928d3462cb3a8e11b89e5dfdf35188ba5ec02adb9bbce603adf"
+        },
+        "operation_id": "replace-7312da2cead4dbc3"
+      }
+    ],
+    "resolved_head": "7304eb112acd23f8d73a3456b7965ddcf748bd3e"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_post_validation",
+  "touched_paths": [
+    "src/match.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "added_bounds_check_in_loop",
+      "detail": "rewrite adds a bounds check inside a loop the original indexed unchecked (2 site(s)): (*match_1).lower_haystack[i_0 as usize], (*match_1).lower_needle[i as usize]",
+      "ok": false
+    }
+  ]
+}

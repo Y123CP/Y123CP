@@ -1,0 +1,94 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "48d206c5efa56fd685b5d627964e48430068fcd9",
+      "changeset_id": "legacy-9a6c65c6c5002db6",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-8b953cb90ef173a8",
+          "replacement_function_source": "// Applied rules: [III④, C3, C1, II_vec]\n// Skipped rules: []\nunsafe fn precompute_bonus(\n    mut haystack: *const c_char,\n    mut match_bonus: *mut score_t,\n) {\n    // SAFETY: `haystack` is required by this unsafe function's contract to be\n    // non-null and NUL-terminated within a single allocation; `CStr` derives a\n    // stable byte slice for exactly the non-NUL prefix.\n    let haystack_bytes = unsafe { core::ffi::CStr::from_ptr(haystack).to_bytes() };\n    // SAFETY: `match_bonus` is required by this unsafe function's contract to\n    // point to writable storage for at least `haystack_bytes.len()` elements,\n    // and no other live reference aliases that region for the duration here.\n    let match_bonus_slice =\n        unsafe { core::slice::from_raw_parts_mut(match_bonus, haystack_bytes.len()) };\n\n    let mut last_ch: c_char = '/' as i32 as c_char;\n    for (&ch_u8, dst) in haystack_bytes.iter().zip(match_bonus_slice.iter_mut()) {\n        let ch = ch_u8 as c_char;\n        *dst = bonus_states[bonus_index[ch_u8 as usize] as usize][last_ch as c_uchar as usize];\n        last_ch = ch;\n    }\n}",
+          "rule_id": "III④,C3,C1,II_vec",
+          "target": {
+            "declaration_hash": "c8b3d0e0ea46b615b7e14fbe0b366d01be89284968c34091e9b800b0785ff97b",
+            "file_hint": "src/match.rs",
+            "qualified_name": "crate::precompute_bonus",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "precompute_bonus-f5cc19a1f428",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "precompute_bonus",
+        "rule_id": "III④,C3,C1,II_vec"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "5f431756e3d8650a7cd1ad8c26e64b1c1f82c072aab4c626398cbc945b723cd6",
+            "edit_id": "edit-replace-8b953cb90ef173a8",
+            "end_byte": 2881,
+            "operation_id": "replace-8b953cb90ef173a8",
+            "relative_path": "src/match.rs",
+            "replacement_text": "// Applied rules: [III④, C3, C1, II_vec]\n// Skipped rules: []\nunsafe fn precompute_bonus(\n    mut haystack: *const c_char,\n    mut match_bonus: *mut score_t,\n) {\n    // SAFETY: `haystack` is required by this unsafe function's contract to be\n    // non-null and NUL-terminated within a single allocation; `CStr` derives a\n    // stable byte slice for exactly the non-NUL prefix.\n    let haystack_bytes = unsafe { core::ffi::CStr::from_ptr(haystack).to_bytes() };\n    // SAFETY: `match_bonus` is required by this unsafe function's contract to\n    // point to writable storage for at least `haystack_bytes.len()` elements,\n    // and no other live reference aliases that region for the duration here.\n    let match_bonus_slice =\n        unsafe { core::slice::from_raw_parts_mut(match_bonus, haystack_bytes.len()) };\n\n    let mut last_ch: c_char = '/' as i32 as c_char;\n    for (&ch_u8, dst) in haystack_bytes.iter().zip(match_bonus_slice.iter_mut()) {\n        let ch = ch_u8 as c_char;\n        *dst = bonus_states[bonus_index[ch_u8 as usize] as usize][last_ch as c_uchar as usize];\n        last_ch = ch;\n    }\n}",
+            "start_byte": 2387
+          }
+        ],
+        "facts": {
+          "fn_name": "precompute_bonus",
+          "target_span_hash": "c8b3d0e0ea46b615b7e14fbe0b366d01be89284968c34091e9b800b0785ff97b"
+        },
+        "operation_id": "replace-8b953cb90ef173a8"
+      }
+    ],
+    "resolved_head": "48d206c5efa56fd685b5d627964e48430068fcd9"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_post_validation",
+  "touched_paths": [
+    "src/match.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "added_bounds_check_in_loop",
+      "detail": "rewrite adds a bounds check inside a loop the original indexed unchecked (3 site(s)): bonus_states[bonus_index[ch_u8 as usize] as usize][last_ch a, bonus_states[bonus_index[ch_u8 as usize] as usize], bonus_index[ch_u8 as usize]",
+      "ok": false
+    }
+  ]
+}

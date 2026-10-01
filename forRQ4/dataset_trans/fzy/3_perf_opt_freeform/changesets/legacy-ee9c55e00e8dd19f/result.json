@@ -1,0 +1,205 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.08317724608360653,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.09790201636780617,
+            "aggregate_ci_low_pct": -0.26425650853501925,
+            "aggregate_pct": -0.08317724608360653,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.1267,
+                "ci_low_pct": -0.2365,
+                "insns_delta_pct": -2.1687,
+                "mean_delta_pct": -0.0549,
+                "op": "choices_add_search",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.5413,
+                "ci_low_pct": -0.3211,
+                "insns_delta_pct": -2.1507,
+                "mean_delta_pct": 0.1101,
+                "op": "choices_fread_search",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.0534,
+                "ci_low_pct": -0.6629,
+                "insns_delta_pct": -2.757,
+                "mean_delta_pct": -0.3047,
+                "op": "match_primitives",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.17009353414522194,
+            "aggregate_ci_low_pct": -0.3137868423777526,
+            "aggregate_pct": -0.07184665411626534,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.1455,
+                "ci_low_pct": -0.2966,
+                "insns_delta_pct": -0.2709,
+                "mean_delta_pct": -0.0755,
+                "op": "choices_add_search",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.5274,
+                "ci_low_pct": -0.627,
+                "insns_delta_pct": -0.1744,
+                "mean_delta_pct": -0.0498,
+                "op": "choices_fread_search",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.3974,
+                "ci_low_pct": -0.5777,
+                "insns_delta_pct": -0.0777,
+                "mean_delta_pct": -0.0902,
+                "op": "match_primitives",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "choices_add_search",
+          "choices_fread_search",
+          "match_primitives"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "choices_fread_search"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "7304eb112acd23f8d73a3456b7965ddcf748bd3e",
+      "changeset_id": "legacy-ee9c55e00e8dd19f",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-9d54b5b69a001651",
+          "replacement_function_source": "#[export_name = \"match\"]\npub unsafe extern \"C\" fn match_0(\n    mut needle: *const c_char,\n    mut haystack: *const c_char,\n) -> score_t {\n    // SAFETY: The original function dereferences `needle` immediately; callers must provide a valid pointer.\n    if unsafe { *needle } == 0 {\n        return -::core::f32::INFINITY as score_t;\n    }\n\n    let mut match_1: match_struct = match_struct {\n        needle_len: 0,\n        haystack_len: 0,\n        lower_needle: [0; 1024],\n        lower_haystack: [0; 1024],\n        match_bonus: [0.; 1024],\n    };\n\n    setup_match_struct(&raw mut match_1, needle, haystack);\n\n    let n: c_int = match_1.needle_len;\n    let m: c_int = match_1.haystack_len;\n\n    if m > MATCH_MAX_LEN || n > m {\n        return -::core::f32::INFINITY as score_t;\n    }\n    if n == m {\n        return ::core::f32::INFINITY as score_t;\n    }\n\n    let mut d: [score_t; 1024] = [0.; 1024];\n    let mut m_scores: [score_t; 1024] = [0.; 1024];\n    let d_ptr = d.as_mut_ptr();\n    let m_ptr = m_scores.as_mut_ptr();\n\n    let mut i: c_int = 0;\n    while i < n {\n        match_row(&raw mut match_1, i, d_ptr, m_ptr, d_ptr, m_ptr);\n        i += 1;\n    }\n\n    m_scores[(m - 1) as usize]\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "97c94591d345ed921ef569011c1464bc51d8b59ccd356cd161fa045e98acb5d8",
+            "file_hint": "src/match.rs",
+            "qualified_name": "crate::match_0",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "match-92ec8bdb2b23",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "match_0",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "b1181cb5c8730b65be90541fd044694c4fb662dd02e53d774a3e44a58c4b02f3",
+            "edit_id": "edit-replace-9d54b5b69a001651",
+            "end_byte": 9599,
+            "operation_id": "replace-9d54b5b69a001651",
+            "relative_path": "src/match.rs",
+            "replacement_text": "#[export_name = \"match\"]\npub unsafe extern \"C\" fn match_0(\n    mut needle: *const c_char,\n    mut haystack: *const c_char,\n) -> score_t {\n    // SAFETY: The original function dereferences `needle` immediately; callers must provide a valid pointer.\n    if unsafe { *needle } == 0 {\n        return -::core::f32::INFINITY as score_t;\n    }\n\n    let mut match_1: match_struct = match_struct {\n        needle_len: 0,\n        haystack_len: 0,\n        lower_needle: [0; 1024],\n        lower_haystack: [0; 1024],\n        match_bonus: [0.; 1024],\n    };\n\n    setup_match_struct(&raw mut match_1, needle, haystack);\n\n    let n: c_int = match_1.needle_len;\n    let m: c_int = match_1.haystack_len;\n\n    if m > MATCH_MAX_LEN || n > m {\n        return -::core::f32::INFINITY as score_t;\n    }\n    if n == m {\n        return ::core::f32::INFINITY as score_t;\n    }\n\n    let mut d: [score_t; 1024] = [0.; 1024];\n    let mut m_scores: [score_t; 1024] = [0.; 1024];\n    let d_ptr = d.as_mut_ptr();\n    let m_ptr = m_scores.as_mut_ptr();\n\n    let mut i: c_int = 0;\n    while i < n {\n        match_row(&raw mut match_1, i, d_ptr, m_ptr, d_ptr, m_ptr);\n        i += 1;\n    }\n\n    m_scores[(m - 1) as usize]\n}",
+            "start_byte": 8422
+          }
+        ],
+        "facts": {
+          "fn_name": "match_0",
+          "target_span_hash": "97c94591d345ed921ef569011c1464bc51d8b59ccd356cd161fa045e98acb5d8"
+        },
+        "operation_id": "replace-9d54b5b69a001651"
+      }
+    ],
+    "resolved_head": "7304eb112acd23f8d73a3456b7965ddcf748bd3e"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/match.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

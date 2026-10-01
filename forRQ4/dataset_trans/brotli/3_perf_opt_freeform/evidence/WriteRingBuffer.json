@@ -1,0 +1,262 @@
+{
+  "hot_function": {
+    "symbol": "WriteRingBuffer",
+    "location": "src/dec/decode.rs:2198-2260",
+    "workload": "decode_buffer",
+    "hot_region": "src/dec/decode.rs:2198-2260",
+    "rust_source": "unsafe fn WriteRingBuffer(\n    mut s: *mut BrotliDecoderStateInternal,\n    mut available_out: *mut size_t,\n    mut next_out: *mut *mut uint8_t,\n    mut total_out: *mut size_t,\n    mut force: c_int,\n) -> BrotliDecoderErrorCode {\n    let available_out_view: &mut size_t = unsafe { &mut *available_out };\n    let mut start: *mut uint8_t = (*s)\n        .ringbuffer\n        .offset(((*s).partial_pos_out & (*s).ringbuffer_mask as size_t) as isize);\n    let mut to_write: size_t = UnwrittenBytes(s, BROTLI_TRUE);\n    let mut num_written: size_t = *available_out_view;\n    if num_written > to_write {\n        num_written = to_write;\n    }\n    if (*s).meta_block_remaining_len < 0 as c_int {\n        return BROTLI_DECODER_ERROR_FORMAT_BLOCK_LENGTH_1 as c_int\n            as BrotliDecoderErrorCode;\n    }\n    if !next_out.is_null() && (*next_out).is_null() {\n        *next_out = start;\n    } else if !next_out.is_null() {\n        memcpy(\n            *next_out as *mut c_void,\n            start as *const c_void,\n            num_written,\n        );\n        *next_out = (*next_out).offset(num_written as isize);\n    }\n    *available_out_view = (*available_out_view as c_ulong)\n        .wrapping_sub(num_written as c_ulong) as size_t as size_t;\n    (*s).partial_pos_out = ((*s).partial_pos_out as c_ulong)\n        .wrapping_add(num_written as c_ulong) as size_t\n        as size_t;\n    if !total_out.is_null() {\n        *total_out = (*s).partial_pos_out;\n    }\n    if num_written < to_write {\n        if (*s).ringbuffer_size\n            == (1 as c_int) << (*s).window_bits() as c_int\n            || force != 0\n        {\n            return BROTLI_DECODER_NEEDS_MORE_OUTPUT;\n        } else {\n            return BROTLI_DECODER_SUCCESS;\n        }\n    }\n    if (*s).ringbuffer_size == (1 as c_int) << (*s).window_bits() as c_int\n        && (*s).pos >= (*s).ringbuffer_size\n    {\n        (*s).pos -= (*s).ringbuffer_size;\n        (*s).rb_roundtrips = (*s).rb_roundtrips.wrapping_add(1);\n        (*s).set_should_wrap_ringbuffer(\n            (if (*s).pos as size_t != 0 as size_t {\n                1 as c_int\n            } else {\n                0 as c_int\n            }) as c_uint as c_uint,\n        );\n    }\n    return BROTLI_DECODER_SUCCESS;\n}",
+    "signature": "unsafe fn WriteRingBuffer(\n    mut s: *mut BrotliDecoderStateInternal,\n    mut available_out: *mut size_t,\n    mut next_out: *mut *mut uint8_t,\n    mut total_out: *mut size_t,\n    mut force: c_int,\n) -> BrotliDecoderErrorCode",
+    "profile": {
+      "self_time_ratio": 0.0662,
+      "call_count": null,
+      "retired_instructions": 65984309,
+      "instructions_per_call": null,
+      "cpi": 5.848,
+      "tma": {
+        "scope": "process",
+        "retiring": 38.633814932781235,
+        "frontend_bound": 19.225755435799122,
+        "bad_speculation": 15.112617797149557,
+        "backend_bound": 27.02781183427008,
+        "memory_bound": 15.64396817499237,
+        "core_bound": 11.383843659277709,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.029
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2209,
+        "message": "'_ZN14brotli_cleaned3src3dec6decode14UnwrittenBytes17h19a9826f1b2c4b5fE' inlined into '_ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE' with (cost=-14995, threshold=375) at callsite _ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE:11:32;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2246,
+        "message": "'_ZN14brotli_cleaned3src3dec6decode24BrotliDecoderStateStruct11window_bits17h62f96b5f8d266811E' inlined into '_ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE' with (cost=15, threshold=375) at callsite _ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE:48:48;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2238,
+        "message": "'_ZN14brotli_cleaned3src3dec6decode24BrotliDecoderStateStruct11window_bits17h62f96b5f8d266811E' inlined into '_ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE' with (cost=15, threshold=375) at callsite _ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE:40:32;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2251,
+        "message": "'_ZN14brotli_cleaned3src3dec6decode24BrotliDecoderStateStruct26set_should_wrap_ringbuffer17h1182d42ebc5de855E' inlined into '_ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE' with (cost=-25, threshold=375) at callsite _ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE:53:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2251,
+        "message": "'_ZN14brotli_cleaned3src3dec6decode24BrotliDecoderStateStruct26set_should_wrap_ringbuffer17h1182d42ebc5de855E' inlined into '_ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE' with (cost=-20, threshold=375) at callsite _ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE:53:9;"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2226,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2228,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2230,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2246,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2247,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2247,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2250,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2237,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2198,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE: MI Instruction count changed from 0 to 110; Delta: 110"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2198,
+        "message": "Remove dead machine instructions: Function: _ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE: MI Instruction count changed from 110 to 109; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2198,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE: MI Instruction count changed from 109 to 105; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2198,
+        "message": "X86 Fixup SetCC: Function: _ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE: MI Instruction count changed from 105 to 106; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2198,
+        "message": "Process Implicit Definitions: Function: _ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE: MI Instruction count changed from 106 to 103; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2198,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE: MI Instruction count changed from 103 to 112; Delta: 9"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2198,
+        "message": "Two-Address instruction pass: Function: _ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE: MI Instruction count changed from 112 to 136; Delta: 24"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2198,
+        "message": "Register Coalescer: Function: _ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE: MI Instruction count changed from 136 to 96; Delta: -40"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2198,
+        "message": "2 spills 4.803922e-01 total spills cost 2 reloads 4.803922e-01 total reloads cost 6 virtual registers copies 4.862745e+00 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2198,
+        "message": "Greedy Register Allocator: Function: _ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE: MI Instruction count changed from 96 to 100; Delta: 4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2198,
+        "message": "Virtual Register Rewriter: Function: _ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE: MI Instruction count changed from 100 to 95; Delta: -5"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 2198,
+        "message": "72 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2198,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE: MI Instruction count changed from 95 to 127; Delta: 32"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2198,
+        "message": "Control Flow Optimizer: Function: _ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE: MI Instruction count changed from 127 to 120; Delta: -7"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2198,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN14brotli_cleaned3src3dec6decode15WriteRingBuffer17h934a9a9290caed7bE: MI Instruction count changed from 120 to 119; Delta: -1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2221,
+        "message": "BasicBlock: bb11"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2234,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2237,
+        "message": "BasicBlock: bb17"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb23"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: bb25"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2250,
+        "message": "BasicBlock: bb26"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2260,
+        "message": "BasicBlock: bb35"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2198,
+        "message": "98 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

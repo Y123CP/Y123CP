@@ -1,0 +1,213 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.031947401027737216,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.27442730068222787,
+            "aggregate_ci_low_pct": -0.21053249862675347,
+            "aggregate_pct": 0.031947401027737216,
+            "checkpoint": 20,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.0077,
+                "ci_low_pct": -0.0198,
+                "insns_delta_pct": -0.0027,
+                "mean_delta_pct": -0.006,
+                "op": "api_sweep",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2228,
+                "ci_low_pct": -0.9014,
+                "insns_delta_pct": -0.0218,
+                "mean_delta_pct": -0.3393,
+                "op": "decode_buffer",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.0634,
+                "ci_low_pct": -0.3236,
+                "insns_delta_pct": 0.0298,
+                "mean_delta_pct": -0.1935,
+                "op": "encode_buffer",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 1.9842,
+                "ci_low_pct": -0.5451,
+                "insns_delta_pct": -0.6886,
+                "mean_delta_pct": 0.7195,
+                "op": "lowlevel_probe",
+                "samples": 20,
+                "state": "active",
+                "stop_reason": "per_op_uncertain"
+              },
+              {
+                "ci_high_pct": 0.1052,
+                "ci_low_pct": -0.0421,
+                "insns_delta_pct": 0.0205,
+                "mean_delta_pct": 0.0316,
+                "op": "shared_dict_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.61,
+                "ci_low_pct": -0.6512,
+                "insns_delta_pct": -0.0753,
+                "mean_delta_pct": -0.0206,
+                "op": "stream_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.12362764791816844,
+            "aggregate_ci_low_pct": -0.7224658860035029,
+            "aggregate_pct": -0.2994191190426672,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.1236,
+                "ci_low_pct": -0.7225,
+                "insns_delta_pct": -0.0302,
+                "mean_delta_pct": -0.2994,
+                "op": "decode_buffer",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "decode_buffer"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "lowlevel_probe"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be",
+      "changeset_id": "legacy-c50b51de70ac3235",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-41e5e42b5a78db88",
+          "replacement_function_source": "#[inline(never)]\nunsafe fn WriteRingBuffer(\n    mut s: *mut BrotliDecoderStateInternal,\n    mut available_out: *mut size_t,\n    mut next_out: *mut *mut uint8_t,\n    mut total_out: *mut size_t,\n    mut force: c_int,\n) -> BrotliDecoderErrorCode {\n    let available = unsafe { &mut *available_out }; // SAFETY: caller provides a valid non-null mutable pointer per function contract.\n    let state = unsafe { &mut *s }; // SAFETY: caller provides a valid non-null mutable decoder state pointer per function contract.\n\n    if state.meta_block_remaining_len < 0 as c_int {\n        return BROTLI_DECODER_ERROR_FORMAT_BLOCK_LENGTH_1 as c_int as BrotliDecoderErrorCode;\n    }\n\n    let start = unsafe {\n        state\n            .ringbuffer\n            .offset((state.partial_pos_out & state.ringbuffer_mask as size_t) as isize)\n    }; // SAFETY: offset is computed exactly as in the original code and relies on ringbuffer allocation/layout invariants maintained by the decoder.\n\n    let to_write: size_t = UnwrittenBytes(s, BROTLI_TRUE);\n    let num_written: size_t = if *available > to_write { to_write } else { *available };\n\n    if !next_out.is_null() {\n        let out = unsafe { *next_out }; // SAFETY: next_out is checked non-null above; reading the pointed-to output pointer matches original behavior.\n        if out.is_null() {\n            unsafe {\n                *next_out = start;\n            } // SAFETY: next_out is non-null and writable per function contract.\n        } else {\n            unsafe {\n                memcpy(out as *mut c_void, start as *const c_void, num_written);\n                *next_out = out.offset(num_written as isize);\n            } // SAFETY: preserves original memcpy/offset behavior and relies on caller-provided output buffer capacity and valid ringbuffer source.\n        }\n    }\n\n    *available = (*available as c_ulong).wrapping_sub(num_written as c_ulong) as size_t;\n    state.partial_pos_out =\n        (state.partial_pos_out as c_ulong).wrapping_add(num_written as c_ulong) as size_t;\n\n    if !total_out.is_null() {\n        unsafe {\n            *total_out = state.partial_pos_out;\n        } // SAFETY: total_out is checked non-null above and is writable per function contract.\n    }\n\n    if num_written < to_write {\n        return if state.ringbuffer_size == (1 as c_int) << state.window_bits() as c_int || force != 0\n        {\n            BROTLI_DECODER_NEEDS_MORE_OUTPUT\n        } else {\n            BROTLI_DECODER_SUCCESS\n        };\n    }\n\n    let ringbuffer_size = state.ringbuffer_size;\n    if ringbuffer_size == (1 as c_int) << state.window_bits() as c_int && state.pos >= ringbuffer_size\n    {\n        state.pos -= ringbuffer_size;\n        state.rb_roundtrips = state.rb_roundtrips.wrapping_add(1);\n        state.set_should_wrap_ringbuffer((if state.pos as size_t != 0 as size_t {\n            1 as c_int\n        } else {\n            0 as c_int\n        }) as c_uint);\n    }\n\n    BROTLI_DECODER_SUCCESS\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "a0e9b882b429efeb8c8b70fc1c1d9f4a1a809c74326b7c2407d2e96fa05a7637",
+            "file_hint": "src/dec/decode.rs",
+            "qualified_name": "crate::WriteRingBuffer",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "WriteRingBuffer-3bfbd81a6b3a",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "WriteRingBuffer",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "edafc6fb2079b4e565556d00c156d82afc8c6988ffb0988beb0552b5bcbb6c7d",
+            "edit_id": "edit-replace-41e5e42b5a78db88",
+            "end_byte": 86322,
+            "operation_id": "replace-41e5e42b5a78db88",
+            "relative_path": "src/dec/decode.rs",
+            "replacement_text": "#[inline(never)]\nunsafe fn WriteRingBuffer(\n    mut s: *mut BrotliDecoderStateInternal,\n    mut available_out: *mut size_t,\n    mut next_out: *mut *mut uint8_t,\n    mut total_out: *mut size_t,\n    mut force: c_int,\n) -> BrotliDecoderErrorCode {\n    let available = unsafe { &mut *available_out }; // SAFETY: caller provides a valid non-null mutable pointer per function contract.\n    let state = unsafe { &mut *s }; // SAFETY: caller provides a valid non-null mutable decoder state pointer per function contract.\n\n    if state.meta_block_remaining_len < 0 as c_int {\n        return BROTLI_DECODER_ERROR_FORMAT_BLOCK_LENGTH_1 as c_int as BrotliDecoderErrorCode;\n    }\n\n    let start = unsafe {\n        state\n            .ringbuffer\n            .offset((state.partial_pos_out & state.ringbuffer_mask as size_t) as isize)\n    }; // SAFETY: offset is computed exactly as in the original code and relies on ringbuffer allocation/layout invariants maintained by the decoder.\n\n    let to_write: size_t = UnwrittenBytes(s, BROTLI_TRUE);\n    let num_written: size_t = if *available > to_write { to_write } else { *available };\n\n    if !next_out.is_null() {\n        let out = unsafe { *next_out }; // SAFETY: next_out is checked non-null above; reading the pointed-to output pointer matches original behavior.\n        if out.is_null() {\n            unsafe {\n                *next_out = start;\n            } // SAFETY: next_out is non-null and writable per function contract.\n        } else {\n            unsafe {\n                memcpy(out as *mut c_void, start as *const c_void, num_written);\n                *next_out = out.offset(num_written as isize);\n            } // SAFETY: preserves original memcpy/offset behavior and relies on caller-provided output buffer capacity and valid ringbuffer source.\n        }\n    }\n\n    *available = (*available as c_ulong).wrapping_sub(num_written as c_ulong) as size_t;\n    state.partial_pos_out =\n        (state.partial_pos_out as c_ulong).wrapping_add(num_written as c_ulong) as size_t;\n\n    if !total_out.is_null() {\n        unsafe {\n            *total_out = state.partial_pos_out;\n        } // SAFETY: total_out is checked non-null above and is writable per function contract.\n    }\n\n    if num_written < to_write {\n        return if state.ringbuffer_size == (1 as c_int) << state.window_bits() as c_int || force != 0\n        {\n            BROTLI_DECODER_NEEDS_MORE_OUTPUT\n        } else {\n            BROTLI_DECODER_SUCCESS\n        };\n    }\n\n    let ringbuffer_size = state.ringbuffer_size;\n    if ringbuffer_size == (1 as c_int) << state.window_bits() as c_int && state.pos >= ringbuffer_size\n    {\n        state.pos -= ringbuffer_size;\n        state.rb_roundtrips = state.rb_roundtrips.wrapping_add(1);\n        state.set_should_wrap_ringbuffer((if state.pos as size_t != 0 as size_t {\n            1 as c_int\n        } else {\n            0 as c_int\n        }) as c_uint);\n    }\n\n    BROTLI_DECODER_SUCCESS\n}",
+            "start_byte": 84080
+          }
+        ],
+        "facts": {
+          "fn_name": "WriteRingBuffer",
+          "target_span_hash": "a0e9b882b429efeb8c8b70fc1c1d9f4a1a809c74326b7c2407d2e96fa05a7637"
+        },
+        "operation_id": "replace-41e5e42b5a78db88"
+      }
+    ],
+    "resolved_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/dec/decode.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

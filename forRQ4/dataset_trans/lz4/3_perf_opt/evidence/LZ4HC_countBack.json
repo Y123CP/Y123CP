@@ -1,0 +1,402 @@
+{
+  "hot_function": {
+    "symbol": "LZ4HC_countBack",
+    "location": "src/lz4hc.rs:344-383",
+    "workload": "streaming_hc_compress",
+    "hot_region": "src/lz4hc.rs:344-383",
+    "rust_source": "unsafe fn LZ4HC_countBack(\n    ip_0: *const BYTE,\n    match_0: *const BYTE,\n    iMin: *const BYTE,\n    mMin: *const BYTE,\n) -> c_int {\n    let mut back: c_int = 0 as c_int;\n    let min: c_int = (if iMin.offset_from(ip_0) as c_long\n        > mMin.offset_from(match_0) as c_long\n    {\n        iMin.offset_from(ip_0) as c_long\n    } else {\n        mMin.offset_from(match_0) as c_long\n    }) as c_int;\n    while back - min > 3 as c_int {\n        let v: U32 = LZ4_read32(\n            ip_0.offset(back as isize)\n                .offset(-(4 as c_int as isize))\n                as *const c_void,\n        ) as U32\n            ^ LZ4_read32(\n                match_0\n                    .offset(back as isize)\n                    .offset(-(4 as c_int as isize))\n                    as *const c_void,\n            ) as U32;\n        if v != 0 {\n            return back - LZ4HC_NbCommonBytes32(v) as c_int;\n        } else {\n            back -= 4 as c_int;\n        }\n    }\n    while back > min\n        && *ip_0.offset((back - 1 as c_int) as isize) as c_int\n            == *match_0.offset((back - 1 as c_int) as isize) as c_int\n    {\n        back -= 1;\n    }\n    return back;\n}",
+    "signature": "unsafe fn LZ4HC_countBack(\n    ip_0: *const BYTE,\n    match_0: *const BYTE,\n    iMin: *const BYTE,\n    mMin: *const BYTE,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.0756,
+      "call_count": null,
+      "retired_instructions": 741119038,
+      "instructions_per_call": null,
+      "cpi": 0.555,
+      "tma": {
+        "scope": "process",
+        "retiring": 45.862313283998226,
+        "frontend_bound": 16.309177304524095,
+        "bad_speculation": 25.584302495389245,
+        "backend_bound": 12.24420691608843,
+        "memory_bound": 6.768570301996737,
+        "core_bound": 5.475636614091693,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0418
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {},
+    "class_ii_hits": {
+      "II_vec": {
+        "CantComputeNumberOfIterations": 2
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 376,
+        "message": "sinking trunc"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 358,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 376,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 376,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 370,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 370,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 376,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 376,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 370,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 370,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 376,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 376,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 370,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 370,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 376,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 376,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 370,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 370,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 376,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 376,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 370,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 370,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 376,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 376,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 370,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 370,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 370,
+        "message": "1 reloads 3.592363e+01 total reloads cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 376,
+        "message": "1 reloads 5.192532e+01 total reloads cost 1 virtual registers copies 5.360033e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 376,
+        "message": "1 reloads 5.192532e+01 total reloads cost 5 virtual registers copies 2.613016e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 370,
+        "message": "1 reloads 3.560164e+01 total reloads cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 376,
+        "message": "1 virtual registers copies 5.311991e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 370,
+        "message": "1 reloads 1.741725e+01 total reloads cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 376,
+        "message": "1 virtual registers copies 2.598764e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 370,
+        "message": "1 reloads 1.726114e+01 total reloads cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 376,
+        "message": "1 virtual registers copies 2.575471e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 370,
+        "message": "BasicBlock: bb5.i290.i.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 373,
+        "message": "BasicBlock: bb7.i299.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 376,
+        "message": "BasicBlock: bb9.preheader.i273.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 376,
+        "message": "BasicBlock: bb9.i277.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 370,
+        "message": "BasicBlock: bb5.i.i.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 373,
+        "message": "BasicBlock: bb7.i265.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 376,
+        "message": "BasicBlock: bb9.preheader.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 376,
+        "message": "BasicBlock: bb9.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 370,
+        "message": "BasicBlock: bb5.i458.i.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 373,
+        "message": "BasicBlock: bb7.i467.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 376,
+        "message": "BasicBlock: bb9.preheader.i441.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 376,
+        "message": "BasicBlock: bb9.i445.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 370,
+        "message": "BasicBlock: bb5.i290.i1586.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 373,
+        "message": "BasicBlock: bb7.i299.i1594.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 376,
+        "message": "BasicBlock: bb9.preheader.i273.i1502.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 376,
+        "message": "BasicBlock: bb9.i277.i1506.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 370,
+        "message": "BasicBlock: bb5.i.i1672.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 373,
+        "message": "BasicBlock: bb7.i265.i1680.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 376,
+        "message": "BasicBlock: bb9.preheader.i.i1651.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 376,
+        "message": "BasicBlock: bb9.i.i1655.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 370,
+        "message": "BasicBlock: bb5.i458.i1105.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 373,
+        "message": "BasicBlock: bb7.i467.i1113.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 376,
+        "message": "BasicBlock: bb9.preheader.i441.i1084.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 376,
+        "message": "BasicBlock: bb9.i445.i1088.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

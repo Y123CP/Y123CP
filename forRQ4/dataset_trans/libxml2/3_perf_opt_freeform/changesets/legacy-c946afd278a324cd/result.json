@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.08742607725071184,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.3607006644855891,
+            "aggregate_ci_low_pct": -0.1858485099841654,
+            "aggregate_pct": 0.08742607725071184,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.3607,
+                "ci_low_pct": -0.1858,
+                "insns_delta_pct": -0.0342,
+                "mean_delta_pct": 0.0874,
+                "op": "regexp_pattern",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "regexp_pattern"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "regexp_pattern"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "f641ddb542886e9de485798667a5f27c342ab788",
+      "changeset_id": "legacy-c946afd278a324cd",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-ad2307674fc1f1e9",
+          "replacement_function_source": "unsafe fn xmlRegAtomAddRange(\n    mut ctxt: xmlRegParserCtxtPtr,\n    mut atom: xmlRegAtomPtr,\n    mut neg: c_int,\n    mut type_0: xmlRegAtomType,\n    mut start: c_int,\n    mut end: c_int,\n    mut blockName: *mut xmlChar,\n) -> xmlRegRangePtr {\n    if atom.is_null() {\n        (*ctxt).error = XML_REGEXP_COMPILE_ERROR as c_int;\n        xmlRegexpErrCompile(\n            ctxt,\n            b\"add range: atom is NULL\\0\" as *const u8 as *const c_char,\n        );\n        return ::core::ptr::null_mut::<xmlRegRange>();\n    }\n\n    let atom_ref = &mut *atom;\n\n    if atom_ref.type_0 as c_uint != XML_REGEXP_RANGES as c_int as c_uint {\n        (*ctxt).error = XML_REGEXP_COMPILE_ERROR as c_int;\n        xmlRegexpErrCompile(\n            ctxt,\n            b\"add range: atom is not ranges\\0\" as *const u8 as *const c_char,\n        );\n        return ::core::ptr::null_mut::<xmlRegRange>();\n    }\n\n    let nb = atom_ref.nbRanges;\n    let max = atom_ref.maxRanges;\n\n    if max == 0 {\n        let new_max = 4 as c_int;\n        let new_ranges = xmlMalloc.expect(\"non-null function pointer\")(\n            (new_max as size_t)\n                .wrapping_mul(::core::mem::size_of::<xmlRegRangePtr>() as size_t),\n        ) as *mut xmlRegRangePtr;\n        if new_ranges.is_null() {\n            xmlRegexpErrMemory(\n                ctxt,\n                b\"adding ranges\\0\" as *const u8 as *const c_char,\n            );\n            atom_ref.maxRanges = 0 as c_int;\n            return ::core::ptr::null_mut::<xmlRegRange>();\n        }\n        atom_ref.maxRanges = new_max;\n        atom_ref.ranges = new_ranges;\n    } else if nb >= max {\n        let new_max = max * 2 as c_int;\n        let tmp = xmlRealloc.expect(\"non-null function pointer\")(\n            atom_ref.ranges as *mut c_void,\n            (new_max as size_t)\n                .wrapping_mul(::core::mem::size_of::<xmlRegRangePtr>() as size_t),\n        ) as *mut xmlRegRangePtr;\n        if tmp.is_null() {\n            xmlRegexpErrMemory(\n                ctxt,\n                b\"adding ranges\\0\" as *const u8 as *const c_char,\n            );\n            return ::core::ptr::null_mut::<xmlRegRange>();\n        }\n        atom_ref.maxRanges = new_max;\n        atom_ref.ranges = tmp;\n    }\n\n    let range = xmlRegNewRange(ctxt, neg, type_0, start, end);\n    if range.is_null() {\n        return ::core::ptr::null_mut::<xmlRegRange>();\n    }\n\n    (*range).blockName = blockName;\n    let idx = atom_ref.nbRanges;\n    atom_ref.nbRanges = idx + 1;\n    // SAFETY: atom_ref.ranges points to an allocated array with capacity > idx due to the checks/growth above.\n    *atom_ref.ranges.add(idx as usize) = range;\n    range\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "ca3e37e8a736f9b2df4bf04559c99eecabec6556c48e03123a28491e23bece87",
+            "file_hint": "src/xmlregexp.rs",
+            "qualified_name": "crate::xmlRegAtomAddRange",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "xmlRegAtomAddRange-a8fd80b6f455",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "xmlRegAtomAddRange",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "76a22ecef2f0059743daf7e6f4f4fc8f130f6953f8fbe3dee2d5ae7b189e879e",
+            "edit_id": "edit-replace-ad2307674fc1f1e9",
+            "end_byte": 108877,
+            "operation_id": "replace-ad2307674fc1f1e9",
+            "relative_path": "src/xmlregexp.rs",
+            "replacement_text": "unsafe fn xmlRegAtomAddRange(\n    mut ctxt: xmlRegParserCtxtPtr,\n    mut atom: xmlRegAtomPtr,\n    mut neg: c_int,\n    mut type_0: xmlRegAtomType,\n    mut start: c_int,\n    mut end: c_int,\n    mut blockName: *mut xmlChar,\n) -> xmlRegRangePtr {\n    if atom.is_null() {\n        (*ctxt).error = XML_REGEXP_COMPILE_ERROR as c_int;\n        xmlRegexpErrCompile(\n            ctxt,\n            b\"add range: atom is NULL\\0\" as *const u8 as *const c_char,\n        );\n        return ::core::ptr::null_mut::<xmlRegRange>();\n    }\n\n    let atom_ref = &mut *atom;\n\n    if atom_ref.type_0 as c_uint != XML_REGEXP_RANGES as c_int as c_uint {\n        (*ctxt).error = XML_REGEXP_COMPILE_ERROR as c_int;\n        xmlRegexpErrCompile(\n            ctxt,\n            b\"add range: atom is not ranges\\0\" as *const u8 as *const c_char,\n        );\n        return ::core::ptr::null_mut::<xmlRegRange>();\n    }\n\n    let nb = atom_ref.nbRanges;\n    let max = atom_ref.maxRanges;\n\n    if max == 0 {\n        let new_max = 4 as c_int;\n        let new_ranges = xmlMalloc.expect(\"non-null function pointer\")(\n            (new_max as size_t)\n                .wrapping_mul(::core::mem::size_of::<xmlRegRangePtr>() as size_t),\n        ) as *mut xmlRegRangePtr;\n        if new_ranges.is_null() {\n            xmlRegexpErrMemory(\n                ctxt,\n                b\"adding ranges\\0\" as *const u8 as *const c_char,\n            );\n            atom_ref.maxRanges = 0 as c_int;\n            return ::core::ptr::null_mut::<xmlRegRange>();\n        }\n        atom_ref.maxRanges = new_max;\n        atom_ref.ranges = new_ranges;\n    } else if nb >= max {\n        let new_max = max * 2 as c_int;\n        let tmp = xmlRealloc.expect(\"non-null function pointer\")(\n            atom_ref.ranges as *mut c_void,\n            (new_max as size_t)\n                .wrapping_mul(::core::mem::size_of::<xmlRegRangePtr>() as size_t),\n        ) as *mut xmlRegRangePtr;\n        if tmp.is_null() {\n            xmlRegexpErrMemory(\n                ctxt,\n                b\"adding ranges\\0\" as *const u8 as *const c_char,\n            );\n            return ::core::ptr::null_mut::<xmlRegRange>();\n        }\n        atom_ref.maxRanges = new_max;\n        atom_ref.ranges = tmp;\n    }\n\n    let range = xmlRegNewRange(ctxt, neg, type_0, start, end);\n    if range.is_null() {\n        return ::core::ptr::null_mut::<xmlRegRange>();\n    }\n\n    (*range).blockName = blockName;\n    let idx = atom_ref.nbRanges;\n    atom_ref.nbRanges = idx + 1;\n    // SAFETY: atom_ref.ranges points to an allocated array with capacity > idx due to the checks/growth above.\n    *atom_ref.ranges.add(idx as usize) = range;\n    range\n}",
+            "start_byte": 106216
+          }
+        ],
+        "facts": {
+          "fn_name": "xmlRegAtomAddRange",
+          "target_span_hash": "ca3e37e8a736f9b2df4bf04559c99eecabec6556c48e03123a28491e23bece87"
+        },
+        "operation_id": "replace-ad2307674fc1f1e9"
+      }
+    ],
+    "resolved_head": "f641ddb542886e9de485798667a5f27c342ab788"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/xmlregexp.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

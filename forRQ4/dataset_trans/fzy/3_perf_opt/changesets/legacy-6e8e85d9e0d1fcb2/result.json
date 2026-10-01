@@ -1,0 +1,162 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 1.3292032153359403,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 1.6458919109535861,
+            "aggregate_ci_low_pct": 1.0125145197182945,
+            "aggregate_pct": 1.3292032153359403,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 1.7387,
+                "ci_low_pct": 1.1687,
+                "insns_delta_pct": -0.9713,
+                "mean_delta_pct": 1.4537,
+                "op": "choices_add_search",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              },
+              {
+                "ci_high_pct": 3.3387,
+                "ci_low_pct": 1.6589,
+                "insns_delta_pct": -1.7598,
+                "mean_delta_pct": 2.4988,
+                "op": "choices_fread_search",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              },
+              {
+                "ci_high_pct": 0.5367,
+                "ci_low_pct": -0.4664,
+                "insns_delta_pct": -1.9705,
+                "mean_delta_pct": 0.0351,
+                "op": "match_primitives",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "choices_add_search",
+          "choices_fread_search",
+          "match_primitives"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "choices_fread_search"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "80b68ab1d2a7d280f454b41df8dc3636c9e8322a",
+      "changeset_id": "legacy-6e8e85d9e0d1fcb2",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-18831fd0496f01cc",
+          "replacement_function_source": "// Applied rules: [III④, C3]\n// Skipped rules: [C6: Hit [20] is just the main loop header; there is no loop-invariant per-iteration dispatch/multi-way behavior to hoist. The inner branch depends on per-element character equality and cannot be unswitched under C6.; II_vec: The reported NonReductionValueUsedOutsideLoop is driven by true loop-carried state (`prev_score`, `prev_M`, `prev_D`) used across iterations, not a simple canonicalization issue. III④/C3 may improve scalar codegen, but a direct II_vec rewrite is unlikely to be semantics-neutral or profitable here.]\n#[inline]\nunsafe fn match_row(\n    mut match_1: *const match_struct,\n    mut row: c_int,\n    mut curr_D: *mut score_t,\n    mut curr_M: *mut score_t,\n    mut last_D: *const score_t,\n    mut last_M: *const score_t,\n) {\n    let n: c_int = (*match_1).needle_len;\n    let m: c_int = (*match_1).haystack_len;\n    let i: c_int = row;\n\n    let m_usize = m as usize;\n    let i_usize = i as usize;\n\n    // SAFETY: `match_1` is assumed by the caller to be non-null and valid for reads.\n    // `m` is taken from the stable `haystack_len` field and this function does not mutate\n    // `match_1`, so the length is stable across the loop. The arrays are fields of\n    // `match_struct` with capacity 1024, and the caller invariant for this routine is that\n    // `0 <= m <= 1024` and `0 <= row < n <= 1024`, so slicing to `m_usize` and indexing\n    // `i_usize` are within bounds. These shared slices do not alias the mutable row buffers.\n    let lower_haystack = unsafe {\n        core::slice::from_raw_parts((*match_1).lower_haystack.as_ptr(), m_usize)\n    };\n    // SAFETY: same justification as above; `match_bonus` is a read-only field array in\n    // `match_1`, `m` is the stable length, and this shared slice does not alias the mutable\n    // destination buffers.\n    let match_bonus =\n        unsafe { core::slice::from_raw_parts((*match_1).match_bonus.as_ptr(), m_usize) };\n    // SAFETY: `curr_D` is assumed by the caller to be non-null and valid for writes to `m`\n    // consecutive `score_t` elements. `m` is the stable row length for this call, and the\n    // caller guarantees `curr_D` does not overlap any other live slice/reference created here.\n    let curr_D = unsafe { core::slice::from_raw_parts_mut(curr_D, m_usize) };\n    // SAFETY: `curr_M` is assumed by the caller to be non-null and valid for writes to `m`\n    // consecutive `score_t` elements. The caller guarantees it does not overlap `curr_D`,\n    // `last_D`, `last_M`, or the arrays inside `match_1` for the duration of this function.\n    let curr_M = unsafe { core::slice::from_raw_parts_mut(curr_M, m_usize) };\n    // SAFETY: `last_D` is assumed by the caller to be non-null and valid for reads of `m`\n    // consecutive `score_t` elements. The length comes from stable `m`, and this shared slice\n    // does not alias the mutable destination slices.\n    let last_D = unsafe { core::slice::from_raw_parts(last_D, m_usize) };\n    // SAFETY: `last_M` is assumed by the caller to be non-null and valid for reads of `m`\n    // consecutive `score_t` elements. The length comes from stable `m`, and this shared slice\n    // does not alias the mutable destination slices.\n    let last_M = unsafe { core::slice::from_raw_parts(last_M, m_usize) };\n\n    let needle_ch = (*match_1).lower_needle[i_usize];\n\n    let mut prev_score: score_t = -::core::f32::INFINITY as score_t;\n    let gap_score: score_t = if i == n - 1 as c_int {\n        SCORE_GAP_TRAILING\n    } else {\n        SCORE_GAP_INNER\n    };\n    let mut prev_M: score_t = -::core::f32::INFINITY as score_t;\n    let mut prev_D: score_t = -::core::f32::INFINITY as score_t;\n\n    for (j, (((curr_d, curr_m), &last_d), (&last_m, (&hay_ch, &bonus)))) in curr_D\n        .iter_mut()\n        .zip(curr_M.iter_mut())\n        .zip(last_D.iter())\n        .zip(\n            last_M\n                .iter()\n                .zip(lower_haystack.iter().zip(match_bonus.iter())),\n        )\n        .enumerate()\n    {\n        if needle_ch as c_int == hay_ch as c_int {\n            let mut score: score_t = -::core::f32::INFINITY as score_t;\n            if i == 0 {\n                score = j as score_t * SCORE_GAP_LEADING + bonus;\n            } else if j != 0 {\n                score = (if prev_M + bonus > prev_D as c_double + 1.0f64 {\n                    prev_M as c_double + bonus as c_double\n                } else {\n                    prev_D as c_double + 1.0f64\n                }) as score_t;\n            }\n            prev_D = last_d;\n            prev_M = last_m;\n            *curr_d = score;\n            prev_score = if score > prev_score + gap_score {\n                score\n            } else {\n                prev_score + gap_score\n            };\n            *curr_m = prev_score;\n        } else {\n            prev_D = last_d;\n            prev_M = last_m;\n            *curr_d = -::core::f32::INFINITY as score_t;\n            prev_score = prev_score + gap_score;\n            *curr_m = prev_score;\n        }\n    }\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "c13e1b6ce50900f036baa6a780ba206c6f0b482fd8d56df159e2914afdd817c7",
+            "file_hint": "src/match.rs",
+            "qualified_name": "crate::match_row",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "match_row-e914e0000aa0",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "match_row",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "a5aee822067990edd9540f876964e4ad081f297d6d79db149d3193ef87a1a86a",
+            "edit_id": "edit-replace-18831fd0496f01cc",
+            "end_byte": 7812,
+            "operation_id": "replace-18831fd0496f01cc",
+            "relative_path": "src/match.rs",
+            "replacement_text": "// Applied rules: [III④, C3]\n// Skipped rules: [C6: Hit [20] is just the main loop header; there is no loop-invariant per-iteration dispatch/multi-way behavior to hoist. The inner branch depends on per-element character equality and cannot be unswitched under C6.; II_vec: The reported NonReductionValueUsedOutsideLoop is driven by true loop-carried state (`prev_score`, `prev_M`, `prev_D`) used across iterations, not a simple canonicalization issue. III④/C3 may improve scalar codegen, but a direct II_vec rewrite is unlikely to be semantics-neutral or profitable here.]\n#[inline]\nunsafe fn match_row(\n    mut match_1: *const match_struct,\n    mut row: c_int,\n    mut curr_D: *mut score_t,\n    mut curr_M: *mut score_t,\n    mut last_D: *const score_t,\n    mut last_M: *const score_t,\n) {\n    let n: c_int = (*match_1).needle_len;\n    let m: c_int = (*match_1).haystack_len;\n    let i: c_int = row;\n\n    let m_usize = m as usize;\n    let i_usize = i as usize;\n\n    // SAFETY: `match_1` is assumed by the caller to be non-null and valid for reads.\n    // `m` is taken from the stable `haystack_len` field and this function does not mutate\n    // `match_1`, so the length is stable across the loop. The arrays are fields of\n    // `match_struct` with capacity 1024, and the caller invariant for this routine is that\n    // `0 <= m <= 1024` and `0 <= row < n <= 1024`, so slicing to `m_usize` and indexing\n    // `i_usize` are within bounds. These shared slices do not alias the mutable row buffers.\n    let lower_haystack = unsafe {\n        core::slice::from_raw_parts((*match_1).lower_haystack.as_ptr(), m_usize)\n    };\n    // SAFETY: same justification as above; `match_bonus` is a read-only field array in\n    // `match_1`, `m` is the stable length, and this shared slice does not alias the mutable\n    // destination buffers.\n    let match_bonus =\n        unsafe { core::slice::from_raw_parts((*match_1).match_bonus.as_ptr(), m_usize) };\n    // SAFETY: `curr_D` is assumed by the caller to be non-null and valid for writes to `m`\n    // consecutive `score_t` elements. `m` is the stable row length for this call, and the\n    // caller guarantees `curr_D` does not overlap any other live slice/reference created here.\n    let curr_D = unsafe { core::slice::from_raw_parts_mut(curr_D, m_usize) };\n    // SAFETY: `curr_M` is assumed by the caller to be non-null and valid for writes to `m`\n    // consecutive `score_t` elements. The caller guarantees it does not overlap `curr_D`,\n    // `last_D`, `last_M`, or the arrays inside `match_1` for the duration of this function.\n    let curr_M = unsafe { core::slice::from_raw_parts_mut(curr_M, m_usize) };\n    // SAFETY: `last_D` is assumed by the caller to be non-null and valid for reads of `m`\n    // consecutive `score_t` elements. The length comes from stable `m`, and this shared slice\n    // does not alias the mutable destination slices.\n    let last_D = unsafe { core::slice::from_raw_parts(last_D, m_usize) };\n    // SAFETY: `last_M` is assumed by the caller to be non-null and valid for reads of `m`\n    // consecutive `score_t` elements. The length comes from stable `m`, and this shared slice\n    // does not alias the mutable destination slices.\n    let last_M = unsafe { core::slice::from_raw_parts(last_M, m_usize) };\n\n    let needle_ch = (*match_1).lower_needle[i_usize];\n\n    let mut prev_score: score_t = -::core::f32::INFINITY as score_t;\n    let gap_score: score_t = if i == n - 1 as c_int {\n        SCORE_GAP_TRAILING\n    } else {\n        SCORE_GAP_INNER\n    };\n    let mut prev_M: score_t = -::core::f32::INFINITY as score_t;\n    let mut prev_D: score_t = -::core::f32::INFINITY as score_t;\n\n    for (j, (((curr_d, curr_m), &last_d), (&last_m, (&hay_ch, &bonus)))) in curr_D\n        .iter_mut()\n        .zip(curr_M.iter_mut())\n        .zip(last_D.iter())\n        .zip(\n            last_M\n                .iter()\n                .zip(lower_haystack.iter().zip(match_bonus.iter())),\n        )\n        .enumerate()\n    {\n        if needle_ch as c_int == hay_ch as c_int {\n            let mut score: score_t = -::core::f32::INFINITY as score_t;\n            if i == 0 {\n                score = j as score_t * SCORE_GAP_LEADING + bonus;\n            } else if j != 0 {\n                score = (if prev_M + bonus > prev_D as c_double + 1.0f64 {\n                    prev_M as c_double + bonus as c_double\n                } else {\n                    prev_D as c_double + 1.0f64\n                }) as score_t;\n            }\n            prev_D = last_d;\n            prev_M = last_m;\n            *curr_d = score;\n            prev_score = if score > prev_score + gap_score {\n                score\n            } else {\n                prev_score + gap_score\n            };\n            *curr_m = prev_score;\n        } else {\n            prev_D = last_d;\n            prev_M = last_m;\n            *curr_d = -::core::f32::INFINITY as score_t;\n            prev_score = prev_score + gap_score;\n            *curr_m = prev_score;\n        }\n    }\n}",
+            "start_byte": 5399
+          }
+        ],
+        "facts": {
+          "fn_name": "match_row",
+          "target_span_hash": "c13e1b6ce50900f036baa6a780ba206c6f0b482fd8d56df159e2914afdd817c7"
+        },
+        "operation_id": "replace-18831fd0496f01cc"
+      }
+    ],
+    "resolved_head": "80b68ab1d2a7d280f454b41df8dc3636c9e8322a"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/match.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

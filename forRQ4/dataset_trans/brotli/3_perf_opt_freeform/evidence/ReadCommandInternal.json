@@ -1,0 +1,239 @@
+{
+  "hot_function": {
+    "symbol": "ReadCommandInternal",
+    "location": "src/dec/decode.rs:2834-2895",
+    "workload": "decode_buffer",
+    "hot_region": "src/dec/decode.rs:2834-2895",
+    "rust_source": "unsafe fn ReadCommandInternal(\n    mut safe: c_int,\n    mut s: *mut BrotliDecoderStateInternal,\n    mut br: *mut BrotliBitReader,\n    mut insert_length: *mut c_int,\n) -> c_int {\n    let mut cmd_code: uint64_t = 0;\n    let mut insert_len_extra: uint64_t = 0 as uint64_t;\n    let mut copy_length: uint64_t = 0;\n    let mut v: CmdLutElement = CmdLutElement {\n        insert_len_extra_bits: 0,\n        copy_len_extra_bits: 0,\n        distance_code: 0,\n        context: 0,\n        insert_len_offset: 0,\n        copy_len_offset: 0,\n    };\n    let mut memento: BrotliBitReaderState = BrotliBitReaderState {\n        val_: 0,\n        bit_pos_: 0,\n        next_in: ::core::ptr::null::<uint8_t>(),\n        avail_in: 0,\n    };\n    if safe == 0 {\n        cmd_code = ReadSymbol((*s).htree_command, br);\n    } else {\n        BrotliBitReaderSaveState(br, &raw mut memento);\n        if SafeReadSymbol((*s).htree_command, br, &raw mut cmd_code) == 0 {\n            return BROTLI_FALSE;\n        }\n    }\n    v = kCmdLut[cmd_code as usize];\n    (*s).distance_code = v.distance_code as c_int;\n    (*s).distance_context = v.context as c_int;\n    (*s).dist_htree_index = *(*s)\n        .dist_context_map_slice\n        .offset((*s).distance_context as isize);\n    *insert_length = v.insert_len_offset as c_int;\n    if safe == 0 {\n        if (v.insert_len_extra_bits as c_int != 0 as c_int)\n            as c_int as c_long\n            != 0\n        {\n            insert_len_extra = BrotliReadBits24(br, v.insert_len_extra_bits as uint64_t);\n        }\n        copy_length = BrotliReadBits24(br, v.copy_len_extra_bits as uint64_t);\n    } else if SafeReadBits(\n        br,\n        v.insert_len_extra_bits as uint64_t,\n        &raw mut insert_len_extra,\n    ) == 0\n        || SafeReadBits(br, v.copy_len_extra_bits as uint64_t, &raw mut copy_length) == 0\n    {\n        BrotliBitReaderRestoreState(br, &raw mut memento);\n        return BROTLI_FALSE;\n    }\n    (*s).copy_length = copy_length as c_int + v.copy_len_offset as c_int;\n    (*s).block_length[1 as c_int as usize] =\n        (*s).block_length[1 as c_int as usize].wrapping_sub(1);\n    *insert_length += insert_len_extra as c_int;\n    return BROTLI_TRUE;\n}",
+    "signature": "unsafe fn ReadCommandInternal(\n    mut safe: c_int,\n    mut s: *mut BrotliDecoderStateInternal,\n    mut br: *mut BrotliBitReader,\n    mut insert_length: *mut c_int,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.0387,
+      "call_count": null,
+      "retired_instructions": 308015735,
+      "instructions_per_call": null,
+      "cpi": 0.732,
+      "tma": {
+        "scope": "process",
+        "retiring": 38.633814932781235,
+        "frontend_bound": 19.225755435799122,
+        "bad_speculation": 15.112617797149557,
+        "backend_bound": 27.02781183427008,
+        "memory_bound": 15.64396817499237,
+        "core_bound": 11.383843659277709,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.029
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C1": 2,
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2865,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14brotli_cleaned3src3dec6decode19ReadCommandInternal17he0b6dc865f613994E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2861,
+        "message": "'_ZN14brotli_cleaned3src3dec6decode14SafeReadSymbol17h67d06a4d38bd7d02E' inlined into '_ZN14brotli_cleaned3src3dec6decode19ReadCommandInternal17he0b6dc865f613994E': always inline attribute at callsite _ZN14brotli_cleaned3src3dec6decode19ReadCommandInternal17he0b6dc865f613994E:27:12;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2887,
+        "message": "'_ZN14brotli_cleaned3src3dec6decode27BrotliBitReaderRestoreState17h6475483b0f58235eE' inlined into '_ZN14brotli_cleaned3src3dec6decode19ReadCommandInternal17he0b6dc865f613994E': always inline attribute at callsite _ZN14brotli_cleaned3src3dec6decode19ReadCommandInternal17he0b6dc865f613994E:53:9;"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2865,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2868,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2868,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2892,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2893,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2865,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14brotli_cleaned3src3dec6decode23ProcessCommandsInternal17he5b2d8f69945b561E because its definition is unavailable"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2865,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2861,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2861,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2866,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2867,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2868,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2868,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2868,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2890,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2892,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2858,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2858,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2861,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2858,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2865,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2865,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2865,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14brotli_cleaned3src3dec6decode15ProcessCommands17ha66263a5d9df5052E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2865,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14brotli_cleaned3src3dec6decode19SafeProcessCommands17h60596a0ab1e0bd95E because its definition is unavailable"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2858,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3dec6decode19BrotliFillBitWindow17h663c99e4c96c1001E.exit.i210.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2865,
+        "message": "BasicBlock: panic.i225.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2840,
+        "message": "BasicBlock: bb148.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2865,
+        "message": "BasicBlock: bb6thread-pre-split.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2865,
+        "message": "BasicBlock: panic.i277.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

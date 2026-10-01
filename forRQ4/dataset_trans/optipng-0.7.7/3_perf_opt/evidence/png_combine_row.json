@@ -1,0 +1,898 @@
+{
+  "hot_function": {
+    "symbol": "png_combine_row",
+    "location": "src/libpng/pngrutil.rs:1416-1823",
+    "workload": "png_palette_roundtrip",
+    "hot_region": "src/libpng/pngrutil.rs:1416-1823",
+    "rust_source": "pub extern \"C\" fn png_combine_row(\n    mut png_ptr: png_const_structrp,\n    mut dp: png_bytep,\n    mut display: c_int,\n) { unsafe {\n    let mut pixel_depth: c_uint =\n        (*png_ptr).transformed_pixel_depth as c_uint;\n    let mut sp: png_const_bytep =\n        (*png_ptr).row_buf.offset(1 as c_int as isize) as png_const_bytep;\n    let mut row_width: png_alloc_size_t = (*png_ptr).width as png_alloc_size_t;\n    let mut pass: c_uint = (*png_ptr).pass as c_uint;\n    let mut end_ptr: png_bytep = ::core::ptr::null_mut::<png_byte>();\n    let mut end_byte: png_byte = 0 as png_byte;\n    let mut end_mask: c_uint = 0;\n    if pixel_depth == 0 as c_uint {\n        png_error(\n            png_ptr,\n            b\"internal row logic error\\0\" as *const u8 as png_const_charp,\n        );\n    }\n    if (*png_ptr).info_rowbytes != 0 as png_size_t\n        && (*png_ptr).info_rowbytes\n            != (if pixel_depth >= 8 as c_uint {\n                row_width.wrapping_mul(pixel_depth as png_size_t >> 3 as c_int)\n            } else {\n                row_width\n                    .wrapping_mul(pixel_depth as png_size_t)\n                    .wrapping_add(7 as png_size_t)\n                    >> 3 as c_int\n            })\n    {\n        png_error(\n            png_ptr,\n            b\"internal row size calculation error\\0\" as *const u8 as png_const_charp,\n        );\n    }\n    if row_width == 0 as png_alloc_size_t {\n        png_error(\n            png_ptr,\n            b\"internal row width error\\0\" as *const u8 as png_const_charp,\n        );\n    }\n    end_mask = ((pixel_depth as png_alloc_size_t).wrapping_mul(row_width) & 7 as png_alloc_size_t)\n        as c_uint;\n    if end_mask != 0 as c_uint {\n        end_ptr = dp\n            .offset(\n                (if pixel_depth >= 8 as c_uint {\n                    row_width.wrapping_mul(pixel_depth as png_size_t >> 3 as c_int)\n                } else {\n                    row_width\n                        .wrapping_mul(pixel_depth as png_size_t)\n                        .wrapping_add(7 as png_size_t)\n                        >> 3 as c_int\n                }) as isize,\n            )\n            .offset(-(1 as c_int as isize));\n        end_byte = *end_ptr;\n        end_mask = (0xff as c_int >> end_mask) as c_uint;\n    }\n    if (*png_ptr).interlaced as c_int != 0 as c_int\n        && (*png_ptr).transformations as c_uint & PNG_INTERLACE\n            != 0 as c_uint\n        && pass < 6 as c_uint\n        && (display == 0 as c_int\n            || display == 1 as c_int\n                && pass & 1 as c_uint != 0 as c_uint)\n    {\n        if row_width\n            <= ((1 as c_uint & pass)\n                << (3 as c_uint).wrapping_sub(\n                    pass.wrapping_add(1 as c_uint) >> 1 as c_int,\n                )\n                & 7 as c_uint) as png_alloc_size_t\n        {\n            return;\n        }\n        if pixel_depth < 8 as c_uint {\n            let mut pixels_per_byte: png_uint_32 =\n                (8 as png_uint_32).wrapping_div(pixel_depth as png_uint_32);\n            let mut mask: png_uint_32 = 0;\n            mask = (if display != 0 {\n                display_mask[1 as c_int as usize][(if pixel_depth\n                    == 1 as c_uint\n                {\n                    0 as c_int\n                } else if pixel_depth == 2 as c_uint {\n                    1 as c_int\n                } else {\n                    2 as c_int\n                }) as usize][(pass >> 1 as c_int) as usize]\n            } else {\n                row_mask[1 as c_int as usize][(if pixel_depth\n                    == 1 as c_uint\n                {\n                    0 as c_int\n                } else if pixel_depth == 2 as c_uint {\n                    1 as c_int\n                } else {\n                    2 as c_int\n                }) as usize][pass as usize]\n            }) as png_uint_32;\n            loop {\n                let mut m: png_uint_32 = 0;\n                m = mask;\n                mask = m >> 8 as c_int | m << 24 as c_int;\n                m &= 0xff as c_uint;\n                if m != 0 as c_uint {\n                    if m != 0xff as c_uint {\n                        *dp = (*dp as png_uint_32 & !m | *sp as png_uint_32 & m) as png_byte;\n                    } else {\n                        *dp = *sp;\n                    }\n                }\n                if row_width <= pixels_per_byte as png_alloc_size_t {\n                    break;\n                }\n                row_width = (row_width as c_ulong)\n                    .wrapping_sub(pixels_per_byte as c_ulong)\n                    as png_alloc_size_t as png_alloc_size_t;\n                dp = dp.offset(1);\n                sp = sp.offset(1);\n            }\n        } else {\n            let mut bytes_to_copy: c_uint = 0;\n            let mut bytes_to_jump: c_uint = 0;\n            if pixel_depth & 7 as c_uint != 0 {\n                png_error(\n                    png_ptr,\n                    b\"invalid user transform pixel depth\\0\" as *const u8 as png_const_charp,\n                );\n            }\n            pixel_depth >>= 3 as c_int;\n            row_width = (row_width as c_ulong)\n                .wrapping_mul(pixel_depth as c_ulong)\n                as png_alloc_size_t as png_alloc_size_t;\n            let mut offset: c_uint = ((1 as c_uint & pass)\n                << (3 as c_uint).wrapping_sub(\n                    pass.wrapping_add(1 as c_uint) >> 1 as c_int,\n                )\n                & 7 as c_uint)\n                .wrapping_mul(pixel_depth);\n            row_width = (row_width as c_ulong)\n                .wrapping_sub(offset as c_ulong)\n                as png_alloc_size_t as png_alloc_size_t;\n            dp = dp.offset(offset as isize);\n            sp = sp.offset(offset as isize);\n            if display != 0 as c_int {\n                bytes_to_copy = (((1 as c_int)\n                    << ((6 as c_uint).wrapping_sub(pass) >> 1 as c_int))\n                    as c_uint)\n                    .wrapping_mul(pixel_depth);\n                if bytes_to_copy as png_alloc_size_t > row_width {\n                    bytes_to_copy = row_width as c_uint;\n                }\n            } else {\n                bytes_to_copy = pixel_depth;\n            }\n            bytes_to_jump = (((1 as c_int)\n                << ((7 as c_uint).wrapping_sub(pass) >> 1 as c_int))\n                as c_uint)\n                .wrapping_mul(pixel_depth);\n            match bytes_to_copy {\n                1 => loop {\n                    *dp = *sp;\n                    if row_width <= bytes_to_jump as png_alloc_size_t {\n                        return;\n                    }\n                    dp = dp.offset(bytes_to_jump as isize);\n                    sp = sp.offset(bytes_to_jump as isize);\n                    row_width = (row_width as c_ulong)\n                        .wrapping_sub(bytes_to_jump as c_ulong)\n                        as png_alloc_size_t as png_alloc_size_t;\n                },\n                2 => {\n                    loop {\n                        *dp.offset(0 as c_int as isize) =\n                            *sp.offset(0 as c_int as isize);\n                        *dp.offset(1 as c_int as isize) =\n                            *sp.offset(1 as c_int as isize);\n                        if row_width <= bytes_to_jump as png_alloc_size_t {\n                            return;\n                        }\n                        sp = sp.offset(bytes_to_jump as isize);\n                        dp = dp.offset(bytes_to_jump as isize);\n                        row_width = (row_width as c_ulong)\n                            .wrapping_sub(bytes_to_jump as c_ulong)\n                            as png_alloc_size_t\n                            as png_alloc_size_t;\n                        if !(row_width > 1 as png_alloc_size_t) {\n                            break;\n                        }\n                    }\n                    *dp = *sp;\n                    return;\n                }\n                3 => loop {\n                    *dp.offset(0 as c_int as isize) =\n                        *sp.offset(0 as c_int as isize);\n                    *dp.offset(1 as c_int as isize) =\n                        *sp.offset(1 as c_int as isize);\n                    *dp.offset(2 as c_int as isize) =\n                        *sp.offset(2 as c_int as isize);\n                    if row_width <= bytes_to_jump as png_alloc_size_t {\n                        return;\n                    }\n                    sp = sp.offset(bytes_to_jump as isize);\n                    dp = dp.offset(bytes_to_jump as isize);\n                    row_width = (row_width as c_ulong)\n                        .wrapping_sub(bytes_to_jump as c_ulong)\n                        as png_alloc_size_t as png_alloc_size_t;\n                },\n                _ => {\n                    if bytes_to_copy < 16 as c_uint\n                        && (dp as *const c_char)\n                            .offset_from(::core::ptr::null::<c_char>())\n                            as c_long as png_uint_16\n                            as c_int\n                            & (::core::mem::size_of::<png_uint_16>() as usize)\n                                .wrapping_sub(1 as usize)\n                                as png_uint_16 as c_int\n                            == 0 as c_int\n                        && (sp as *const c_char)\n                            .offset_from(::core::ptr::null::<c_char>())\n                            as c_long as png_uint_16\n                            as c_int\n                            & (::core::mem::size_of::<png_uint_16>() as usize)\n                                .wrapping_sub(1 as usize)\n                                as png_uint_16 as c_int\n                            == 0 as c_int\n                        && (bytes_to_copy as usize)\n                            .wrapping_rem(::core::mem::size_of::<png_uint_16>() as usize)\n                            == 0 as usize\n                        && (bytes_to_jump as usize)\n                            .wrapping_rem(::core::mem::size_of::<png_uint_16>() as usize)\n                            == 0 as usize\n                    {\n                        if (dp as *const c_char)\n                            .offset_from(::core::ptr::null::<c_char>())\n                            as c_long as png_uint_32\n                            & (::core::mem::size_of::<png_uint_32>() as usize)\n                                .wrapping_sub(1 as usize)\n                                as png_uint_32\n                            == 0 as c_uint\n                            && (sp as *const c_char)\n                                .offset_from(::core::ptr::null::<c_char>())\n                                as c_long as png_uint_32\n                                & (::core::mem::size_of::<png_uint_32>() as usize)\n                                    .wrapping_sub(1 as usize)\n                                    as png_uint_32\n                                == 0 as c_uint\n                            && (bytes_to_copy as usize)\n                                .wrapping_rem(::core::mem::size_of::<png_uint_32>() as usize)\n                                == 0 as usize\n                            && (bytes_to_jump as usize)\n                                .wrapping_rem(::core::mem::size_of::<png_uint_32>() as usize)\n                                == 0 as usize\n                        {\n                            let mut dp32: png_uint_32p =\n                                dp as *mut c_void as png_uint_32p;\n                            let mut sp32: png_const_uint_32p =\n                                sp as *const c_void as png_const_uint_32p;\n                            let mut skip: size_t = (bytes_to_jump.wrapping_sub(bytes_to_copy)\n                                as size_t)\n                                .wrapping_div(::core::mem::size_of::<png_uint_32>() as size_t);\n                            loop {\n                                let mut c: size_t = bytes_to_copy as size_t;\n                                loop {\n                                    let fresh0 = sp32;\n                                    sp32 = sp32.offset(1);\n                                    let fresh1 = dp32;\n                                    dp32 = dp32.offset(1);\n                                    *fresh1 = *fresh0;\n                                    c =\n                                        (c as c_ulong)\n                                            .wrapping_sub(::core::mem::size_of::<png_uint_32>()\n                                                as usize\n                                                as c_ulong)\n                                            as size_t\n                                            as size_t;\n                                    if !(c > 0 as size_t) {\n                                        break;\n                                    }\n                                }\n                                if row_width <= bytes_to_jump as png_alloc_size_t {\n                                    return;\n                                }\n                                dp32 = dp32.offset(skip as isize);\n                                sp32 = sp32.offset(skip as isize);\n                                row_width = (row_width as c_ulong)\n                                    .wrapping_sub(bytes_to_jump as c_ulong)\n                                    as png_alloc_size_t\n                                    as png_alloc_size_t;\n                                if !(bytes_to_copy as png_alloc_size_t <= row_width) {\n                                    break;\n                                }\n                            }\n                            dp = dp32 as png_bytep;\n                            sp = sp32 as png_const_bytep;\n                            loop {\n                                let fresh2 = sp;\n                                sp = sp.offset(1);\n                                let fresh3 = dp;\n                                dp = dp.offset(1);\n                                *fresh3 = *fresh2;\n                                row_width = row_width.wrapping_sub(1);\n                                if !(row_width > 0 as png_alloc_size_t) {\n                                    break;\n                                }\n                            }\n                            return;\n                        } else {\n                            let mut dp16: png_uint_16p =\n                                dp as *mut c_void as png_uint_16p;\n                            let mut sp16: png_const_uint_16p =\n                                sp as *const c_void as png_const_uint_16p;\n                            let mut skip_0: size_t = (bytes_to_jump.wrapping_sub(bytes_to_copy)\n                                as size_t)\n                                .wrapping_div(::core::mem::size_of::<png_uint_16>() as size_t);\n                            loop {\n                                let mut c_0: size_t = bytes_to_copy as size_t;\n                                loop {\n                                    let fresh4 = sp16;\n                                    sp16 = sp16.offset(1);\n                                    let fresh5 = dp16;\n                                    dp16 = dp16.offset(1);\n                                    *fresh5 = *fresh4;\n                                    c_0 =\n                                        (c_0 as c_ulong)\n                                            .wrapping_sub(::core::mem::size_of::<png_uint_16>()\n                                                as usize\n                                                as c_ulong)\n                                            as size_t\n                                            as size_t;\n                                    if !(c_0 > 0 as size_t) {\n                                        break;\n                                    }\n                                }\n                                if row_width <= bytes_to_jump as png_alloc_size_t {\n                                    return;\n                                }\n                                dp16 = dp16.offset(skip_0 as isize);\n                                sp16 = sp16.offset(skip_0 as isize);\n                                row_width = (row_width as c_ulong)\n                                    .wrapping_sub(bytes_to_jump as c_ulong)\n                                    as png_alloc_size_t\n                                    as png_alloc_size_t;\n                                if !(bytes_to_copy as png_alloc_size_t <= row_width) {\n                                    break;\n                                }\n                            }\n                            dp = dp16 as png_bytep;\n                            sp = sp16 as png_const_bytep;\n                            loop {\n                                let fresh6 = sp;\n                                sp = sp.offset(1);\n                                let fresh7 = dp;\n                                dp = dp.offset(1);\n                                *fresh7 = *fresh6;\n                                row_width = row_width.wrapping_sub(1);\n                                if !(row_width > 0 as png_alloc_size_t) {\n                                    break;\n                                }\n                            }\n                            return;\n                        }\n                    }\n                    loop {\n                        memcpy(\n                            dp as *mut c_void,\n                            sp as *const c_void,\n                            bytes_to_copy as size_t,\n                        );\n                        if row_width <= bytes_to_jump as png_alloc_size_t {\n                            return;\n                        }\n                        sp = sp.offset(bytes_to_jump as isize);\n                        dp = dp.offset(bytes_to_jump as isize);\n                        row_width = (row_width as c_ulong)\n                            .wrapping_sub(bytes_to_jump as c_ulong)\n                            as png_alloc_size_t\n                            as png_alloc_size_t;\n                        if bytes_to_copy as png_alloc_size_t > row_width {\n                            bytes_to_copy = row_width as c_uint;\n                        }\n                    }\n                }\n            }\n        }\n    } else {\n        memcpy(\n            dp as *mut c_void,\n            sp as *const c_void,\n            if pixel_depth >= 8 as c_uint {\n                row_width.wrapping_mul(pixel_depth as size_t >> 3 as c_int)\n            } else {\n                row_width\n                    .wrapping_mul(pixel_depth as size_t)\n                    .wrapping_add(7 as size_t)\n                    >> 3 as c_int\n            },\n        );\n    }\n    if !end_ptr.is_null() {\n        *end_ptr = (end_byte as c_uint & end_mask\n            | *end_ptr as c_uint & !end_mask) as png_byte;\n    }\n} }",
+    "signature": "pub extern \"C\" fn png_combine_row(\n    mut png_ptr: png_const_structrp,\n    mut dp: png_bytep,\n    mut display: c_int,\n)",
+    "profile": {
+      "self_time_ratio": 0.0379,
+      "call_count": null,
+      "retired_instructions": 514893939,
+      "instructions_per_call": null,
+      "cpi": 0.44,
+      "tma": {
+        "scope": "process",
+        "retiring": 61.96259108596522,
+        "frontend_bound": 25.706056873302018,
+        "bad_speculation": 2.303737076310097,
+        "backend_bound": 10.027614964422664,
+        "memory_bound": 7.857355224782812,
+        "core_bound": 2.170259739639852,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.002
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_vec": {
+        "NonReductionValueUsedOutsideLoop": 3,
+        "CantComputeNumberOfIterations": 7,
+        "LoopContainsSwitch": 1
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1431,
+        "message": "'png_error' not inlined into 'png_combine_row' because too costly to inline (cost=35, threshold=0)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1447,
+        "message": "'png_error' not inlined into 'png_combine_row' because too costly to inline (cost=35, threshold=0)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1453,
+        "message": "'png_error' not inlined into 'png_combine_row' because too costly to inline (cost=35, threshold=0)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1543,
+        "message": "'png_error' not inlined into 'png_combine_row' because too costly to inline (cost=35, threshold=0)"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1619,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1596,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1581,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1789,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1530,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1616,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1618,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1593,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1595,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1609,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1742,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1774,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1688,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1720,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1821,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1619,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1619,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1619,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1596,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1596,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1581,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1581,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1581,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1789,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1789,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1789,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1737,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1737,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1683,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1683,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1523,
+        "message": "loop not vectorized: loop contains a switch statement"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1518,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1518,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1416,
+        "message": "X86 DAG->DAG Instruction Selection: Function: png_combine_row: MI Instruction count changed from 0 to 734; Delta: 734"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1416,
+        "message": "Remove dead machine instructions: Function: png_combine_row: MI Instruction count changed from 734 to 731; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1416,
+        "message": "Early Machine Loop Invariant Code Motion: Function: png_combine_row: MI Instruction count changed from 731 to 732; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1416,
+        "message": "Machine Common Subexpression Elimination: Function: png_combine_row: MI Instruction count changed from 732 to 726; Delta: -6"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1416,
+        "message": "Peephole Optimizations: Function: png_combine_row: MI Instruction count changed from 726 to 725; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1416,
+        "message": "X86 Fixup SetCC: Function: png_combine_row: MI Instruction count changed from 725 to 726; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1416,
+        "message": "Process Implicit Definitions: Function: png_combine_row: MI Instruction count changed from 726 to 722; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1416,
+        "message": "Eliminate PHI nodes for register allocation: Function: png_combine_row: MI Instruction count changed from 722 to 852; Delta: 130"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1416,
+        "message": "Two-Address instruction pass: Function: png_combine_row: MI Instruction count changed from 852 to 974; Delta: 122"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1416,
+        "message": "Register Coalescer: Function: png_combine_row: MI Instruction count changed from 974 to 615; Delta: -359"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1683,
+        "message": "1 virtual registers copies 5.952360e-02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1681,
+        "message": "7 virtual registers copies 7.062614e-02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1737,
+        "message": "1 virtual registers copies 9.920600e-02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1735,
+        "message": "5 virtual registers copies 1.115099e-01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1789,
+        "message": "3 reloads 4.541000e-01 total reloads cost 1 folded reloads 1.513667e-01 total folded reloads cost 3 virtual registers copies 4.541000e-01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1416,
+        "message": "7 spills 1.042875e+00 total spills cost 8 reloads 4.875166e-01 total reloads cost 3 folded reloads 7.078533e-01 total folded reloads cost 59 virtual registers copies 7.855619e+00 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1416,
+        "message": "Greedy Register Allocator: Function: png_combine_row: MI Instruction count changed from 615 to 667; Delta: 52"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1416,
+        "message": "Virtual Register Rewriter: Function: png_combine_row: MI Instruction count changed from 667 to 625; Delta: -42"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1416,
+        "message": "Machine Copy Propagation Pass: Function: png_combine_row: MI Instruction count changed from 625 to 623; Delta: -2"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 1416,
+        "message": "88 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1416,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: png_combine_row: MI Instruction count changed from 623 to 643; Delta: 20"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1416,
+        "message": "Control Flow Optimizer: Function: png_combine_row: MI Instruction count changed from 643 to 579; Delta: -64"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1416,
+        "message": "Branch Probability Basic Block Placement: Function: png_combine_row: MI Instruction count changed from 579 to 583; Delta: 4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1416,
+        "message": "X86 vzeroupper inserter: Function: png_combine_row: MI Instruction count changed from 583 to 584; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1416,
+        "message": "X86 LEA Fixup: Function: png_combine_row: MI Instruction count changed from 584 to 591; Delta: 7"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1416,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: png_combine_row: MI Instruction count changed from 591 to 592; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1422,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1438,
+        "message": "BasicBlock: bb3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1439,
+        "message": "BasicBlock: bb5"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1437,
+        "message": "BasicBlock: bb7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1452,
+        "message": "BasicBlock: bb10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1463,
+        "message": "BasicBlock: bb13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1464,
+        "message": "BasicBlock: bb14"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1477,
+        "message": "BasicBlock: bb19"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1480,
+        "message": "BasicBlock: bb21"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1485,
+        "message": "BasicBlock: bb21.bb24_crit_edge"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1809,
+        "message": "BasicBlock: bb126"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1810,
+        "message": "BasicBlock: bb127"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1806,
+        "message": "BasicBlock: bb129"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1819,
+        "message": "BasicBlock: bb131"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1820,
+        "message": "BasicBlock: bb133"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1823,
+        "message": "BasicBlock: bb140"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1493,
+        "message": "BasicBlock: bb26"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1523,
+        "message": "BasicBlock: bb46"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1527,
+        "message": "BasicBlock: bb49"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1525,
+        "message": "BasicBlock: bb48"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1530,
+        "message": "BasicBlock: bb51"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1542,
+        "message": "BasicBlock: bb28"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1548,
+        "message": "BasicBlock: bb55"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1578,
+        "message": "BasicBlock: bb61"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1619,
+        "message": "BasicBlock: bb73.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1593,
+        "message": "BasicBlock: bb66"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1609,
+        "message": "BasicBlock: bb70"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1581,
+        "message": "BasicBlock: bb65.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1630,
+        "message": "BasicBlock: bb74"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1638,
+        "message": "BasicBlock: bb75"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1646,
+        "message": "BasicBlock: bb76"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1649,
+        "message": "BasicBlock: bb77"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1653,
+        "message": "BasicBlock: bb78"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1754,
+        "message": "BasicBlock: bb102"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1776,
+        "message": "BasicBlock: iter.check"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1700,
+        "message": "BasicBlock: bb86"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1722,
+        "message": "BasicBlock: vector.memcheck37"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1722,
+        "message": "BasicBlock: vec.epilog.scalar.ph70"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1720,
+        "message": "BasicBlock: bb91.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1722,
+        "message": "BasicBlock: bb91.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1722,
+        "message": "BasicBlock: bb91.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1720,
+        "message": "BasicBlock: bb91"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1776,
+        "message": "BasicBlock: vector.main.loop.iter.check"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1722,
+        "message": "BasicBlock: vector.main.loop.iter.check51"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1776,
+        "message": "BasicBlock: vector.ph"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1774,
+        "message": "BasicBlock: vector.body"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1776,
+        "message": "BasicBlock: middle.block"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1774,
+        "message": "BasicBlock: vec.epilog.vector.body"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1776,
+        "message": "BasicBlock: vec.epilog.middle.block"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1722,
+        "message": "BasicBlock: vector.ph52"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1720,
+        "message": "BasicBlock: vector.body56"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1722,
+        "message": "BasicBlock: middle.block46"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1720,
+        "message": "BasicBlock: vec.epilog.vector.body88"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1722,
+        "message": "BasicBlock: vec.epilog.middle.block69"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1776,
+        "message": "BasicBlock: vec.epilog.scalar.ph"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1774,
+        "message": "BasicBlock: bb107.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1776,
+        "message": "BasicBlock: bb107.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1776,
+        "message": "BasicBlock: bb107.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1774,
+        "message": "BasicBlock: bb107"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1431,
+        "message": "BasicBlock: bb1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1453,
+        "message": "BasicBlock: bb11"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1447,
+        "message": "BasicBlock: bb8"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1543,
+        "message": "BasicBlock: bb54"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1416,
+        "message": "569 instructions in function"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1430,
+        "message": "BasicBlock: bb109.i.us.i.split"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1438,
+        "message": "BasicBlock: bb3.i220"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1439,
+        "message": "BasicBlock: bb5.i242"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1442,
+        "message": "BasicBlock: bb6.i222"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1437,
+        "message": "BasicBlock: bb7.i226"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1452,
+        "message": "BasicBlock: bb10.i228"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1458,
+        "message": "BasicBlock: bb12.i229"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1463,
+        "message": "BasicBlock: bb13.i231"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1464,
+        "message": "BasicBlock: bb14.i240"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1810,
+        "message": "BasicBlock: bb127.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1820,
+        "message": "BasicBlock: bb133.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1431,
+        "message": "BasicBlock: bb1.i244"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1453,
+        "message": "BasicBlock: bb11.i241"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1447,
+        "message": "BasicBlock: bb8.i227"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

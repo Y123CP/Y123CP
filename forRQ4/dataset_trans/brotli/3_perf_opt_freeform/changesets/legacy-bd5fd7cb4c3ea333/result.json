@@ -1,0 +1,142 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 1.2540638215405893,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 1.3376664237462574,
+            "aggregate_ci_low_pct": 1.170461219334921,
+            "aggregate_pct": 1.2540638215405893,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 1.3377,
+                "ci_low_pct": 1.1705,
+                "insns_delta_pct": -0.717,
+                "mean_delta_pct": 1.2541,
+                "op": "shared_dict_roundtrip",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_buffer",
+          "shared_dict_roundtrip",
+          "stream_roundtrip"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "shared_dict_roundtrip"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be",
+      "changeset_id": "legacy-bd5fd7cb4c3ea333",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-f93901c56f67f95b",
+          "replacement_function_source": "#[inline(always)]\npub fn CombineLengthCodes(\n    mut inscode: uint16_t,\n    mut copycode: uint16_t,\n    mut use_last_distance: c_int,\n) -> uint16_t {\n    let ins = inscode as u32;\n    let copy = copycode as u32;\n    let bits64 = ((copy & 7) | ((ins & 7) << 3)) as uint16_t;\n\n    if use_last_distance != 0 && ins < 8 && copy < 16 {\n        return (bits64 as u32 | ((copy & 8) << 3)) as uint16_t;\n    }\n\n    let offset = 64u32\n        + ((((copy >> 3) + 3 * (ins >> 3)) * 2) << 5)\n        + ((0x520d40u32 >> ((((copy >> 3) + 3 * (ins >> 3)) * 2) as u32)) & 0xc0);\n    (offset | bits64 as u32) as uint16_t\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "96dd1296e6f2f37bccbcc37b47ece2dbff7871b4a744714fdd076cb6196353f2",
+            "file_hint": "src/c_inlined_fns.rs",
+            "qualified_name": "crate::CombineLengthCodes",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "CombineLengthCodes-f9690343604a",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "CombineLengthCodes",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "aa786ec8ab437c9418bc5ed38b9d34b59089edd5f648f4566184d1e3ccac1201",
+            "edit_id": "edit-replace-f93901c56f67f95b",
+            "end_byte": 4577,
+            "operation_id": "replace-f93901c56f67f95b",
+            "relative_path": "src/c_inlined_fns.rs",
+            "replacement_text": "#[inline(always)]\npub fn CombineLengthCodes(\n    mut inscode: uint16_t,\n    mut copycode: uint16_t,\n    mut use_last_distance: c_int,\n) -> uint16_t {\n    let ins = inscode as u32;\n    let copy = copycode as u32;\n    let bits64 = ((copy & 7) | ((ins & 7) << 3)) as uint16_t;\n\n    if use_last_distance != 0 && ins < 8 && copy < 16 {\n        return (bits64 as u32 | ((copy & 8) << 3)) as uint16_t;\n    }\n\n    let offset = 64u32\n        + ((((copy >> 3) + 3 * (ins >> 3)) * 2) << 5)\n        + ((0x520d40u32 >> ((((copy >> 3) + 3 * (ins >> 3)) * 2) as u32)) & 0xc0);\n    (offset | bits64 as u32) as uint16_t\n}",
+            "start_byte": 3449
+          }
+        ],
+        "facts": {
+          "fn_name": "CombineLengthCodes",
+          "target_span_hash": "96dd1296e6f2f37bccbcc37b47ece2dbff7871b4a744714fdd076cb6196353f2"
+        },
+        "operation_id": "replace-f93901c56f67f95b"
+      }
+    ],
+    "resolved_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/c_inlined_fns.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

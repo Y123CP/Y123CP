@@ -1,0 +1,145 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 2.8203933804836057,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 3.000764012950749,
+            "aggregate_ci_low_pct": 2.640022748016462,
+            "aggregate_pct": 2.8203933804836057,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 3.0008,
+                "ci_low_pct": 2.64,
+                "insns_delta_pct": 0.7747,
+                "mean_delta_pct": 2.8204,
+                "op": "decode32_png",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "decode24_png",
+          "decode32_png",
+          "file_codec",
+          "memory_codec",
+          "raw_deflate_inflate",
+          "zlib_decompress"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "decode32_png"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "82d05ac3096ea0ecd944c83b1a53160908225cff",
+      "changeset_id": "legacy-ed7269b714919840",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-fef4afd1d8c4dcee",
+          "replacement_function_source": "// Applied rules: [C3, III④]\n// Skipped rules: [III③: Hits [17,18] are `lodepng_memcpy` calls inside the hot inner decode/match-copy loop; the rule explicitly advises perf abstain there, and hit [17] is additionally in the overlap-sensitive LZ77 path where replacing with `ptr::copy`/slice APIs could silently change propagate-forward semantics. Hits [14,15,16] target `huffmanDecodeSymbol`, which is not a memory wrapper and therefore is not a valid III③ rewrite target.; III④: Per-site abstain for hits [21,22]: these are the overlapping match-copy byte loop (`dst[start] = src[backward]` while both advance) in a deflate/LZ77 kernel. Rule III④ §5 and §5.1 say not to slice-ify or replace with memmove/copy_within; keep raw forward copy semantics.; C3.S1: Changing `out`/`reader` from raw pointers to references would require cross-function caller proof and is unnecessary here because S2 hoisting addresses the concrete loop-local missed-load hits with lower risk in a hot decoder.]\n#[inline(never)]\nunsafe fn inflateHuffmanBlock(\n    mut out: *mut ucvector,\n    mut reader: *mut LodePNGBitReader,\n    mut btype: c_uint,\n    mut max_output_size: size_t,\n) -> c_uint {\n    let mut error: c_uint = 0 as c_uint;\n    let mut tree_ll: HuffmanTree = HuffmanTree {\n        codes: ::core::ptr::null_mut::<c_uint>(),\n        lengths: ::core::ptr::null_mut::<c_uint>(),\n        maxbitlen: 0,\n        numcodes: 0,\n        table_len: ::core::ptr::null_mut::<c_uchar>(),\n        table_value: ::core::ptr::null_mut::<c_ushort>(),\n    };\n    let mut tree_d: HuffmanTree = HuffmanTree {\n        codes: ::core::ptr::null_mut::<c_uint>(),\n        lengths: ::core::ptr::null_mut::<c_uint>(),\n        maxbitlen: 0,\n        numcodes: 0,\n        table_len: ::core::ptr::null_mut::<c_uchar>(),\n        table_value: ::core::ptr::null_mut::<c_ushort>(),\n    };\n    let reserved_size: size_t = 260 as size_t;\n    let mut done: c_int = 0 as c_int;\n    if ucvector_reserve(out, (*out).size.wrapping_add(reserved_size)) == 0 {\n        return 83 as c_uint;\n    }\n    HuffmanTree_init(&raw mut tree_ll);\n    HuffmanTree_init(&raw mut tree_d);\n    if btype == 1 as c_uint {\n        error = getTreeInflateFixed(&raw mut tree_ll, &raw mut tree_d);\n    } else {\n        error = getTreeInflateDynamic(&raw mut tree_ll, &raw mut tree_d, reader);\n    }\n    while error == 0 && done == 0 {\n        let mut code_ll: c_uint = 0;\n        ensureBits32(reader, 30 as size_t);\n        code_ll = huffmanDecodeSymbol(reader, &raw mut tree_ll);\n        if code_ll <= 255 as c_uint {\n            let out_size = (*out).size;\n            let out_data = (*out).data;\n            // SAFETY: `out_data` is the current allocation base for `(*out)`, and\n            // `out_size < (*out).allocsize` is maintained by the reserve discipline\n            // before entering the loop and after each iteration. This view is used\n            // only for this immediate append store and is not kept across reallocation.\n            let out_slice = unsafe { core::slice::from_raw_parts_mut(out_data, out_size.wrapping_add(1)) };\n            (*out).size = out_size.wrapping_add(1);\n            *out_slice.get_unchecked_mut(out_size) = code_ll as c_uchar;\n            code_ll = huffmanDecodeSymbol(reader, &raw mut tree_ll);\n        }\n        if code_ll <= 255 as c_uint {\n            let out_size = (*out).size;\n            let out_data = (*out).data;\n            // SAFETY: `out_data` is the current allocation base for `(*out)`, and\n            // `out_size < (*out).allocsize` is maintained by the reserve discipline\n            // before entering the loop and after each iteration. This view is used\n            // only for this immediate append store and is not kept across reallocation.\n            let out_slice = unsafe { core::slice::from_raw_parts_mut(out_data, out_size.wrapping_add(1)) };\n            (*out).size = out_size.wrapping_add(1);\n            *out_slice.get_unchecked_mut(out_size) = code_ll as c_uchar;\n        } else if code_ll >= FIRST_LENGTH_CODE_INDEX as c_uint\n            && code_ll <= LAST_LENGTH_CODE_INDEX as c_uint\n        {\n            let mut code_d: c_uint = 0;\n            let mut distance: c_uint = 0;\n            let mut numextrabits_l: c_uint = 0;\n            let mut numextrabits_d: c_uint = 0;\n            let mut start: size_t = 0;\n            let mut backward: size_t = 0;\n            let mut length: size_t = 0;\n            length = LENGTHBASE\n                [code_ll.wrapping_sub(FIRST_LENGTH_CODE_INDEX as c_uint) as usize]\n                as size_t;\n            numextrabits_l = LENGTHEXTRA\n                [code_ll.wrapping_sub(FIRST_LENGTH_CODE_INDEX as c_uint) as usize];\n            if numextrabits_l != 0 as c_uint {\n                ensureBits25(reader, 5 as size_t);\n                length = (length as c_ulong).wrapping_add(readBits(\n                    reader,\n                    numextrabits_l as size_t,\n                )\n                    as c_ulong) as size_t as size_t;\n            }\n            ensureBits32(reader, 28 as size_t);\n            code_d = huffmanDecodeSymbol(reader, &raw mut tree_d);\n            if code_d > 29 as c_uint {\n                if code_d <= 31 as c_uint {\n                    error = 18 as c_uint;\n                    break;\n                } else {\n                    error = 16 as c_uint;\n                    break;\n                }\n            } else {\n                distance = DISTANCEBASE[code_d as usize];\n                numextrabits_d = DISTANCEEXTRA[code_d as usize];\n                if numextrabits_d != 0 as c_uint {\n                    distance = distance.wrapping_add(readBits(reader, numextrabits_d as size_t));\n                }\n                start = (*out).size;\n                if distance as size_t > start {\n                    error = 52 as c_uint;\n                    break;\n                } else {\n                    let out_data = (*out).data;\n                    backward = start.wrapping_sub(distance as size_t);\n                    (*out).size = ((*out).size as c_ulong)\n                        .wrapping_add(length as c_ulong)\n                        as size_t as size_t;\n                    if (distance as size_t) < length {\n                        let mut forward: size_t = 0;\n                        lodepng_memcpy(\n                            out_data.offset(start as isize) as *mut c_void,\n                            out_data.offset(backward as isize) as *const c_void,\n                            distance as size_t,\n                        );\n                        start = (start as c_ulong)\n                            .wrapping_add(distance as c_ulong)\n                            as size_t as size_t;\n                        forward = distance as size_t;\n                        while forward < length {\n                            let fresh38 = backward;\n                            backward = backward.wrapping_add(1);\n                            let fresh39 = start;\n                            start = start.wrapping_add(1);\n                            *out_data.offset(fresh39 as isize) =\n                                *out_data.offset(fresh38 as isize);\n                            forward = forward.wrapping_add(1);\n                        }\n                    } else {\n                        lodepng_memcpy(\n                            out_data.offset(start as isize) as *mut c_void,\n                            out_data.offset(backward as isize) as *const c_void,\n                            length,\n                        );\n                    }\n                }\n            }\n        } else if code_ll == 256 as c_uint {\n            done = 1 as c_int;\n        } else {\n            error = 16 as c_uint;\n            break;\n        }\n        let out_size = (*out).size;\n        let out_allocsize = (*out).allocsize;\n        if out_allocsize.wrapping_sub(out_size) < reserved_size {\n            if ucvector_reserve(out, out_size.wrapping_add(reserved_size)) == 0 {\n                error = 83 as c_uint;\n                break;\n            }\n        }\n        let reader_bp = (*reader).bp;\n        let reader_bitsize = (*reader).bitsize;\n        if reader_bp > reader_bitsize {\n            error = 51 as c_uint;\n            break;\n        } else {\n            if !(max_output_size != 0 && (*out).size > max_output_size) {\n                continue;\n            }\n            error = 109 as c_uint;\n            break;\n        }\n    }\n    HuffmanTree_cleanup(&raw mut tree_ll);\n    HuffmanTree_cleanup(&raw mut tree_d);\n    return error;\n}",
+          "rule_id": "C3,III④",
+          "target": {
+            "declaration_hash": "480f66b2afebf0c00a430fe97afda62bf566bc9ebca1ed358f049f2b764066b9",
+            "file_hint": "src/lodepng.rs",
+            "qualified_name": "crate::inflateHuffmanBlock",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "inflateHuffmanBlock-9979f13b132c",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "inflateHuffmanBlock",
+        "rule_id": "C3,III④"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "96311b363625e3692613be11402faac3500a9dcb01499552c0b9bc7bc0ee36bd",
+            "edit_id": "edit-replace-fef4afd1d8c4dcee",
+            "end_byte": 75878,
+            "operation_id": "replace-fef4afd1d8c4dcee",
+            "relative_path": "src/lodepng.rs",
+            "replacement_text": "// Applied rules: [C3, III④]\n// Skipped rules: [III③: Hits [17,18] are `lodepng_memcpy` calls inside the hot inner decode/match-copy loop; the rule explicitly advises perf abstain there, and hit [17] is additionally in the overlap-sensitive LZ77 path where replacing with `ptr::copy`/slice APIs could silently change propagate-forward semantics. Hits [14,15,16] target `huffmanDecodeSymbol`, which is not a memory wrapper and therefore is not a valid III③ rewrite target.; III④: Per-site abstain for hits [21,22]: these are the overlapping match-copy byte loop (`dst[start] = src[backward]` while both advance) in a deflate/LZ77 kernel. Rule III④ §5 and §5.1 say not to slice-ify or replace with memmove/copy_within; keep raw forward copy semantics.; C3.S1: Changing `out`/`reader` from raw pointers to references would require cross-function caller proof and is unnecessary here because S2 hoisting addresses the concrete loop-local missed-load hits with lower risk in a hot decoder.]\n#[inline(never)]\nunsafe fn inflateHuffmanBlock(\n    mut out: *mut ucvector,\n    mut reader: *mut LodePNGBitReader,\n    mut btype: c_uint,\n    mut max_output_size: size_t,\n) -> c_uint {\n    let mut error: c_uint = 0 as c_uint;\n    let mut tree_ll: HuffmanTree = HuffmanTree {\n        codes: ::core::ptr::null_mut::<c_uint>(),\n        lengths: ::core::ptr::null_mut::<c_uint>(),\n        maxbitlen: 0,\n        numcodes: 0,\n        table_len: ::core::ptr::null_mut::<c_uchar>(),\n        table_value: ::core::ptr::null_mut::<c_ushort>(),\n    };\n    let mut tree_d: HuffmanTree = HuffmanTree {\n        codes: ::core::ptr::null_mut::<c_uint>(),\n        lengths: ::core::ptr::null_mut::<c_uint>(),\n        maxbitlen: 0,\n        numcodes: 0,\n        table_len: ::core::ptr::null_mut::<c_uchar>(),\n        table_value: ::core::ptr::null_mut::<c_ushort>(),\n    };\n    let reserved_size: size_t = 260 as size_t;\n    let mut done: c_int = 0 as c_int;\n    if ucvector_reserve(out, (*out).size.wrapping_add(reserved_size)) == 0 {\n        return 83 as c_uint;\n    }\n    HuffmanTree_init(&raw mut tree_ll);\n    HuffmanTree_init(&raw mut tree_d);\n    if btype == 1 as c_uint {\n        error = getTreeInflateFixed(&raw mut tree_ll, &raw mut tree_d);\n    } else {\n        error = getTreeInflateDynamic(&raw mut tree_ll, &raw mut tree_d, reader);\n    }\n    while error == 0 && done == 0 {\n        let mut code_ll: c_uint = 0;\n        ensureBits32(reader, 30 as size_t);\n        code_ll = huffmanDecodeSymbol(reader, &raw mut tree_ll);\n        if code_ll <= 255 as c_uint {\n            let out_size = (*out).size;\n            let out_data = (*out).data;\n            // SAFETY: `out_data` is the current allocation base for `(*out)`, and\n            // `out_size < (*out).allocsize` is maintained by the reserve discipline\n            // before entering the loop and after each iteration. This view is used\n            // only for this immediate append store and is not kept across reallocation.\n            let out_slice = unsafe { core::slice::from_raw_parts_mut(out_data, out_size.wrapping_add(1)) };\n            (*out).size = out_size.wrapping_add(1);\n            *out_slice.get_unchecked_mut(out_size) = code_ll as c_uchar;\n            code_ll = huffmanDecodeSymbol(reader, &raw mut tree_ll);\n        }\n        if code_ll <= 255 as c_uint {\n            let out_size = (*out).size;\n            let out_data = (*out).data;\n            // SAFETY: `out_data` is the current allocation base for `(*out)`, and\n            // `out_size < (*out).allocsize` is maintained by the reserve discipline\n            // before entering the loop and after each iteration. This view is used\n            // only for this immediate append store and is not kept across reallocation.\n            let out_slice = unsafe { core::slice::from_raw_parts_mut(out_data, out_size.wrapping_add(1)) };\n            (*out).size = out_size.wrapping_add(1);\n            *out_slice.get_unchecked_mut(out_size) = code_ll as c_uchar;\n        } else if code_ll >= FIRST_LENGTH_CODE_INDEX as c_uint\n            && code_ll <= LAST_LENGTH_CODE_INDEX as c_uint\n        {\n            let mut code_d: c_uint = 0;\n            let mut distance: c_uint = 0;\n            let mut numextrabits_l: c_uint = 0;\n            let mut numextrabits_d: c_uint = 0;\n            let mut start: size_t = 0;\n            let mut backward: size_t = 0;\n            let mut length: size_t = 0;\n            length = LENGTHBASE\n                [code_ll.wrapping_sub(FIRST_LENGTH_CODE_INDEX as c_uint) as usize]\n                as size_t;\n            numextrabits_l = LENGTHEXTRA\n                [code_ll.wrapping_sub(FIRST_LENGTH_CODE_INDEX as c_uint) as usize];\n            if numextrabits_l != 0 as c_uint {\n                ensureBits25(reader, 5 as size_t);\n                length = (length as c_ulong).wrapping_add(readBits(\n                    reader,\n                    numextrabits_l as size_t,\n                )\n                    as c_ulong) as size_t as size_t;\n            }\n            ensureBits32(reader, 28 as size_t);\n            code_d = huffmanDecodeSymbol(reader, &raw mut tree_d);\n            if code_d > 29 as c_uint {\n                if code_d <= 31 as c_uint {\n                    error = 18 as c_uint;\n                    break;\n                } else {\n                    error = 16 as c_uint;\n                    break;\n                }\n            } else {\n                distance = DISTANCEBASE[code_d as usize];\n                numextrabits_d = DISTANCEEXTRA[code_d as usize];\n                if numextrabits_d != 0 as c_uint {\n                    distance = distance.wrapping_add(readBits(reader, numextrabits_d as size_t));\n                }\n                start = (*out).size;\n                if distance as size_t > start {\n                    error = 52 as c_uint;\n                    break;\n                } else {\n                    let out_data = (*out).data;\n                    backward = start.wrapping_sub(distance as size_t);\n                    (*out).size = ((*out).size as c_ulong)\n                        .wrapping_add(length as c_ulong)\n                        as size_t as size_t;\n                    if (distance as size_t) < length {\n                        let mut forward: size_t = 0;\n                        lodepng_memcpy(\n                            out_data.offset(start as isize) as *mut c_void,\n                            out_data.offset(backward as isize) as *const c_void,\n                            distance as size_t,\n                        );\n                        start = (start as c_ulong)\n                            .wrapping_add(distance as c_ulong)\n                            as size_t as size_t;\n                        forward = distance as size_t;\n                        while forward < length {\n                            let fresh38 = backward;\n                            backward = backward.wrapping_add(1);\n                            let fresh39 = start;\n                            start = start.wrapping_add(1);\n                            *out_data.offset(fresh39 as isize) =\n                                *out_data.offset(fresh38 as isize);\n                            forward = forward.wrapping_add(1);\n                        }\n                    } else {\n                        lodepng_memcpy(\n                            out_data.offset(start as isize) as *mut c_void,\n                            out_data.offset(backward as isize) as *const c_void,\n                            length,\n                        );\n                    }\n                }\n            }\n        } else if code_ll == 256 as c_uint {\n            done = 1 as c_int;\n        } else {\n            error = 16 as c_uint;\n            break;\n        }\n        let out_size = (*out).size;\n        let out_allocsize = (*out).allocsize;\n        if out_allocsize.wrapping_sub(out_size) < reserved_size {\n            if ucvector_reserve(out, out_size.wrapping_add(reserved_size)) == 0 {\n                error = 83 as c_uint;\n                break;\n            }\n        }\n        let reader_bp = (*reader).bp;\n        let reader_bitsize = (*reader).bitsize;\n        if reader_bp > reader_bitsize {\n            error = 51 as c_uint;\n            break;\n        } else {\n            if !(max_output_size != 0 && (*out).size > max_output_size) {\n                continue;\n            }\n            error = 109 as c_uint;\n            break;\n        }\n    }\n    HuffmanTree_cleanup(&raw mut tree_ll);\n    HuffmanTree_cleanup(&raw mut tree_d);\n    return error;\n}",
+            "start_byte": 69497
+          }
+        ],
+        "facts": {
+          "fn_name": "inflateHuffmanBlock",
+          "target_span_hash": "480f66b2afebf0c00a430fe97afda62bf566bc9ebca1ed358f049f2b764066b9"
+        },
+        "operation_id": "replace-fef4afd1d8c4dcee"
+      }
+    ],
+    "resolved_head": "82d05ac3096ea0ecd944c83b1a53160908225cff"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/lodepng.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

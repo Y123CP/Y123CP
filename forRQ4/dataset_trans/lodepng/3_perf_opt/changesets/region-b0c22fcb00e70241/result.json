@@ -1,0 +1,214 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 5.535862908368808,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 5.617668894388653,
+            "aggregate_ci_low_pct": 5.454056922348962,
+            "aggregate_pct": 5.535862908368808,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 5.6177,
+                "ci_low_pct": 5.4541,
+                "insns_delta_pct": -0.5925,
+                "mean_delta_pct": 5.5359,
+                "op": "decode24_png",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "color_convert",
+          "decode24_png"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "decode24_png"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "7011e6a23517616774c7bdee3a9c8c221226e350",
+      "changeset_id": "region-b0c22fcb00e70241",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [
+            "f5d53f29b96d7a5724377c78c3b335e41797c8f8fc0e7fb165931e7550ec6c7a",
+            "0c04e87019843f55bf449e0b446827798c91660842814d99fe3b45fc4f0bbca7",
+            "1bb7eb73c66232a8064e1a53d9baa3fd39eb1963f25e96fe3fd8b670262cda15",
+            "4c33ac387635f2879cbc11b6c3bd4a66215cd026ae7ef7cecf9b9b25ed2df108"
+          ],
+          "operation_id": "replace-region-fb7e4ddcc321445a",
+          "region": {
+            "anchor_hit_ids": [
+              "f5d53f29b96d7a5724377c78c3b335e41797c8f8fc0e7fb165931e7550ec6c7a",
+              "0c04e87019843f55bf449e0b446827798c91660842814d99fe3b45fc4f0bbca7",
+              "1bb7eb73c66232a8064e1a53d9baa3fd39eb1963f25e96fe3fd8b670262cda15",
+              "4c33ac387635f2879cbc11b6c3bd4a66215cd026ae7ef7cecf9b9b25ed2df108"
+            ],
+            "anchor_lines": [
+              7931,
+              7932,
+              7932,
+              8024
+            ],
+            "end_byte": 278142,
+            "expected_region_hash": "2771c9e2bd74648a2da8d60bad5d312f1b661f52679a33c4e13a0d0f2d1d91a6",
+            "parent_kind": "block",
+            "region_kind": "node_sequence",
+            "relative_path": "src/lodepng.rs",
+            "start_byte": 267892,
+            "target_function": {
+              "declaration_hash": "369ce91c063062d016165758ea6e1a20ea617859d0d2d85506a09daf9d005a4d",
+              "file_hint": "src/lodepng.rs",
+              "qualified_name": "getPixelColorsRGB8",
+              "symbol_kind": "function"
+            }
+          },
+          "replacement_region_source": "let num_channels: c_uint = 3 as c_uint;\n    let colortype = (*mode).colortype as c_uint;\n    let bitdepth = (*mode).bitdepth;\n    let palette = (*mode).palette;\n    let mut i: size_t = 0;\n    if colortype == LCT_GREY as c_int as c_uint {\n        if bitdepth == 8 as c_uint {\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes, `in_0` valid for\n            // `numpixels` bytes, both non-null for these lengths, and no other live mutable/immutable\n            // references alias these regions during this rewrite.\n            let (buffer_slice, in_slice) = unsafe {\n                (\n                    core::slice::from_raw_parts_mut(\n                        buffer,\n                        numpixels.wrapping_mul(num_channels as size_t),\n                    ),\n                    core::slice::from_raw_parts(in_0, numpixels),\n                )\n            };\n            for (dst, &v) in buffer_slice.chunks_exact_mut(3).zip(in_slice.iter()) {\n                dst[0] = v;\n                dst[1] = v;\n                dst[2] = v;\n            }\n        } else if bitdepth == 16 as c_uint {\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes, `in_0` valid for\n            // `numpixels * 2` bytes, both non-null for these lengths, and no other live mutable/immutable\n            // references alias these regions during this rewrite.\n            let (buffer_slice, in_slice) = unsafe {\n                (\n                    core::slice::from_raw_parts_mut(\n                        buffer,\n                        numpixels.wrapping_mul(num_channels as size_t),\n                    ),\n                    core::slice::from_raw_parts(in_0, numpixels.wrapping_mul(2 as size_t)),\n                )\n            };\n            for (dst, src) in buffer_slice.chunks_exact_mut(3).zip(in_slice.chunks_exact(2)) {\n                let v = src[0];\n                dst[0] = v;\n                dst[1] = v;\n                dst[2] = v;\n            }\n        } else {\n            let highest: c_uint = ((1 as c_uint) << bitdepth).wrapping_sub(1 as c_uint);\n            let mut j: size_t = 0 as size_t;\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes and non-null for\n            // that length; no other live references alias this region during this rewrite.\n            let buffer_slice = unsafe {\n                core::slice::from_raw_parts_mut(\n                    buffer,\n                    numpixels.wrapping_mul(num_channels as size_t),\n                )\n            };\n            for dst in buffer_slice.chunks_exact_mut(3) {\n                let value: c_uint =\n                    readBitsFromReversedStream(&raw mut j, in_0, bitdepth as size_t);\n                let v = value.wrapping_mul(255 as c_uint).wrapping_div(highest) as c_uchar;\n                dst[0] = v;\n                dst[1] = v;\n                dst[2] = v;\n            }\n        }\n    } else if colortype == LCT_RGB as c_int as c_uint {\n        if bitdepth == 8 as c_uint {\n            lodepng_memcpy(\n                buffer as *mut c_void,\n                in_0 as *const c_void,\n                numpixels.wrapping_mul(3 as size_t),\n            );\n        } else {\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes, `in_0` valid for\n            // `numpixels * 6` bytes, both non-null for these lengths, and no other live mutable/immutable\n            // references alias these regions during this rewrite.\n            let (buffer_slice, in_slice) = unsafe {\n                (\n                    core::slice::from_raw_parts_mut(\n                        buffer,\n                        numpixels.wrapping_mul(num_channels as size_t),\n                    ),\n                    core::slice::from_raw_parts(in_0, numpixels.wrapping_mul(6 as size_t)),\n                )\n            };\n            for (dst, src) in buffer_slice.chunks_exact_mut(3).zip(in_slice.chunks_exact(6)) {\n                dst[0] = src[0];\n                dst[1] = src[2];\n                dst[2] = src[4];\n            }\n        }\n    } else if colortype == LCT_PALETTE as c_int as c_uint {\n        if bitdepth == 8 as c_uint {\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes, `in_0` valid for\n            // `numpixels` bytes, and `palette` points to palette entries addressed by the\n            // input indices; all pointers are non-null for these lengths and no other live references\n            // alias the destination during this rewrite.\n            let (buffer_slice, in_slice) = unsafe {\n                (\n                    core::slice::from_raw_parts_mut(\n                        buffer,\n                        numpixels.wrapping_mul(num_channels as size_t),\n                    ),\n                    core::slice::from_raw_parts(in_0, numpixels),\n                )\n            };\n            for (dst, &idx) in buffer_slice.chunks_exact_mut(3).zip(in_slice.iter()) {\n                let index = idx as c_uint;\n                let pal = unsafe { palette.offset(index.wrapping_mul(4 as c_uint) as isize) };\n                dst[0] = unsafe { *pal.offset(0) };\n                dst[1] = unsafe { *pal.offset(1) };\n                dst[2] = unsafe { *pal.offset(2) };\n            }\n        } else {\n            let mut j_0: size_t = 0 as size_t;\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes and `palette`\n            // points to palette entries addressed by decoded indices; pointers are non-null for these\n            // lengths and no other live references alias the destination during this rewrite.\n            let buffer_slice = unsafe {\n                core::slice::from_raw_parts_mut(\n                    buffer,\n                    numpixels.wrapping_mul(num_channels as size_t),\n                )\n            };\n            for dst in buffer_slice.chunks_exact_mut(3) {\n                let index_0: c_uint =\n                    readBitsFromReversedStream(&raw mut j_0, in_0, bitdepth as size_t);\n                let pal = unsafe { palette.offset(index_0.wrapping_mul(4 as c_uint) as isize) };\n                dst[0] = unsafe { *pal.offset(0) };\n                dst[1] = unsafe { *pal.offset(1) };\n                dst[2] = unsafe { *pal.offset(2) };\n            }\n        }\n    } else if colortype == LCT_GREY_ALPHA as c_int as c_uint {\n        if bitdepth == 8 as c_uint {\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes, `in_0` valid for\n            // `numpixels * 2` bytes, both non-null for these lengths, and no other live mutable/immutable\n            // references alias these regions during this rewrite.\n            let (buffer_slice, in_slice) = unsafe {\n                (\n                    core::slice::from_raw_parts_mut(\n                        buffer,\n                        numpixels.wrapping_mul(num_channels as size_t),\n                    ),\n                    core::slice::from_raw_parts(in_0, numpixels.wrapping_mul(2 as size_t)),\n                )\n            };\n            for (dst, src) in buffer_slice.chunks_exact_mut(3).zip(in_slice.chunks_exact(2)) {\n                let v = src[0];\n                dst[0] = v;\n                dst[1] = v;\n                dst[2] = v;\n            }\n        } else {\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes, `in_0` valid for\n            // `numpixels * 4` bytes, both non-null for these lengths, and no other live mutable/immutable\n            // references alias these regions during this rewrite.\n            let (buffer_slice, in_slice) = unsafe {\n                (\n                    core::slice::from_raw_parts_mut(\n                        buffer,\n                        numpixels.wrapping_mul(num_channels as size_t),\n                    ),\n                    core::slice::from_raw_parts(in_0, numpixels.wrapping_mul(4 as size_t)),\n                )\n            };\n            for (dst, src) in buffer_slice.chunks_exact_mut(3).zip(in_slice.chunks_exact(4)) {\n                let v = src[0];\n                dst[0] = v;\n                dst[1] = v;\n                dst[2] = v;\n            }\n        }\n    } else if colortype == LCT_RGBA as c_int as c_uint {\n        if bitdepth == 8 as c_uint {\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes, `in_0` valid for\n            // `numpixels * 4` bytes, both non-null for these lengths, and no other live mutable/immutable\n            // references alias these regions during this rewrite.\n            let (buffer_slice, in_slice) = unsafe {\n                (\n                    core::slice::from_raw_parts_mut(\n                        buffer,\n                        numpixels.wrapping_mul(num_channels as size_t),\n                    ),\n                    core::slice::from_raw_parts(in_0, numpixels.wrapping_mul(4 as size_t)),\n                )\n            };\n            for (dst, src) in buffer_slice.chunks_exact_mut(3).zip(in_slice.chunks_exact(4)) {\n                dst[0] = src[0];\n                dst[1] = src[1];\n                dst[2] = src[2];\n            }\n        } else {\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes, `in_0` valid for\n            // `numpixels * 8` bytes, both non-null for these lengths, and no other live mutable/immutable\n            // references alias these regions during this rewrite.\n            let (buffer_slice, in_slice) = unsafe {\n                (\n                    core::slice::from_raw_parts_mut(\n                        buffer,\n                        numpixels.wrapping_mul(num_channels as size_t),\n                    ),\n                    core::slice::from_raw_parts(in_0, numpixels.wrapping_mul(8 as size_t)),\n                )\n            };\n            for (dst, src) in buffer_slice.chunks_exact_mut(3).zip(in_slice.chunks_exact(8)) {\n                dst[0] = src[0];\n                dst[1] = src[2];\n                dst[2] = src[4];\n            }\n        }\n    }",
+          "rule_id": "III④,C3"
+        }
+      ],
+      "trigger": {
+        "candidate_id": "getPixelColorsRGB8-region-6d783ddfeb55052b",
+        "evidence_artifacts": [],
+        "hit_ids": [
+          "f5d53f29b96d7a5724377c78c3b335e41797c8f8fc0e7fb165931e7550ec6c7a",
+          "0c04e87019843f55bf449e0b446827798c91660842814d99fe3b45fc4f0bbca7",
+          "1bb7eb73c66232a8064e1a53d9baa3fd39eb1963f25e96fe3fd8b670262cda15",
+          "4c33ac387635f2879cbc11b6c3bd4a66215cd026ae7ef7cecf9b9b25ed2df108"
+        ],
+        "hot_function": "getPixelColorsRGB8",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "dc8c80c8ebb940a582b2cdb99cb62679a9a7d61823bac9982b4bd47cdf3eb77c",
+            "edit_id": "edit-replace-region-fb7e4ddcc321445a",
+            "end_byte": 278142,
+            "operation_id": "replace-region-fb7e4ddcc321445a",
+            "relative_path": "src/lodepng.rs",
+            "replacement_text": "let num_channels: c_uint = 3 as c_uint;\n    let colortype = (*mode).colortype as c_uint;\n    let bitdepth = (*mode).bitdepth;\n    let palette = (*mode).palette;\n    let mut i: size_t = 0;\n    if colortype == LCT_GREY as c_int as c_uint {\n        if bitdepth == 8 as c_uint {\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes, `in_0` valid for\n            // `numpixels` bytes, both non-null for these lengths, and no other live mutable/immutable\n            // references alias these regions during this rewrite.\n            let (buffer_slice, in_slice) = unsafe {\n                (\n                    core::slice::from_raw_parts_mut(\n                        buffer,\n                        numpixels.wrapping_mul(num_channels as size_t),\n                    ),\n                    core::slice::from_raw_parts(in_0, numpixels),\n                )\n            };\n            for (dst, &v) in buffer_slice.chunks_exact_mut(3).zip(in_slice.iter()) {\n                dst[0] = v;\n                dst[1] = v;\n                dst[2] = v;\n            }\n        } else if bitdepth == 16 as c_uint {\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes, `in_0` valid for\n            // `numpixels * 2` bytes, both non-null for these lengths, and no other live mutable/immutable\n            // references alias these regions during this rewrite.\n            let (buffer_slice, in_slice) = unsafe {\n                (\n                    core::slice::from_raw_parts_mut(\n                        buffer,\n                        numpixels.wrapping_mul(num_channels as size_t),\n                    ),\n                    core::slice::from_raw_parts(in_0, numpixels.wrapping_mul(2 as size_t)),\n                )\n            };\n            for (dst, src) in buffer_slice.chunks_exact_mut(3).zip(in_slice.chunks_exact(2)) {\n                let v = src[0];\n                dst[0] = v;\n                dst[1] = v;\n                dst[2] = v;\n            }\n        } else {\n            let highest: c_uint = ((1 as c_uint) << bitdepth).wrapping_sub(1 as c_uint);\n            let mut j: size_t = 0 as size_t;\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes and non-null for\n            // that length; no other live references alias this region during this rewrite.\n            let buffer_slice = unsafe {\n                core::slice::from_raw_parts_mut(\n                    buffer,\n                    numpixels.wrapping_mul(num_channels as size_t),\n                )\n            };\n            for dst in buffer_slice.chunks_exact_mut(3) {\n                let value: c_uint =\n                    readBitsFromReversedStream(&raw mut j, in_0, bitdepth as size_t);\n                let v = value.wrapping_mul(255 as c_uint).wrapping_div(highest) as c_uchar;\n                dst[0] = v;\n                dst[1] = v;\n                dst[2] = v;\n            }\n        }\n    } else if colortype == LCT_RGB as c_int as c_uint {\n        if bitdepth == 8 as c_uint {\n            lodepng_memcpy(\n                buffer as *mut c_void,\n                in_0 as *const c_void,\n                numpixels.wrapping_mul(3 as size_t),\n            );\n        } else {\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes, `in_0` valid for\n            // `numpixels * 6` bytes, both non-null for these lengths, and no other live mutable/immutable\n            // references alias these regions during this rewrite.\n            let (buffer_slice, in_slice) = unsafe {\n                (\n                    core::slice::from_raw_parts_mut(\n                        buffer,\n                        numpixels.wrapping_mul(num_channels as size_t),\n                    ),\n                    core::slice::from_raw_parts(in_0, numpixels.wrapping_mul(6 as size_t)),\n                )\n            };\n            for (dst, src) in buffer_slice.chunks_exact_mut(3).zip(in_slice.chunks_exact(6)) {\n                dst[0] = src[0];\n                dst[1] = src[2];\n                dst[2] = src[4];\n            }\n        }\n    } else if colortype == LCT_PALETTE as c_int as c_uint {\n        if bitdepth == 8 as c_uint {\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes, `in_0` valid for\n            // `numpixels` bytes, and `palette` points to palette entries addressed by the\n            // input indices; all pointers are non-null for these lengths and no other live references\n            // alias the destination during this rewrite.\n            let (buffer_slice, in_slice) = unsafe {\n                (\n                    core::slice::from_raw_parts_mut(\n                        buffer,\n                        numpixels.wrapping_mul(num_channels as size_t),\n                    ),\n                    core::slice::from_raw_parts(in_0, numpixels),\n                )\n            };\n            for (dst, &idx) in buffer_slice.chunks_exact_mut(3).zip(in_slice.iter()) {\n                let index = idx as c_uint;\n                let pal = unsafe { palette.offset(index.wrapping_mul(4 as c_uint) as isize) };\n                dst[0] = unsafe { *pal.offset(0) };\n                dst[1] = unsafe { *pal.offset(1) };\n                dst[2] = unsafe { *pal.offset(2) };\n            }\n        } else {\n            let mut j_0: size_t = 0 as size_t;\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes and `palette`\n            // points to palette entries addressed by decoded indices; pointers are non-null for these\n            // lengths and no other live references alias the destination during this rewrite.\n            let buffer_slice = unsafe {\n                core::slice::from_raw_parts_mut(\n                    buffer,\n                    numpixels.wrapping_mul(num_channels as size_t),\n                )\n            };\n            for dst in buffer_slice.chunks_exact_mut(3) {\n                let index_0: c_uint =\n                    readBitsFromReversedStream(&raw mut j_0, in_0, bitdepth as size_t);\n                let pal = unsafe { palette.offset(index_0.wrapping_mul(4 as c_uint) as isize) };\n                dst[0] = unsafe { *pal.offset(0) };\n                dst[1] = unsafe { *pal.offset(1) };\n                dst[2] = unsafe { *pal.offset(2) };\n            }\n        }\n    } else if colortype == LCT_GREY_ALPHA as c_int as c_uint {\n        if bitdepth == 8 as c_uint {\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes, `in_0` valid for\n            // `numpixels * 2` bytes, both non-null for these lengths, and no other live mutable/immutable\n            // references alias these regions during this rewrite.\n            let (buffer_slice, in_slice) = unsafe {\n                (\n                    core::slice::from_raw_parts_mut(\n                        buffer,\n                        numpixels.wrapping_mul(num_channels as size_t),\n                    ),\n                    core::slice::from_raw_parts(in_0, numpixels.wrapping_mul(2 as size_t)),\n                )\n            };\n            for (dst, src) in buffer_slice.chunks_exact_mut(3).zip(in_slice.chunks_exact(2)) {\n                let v = src[0];\n                dst[0] = v;\n                dst[1] = v;\n                dst[2] = v;\n            }\n        } else {\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes, `in_0` valid for\n            // `numpixels * 4` bytes, both non-null for these lengths, and no other live mutable/immutable\n            // references alias these regions during this rewrite.\n            let (buffer_slice, in_slice) = unsafe {\n                (\n                    core::slice::from_raw_parts_mut(\n                        buffer,\n                        numpixels.wrapping_mul(num_channels as size_t),\n                    ),\n                    core::slice::from_raw_parts(in_0, numpixels.wrapping_mul(4 as size_t)),\n                )\n            };\n            for (dst, src) in buffer_slice.chunks_exact_mut(3).zip(in_slice.chunks_exact(4)) {\n                let v = src[0];\n                dst[0] = v;\n                dst[1] = v;\n                dst[2] = v;\n            }\n        }\n    } else if colortype == LCT_RGBA as c_int as c_uint {\n        if bitdepth == 8 as c_uint {\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes, `in_0` valid for\n            // `numpixels * 4` bytes, both non-null for these lengths, and no other live mutable/immutable\n            // references alias these regions during this rewrite.\n            let (buffer_slice, in_slice) = unsafe {\n                (\n                    core::slice::from_raw_parts_mut(\n                        buffer,\n                        numpixels.wrapping_mul(num_channels as size_t),\n                    ),\n                    core::slice::from_raw_parts(in_0, numpixels.wrapping_mul(4 as size_t)),\n                )\n            };\n            for (dst, src) in buffer_slice.chunks_exact_mut(3).zip(in_slice.chunks_exact(4)) {\n                dst[0] = src[0];\n                dst[1] = src[1];\n                dst[2] = src[2];\n            }\n        } else {\n            // SAFETY: caller provides `buffer` valid for `numpixels * 3` bytes, `in_0` valid for\n            // `numpixels * 8` bytes, both non-null for these lengths, and no other live mutable/immutable\n            // references alias these regions during this rewrite.\n            let (buffer_slice, in_slice) = unsafe {\n                (\n                    core::slice::from_raw_parts_mut(\n                        buffer,\n                        numpixels.wrapping_mul(num_channels as size_t),\n                    ),\n                    core::slice::from_raw_parts(in_0, numpixels.wrapping_mul(8 as size_t)),\n                )\n            };\n            for (dst, src) in buffer_slice.chunks_exact_mut(3).zip(in_slice.chunks_exact(8)) {\n                dst[0] = src[0];\n                dst[1] = src[2];\n                dst[2] = src[4];\n            }\n        }\n    }",
+            "start_byte": 267892
+          }
+        ],
+        "facts": {
+          "declaration_span": [
+            267728,
+            278144
+          ],
+          "function_name": "getPixelColorsRGB8",
+          "function_parent_fingerprint": [
+            {
+              "index": 0,
+              "type": "source_file"
+            },
+            {
+              "index": 328,
+              "type": "function_item"
+            }
+          ],
+          "function_span": [
+            267728,
+            278144
+          ],
+          "original_file_length": 625041,
+          "original_item_counts": {
+            "extern_crate_declaration": 0,
+            "foreign_mod_item": 0,
+            "function_item": 248,
+            "function_signature_item": 0,
+            "impl_item": 0,
+            "macro_definition": 0,
+            "mod_item": 0,
+            "trait_item": 0
+          },
+          "original_region_length": 10250,
+          "original_region_macro_hashes": [],
+          "original_region_node_types": [
+            "let_declaration",
+            "let_declaration",
+            "expression_statement"
+          ],
+          "parent_kind": "block",
+          "prefix_sha256": "a18374d654b4d5e561a90125cfdb515e1ebb7564d5e79fe8138d1307eabb1e1f",
+          "region_kind": "node_sequence",
+          "region_line_bounds": [
+            7887,
+            8127
+          ],
+          "suffix_sha256": "740090beee8e2d35a8502a6ed37925c5cd2bb320541f4bfdbf497de39b7dfd85"
+        },
+        "operation_id": "replace-region-fb7e4ddcc321445a"
+      }
+    ],
+    "resolved_head": "7011e6a23517616774c7bdee3a9c8c221226e350"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/lodepng.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_region_shape",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_region_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

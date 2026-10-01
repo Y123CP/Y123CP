@@ -1,0 +1,194 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.038347864840756175,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.1786283466553979,
+            "aggregate_ci_low_pct": -0.10193261697388556,
+            "aggregate_pct": 0.038347864840756175,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.1665,
+                "ci_low_pct": -0.1048,
+                "insns_delta_pct": -0.0025,
+                "mean_delta_pct": 0.0309,
+                "op": "encode_data_and_input",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.1632,
+                "ci_low_pct": -0.0784,
+                "insns_delta_pct": -0.0248,
+                "mean_delta_pct": 0.0424,
+                "op": "encode_string_api",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.4395,
+                "ci_low_pct": -0.356,
+                "insns_delta_pct": -0.0989,
+                "mean_delta_pct": 0.0417,
+                "op": "spec_mask_ecc",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.2113107975191316,
+            "aggregate_ci_low_pct": -0.09612670750995686,
+            "aggregate_pct": 0.05759204500458737,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.0543,
+                "ci_low_pct": -0.0858,
+                "insns_delta_pct": -0.0232,
+                "mean_delta_pct": -0.0157,
+                "op": "encode_string_api",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.4315,
+                "ci_low_pct": -0.1697,
+                "insns_delta_pct": 0.0589,
+                "mean_delta_pct": 0.1309,
+                "op": "spec_mask_ecc",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_string_api",
+          "spec_mask_ecc"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "encode_string_api"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "fde8f4701f22d2ef8bd1522bccc9ac698988d024",
+      "changeset_id": "legacy-10ec2a6c62aba6db",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-853f1757ff05f96d",
+          "replacement_function_source": "unsafe fn BitStream_writeBytes(\n    mut dest: *mut c_uchar,\n    mut size: size_t,\n    mut data: *mut c_uchar,\n) {\n    let mut i: size_t = 0;\n    while i < size {\n        // SAFETY: caller provides `data` valid for reads of `size` bytes; `i < size`.\n        let byte = unsafe { *data.add(i as usize) };\n        let b = byte as c_int;\n\n        // SAFETY: caller provides `dest` valid for writes of `size * 8` bytes; offsets below stay within the current 8-byte output block for byte `i`.\n        unsafe {\n            let p = dest.add((i.wrapping_mul(8 as size_t)) as usize);\n            *p.add(0) = ((b >> 7) & 1) as c_uchar;\n            *p.add(1) = ((b >> 6) & 1) as c_uchar;\n            *p.add(2) = ((b >> 5) & 1) as c_uchar;\n            *p.add(3) = ((b >> 4) & 1) as c_uchar;\n            *p.add(4) = ((b >> 3) & 1) as c_uchar;\n            *p.add(5) = ((b >> 2) & 1) as c_uchar;\n            *p.add(6) = ((b >> 1) & 1) as c_uchar;\n            *p.add(7) = (b & 1) as c_uchar;\n        }\n\n        i = i.wrapping_add(1);\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "fc5a1a6686814337fa5347c221540263f701dea8448124e49c893156c4cef335",
+            "file_hint": "src/bitstream.rs",
+            "qualified_name": "crate::BitStream_writeBytes",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "BitStream_writeBytes-73c0da627f02",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "BitStream_writeBytes",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "1b9d4de9e36cc3e15b7d6743da9bd4ca4e4e41f77376e770100db6a84f5fe870",
+            "edit_id": "edit-replace-853f1757ff05f96d",
+            "end_byte": 2775,
+            "operation_id": "replace-853f1757ff05f96d",
+            "relative_path": "src/bitstream.rs",
+            "replacement_text": "unsafe fn BitStream_writeBytes(\n    mut dest: *mut c_uchar,\n    mut size: size_t,\n    mut data: *mut c_uchar,\n) {\n    let mut i: size_t = 0;\n    while i < size {\n        // SAFETY: caller provides `data` valid for reads of `size` bytes; `i < size`.\n        let byte = unsafe { *data.add(i as usize) };\n        let b = byte as c_int;\n\n        // SAFETY: caller provides `dest` valid for writes of `size * 8` bytes; offsets below stay within the current 8-byte output block for byte `i`.\n        unsafe {\n            let p = dest.add((i.wrapping_mul(8 as size_t)) as usize);\n            *p.add(0) = ((b >> 7) & 1) as c_uchar;\n            *p.add(1) = ((b >> 6) & 1) as c_uchar;\n            *p.add(2) = ((b >> 5) & 1) as c_uchar;\n            *p.add(3) = ((b >> 4) & 1) as c_uchar;\n            *p.add(4) = ((b >> 3) & 1) as c_uchar;\n            *p.add(5) = ((b >> 2) & 1) as c_uchar;\n            *p.add(6) = ((b >> 1) & 1) as c_uchar;\n            *p.add(7) = (b & 1) as c_uchar;\n        }\n\n        i = i.wrapping_add(1);\n    }\n}",
+            "start_byte": 1921
+          }
+        ],
+        "facts": {
+          "fn_name": "BitStream_writeBytes",
+          "target_span_hash": "fc5a1a6686814337fa5347c221540263f701dea8448124e49c893156c4cef335"
+        },
+        "operation_id": "replace-853f1757ff05f96d"
+      }
+    ],
+    "resolved_head": "fde8f4701f22d2ef8bd1522bccc9ac698988d024"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/bitstream.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,224 @@
+{
+  "hot_function": {
+    "symbol": "parse_url_char",
+    "location": "src/http_parser.rs:1235-1413",
+    "workload": "parse_url_and_meta",
+    "hot_region": "src/http_parser.rs:1235-1413",
+    "rust_source": "fn parse_url_char(mut s: state, ch: c_char) -> state { unsafe {\n    if ch as c_int == ' ' as i32\n        || ch as c_int == '\\r' as i32\n        || ch as c_int == '\\n' as i32\n    {\n        return s_dead;\n    }\n    if ch as c_int == '\\t' as i32 || ch as c_int == '\\u{c}' as i32 {\n        return s_dead;\n    }\n    let mut current_block_61: u64;\n    match s as c_uint {\n        20 => {\n            if ch as c_int == '/' as i32 || ch as c_int == '*' as i32 {\n                return s_req_path;\n            }\n            if (ch as c_int | 0x20 as c_int) as c_uchar\n                as c_int\n                >= 'a' as i32\n                && (ch as c_int | 0x20 as c_int) as c_uchar\n                    as c_int\n                    <= 'z' as i32\n            {\n                return s_req_schema;\n            }\n            current_block_61 = 7018308795614528254;\n        }\n        21 => {\n            if (ch as c_int | 0x20 as c_int) as c_uchar\n                as c_int\n                >= 'a' as i32\n                && (ch as c_int | 0x20 as c_int) as c_uchar\n                    as c_int\n                    <= 'z' as i32\n            {\n                return s;\n            }\n            if ch as c_int == ':' as i32 {\n                return s_req_schema_slash;\n            }\n            current_block_61 = 7018308795614528254;\n        }\n        22 => {\n            if ch as c_int == '/' as i32 {\n                return s_req_schema_slash_slash;\n            }\n            current_block_61 = 7018308795614528254;\n        }\n        23 => {\n            if ch as c_int == '/' as i32 {\n                return s_req_server_start;\n            }\n            current_block_61 = 7018308795614528254;\n        }\n        26 => {\n            if ch as c_int == '@' as i32 {\n                return s_dead;\n            }\n            current_block_61 = 13245741422963388543;\n        }\n        24 | 25 => {\n            current_block_61 = 13245741422963388543;\n        }\n        27 => {\n            if normal_url_char[(ch as c_uchar as c_uint\n                >> 3 as c_int) as usize] as c_uint\n                & ((1 as c_int)\n                    << (ch as c_uchar as c_uint\n                        & 7 as c_uint)) as c_uint\n                != 0\n            {\n                return s;\n            }\n            match ch as c_int {\n                63 => return s_req_query_string_start,\n                35 => return s_req_fragment_start,\n                _ => {}\n            }\n            current_block_61 = 7018308795614528254;\n        }\n        28 | 29 => {\n            if normal_url_char[(ch as c_uchar as c_uint\n                >> 3 as c_int) as usize] as c_uint\n                & ((1 as c_int)\n                    << (ch as c_uchar as c_uint\n                        & 7 as c_uint)) as c_uint\n                != 0\n            {\n                return s_req_query_string;\n            }\n            match ch as c_int {\n                63 => return s_req_query_string,\n                35 => return s_req_fragment_start,\n                _ => {}\n            }\n            current_block_61 = 7018308795614528254;\n        }\n        30 => {\n            if normal_url_char[(ch as c_uchar as c_uint\n                >> 3 as c_int) as usize] as c_uint\n                & ((1 as c_int)\n                    << (ch as c_uchar as c_uint\n                        & 7 as c_uint)) as c_uint\n                != 0\n            {\n                return s_req_fragment;\n            }\n            match ch as c_int {\n                63 => return s_req_fragment,\n                35 => return s,\n                _ => {}\n            }\n            current_block_61 = 7018308795614528254;\n        }\n        31 => {\n            if normal_url_char[(ch as c_uchar as c_uint\n                >> 3 as c_int) as usize] as c_uint\n                & ((1 as c_int)\n                    << (ch as c_uchar as c_uint\n                        & 7 as c_uint)) as c_uint\n                != 0\n            {\n                return s;\n            }\n            match ch as c_int {\n                63 | 35 => return s,\n                _ => {}\n            }\n            current_block_61 = 7018308795614528254;\n        }\n        _ => {\n            current_block_61 = 7018308795614528254;\n        }\n    }\n    match current_block_61 {\n        13245741422963388543 => {\n            if ch as c_int == '/' as i32 {\n                return s_req_path;\n            }\n            if ch as c_int == '?' as i32 {\n                return s_req_query_string_start;\n            }\n            if ch as c_int == '@' as i32 {\n                return s_req_server_with_at;\n            }\n            if (ch as c_int | 0x20 as c_int) as c_uchar\n                as c_int\n                >= 'a' as i32\n                && (ch as c_int | 0x20 as c_int) as c_uchar\n                    as c_int\n                    <= 'z' as i32\n                || ch as c_int >= '0' as i32 && ch as c_int <= '9' as i32\n                || (ch as c_int == '-' as i32\n                    || ch as c_int == '_' as i32\n                    || ch as c_int == '.' as i32\n                    || ch as c_int == '!' as i32\n                    || ch as c_int == '~' as i32\n                    || ch as c_int == '*' as i32\n                    || ch as c_int == '\\'' as i32\n                    || ch as c_int == '(' as i32\n                    || ch as c_int == ')' as i32)\n                || ch as c_int == '%' as i32\n                || ch as c_int == ';' as i32\n                || ch as c_int == ':' as i32\n                || ch as c_int == '&' as i32\n                || ch as c_int == '=' as i32\n                || ch as c_int == '+' as i32\n                || ch as c_int == '$' as i32\n                || ch as c_int == ',' as i32\n                || ch as c_int == '[' as i32\n                || ch as c_int == ']' as i32\n            {\n                return s_req_server;\n            }\n        }\n        _ => {}\n    }\n    return s_dead;\n} }",
+    "signature": "fn parse_url_char(mut s: state, ch: c_char) -> state",
+    "profile": {
+      "self_time_ratio": 0.3746,
+      "call_count": null,
+      "retired_instructions": 7304276575,
+      "instructions_per_call": null,
+      "cpi": 0.302,
+      "tma": {
+        "scope": "process",
+        "retiring": 67.92172227816343,
+        "frontend_bound": 27.415380958768495,
+        "bad_speculation": 2.142156230005569,
+        "backend_bound": 2.520740533062507,
+        "memory_bound": 1.956833240703412,
+        "core_bound": 0.5639072923590951,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0012
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {},
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1235,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN19http_parser_cleaned3src11http_parser14parse_url_char17h79d948fb2ca6e786E: MI Instruction count changed from 0 to 176; Delta: 176"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1235,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN19http_parser_cleaned3src11http_parser14parse_url_char17h79d948fb2ca6e786E: MI Instruction count changed from 176 to 171; Delta: -5"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1235,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN19http_parser_cleaned3src11http_parser14parse_url_char17h79d948fb2ca6e786E: MI Instruction count changed from 171 to 195; Delta: 24"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1235,
+        "message": "Two-Address instruction pass: Function: _ZN19http_parser_cleaned3src11http_parser14parse_url_char17h79d948fb2ca6e786E: MI Instruction count changed from 195 to 223; Delta: 28"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1235,
+        "message": "Register Coalescer: Function: _ZN19http_parser_cleaned3src11http_parser14parse_url_char17h79d948fb2ca6e786E: MI Instruction count changed from 223 to 167; Delta: -56"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1235,
+        "message": "6 virtual registers copies 8.435325e-02 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1235,
+        "message": "Virtual Register Rewriter: Function: _ZN19http_parser_cleaned3src11http_parser14parse_url_char17h79d948fb2ca6e786E: MI Instruction count changed from 167 to 165; Delta: -2"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 1235,
+        "message": "0 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1235,
+        "message": "Control Flow Optimizer: Function: _ZN19http_parser_cleaned3src11http_parser14parse_url_char17h79d948fb2ca6e786E: MI Instruction count changed from 165 to 149; Delta: -16"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1413,
+        "message": "BasicBlock: bb93"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1246,
+        "message": "BasicBlock: bb7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1316,
+        "message": "BasicBlock: bb40"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1325,
+        "message": "BasicBlock: bb42"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1248,
+        "message": "BasicBlock: bb9"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1251,
+        "message": "BasicBlock: bb12"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1263,
+        "message": "BasicBlock: bb16"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1290,
+        "message": "BasicBlock: bb28"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1371,
+        "message": "BasicBlock: bb60"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1299,
+        "message": "BasicBlock: bb33"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1308,
+        "message": "BasicBlock: bb35"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1333,
+        "message": "BasicBlock: bb47"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1342,
+        "message": "BasicBlock: bb49"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1350,
+        "message": "BasicBlock: bb54"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1359,
+        "message": "BasicBlock: bb56"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1380,
+        "message": "BasicBlock: bb66"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1386,
+        "message": "BasicBlock: bb68"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1386,
+        "message": "BasicBlock: bb69"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1386,
+        "message": "BasicBlock: switch.early.test"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1387,
+        "message": "BasicBlock: bb70"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1235,
+        "message": "148 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

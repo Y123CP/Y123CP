@@ -1,0 +1,152 @@
+{
+  "hot_function": {
+    "symbol": "CombineLengthCodes",
+    "location": "src/c_inlined_fns.rs:119-148",
+    "workload": "shared_dict_roundtrip",
+    "hot_region": "src/c_inlined_fns.rs:119-148",
+    "rust_source": "pub fn CombineLengthCodes(\n    mut inscode: uint16_t,\n    mut copycode: uint16_t,\n    mut use_last_distance: c_int,\n) -> uint16_t { {\n    let mut bits64: uint16_t = (copycode as c_uint & 0x7 as c_uint\n        | (inscode as c_uint & 0x7 as c_uint) << 3 as c_uint)\n        as uint16_t;\n    if use_last_distance != 0\n        && (inscode as c_uint) < 8 as c_uint\n        && (copycode as c_uint) < 16 as c_uint\n    {\n        return (if (copycode as c_uint) < 8 as c_uint {\n            bits64 as c_uint\n        } else {\n            bits64 as c_uint | 64 as c_uint\n        }) as uint16_t;\n    } else {\n        let mut offset: uint32_t = (2 as uint32_t).wrapping_mul(\n            ((copycode as c_int >> 3 as c_uint) as uint32_t)\n                .wrapping_add((3 as uint32_t).wrapping_mul(\n                    (inscode as c_int >> 3 as c_uint) as uint32_t,\n                )),\n        );\n        offset = (offset << 5 as c_uint)\n            .wrapping_add(0x40 as uint32_t)\n            .wrapping_add(0x520d40 as uint32_t >> offset & 0xc0 as uint32_t);\n        return (offset | bits64 as uint32_t) as uint16_t;\n    };\n} }",
+    "signature": "pub fn CombineLengthCodes(\n    mut inscode: uint16_t,\n    mut copycode: uint16_t,\n    mut use_last_distance: c_int,\n) -> uint16_t",
+    "profile": {
+      "self_time_ratio": 0.124,
+      "call_count": null,
+      "retired_instructions": 3847275908,
+      "instructions_per_call": null,
+      "cpi": 0.327,
+      "tma": {
+        "scope": "process",
+        "retiring": 70.07551882142104,
+        "frontend_bound": 17.98487725045614,
+        "bad_speculation": 5.518251628633782,
+        "backend_bound": 6.4213522994890395,
+        "memory_bound": 3.5044365328091303,
+        "core_bound": 2.9169157666799093,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0058
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {},
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 125,
+        "message": "hoisting shl"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 125,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 127,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 124,
+        "message": "hoisting or"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 124,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3enc19backward_references17GetCopyLengthCode17h425483919e313473E.exit.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 127,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3enc19backward_references17GetCopyLengthCode17h425483919e313473E.exit.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 131,
+        "message": "BasicBlock: bb3.i32.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 124,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3enc19backward_references17GetCopyLengthCode17h425483919e313473E.exit.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 131,
+        "message": "BasicBlock: bb3.i32.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 124,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3enc22backward_references_hq17GetCopyLengthCode17ha7e87604c931ecdaE.exit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 131,
+        "message": "BasicBlock: bb112.thread"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 124,
+        "message": "BasicBlock: bb119"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 124,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3enc6encode17GetCopyLengthCode17h296794dff7fa08f0E.exit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 127,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3enc6encode17GetCopyLengthCode17h296794dff7fa08f0E.exit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 131,
+        "message": "BasicBlock: bb3.i80"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 124,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3enc22backward_references_hq17GetCopyLengthCode17ha7e87604c931ecdaE.exit.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 127,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3enc22backward_references_hq17GetCopyLengthCode17ha7e87604c931ecdaE.exit.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 125,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3enc6encode17InitInsertCommand17h5b1a965354ee0bf1E.exit.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

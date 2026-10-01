@@ -1,0 +1,193 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.0012761032397441054,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.021553082471120033,
+            "aggregate_ci_low_pct": -0.02410528895060824,
+            "aggregate_pct": -0.0012761032397441054,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.0397,
+                "ci_low_pct": -0.0954,
+                "insns_delta_pct": -0.0837,
+                "mean_delta_pct": -0.0278,
+                "op": "mz_stream_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.0078,
+                "ci_low_pct": -0.0762,
+                "insns_delta_pct": -0.0415,
+                "mean_delta_pct": -0.0342,
+                "op": "tdefl_encode_blob",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.0965,
+                "ci_low_pct": -0.0084,
+                "insns_delta_pct": 0.105,
+                "mean_delta_pct": 0.044,
+                "op": "tinfl_decode_blob",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.046,
+                "ci_low_pct": -0.0201,
+                "insns_delta_pct": -0.1055,
+                "mean_delta_pct": 0.0129,
+                "op": "zip_reader_blob",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.05978801380379012,
+            "aggregate_ci_low_pct": -0.03731319890921232,
+            "aggregate_pct": 0.011237407447288895,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.0598,
+                "ci_low_pct": -0.0373,
+                "insns_delta_pct": 0.1163,
+                "mean_delta_pct": 0.0112,
+                "op": "tinfl_decode_blob",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "tinfl_decode_blob"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "tinfl_decode_blob"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "af5e78c7dec8fd9a231c6af098b5792145b3bd4b",
+      "changeset_id": "legacy-dbcf4cc0d20f05d7",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-0efccf08d236009d",
+          "replacement_function_source": "#[inline]\npub unsafe fn tinfl_decompress_mem_to_callback(\n    mut pIn_buf: *const c_void,\n    mut pIn_buf_size: *mut size_t,\n    mut pPut_buf_func: tinfl_put_buf_func_ptr,\n    mut pPut_buf_user: *mut c_void,\n    mut flags: c_int,\n) -> c_int {\n    let mut result: c_int = 0;\n    let mut decomp: tinfl_decompressor = core::mem::zeroed();\n    let p_dict: *mut mz_uint8 = malloc(TINFL_LZ_DICT_SIZE as size_t) as *mut mz_uint8;\n    let mut in_buf_ofs: size_t = 0;\n    let mut dict_ofs: size_t = 0;\n\n    if p_dict.is_null() {\n        return TINFL_STATUS_FAILED as c_int;\n    }\n\n    memset(p_dict as *mut c_void, 0, TINFL_LZ_DICT_SIZE as size_t);\n    decomp.m_state = 0;\n\n    let base_in = pIn_buf as *const mz_uint8;\n    let callback = pPut_buf_func.expect(\"non-null function pointer\");\n    let decomp_flags = (flags\n        & !(TINFL_FLAG_HAS_MORE_INPUT as c_int | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF as c_int))\n        as mz_uint32;\n    let dict_mask = (TINFL_LZ_DICT_SIZE - 1 as c_int) as size_t;\n\n    loop {\n        let mut in_buf_size: size_t = (*pIn_buf_size).wrapping_sub(in_buf_ofs);\n        let mut dst_buf_size: size_t = (TINFL_LZ_DICT_SIZE as size_t).wrapping_sub(dict_ofs);\n\n        let status: tinfl_status = tinfl_decompress(\n            &raw mut decomp,\n            // SAFETY: base_in points to the caller-provided input buffer, and in_buf_ofs is maintained within the remaining input size accounting used by the original code.\n            unsafe { base_in.add(in_buf_ofs) },\n            &raw mut in_buf_size,\n            p_dict,\n            // SAFETY: p_dict points to a 32K allocation, and dict_ofs is always masked/wrapped to stay within that allocation as in the original code.\n            unsafe { p_dict.add(dict_ofs) },\n            &raw mut dst_buf_size,\n            decomp_flags,\n        );\n\n        in_buf_ofs = in_buf_ofs.wrapping_add(in_buf_size);\n\n        if dst_buf_size != 0\n            && callback(\n                // SAFETY: same bounds reasoning as above for p_dict.add(dict_ofs); callback only receives the produced slice start.\n                unsafe { p_dict.add(dict_ofs) as *const c_void },\n                dst_buf_size as c_int,\n                pPut_buf_user,\n            ) == 0\n        {\n            break;\n        }\n\n        if status as c_int != TINFL_STATUS_HAS_MORE_OUTPUT as c_int {\n            result = (status as c_int == TINFL_STATUS_DONE as c_int) as c_int;\n            break;\n        }\n\n        dict_ofs = dict_ofs.wrapping_add(dst_buf_size) & dict_mask;\n    }\n\n    free(p_dict as *mut c_void);\n    *pIn_buf_size = in_buf_ofs;\n    result\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "22cb6bd1fdf55cd43cd4747b69ec4a9de8dd6718309f7ed14564173a53336612",
+            "file_hint": "src/miniz_tinfl.rs",
+            "qualified_name": "crate::tinfl_decompress_mem_to_callback",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "tinfl_decompress_mem_to_callback-f52bae882303",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "tinfl_decompress_mem_to_callback",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "45b99fcb07aadca15d58200d0f8f68a6358b4f5bd9d4bbcd9f317a85fc47a28d",
+            "edit_id": "edit-replace-0efccf08d236009d",
+            "end_byte": 108048,
+            "operation_id": "replace-0efccf08d236009d",
+            "relative_path": "src/miniz_tinfl.rs",
+            "replacement_text": "#[inline]\npub unsafe fn tinfl_decompress_mem_to_callback(\n    mut pIn_buf: *const c_void,\n    mut pIn_buf_size: *mut size_t,\n    mut pPut_buf_func: tinfl_put_buf_func_ptr,\n    mut pPut_buf_user: *mut c_void,\n    mut flags: c_int,\n) -> c_int {\n    let mut result: c_int = 0;\n    let mut decomp: tinfl_decompressor = core::mem::zeroed();\n    let p_dict: *mut mz_uint8 = malloc(TINFL_LZ_DICT_SIZE as size_t) as *mut mz_uint8;\n    let mut in_buf_ofs: size_t = 0;\n    let mut dict_ofs: size_t = 0;\n\n    if p_dict.is_null() {\n        return TINFL_STATUS_FAILED as c_int;\n    }\n\n    memset(p_dict as *mut c_void, 0, TINFL_LZ_DICT_SIZE as size_t);\n    decomp.m_state = 0;\n\n    let base_in = pIn_buf as *const mz_uint8;\n    let callback = pPut_buf_func.expect(\"non-null function pointer\");\n    let decomp_flags = (flags\n        & !(TINFL_FLAG_HAS_MORE_INPUT as c_int | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF as c_int))\n        as mz_uint32;\n    let dict_mask = (TINFL_LZ_DICT_SIZE - 1 as c_int) as size_t;\n\n    loop {\n        let mut in_buf_size: size_t = (*pIn_buf_size).wrapping_sub(in_buf_ofs);\n        let mut dst_buf_size: size_t = (TINFL_LZ_DICT_SIZE as size_t).wrapping_sub(dict_ofs);\n\n        let status: tinfl_status = tinfl_decompress(\n            &raw mut decomp,\n            // SAFETY: base_in points to the caller-provided input buffer, and in_buf_ofs is maintained within the remaining input size accounting used by the original code.\n            unsafe { base_in.add(in_buf_ofs) },\n            &raw mut in_buf_size,\n            p_dict,\n            // SAFETY: p_dict points to a 32K allocation, and dict_ofs is always masked/wrapped to stay within that allocation as in the original code.\n            unsafe { p_dict.add(dict_ofs) },\n            &raw mut dst_buf_size,\n            decomp_flags,\n        );\n\n        in_buf_ofs = in_buf_ofs.wrapping_add(in_buf_size);\n\n        if dst_buf_size != 0\n            && callback(\n                // SAFETY: same bounds reasoning as above for p_dict.add(dict_ofs); callback only receives the produced slice start.\n                unsafe { p_dict.add(dict_ofs) as *const c_void },\n                dst_buf_size as c_int,\n                pPut_buf_user,\n            ) == 0\n        {\n            break;\n        }\n\n        if status as c_int != TINFL_STATUS_HAS_MORE_OUTPUT as c_int {\n            result = (status as c_int == TINFL_STATUS_DONE as c_int) as c_int;\n            break;\n        }\n\n        dict_ofs = dict_ofs.wrapping_add(dst_buf_size) & dict_mask;\n    }\n\n    free(p_dict as *mut c_void);\n    *pIn_buf_size = in_buf_ofs;\n    result\n}",
+            "start_byte": 105207
+          }
+        ],
+        "facts": {
+          "fn_name": "tinfl_decompress_mem_to_callback",
+          "target_span_hash": "22cb6bd1fdf55cd43cd4747b69ec4a9de8dd6718309f7ed14564173a53336612"
+        },
+        "operation_id": "replace-0efccf08d236009d"
+      }
+    ],
+    "resolved_head": "af5e78c7dec8fd9a231c6af098b5792145b3bd4b"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/miniz_tinfl.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

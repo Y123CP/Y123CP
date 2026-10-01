@@ -1,0 +1,173 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.8678139836641041,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": -0.6105859524295406,
+            "aggregate_ci_low_pct": -1.1250420148986677,
+            "aggregate_pct": -0.8678139836641041,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -0.4212,
+                "ci_low_pct": -2.4437,
+                "insns_delta_pct": 0.0076,
+                "mean_delta_pct": -1.4324,
+                "op": "cache_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -4.456,
+                "ci_low_pct": -4.7431,
+                "insns_delta_pct": -6.5134,
+                "mean_delta_pct": -4.5996,
+                "op": "lz77_blocksplit_analysis",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 1.4293,
+                "ci_low_pct": 1.2853,
+                "insns_delta_pct": 0.0692,
+                "mean_delta_pct": 1.3573,
+                "op": "raw_deflate",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              },
+              {
+                "ci_high_pct": 1.3046,
+                "ci_low_pct": 1.1024,
+                "insns_delta_pct": 0.0239,
+                "mean_delta_pct": 1.2035,
+                "op": "zlib_compress",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "cache_roundtrip",
+          "lz77_blocksplit_analysis",
+          "raw_deflate",
+          "zlib_compress"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "raw_deflate"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "c9ba14c1c583d70e8cf1189754a3eba439ddbc4d",
+      "changeset_id": "legacy-5b5fd0a520faa130",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-cdfaf937416d348f",
+          "replacement_function_source": "#[inline]\npub unsafe fn ZopfliInitCache(\n    mut blocksize: size_t,\n    mut lmc: *mut ZopfliLongestMatchCache,\n) {\n    let lmc_view: &mut ZopfliLongestMatchCache = unsafe { &mut *lmc }; // SAFETY: caller provided a valid, writable pointer to ZopfliLongestMatchCache.\n\n    let ushort_bytes =\n        (::core::mem::size_of::<c_ushort>() as size_t).wrapping_mul(blocksize);\n    let sublen_bytes =\n        ((ZOPFLI_CACHE_LENGTH * 3 as c_int) as size_t).wrapping_mul(blocksize);\n\n    lmc_view.length = malloc(ushort_bytes) as *mut c_ushort;\n    lmc_view.dist = malloc(ushort_bytes) as *mut c_ushort;\n    lmc_view.sublen = malloc(sublen_bytes) as *mut c_uchar;\n\n    if lmc_view.sublen.is_null() {\n        fprintf(\n            stderr,\n            b\"Error: Out of memory. Tried allocating %lu bytes of memory.\\n\\0\" as *const u8\n                as *const c_char,\n            (ZOPFLI_CACHE_LENGTH as size_t)\n                .wrapping_mul(3 as size_t)\n                .wrapping_mul(blocksize),\n        );\n        exit(EXIT_FAILURE);\n    }\n\n    if !lmc_view.dist.is_null() && blocksize != 0 {\n        unsafe { ::core::ptr::write_bytes(lmc_view.dist, 0, blocksize) }; // SAFETY: dist points to an allocation of at least blocksize c_ushort elements when non-null.\n    }\n\n    if !lmc_view.sublen.is_null() && sublen_bytes != 0 {\n        unsafe { ::core::ptr::write_bytes(lmc_view.sublen, 0, sublen_bytes) }; // SAFETY: sublen points to an allocation of at least sublen_bytes bytes when non-null.\n    }\n\n    if !lmc_view.length.is_null() && blocksize != 0 {\n        let mut i: size_t = 0;\n        while i < blocksize {\n            unsafe { *lmc_view.length.add(i) = 1 as c_ushort }; // SAFETY: length points to an allocation of at least blocksize c_ushort elements when non-null; i is in-bounds.\n            i = i.wrapping_add(1);\n        }\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "8f916a2827299b75d5015684d0663d06befbc4f8729fb9c190c885786b753b52",
+            "file_hint": "src/cache.rs",
+            "qualified_name": "crate::ZopfliInitCache",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "ZopfliInitCache-0aa081bf3902",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "ZopfliInitCache",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "bace5cad464e576b033646cf5f9327916baaf6dff16a911df364d0164fef78c8",
+            "edit_id": "edit-replace-cdfaf937416d348f",
+            "end_byte": 1803,
+            "operation_id": "replace-cdfaf937416d348f",
+            "relative_path": "src/cache.rs",
+            "replacement_text": "#[inline]\npub unsafe fn ZopfliInitCache(\n    mut blocksize: size_t,\n    mut lmc: *mut ZopfliLongestMatchCache,\n) {\n    let lmc_view: &mut ZopfliLongestMatchCache = unsafe { &mut *lmc }; // SAFETY: caller provided a valid, writable pointer to ZopfliLongestMatchCache.\n\n    let ushort_bytes =\n        (::core::mem::size_of::<c_ushort>() as size_t).wrapping_mul(blocksize);\n    let sublen_bytes =\n        ((ZOPFLI_CACHE_LENGTH * 3 as c_int) as size_t).wrapping_mul(blocksize);\n\n    lmc_view.length = malloc(ushort_bytes) as *mut c_ushort;\n    lmc_view.dist = malloc(ushort_bytes) as *mut c_ushort;\n    lmc_view.sublen = malloc(sublen_bytes) as *mut c_uchar;\n\n    if lmc_view.sublen.is_null() {\n        fprintf(\n            stderr,\n            b\"Error: Out of memory. Tried allocating %lu bytes of memory.\\n\\0\" as *const u8\n                as *const c_char,\n            (ZOPFLI_CACHE_LENGTH as size_t)\n                .wrapping_mul(3 as size_t)\n                .wrapping_mul(blocksize),\n        );\n        exit(EXIT_FAILURE);\n    }\n\n    if !lmc_view.dist.is_null() && blocksize != 0 {\n        unsafe { ::core::ptr::write_bytes(lmc_view.dist, 0, blocksize) }; // SAFETY: dist points to an allocation of at least blocksize c_ushort elements when non-null.\n    }\n\n    if !lmc_view.sublen.is_null() && sublen_bytes != 0 {\n        unsafe { ::core::ptr::write_bytes(lmc_view.sublen, 0, sublen_bytes) }; // SAFETY: sublen points to an allocation of at least sublen_bytes bytes when non-null.\n    }\n\n    if !lmc_view.length.is_null() && blocksize != 0 {\n        let mut i: size_t = 0;\n        while i < blocksize {\n            unsafe { *lmc_view.length.add(i) = 1 as c_ushort }; // SAFETY: length points to an allocation of at least blocksize c_ushort elements when non-null; i is in-bounds.\n            i = i.wrapping_add(1);\n        }\n    }\n}",
+            "start_byte": 261
+          }
+        ],
+        "facts": {
+          "fn_name": "ZopfliInitCache",
+          "target_span_hash": "8f916a2827299b75d5015684d0663d06befbc4f8729fb9c190c885786b753b52"
+        },
+        "operation_id": "replace-cdfaf937416d348f"
+      }
+    ],
+    "resolved_head": "c9ba14c1c583d70e8cf1189754a3eba439ddbc4d"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/cache.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

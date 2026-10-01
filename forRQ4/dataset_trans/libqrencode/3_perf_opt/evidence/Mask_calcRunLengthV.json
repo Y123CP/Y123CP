@@ -1,0 +1,142 @@
+{
+  "hot_function": {
+    "symbol": "Mask_calcRunLengthV",
+    "location": "src/mask.rs:511-546",
+    "workload": "encode_string_api",
+    "hot_region": "src/mask.rs:511-546",
+    "rust_source": "unsafe fn Mask_calcRunLengthV(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n    mut runLength: *mut c_int,\n) -> c_int {\n    let mut head: c_int = 0;\n    let mut i: c_int = 0;\n    let mut prev: c_uchar = 0;\n    if *frame.offset(0 as c_int as isize) as c_int\n        & 1 as c_int\n        != 0\n    {\n        *runLength.offset(0 as c_int as isize) = -(1 as c_int);\n        head = 1 as c_int;\n    } else {\n        head = 0 as c_int;\n    }\n    *runLength.offset(head as isize) = 1 as c_int;\n    prev = *frame.offset(0 as c_int as isize);\n    i = 1 as c_int;\n    while i < width {\n        if (*frame.offset((i * width) as isize) as c_int ^ prev as c_int)\n            & 1 as c_int\n            != 0\n        {\n            head += 1;\n            *runLength.offset(head as isize) = 1 as c_int;\n            prev = *frame.offset((i * width) as isize);\n        } else {\n            let ref mut fresh0 = *runLength.offset(head as isize);\n            *fresh0 += 1;\n        }\n        i += 1;\n    }\n    return head + 1 as c_int;\n}",
+    "signature": "unsafe fn Mask_calcRunLengthV(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n    mut runLength: *mut c_int,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.3108,
+      "call_count": null,
+      "retired_instructions": 1340971966,
+      "instructions_per_call": null,
+      "cpi": 1.335,
+      "tma": {
+        "scope": "process",
+        "retiring": 37.882250300629295,
+        "frontend_bound": 14.943963973929877,
+        "bad_speculation": 38.333701056583855,
+        "backend_bound": 8.840084668856967,
+        "memory_bound": 2.5373289684437332,
+        "core_bound": 6.302755700413234,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.1048
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "bad_speculation",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 529,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 538,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 531,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 519,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 532,
+        "message": "2 virtual registers copies 3.839688e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 519,
+        "message": "4 virtual registers copies 3.999375e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 519,
+        "message": "1 virtual registers copies 1.598438e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 519,
+        "message": "BasicBlock: bb8.us.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 545,
+        "message": "BasicBlock: _ZN19libqrencode_cleaned3src4mask19Mask_calcRunLengthV17hed21b824489342c9E.exit.loopexit.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 519,
+        "message": "BasicBlock: bb8.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 523,
+        "message": "BasicBlock: bb1.i13.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 540,
+        "message": "BasicBlock: bb7.i38.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 532,
+        "message": "BasicBlock: bb5.i24.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 536,
+        "message": "BasicBlock: bb6.i31.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 519,
+        "message": "BasicBlock: bb8"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 523,
+        "message": "BasicBlock: bb1.i13"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

@@ -1,0 +1,28 @@
+# Workload harness for heman_pipeline — image stencil compute path.
+#
+# Mirrors libcsv csv_count / lodepng_roundtrip pattern.
+# Drives the distance-field + colorize pipeline on a 512×512 grayscale seed.
+[package]
+name = "heman_pipeline"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+# Path dep on the staged Rust translation of heman. Rewired at runtime by
+# perf_opt.bench_pipeline._rewire_path_dep — see harness conventions.
+heman_raw = { path = "../rust_raw" }
+sha2 = "0.10"
+
+[[bin]]
+name = "heman_pipeline"
+path = "src/main.rs"
+
+# perf_opt fair-build profile — see script_c2rust/docs/perf_tree_design.md §2.8.
+# Pairs with .cargo/config.toml (target-cpu=native).
+[profile.release]
+opt-level     = 3
+lto           = "fat"
+codegen-units = 1
+panic         = "abort"
+debug         = false

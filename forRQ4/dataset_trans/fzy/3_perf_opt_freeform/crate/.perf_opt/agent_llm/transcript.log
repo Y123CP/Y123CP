@@ -1,0 +1,1817 @@
+================================================================================
+TIMESTAMP : 2026-09-07 08:18:33
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : match_row
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/fzy/3_perf_opt_freeform/crate/src/match.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 3034
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/match.rs
+symbol: match_row
+signature: #[inline]
+unsafe fn match_row(
+    mut match_1: *const match_struct,
+    mut row: c_int,
+    mut curr_D: *mut score_t,
+    mut curr_M: *mut score_t,
+    mut last_D: *const score_t,
+    mut last_M: *const score_t,
+)
+location: 164..225  (attrs included)
+
+```rust
+#[inline]
+unsafe fn match_row(
+    mut match_1: *const match_struct,
+    mut row: c_int,
+    mut curr_D: *mut score_t,
+    mut curr_M: *mut score_t,
+    mut last_D: *const score_t,
+    mut last_M: *const score_t,
+) {
+    let mut n: c_int = (*match_1).needle_len;
+    let mut m: c_int = (*match_1).haystack_len;
+    let mut i: c_int = row;
+    let mut lower_needle: *const c_char =
+        &raw const (*match_1).lower_needle as *const c_char;
+    let mut lower_haystack: *const c_char =
+        &raw const (*match_1).lower_haystack as *const c_char;
+    let mut match_bonus: *const score_t = &raw const (*match_1).match_bonus as *const score_t;
+    let mut prev_score: score_t = -::core::f32::INFINITY as score_t;
+    let mut gap_score: score_t = if i == n - 1 as c_int {
+        SCORE_GAP_TRAILING
+    } else {
+        SCORE_GAP_INNER
+    };
+    let mut prev_M: score_t = -::core::f32::INFINITY as score_t;
+    let mut prev_D: score_t = -::core::f32::INFINITY as score_t;
+    let mut j: c_int = 0 as c_int;
+    while j < m {
+        if *lower_needle.offset(i as isize) as c_int
+            == *lower_haystack.offset(j as isize) as c_int
+        {
+            let mut score: score_t = -::core::f32::INFINITY as score_t;
+            if i == 0 {
+                score = j as score_t * SCORE_GAP_LEADING + *match_bonus.offset(j as isize);
+            } else if j != 0 {
+                score = (if prev_M + *match_bonus.offset(j as isize)
+                    > prev_D as c_double + 1.0f64
+                {
+                    prev_M as c_double
+                        + *match_bonus.offset(j as isize) as c_double
+                } else {
+                    prev_D as c_double + 1.0f64
+                }) as score_t;
+            }
+            prev_D = *last_D.offset(j as isize);
+            prev_M = *last_M.offset(j as isize);
+            *curr_D.offset(j as isize) = score;
+            prev_score = if score > prev_score + gap_score {
+                score
+            } else {
+                prev_score + gap_score
+            };
+            *curr_M.offset(j as isize) = prev_score;
+        } else {
+            prev_D = *last_D.offset(j as isize);
+            prev_M = *last_M.offset(j as isize);
+            *curr_D.offset(j as isize) = -::core::f32::INFINITY as score_t;
+            prev_score = prev_score + gap_score;
+            *curr_M.offset(j as isize) = prev_score;
+        }
+        j += 1;
+    }
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct match_struct {
+    pub needle_len: c_int,
+    pub haystack_len: c_int,
+    pub lower_needle: [c_char; 1024],
+    pub lower_haystack: [c_char; 1024],
+    pub match_bonus: [score_t; 1024],
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+unsafe fn match_row(
+    mut match_1: *const match_struct,
+    mut row: c_int,
+    mut curr_D: *mut score_t,
+    mut curr_M: *mut score_t,
+    mut last_D: *const score_t,
+    mut last_M: *const score_t,
+) {
+    let n: c_int = (*match_1).needle_len;
+    let m: c_int = (*match_1).haystack_len;
+    let i: c_int = row;
+
+    let needle_ch = (*match_1).lower_needle[i as usize] as c_int;
+    let lower_haystack: *const c_char =
+        (&raw const (*match_1).lower_haystack) as *const c_char;
+    let match_bonus: *const score_t = (&raw const (*match_1).match_bonus) as *const score_t;
+
+    let neg_inf: score_t = -::core::f32::INFINITY as score_t;
+    let gap_score: score_t = if i == n - 1 {
+        SCORE_GAP_TRAILING
+    } else {
+        SCORE_GAP_INNER
+    };
+
+    let mut prev_score: score_t = neg_inf;
+    let mut prev_M: score_t = neg_inf;
+    let mut prev_D: score_t = neg_inf;
+
+    let mut j: isize = 0;
+    let m_isize = m as isize;
+
+    while j < m_isize {
+        // SAFETY: j is in 0..m, and callers provide valid arrays/buffers for all row accesses.
+        let hay = unsafe { *lower_haystack.offset(j) as c_int };
+        // SAFETY: j is in 0..m, and callers provide valid arrays/buffers for all row accesses.
+        let last_d_j = unsafe { *last_D.offset(j) };
+        // SAFETY: j is in 0..m, and callers provide valid arrays/buffers for all row accesses.
+        let last_m_j = unsafe { *last_M.offset(j) };
+
+        if needle_ch == hay {
+            let score = if i == 0 {
+                // SAFETY: j is in 0..m, and match_bonus has at least m initialized elements.
+                unsafe { j as score_t * SCORE_GAP_LEADING + *match_bonus.offset(j) }
+            } else if j != 0 {
+                // SAFETY: j is in 0..m, and match_bonus has at least m initialized elements.
+                let bonus = unsafe { *match_bonus.offset(j) };
+                let a = prev_M + bonus;
+                let b = (prev_D as c_double + 1.0f64) as score_t;
+                if a > b { a } else { b }
+            } else {
+                neg_inf
+            };
+
+            prev_D = last_d_j;
+            prev_M = last_m_j;
+            // SAFETY: j is in 0..m, and callers provide valid writable buffers for curr_D/curr_M.
+            unsafe { *curr_D.offset(j) = score };
+            let extended = prev_score + gap_score;
+            prev_score = if score > extended { score } else { extended };
+            // SAFETY: j is in 0..m, and callers provide valid writable buffers for curr_D/curr_M.
+            unsafe { *curr_M.offset(j) = prev_score };
+        } else {
+            prev_D = last_d_j;
+            prev_M = last_m_j;
+            // SAFETY: j is in 0..m, and callers provide valid writable buffers for curr_D/curr_M.
+            unsafe { *curr_D.offset(j) = neg_inf };
+            prev_score += gap_score;
+            // SAFETY: j is in 0..m, and callers provide valid writable buffers for curr_D/curr_M.
+            unsafe { *curr_M.offset(j) = prev_score };
+        }
+
+        j += 1;
+    }
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-07 08:21:07
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : match
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/fzy/3_perf_opt_freeform/crate/src/match.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 1200
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/match.rs
+symbol: match_0
+signature: #[export_name = "match"]
+pub unsafe extern "C" fn match_0(
+    mut needle: *const c_char,
+    mut haystack: *const c_char,
+) -> score_t
+location: 239..277  (attrs included)
+
+```rust
+#[export_name = "match"]
+pub unsafe extern "C" fn match_0(
+    mut needle: *const c_char,
+    mut haystack: *const c_char,
+) -> score_t {
+    if *needle == 0 {
+        return -::core::f32::INFINITY as score_t;
+    }
+    let mut match_1: match_struct = match_struct {
+        needle_len: 0,
+        haystack_len: 0,
+        lower_needle: [0; 1024],
+        lower_haystack: [0; 1024],
+        match_bonus: [0.; 1024],
+    };
+    setup_match_struct(&raw mut match_1, needle, haystack);
+    let mut n: c_int = match_1.needle_len;
+    let mut m: c_int = match_1.haystack_len;
+    if m > MATCH_MAX_LEN || n > m {
+        return -::core::f32::INFINITY as score_t;
+    } else if n == m {
+        return ::core::f32::INFINITY as score_t;
+    }
+    let mut D: [score_t; 1024] = [0.; 1024];
+    let mut M: [score_t; 1024] = [0.; 1024];
+    let mut i: c_int = 0 as c_int;
+    while i < n {
+        match_row(
+            &raw mut match_1,
+            i,
+            &raw mut D as *mut score_t,
+            &raw mut M as *mut score_t,
+            &raw mut D as *mut score_t,
+            &raw mut M as *mut score_t,
+        );
+        i += 1;
+    }
+    return M[(m - 1 as c_int) as usize];
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct match_struct {
+    pub needle_len: c_int,
+    pub haystack_len: c_int,
+    pub lower_needle: [c_char; 1024],
+    pub lower_haystack: [c_char; 1024],
+    pub match_bonus: [score_t; 1024],
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[export_name = "match"]
+pub unsafe extern "C" fn match_0(
+    mut needle: *const c_char,
+    mut haystack: *const c_char,
+) -> score_t {
+    // SAFETY: The original function dereferences `needle` immediately; callers must provide a valid pointer.
+    if unsafe { *needle } == 0 {
+        return -::core::f32::INFINITY as score_t;
+    }
+
+    let mut match_1: match_struct = match_struct {
+        needle_len: 0,
+        haystack_len: 0,
+        lower_needle: [0; 1024],
+        lower_haystack: [0; 1024],
+        match_bonus: [0.; 1024],
+    };
+
+    setup_match_struct(&raw mut match_1, needle, haystack);
+
+    let n: c_int = match_1.needle_len;
+    let m: c_int = match_1.haystack_len;
+
+    if m > MATCH_MAX_LEN || n > m {
+        return -::core::f32::INFINITY as score_t;
+    }
+    if n == m {
+        return ::core::f32::INFINITY as score_t;
+    }
+
+    let mut d: [score_t; 1024] = [0.; 1024];
+    let mut m_scores: [score_t; 1024] = [0.; 1024];
+    let d_ptr = d.as_mut_ptr();
+    let m_ptr = m_scores.as_mut_ptr();
+
+    let mut i: c_int = 0;
+    while i < n {
+        match_row(&raw mut match_1, i, d_ptr, m_ptr, d_ptr, m_ptr);
+        i += 1;
+    }
+
+    m_scores[(m - 1) as usize]
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-07 08:26:08
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : match_positions
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/fzy/3_perf_opt_freeform/crate/src/match.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 4926
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/match.rs
+symbol: match_positions
+signature: #[no_mangle]
+pub unsafe extern "C" fn match_positions(
+    mut needle: *const c_char,
+    mut haystack: *const c_char,
+    mut positions: *mut size_t,
+) -> score_t
+location: 278..376  (attrs included)
+
+```rust
+#[no_mangle]
+pub unsafe extern "C" fn match_positions(
+    mut needle: *const c_char,
+    mut haystack: *const c_char,
+    mut positions: *mut size_t,
+) -> score_t {
+    let needle_view: &c_char = unsafe { &*needle };
+    if *needle_view == 0 {
+        return -::core::f32::INFINITY as score_t;
+    }
+    let mut match_1: match_struct = match_struct {
+        needle_len: 0,
+        haystack_len: 0,
+        lower_needle: [0; 1024],
+        lower_haystack: [0; 1024],
+        match_bonus: [0.; 1024],
+    };
+    setup_match_struct(&raw mut match_1, needle, haystack);
+    let mut n: c_int = match_1.needle_len;
+    let mut m: c_int = match_1.haystack_len;
+    if m > MATCH_MAX_LEN || n > m {
+        return -::core::f32::INFINITY as score_t;
+    } else if n == m {
+        if !positions.is_null() {
+            let mut i: c_int = 0 as c_int;
+            while i < n {
+                *positions.offset(i as isize) = i as size_t;
+                i += 1;
+            }
+        }
+        return ::core::f32::INFINITY as score_t;
+    }
+    let mut D: *mut [score_t; 1024] = ::core::ptr::null_mut::<[score_t; 1024]>();
+    let mut M: *mut [score_t; 1024] = ::core::ptr::null_mut::<[score_t; 1024]>();
+    M = malloc(
+        (::core::mem::size_of::<score_t>() as size_t)
+            .wrapping_mul(MATCH_MAX_LEN as size_t)
+            .wrapping_mul(n as size_t),
+    ) as *mut [score_t; 1024];
+    D = malloc(
+        (::core::mem::size_of::<score_t>() as size_t)
+            .wrapping_mul(MATCH_MAX_LEN as size_t)
+            .wrapping_mul(n as size_t),
+    ) as *mut [score_t; 1024];
+    match_row(
+        &raw mut match_1,
+        0 as c_int,
+        &raw mut *D.offset(0 as c_int as isize) as *mut score_t,
+        &raw mut *M.offset(0 as c_int as isize) as *mut score_t,
+        &raw mut *D.offset(0 as c_int as isize) as *mut score_t,
+        &raw mut *M.offset(0 as c_int as isize) as *mut score_t,
+    );
+    let mut i_0: c_int = 1 as c_int;
+    while i_0 < n {
+        match_row(
+            &raw mut match_1,
+            i_0,
+            &raw mut *D.offset(i_0 as isize) as *mut score_t,
+            &raw mut *M.offset(i_0 as isize) as *mut score_t,
+            &raw mut *D.offset((i_0 - 1 as c_int) as isize) as *mut score_t,
+            &raw mut *M.offset((i_0 - 1 as c_int) as isize) as *mut score_t,
+        );
+        i_0 += 1;
+    }
+    if !positions.is_null() {
+        let mut match_required: c_int = 0 as c_int;
+        let mut i_1: c_int = n - 1 as c_int;
+        let mut j: c_int = m - 1 as c_int;
+        while i_1 >= 0 as c_int {
+            while j >= 0 as c_int {
+                if (*D.offset(i_1 as isize))[j as usize] != -::core::f32::INFINITY as score_t
+                    && (match_required != 0
+                        || (*D.offset(i_1 as isize))[j as usize]
+                            == (*M.offset(i_1 as isize))[j as usize])
+                {
+                    match_required = (i_1 != 0
+                        && j != 0
+                        && (*M.offset(i_1 as isize))[j as usize]
+                            == (*D.offset((i_1 - 1 as c_int) as isize))
+                                [(j - 1 as c_int) as usize]
+                                + SCORE_MATCH_CONSECUTIVE)
+                        as c_int;
+                    let fresh1 = j;
+                    j = j - 1;
+                    *positions.offset(i_1 as isize) = fresh1 as size_t;
+                    break;
+                } else {
+                    j -= 1;
+                }
+            }
+            i_1 -= 1;
+        }
+    }
+    let mut result: score_t =
+        (*M.offset((n - 1 as c_int) as isize))[(m - 1 as c_int) as usize];
+    free(M as *mut c_void);
+    free(D as *mut c_void);
+    return result;
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct match_struct {
+    pub needle_len: c_int,
+    pub haystack_len: c_int,
+    pub lower_needle: [c_char; 1024],
+    pub lower_haystack: [c_char; 1024],
+    pub match_bonus: [score_t; 1024],
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[no_mangle]
+pub unsafe extern "C" fn match_positions(
+    mut needle: *const c_char,
+    mut haystack: *const c_char,
+    mut positions: *mut size_t,
+) -> score_t {
+    let needle_view: &c_char = unsafe { // SAFETY: caller provides a valid C string pointer as required by the original API.
+        &*needle
+    };
+    if *needle_view == 0 {
+        return -::core::f32::INFINITY as score_t;
+    }
+
+    let mut match_1: match_struct = match_struct {
+        needle_len: 0,
+        haystack_len: 0,
+        lower_needle: [0; 1024],
+        lower_haystack: [0; 1024],
+        match_bonus: [0.; 1024],
+    };
+    setup_match_struct(&raw mut match_1, needle, haystack);
+
+    let n: c_int = match_1.needle_len;
+    let m: c_int = match_1.haystack_len;
+
+    if m > MATCH_MAX_LEN || n > m {
+        return -::core::f32::INFINITY as score_t;
+    } else if n == m {
+        if !positions.is_null() {
+            let mut i: c_int = 0;
+            while i < n {
+                unsafe { // SAFETY: positions is non-null here and caller is expected to provide space for n entries.
+                    *positions.add(i as usize) = i as size_t;
+                }
+                i += 1;
+            }
+        }
+        return ::core::f32::INFINITY as score_t;
+    }
+
+    let rows = n as usize;
+    let cols = MATCH_MAX_LEN as usize;
+    let total = rows.wrapping_mul(cols);
+    let bytes = total.wrapping_mul(::core::mem::size_of::<score_t>());
+
+    let m_ptr = malloc(bytes as size_t) as *mut score_t;
+    let d_ptr = malloc(bytes as size_t) as *mut score_t;
+
+    let mut i = 0usize;
+    while i < rows {
+        let d_row = unsafe { // SAFETY: d_ptr points to an allocation of at least total score_t elements; i < rows and each row has cols elements.
+            d_ptr.add(i * cols)
+        };
+        let m_row = unsafe { // SAFETY: m_ptr points to an allocation of at least total score_t elements; i < rows and each row has cols elements.
+            m_ptr.add(i * cols)
+        };
+        if i == 0 {
+            match_row(&raw mut match_1, 0, d_row, m_row, d_row, m_row);
+        } else {
+            let prev_d = unsafe { // SAFETY: i > 0, so previous row exists within the same allocation.
+                d_ptr.add((i - 1) * cols)
+            };
+            let prev_m = unsafe { // SAFETY: i > 0, so previous row exists within the same allocation.
+                m_ptr.add((i - 1) * cols)
+            };
+            match_row(&raw mut match_1, i as c_int, d_row, m_row, prev_d, prev_m);
+        }
+        i += 1;
+    }
+
+    if !positions.is_null() {
+        let mut match_required: c_int = 0;
+        let mut i_1: c_int = n - 1;
+        let mut j: c_int = m - 1;
+
+        while i_1 >= 0 {
+            let d_row = unsafe { // SAFETY: i_1 is in 0..n and each row has cols elements.
+                d_ptr.add(i_1 as usize * cols)
+            };
+            let m_row = unsafe { // SAFETY: i_1 is in 0..n and each row has cols elements.
+                m_ptr.add(i_1 as usize * cols)
+            };
+            let prev_d_row = if i_1 != 0 {
+                unsafe { // SAFETY: i_1 > 0, so previous row exists within the allocation.
+                    d_ptr.add((i_1 as usize - 1) * cols)
+                }
+            } else {
+                ::core::ptr::null()
+            };
+
+            while j >= 0 {
+                let ju = j as usize;
+                let d_val = unsafe { // SAFETY: ju < m <= MATCH_MAX_LEN <= cols, so index is within the current row.
+                    *d_row.add(ju)
+                };
+                if d_val != -::core::f32::INFINITY as score_t
+                    && (match_required != 0
+                        || d_val
+                            == unsafe { // SAFETY: ju < m <= cols, so index is within the current row.
+                                *m_row.add(ju)
+                            })
+                {
+                    match_required = (i_1 != 0
+                        && j != 0
+                        && unsafe { // SAFETY: i_1 != 0 and j != 0 ensure previous row and previous column are valid.
+                            *m_row.add(ju)
+                                == *prev_d_row.add((j - 1) as usize) + SCORE_MATCH_CONSECUTIVE
+                        }) as c_int;
+                    let fresh1 = j;
+                    j -= 1;
+                    unsafe { // SAFETY: positions is non-null here and caller is expected to provide space for n entries.
+                        *positions.add(i_1 as usize) = fresh1 as size_t;
+                    }
+                    break;
+                } else {
+                    j -= 1;
+                }
+            }
+            i_1 -= 1;
+        }
+    }
+
+    let result: score_t = unsafe { // SAFETY: n < = rows and m <= cols; n != 0 due to earlier empty-needle check.
+        *m_ptr.add((n as usize - 1) * cols + (m as usize - 1))
+    };
+
+    free(m_ptr as *mut c_void);
+    free(d_ptr as *mut c_void);
+    result
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-07 08:29:35
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : choices_fread
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/fzy/3_perf_opt_freeform/crate/src/choices.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 1819
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/choices.rs
+symbol: choices_fread
+signature: #[inline]
+pub unsafe fn choices_fread(
+    mut c: *mut choices_t,
+    mut file: *mut FILE,
+    mut input_delimiter: c_char,
+)
+location: 365..416  (attrs included)
+
+```rust
+#[inline]
+pub unsafe fn choices_fread(
+    mut c: *mut choices_t,
+    mut file: *mut FILE,
+    mut input_delimiter: c_char,
+) {
+    let mut buffer_start: size_t = (*c).buffer_size;
+    let mut capacity: size_t = INITIAL_BUFFER_CAPACITY as size_t;
+    while capacity <= (*c).buffer_size {
+        capacity = capacity.wrapping_mul(2 as size_t);
+    }
+    (*c).buffer =
+        safe_realloc((*c).buffer as *mut c_void, capacity) as *mut c_char;
+    loop {
+        (*c).buffer_size = ((*c).buffer_size as c_ulong).wrapping_add(fread(
+            (*c).buffer.offset((*c).buffer_size as isize) as *mut c_void,
+            1 as size_t,
+            capacity.wrapping_sub((*c).buffer_size),
+            file,
+        )) as size_t as size_t;
+        if !((*c).buffer_size == capacity) {
+            break;
+        }
+        capacity = capacity.wrapping_mul(2 as size_t);
+        (*c).buffer = safe_realloc((*c).buffer as *mut c_void, capacity)
+            as *mut c_char;
+    }
+    (*c).buffer = safe_realloc(
+        (*c).buffer as *mut c_void,
+        (*c).buffer_size.wrapping_add(1 as size_t),
+    ) as *mut c_char;
+    let fresh0 = (*c).buffer_size;
+    (*c).buffer_size = (*c).buffer_size.wrapping_add(1);
+    *(*c).buffer.offset(fresh0 as isize) = '\0' as i32 as c_char;
+    let mut line_end: *const c_char = (*c).buffer.offset((*c).buffer_size as isize);
+    let mut line: *mut c_char = (*c).buffer.offset(buffer_start as isize);
+    loop {
+        let mut nl: *mut c_char = strchr(line, input_delimiter as c_int);
+        if !nl.is_null() {
+            let fresh1 = nl;
+            nl = nl.offset(1);
+            *fresh1 = '\0' as i32 as c_char;
+        }
+        if *line != 0 {
+            choices_add(c, line);
+        }
+        line = nl;
+        if !(!line.is_null() && line < line_end as *mut c_char) {
+            break;
+        }
+    }
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct choices_t {
+    pub buffer: *mut c_char,
+    pub buffer_size: size_t,
+    pub capacity: size_t,
+    pub size: size_t,
+    pub strings: *mut *const c_char,
+    pub results: *mut scored_result,
+    pub available: size_t,
+    pub selection: size_t,
+    pub worker_count: c_uint,
+}
+
+pub type FILE = _IO_FILE;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct scored_result {
+    pub score: score_t,
+    pub str_0: *const c_char,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _IO_FILE {
+    pub _flags: c_int,
+    pub _IO_read_ptr: *mut c_char,
+    pub _IO_read_end: *mut c_char,
+    pub _IO_read_base: *mut c_char,
+    pub _IO_write_base: *mut c_char,
+    pub _IO_write_ptr: *mut c_char,
+    pub _IO_write_end: *mut c_char,
+    pub _IO_buf_base: *mut c_char,
+    pub _IO_buf_end: *mut c_char,
+    pub _IO_save_base: *mut c_char,
+    pub _IO_backup_base: *mut c_char,
+    pub _IO_save_end: *mut c_char,
+    pub _markers: *mut _IO_marker,
+    pub _chain: *mut _IO_FILE,
+    pub _fileno: c_int,
+    pub _flags2: c_int,
+    pub _old_offset: __off_t,
+    pub _cur_column: c_ushort,
+    pub _vtable_offset: c_schar,
+    pub _shortbuf: [c_char; 1],
+    pub _lock: *mut c_void,
+    pub _offset: __off64_t,
+    pub _codecvt: *mut _IO_codecvt,
+    pub _wide_data: *mut _IO_wide_data,
+    pub _freeres_list: *mut _IO_FILE,
+    pub _freeres_buf: *mut c_void,
+    pub __pad5: size_t,
+    pub _mode: c_int,
+    pub _unused2: [c_char; 20],
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+pub unsafe fn choices_fread(
+    mut c: *mut choices_t,
+    mut file: *mut FILE,
+    mut input_delimiter: c_char,
+) {
+    let buffer_start = (*c).buffer_size;
+    let mut size = buffer_start;
+    let mut capacity: size_t = INITIAL_BUFFER_CAPACITY as size_t;
+
+    while capacity <= size {
+        capacity = capacity.wrapping_mul(2 as size_t);
+    }
+
+    (*c).buffer = safe_realloc((*c).buffer as *mut c_void, capacity) as *mut c_char;
+    let mut buffer = (*c).buffer;
+
+    loop {
+        let read_len = fread(
+            buffer.add(size) as *mut c_void,
+            1 as size_t,
+            capacity.wrapping_sub(size),
+            file,
+        );
+        size = size.wrapping_add(read_len);
+        if size != capacity {
+            break;
+        }
+        capacity = capacity.wrapping_mul(2 as size_t);
+        buffer = safe_realloc(buffer as *mut c_void, capacity) as *mut c_char;
+        (*c).buffer = buffer;
+    }
+
+    buffer = safe_realloc(buffer as *mut c_void, size.wrapping_add(1 as size_t)) as *mut c_char;
+    (*c).buffer = buffer;
+    (*c).buffer_size = size.wrapping_add(1);
+    *buffer.add(size) = '\0' as i32 as c_char;
+
+    let line_end = buffer.add((*c).buffer_size);
+    let mut line = buffer.add(buffer_start);
+    let delim = input_delimiter as u8;
+
+    while line < line_end {
+        let remaining = line_end.offset_from(line) as usize;
+        let nl = libc::memchr(line as *const c_void, delim as c_int, remaining) as *mut c_char;
+        let next = if nl.is_null() {
+            core::ptr::null_mut()
+        } else {
+            *nl = '\0' as i32 as c_char;
+            nl.add(1)
+        };
+
+        if *line != 0 {
+            choices_add(c, line);
+        }
+
+        if next.is_null() || next >= line_end {
+            break;
+        }
+        line = next;
+    }
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-07 08:29:41
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : choices_fread
+TARGET    : freeform_retry2
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/fzy/3_perf_opt_freeform/crate/src/choices.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 1751
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/choices.rs
+symbol: choices_fread
+signature: #[inline]
+pub unsafe fn choices_fread(
+    mut c: *mut choices_t,
+    mut file: *mut FILE,
+    mut input_delimiter: c_char,
+)
+location: 365..416  (attrs included)
+
+```rust
+#[inline]
+pub unsafe fn choices_fread(
+    mut c: *mut choices_t,
+    mut file: *mut FILE,
+    mut input_delimiter: c_char,
+) {
+    let mut buffer_start: size_t = (*c).buffer_size;
+    let mut capacity: size_t = INITIAL_BUFFER_CAPACITY as size_t;
+    while capacity <= (*c).buffer_size {
+        capacity = capacity.wrapping_mul(2 as size_t);
+    }
+    (*c).buffer =
+        safe_realloc((*c).buffer as *mut c_void, capacity) as *mut c_char;
+    loop {
+        (*c).buffer_size = ((*c).buffer_size as c_ulong).wrapping_add(fread(
+            (*c).buffer.offset((*c).buffer_size as isize) as *mut c_void,
+            1 as size_t,
+            capacity.wrapping_sub((*c).buffer_size),
+            file,
+        )) as size_t as size_t;
+        if !((*c).buffer_size == capacity) {
+            break;
+        }
+        capacity = capacity.wrapping_mul(2 as size_t);
+        (*c).buffer = safe_realloc((*c).buffer as *mut c_void, capacity)
+            as *mut c_char;
+    }
+    (*c).buffer = safe_realloc(
+        (*c).buffer as *mut c_void,
+        (*c).buffer_size.wrapping_add(1 as size_t),
+    ) as *mut c_char;
+    let fresh0 = (*c).buffer_size;
+    (*c).buffer_size = (*c).buffer_size.wrapping_add(1);
+    *(*c).buffer.offset(fresh0 as isize) = '\0' as i32 as c_char;
+    let mut line_end: *const c_char = (*c).buffer.offset((*c).buffer_size as isize);
+    let mut line: *mut c_char = (*c).buffer.offset(buffer_start as isize);
+    loop {
+        let mut nl: *mut c_char = strchr(line, input_delimiter as c_int);
+        if !nl.is_null() {
+            let fresh1 = nl;
+            nl = nl.offset(1);
+            *fresh1 = '\0' as i32 as c_char;
+        }
+        if *line != 0 {
+            choices_add(c, line);
+        }
+        line = nl;
+        if !(!line.is_null() && line < line_end as *mut c_char) {
+            break;
+        }
+    }
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct choices_t {
+    pub buffer: *mut c_char,
+    pub buffer_size: size_t,
+    pub capacity: size_t,
+    pub size: size_t,
+    pub strings: *mut *const c_char,
+    pub results: *mut scored_result,
+    pub available: size_t,
+    pub selection: size_t,
+    pub worker_count: c_uint,
+}
+
+pub type FILE = _IO_FILE;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct scored_result {
+    pub score: score_t,
+    pub str_0: *const c_char,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _IO_FILE {
+    pub _flags: c_int,
+    pub _IO_read_ptr: *mut c_char,
+    pub _IO_read_end: *mut c_char,
+    pub _IO_read_base: *mut c_char,
+    pub _IO_write_base: *mut c_char,
+    pub _IO_write_ptr: *mut c_char,
+    pub _IO_write_end: *mut c_char,
+    pub _IO_buf_base: *mut c_char,
+    pub _IO_buf_end: *mut c_char,
+    pub _IO_save_base: *mut c_char,
+    pub _IO_backup_base: *mut c_char,
+    pub _IO_save_end: *mut c_char,
+    pub _markers: *mut _IO_marker,
+    pub _chain: *mut _IO_FILE,
+    pub _fileno: c_int,
+    pub _flags2: c_int,
+    pub _old_offset: __off_t,
+    pub _cur_column: c_ushort,
+    pub _vtable_offset: c_schar,
+    pub _shortbuf: [c_char; 1],
+    pub _lock: *mut c_void,
+    pub _offset: __off64_t,
+    pub _codecvt: *mut _IO_codecvt,
+    pub _wide_data: *mut _IO_wide_data,
+    pub _freeres_list: *mut _IO_FILE,
+    pub _freeres_buf: *mut c_void,
+    pub __pad5: size_t,
+    pub _mode: c_int,
+    pub _unused2: [c_char; 20],
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+## Previous attempt failed to compile
+cargo stderr:
+```
+
+```
+
+Your previous output was:
+```
+```rust
+#[inline]
+pub unsafe fn choices_fread(
+    mut c: *mut choices_t,
+    mut file: *mut FILE,
+    mut input_delimiter: c_char,
+) {
+    let buffer_start = (*c).buffer_size;
+    let mut size = buffer_start;
+    let mut capacity: size_t = INITIAL_BUFFER_CAPACITY as size_t;
+
+    while capacity <= size {
+        capacity = capacity.wrapping_mul(2 as size_t);
+    }
+
+    (*c).buffer = safe_realloc((*c).buffer as *mut c_void, capacity) as *mut c_char;
+    let mut buffer = (*c).buffer;
+
+    loop {
+        let read_len = fread(
+            buffer.add(size) as *mut c_void,
+            1 as size_t,
+            capacity.wrapping_sub(size),
+            file,
+        );
+        size = size.wrapping_add(read_len);
+        if size != capacity {
+            break;
+        }
+        capacity = capacity.wrapping_mul(2 as size_t);
+        buffer = safe_realloc(buffer as *mut c_void, capacity) as *mut c_char;
+        (*c).buffer = buffer;
+    }
+
+    buffer = safe_realloc(buffer as *mut c_void, size.wrapping_add(1 as size_t)) as *mut c_char;
+    (*c).buffer = buffer;
+    (*c).buffer_size = size.wrapping_add(1);
+    *buffer.add(size) = '\0' as i32 as c_char;
+
+    let line_end = buffer.add((*c).buffer_size);
+    let mut line = buffer.add(buffer_start);
+    let delim = input_delimiter as u8;
+
+    while line < line_end {
+        let remaining = line_end.offset_from(line) as usize;
+        let nl = libc::memchr(line as *const c_void, delim as c_int, remaining) as *mut c_char;
+        let next = if nl.is_null() {
+            core::ptr::null_mut()
+        } else {
+            *nl = '\0' as i32 as c_char;
+            nl.add(1)
+        };
+
+        if *line != 0 {
+            choices_add(c, line);
+        }
+
+        if next.is_null() || next >= line_end {
+            break;
+        }
+        line = next;
+    }
+}
+```
+```
+
+Fix the compile error and output the corrected function (same format contract).
+
+----- OUTPUT -----
+```rust
+#[inline]
+pub unsafe fn choices_fread(
+    mut c: *mut choices_t,
+    mut file: *mut FILE,
+    mut input_delimiter: c_char,
+) {
+    let buffer_start: size_t = (*c).buffer_size;
+    let mut size: size_t = buffer_start;
+    let mut capacity: size_t = INITIAL_BUFFER_CAPACITY as size_t;
+
+    while capacity <= size {
+        capacity = capacity.wrapping_mul(2 as size_t);
+    }
+
+    (*c).buffer = safe_realloc((*c).buffer as *mut c_void, capacity) as *mut c_char;
+    let mut buffer: *mut c_char = (*c).buffer;
+
+    loop {
+        let read_len = fread(
+            buffer.offset(size as isize) as *mut c_void,
+            1 as size_t,
+            capacity.wrapping_sub(size),
+            file,
+        );
+        size = size.wrapping_add(read_len);
+        if size != capacity {
+            break;
+        }
+        capacity = capacity.wrapping_mul(2 as size_t);
+        buffer = safe_realloc(buffer as *mut c_void, capacity) as *mut c_char;
+        (*c).buffer = buffer;
+    }
+
+    buffer = safe_realloc(buffer as *mut c_void, size.wrapping_add(1 as size_t)) as *mut c_char;
+    (*c).buffer = buffer;
+    (*c).buffer_size = size.wrapping_add(1 as size_t);
+    *buffer.offset(size as isize) = '\0' as i32 as c_char;
+
+    let line_end: *mut c_char = buffer.offset((*c).buffer_size as isize);
+    let mut line: *mut c_char = buffer.offset(buffer_start as isize);
+
+    while line < line_end {
+        let mut nl: *mut c_char = strchr(line, input_delimiter as c_int);
+        if !nl.is_null() {
+            *nl = '\0' as i32 as c_char;
+            nl = nl.offset(1);
+        }
+
+        if *line != 0 {
+            choices_add(c, line);
+        }
+
+        if nl.is_null() || nl >= line_end {
+            break;
+        }
+        line = nl;
+    }
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-07 08:29:48
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : choices_fread
+TARGET    : freeform_retry3
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/fzy/3_perf_opt_freeform/crate/src/choices.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 1718
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/choices.rs
+symbol: choices_fread
+signature: #[inline]
+pub unsafe fn choices_fread(
+    mut c: *mut choices_t,
+    mut file: *mut FILE,
+    mut input_delimiter: c_char,
+)
+location: 365..416  (attrs included)
+
+```rust
+#[inline]
+pub unsafe fn choices_fread(
+    mut c: *mut choices_t,
+    mut file: *mut FILE,
+    mut input_delimiter: c_char,
+) {
+    let mut buffer_start: size_t = (*c).buffer_size;
+    let mut capacity: size_t = INITIAL_BUFFER_CAPACITY as size_t;
+    while capacity <= (*c).buffer_size {
+        capacity = capacity.wrapping_mul(2 as size_t);
+    }
+    (*c).buffer =
+        safe_realloc((*c).buffer as *mut c_void, capacity) as *mut c_char;
+    loop {
+        (*c).buffer_size = ((*c).buffer_size as c_ulong).wrapping_add(fread(
+            (*c).buffer.offset((*c).buffer_size as isize) as *mut c_void,
+            1 as size_t,
+            capacity.wrapping_sub((*c).buffer_size),
+            file,
+        )) as size_t as size_t;
+        if !((*c).buffer_size == capacity) {
+            break;
+        }
+        capacity = capacity.wrapping_mul(2 as size_t);
+        (*c).buffer = safe_realloc((*c).buffer as *mut c_void, capacity)
+            as *mut c_char;
+    }
+    (*c).buffer = safe_realloc(
+        (*c).buffer as *mut c_void,
+        (*c).buffer_size.wrapping_add(1 as size_t),
+    ) as *mut c_char;
+    let fresh0 = (*c).buffer_size;
+    (*c).buffer_size = (*c).buffer_size.wrapping_add(1);
+    *(*c).buffer.offset(fresh0 as isize) = '\0' as i32 as c_char;
+    let mut line_end: *const c_char = (*c).buffer.offset((*c).buffer_size as isize);
+    let mut line: *mut c_char = (*c).buffer.offset(buffer_start as isize);
+    loop {
+        let mut nl: *mut c_char = strchr(line, input_delimiter as c_int);
+        if !nl.is_null() {
+            let fresh1 = nl;
+            nl = nl.offset(1);
+            *fresh1 = '\0' as i32 as c_char;
+        }
+        if *line != 0 {
+            choices_add(c, line);
+        }
+        line = nl;
+        if !(!line.is_null() && line < line_end as *mut c_char) {
+            break;
+        }
+    }
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct choices_t {
+    pub buffer: *mut c_char,
+    pub buffer_size: size_t,
+    pub capacity: size_t,
+    pub size: size_t,
+    pub strings: *mut *const c_char,
+    pub results: *mut scored_result,
+    pub available: size_t,
+    pub selection: size_t,
+    pub worker_count: c_uint,
+}
+
+pub type FILE = _IO_FILE;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct scored_result {
+    pub score: score_t,
+    pub str_0: *const c_char,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _IO_FILE {
+    pub _flags: c_int,
+    pub _IO_read_ptr: *mut c_char,
+    pub _IO_read_end: *mut c_char,
+    pub _IO_read_base: *mut c_char,
+    pub _IO_write_base: *mut c_char,
+    pub _IO_write_ptr: *mut c_char,
+    pub _IO_write_end: *mut c_char,
+    pub _IO_buf_base: *mut c_char,
+    pub _IO_buf_end: *mut c_char,
+    pub _IO_save_base: *mut c_char,
+    pub _IO_backup_base: *mut c_char,
+    pub _IO_save_end: *mut c_char,
+    pub _markers: *mut _IO_marker,
+    pub _chain: *mut _IO_FILE,
+    pub _fileno: c_int,
+    pub _flags2: c_int,
+    pub _old_offset: __off_t,
+    pub _cur_column: c_ushort,
+    pub _vtable_offset: c_schar,
+    pub _shortbuf: [c_char; 1],
+    pub _lock: *mut c_void,
+    pub _offset: __off64_t,
+    pub _codecvt: *mut _IO_codecvt,
+    pub _wide_data: *mut _IO_wide_data,
+    pub _freeres_list: *mut _IO_FILE,
+    pub _freeres_buf: *mut c_void,
+    pub __pad5: size_t,
+    pub _mode: c_int,
+    pub _unused2: [c_char; 20],
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+## Previous attempt failed to compile
+cargo stderr:
+```
+
+```
+
+Your previous output was:
+```
+```rust
+#[inline]
+pub unsafe fn choices_fread(
+    mut c: *mut choices_t,
+    mut file: *mut FILE,
+    mut input_delimiter: c_char,
+) {
+    let buffer_start: size_t = (*c).buffer_size;
+    let mut size: size_t = buffer_start;
+    let mut capacity: size_t = INITIAL_BUFFER_CAPACITY as size_t;
+
+    while capacity <= size {
+        capacity = capacity.wrapping_mul(2 as size_t);
+    }
+
+    (*c).buffer = safe_realloc((*c).buffer as *mut c_void, capacity) as *mut c_char;
+    let mut buffer: *mut c_char = (*c).buffer;
+
+    loop {
+        let read_len = fread(
+            buffer.offset(size as isize) as *mut c_void,
+            1 as size_t,
+            capacity.wrapping_sub(size),
+            file,
+        );
+        size = size.wrapping_add(read_len);
+        if size != capacity {
+            break;
+        }
+        capacity = capacity.wrapping_mul(2 as size_t);
+        buffer = safe_realloc(buffer as *mut c_void, capacity) as *mut c_char;
+        (*c).buffer = buffer;
+    }
+
+    buffer = safe_realloc(buffer as *mut c_void, size.wrapping_add(1 as size_t)) as *mut c_char;
+    (*c).buffer = buffer;
+    (*c).buffer_size = size.wrapping_add(1 as size_t);
+    *buffer.offset(size as isize) = '\0' as i32 as c_char;
+
+    let line_end: *mut c_char = buffer.offset((*c).buffer_size as isize);
+    let mut line: *mut c_char = buffer.offset(buffer_start as isize);
+
+    while line < line_end {
+        let mut nl: *mut c_char = strchr(line, input_delimiter as c_int);
+        if !nl.is_null() {
+            *nl = '\0' as i32 as c_char;
+            nl = nl.offset(1);
+        }
+
+        if *line != 0 {
+            choices_add(c, line);
+        }
+
+        if nl.is_null() || nl >= line_end {
+            break;
+        }
+        line = nl;
+    }
+}
+```
+```
+
+Fix the compile error and output the corrected function (same format contract).
+
+----- OUTPUT -----
+```rust
+#[inline]
+pub unsafe fn choices_fread(
+    mut c: *mut choices_t,
+    mut file: *mut FILE,
+    mut input_delimiter: c_char,
+) {
+    let buffer_start: size_t = (*c).buffer_size;
+    let mut size: size_t = buffer_start;
+    let mut capacity: size_t = INITIAL_BUFFER_CAPACITY as size_t;
+
+    while capacity <= size {
+        capacity = capacity.wrapping_mul(2 as size_t);
+    }
+
+    (*c).buffer = safe_realloc((*c).buffer as *mut c_void, capacity) as *mut c_char;
+    let mut buffer: *mut c_char = (*c).buffer;
+
+    loop {
+        size = size.wrapping_add(fread(
+            buffer.offset(size as isize) as *mut c_void,
+            1 as size_t,
+            capacity.wrapping_sub(size),
+            file,
+        ));
+        if size != capacity {
+            break;
+        }
+        capacity = capacity.wrapping_mul(2 as size_t);
+        buffer = safe_realloc(buffer as *mut c_void, capacity) as *mut c_char;
+        (*c).buffer = buffer;
+    }
+
+    buffer = safe_realloc(buffer as *mut c_void, size.wrapping_add(1 as size_t)) as *mut c_char;
+    (*c).buffer = buffer;
+    (*c).buffer_size = size.wrapping_add(1 as size_t);
+    *buffer.offset(size as isize) = '\0' as i32 as c_char;
+
+    let line_end: *mut c_char = buffer.offset((*c).buffer_size as isize);
+    let mut line: *mut c_char = buffer.offset(buffer_start as isize);
+
+    while line < line_end {
+        let mut nl: *mut c_char = strchr(line, input_delimiter as c_int);
+        if !nl.is_null() {
+            *nl = '\0' as i32 as c_char;
+            nl = nl.offset(1);
+        }
+
+        if *line != 0 {
+            choices_add(c, line);
+        }
+
+        if nl.is_null() || nl >= line_end {
+            break;
+        }
+        line = nl;
+    }
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-07 08:29:58
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : setup_match_struct
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/fzy/3_perf_opt_freeform/crate/src/match.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 2927
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/match.rs
+symbol: setup_match_struct
+signature: unsafe fn setup_match_struct(
+    mut match_1: *mut match_struct,
+    mut needle: *const c_char,
+    mut haystack: *const c_char,
+)
+location: 100..163  (attrs included)
+
+```rust
+unsafe fn setup_match_struct(
+    mut match_1: *mut match_struct,
+    mut needle: *const c_char,
+    mut haystack: *const c_char,
+) {
+    (*match_1).needle_len = strlen(needle) as c_int;
+    (*match_1).haystack_len = strlen(haystack) as c_int;
+    if (*match_1).haystack_len > MATCH_MAX_LEN || (*match_1).needle_len > (*match_1).haystack_len {
+        return;
+    }
+    let mut i: c_int = 0 as c_int;
+    while i < (*match_1).needle_len {
+        (*match_1).lower_needle[i as usize] = ({
+            let mut __res: c_int = 0;
+            if ::core::mem::size_of::<c_char>() as usize > 1 as usize {
+                if 0 != 0 {
+                    let mut __c: c_int =
+                        *needle.offset(i as isize) as c_int;
+                    __res =
+                        (if __c < -(128 as c_int) || __c > 255 as c_int {
+                            __c as __int32_t
+                        } else {
+                            *(*__ctype_tolower_loc()).offset(__c as isize)
+                        }) as c_int;
+                } else {
+                    __res = tolower(*needle.offset(i as isize) as c_int);
+                }
+            } else {
+                __res = *(*__ctype_tolower_loc())
+                    .offset(*needle.offset(i as isize) as c_int as isize)
+                    as c_int;
+            }
+            __res
+        }) as c_char;
+        i += 1;
+    }
+    let mut i_0: c_int = 0 as c_int;
+    while i_0 < (*match_1).haystack_len {
+        (*match_1).lower_haystack[i_0 as usize] = ({
+            let mut __res: c_int = 0;
+            if ::core::mem::size_of::<c_char>() as usize > 1 as usize {
+                if 0 != 0 {
+                    let mut __c: c_int =
+                        *haystack.offset(i_0 as isize) as c_int;
+                    __res =
+                        (if __c < -(128 as c_int) || __c > 255 as c_int {
+                            __c as __int32_t
+                        } else {
+                            *(*__ctype_tolower_loc()).offset(__c as isize)
+                        }) as c_int;
+                } else {
+                    __res = tolower(*haystack.offset(i_0 as isize) as c_int);
+                }
+            } else {
+                __res = *(*__ctype_tolower_loc())
+                    .offset(*haystack.offset(i_0 as isize) as c_int as isize)
+                    as c_int;
+            }
+            __res
+        }) as c_char;
+        i_0 += 1;
+    }
+    precompute_bonus(haystack, &raw mut (*match_1).match_bonus as *mut score_t);
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct match_struct {
+    pub needle_len: c_int,
+    pub haystack_len: c_int,
+    pub lower_needle: [c_char; 1024],
+    pub lower_haystack: [c_char; 1024],
+    pub match_bonus: [score_t; 1024],
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+unsafe fn setup_match_struct(
+    mut match_1: *mut match_struct,
+    mut needle: *const c_char,
+    mut haystack: *const c_char,
+) {
+    let needle_len = strlen(needle) as c_int;
+    let haystack_len = strlen(haystack) as c_int;
+
+    // SAFETY: `match_1` is assumed valid by the original function contract.
+    unsafe {
+        (*match_1).needle_len = needle_len;
+        (*match_1).haystack_len = haystack_len;
+    }
+
+    if haystack_len > MATCH_MAX_LEN || needle_len > haystack_len {
+        return;
+    }
+
+    if ::core::mem::size_of::<c_char>() as usize > 1usize {
+        let mut i: c_int = 0;
+        while i < needle_len {
+            // SAFETY: `needle` points to a NUL-terminated string of length at least `needle_len`,
+            // `match_1` is valid, and `i < needle_len <= MATCH_MAX_LEN <= 1024`.
+            unsafe {
+                (*match_1).lower_needle[i as usize] =
+                    tolower(*needle.offset(i as isize) as c_int) as c_char;
+            }
+            i += 1;
+        }
+
+        let mut i_0: c_int = 0;
+        while i_0 < haystack_len {
+            // SAFETY: `haystack` points to a NUL-terminated string of length at least `haystack_len`,
+            // `match_1` is valid, and `i_0 < haystack_len <= MATCH_MAX_LEN <= 1024`.
+            unsafe {
+                (*match_1).lower_haystack[i_0 as usize] =
+                    tolower(*haystack.offset(i_0 as isize) as c_int) as c_char;
+            }
+            i_0 += 1;
+        }
+    } else {
+        // SAFETY: `__ctype_tolower_loc` returns a valid pointer to the ctype lowercase table
+        // for the current locale, as required by the original libc-based implementation.
+        let tolower_tab = unsafe { *__ctype_tolower_loc() };
+
+        let mut i: c_int = 0;
+        while i < needle_len {
+            // SAFETY: `needle` points to a NUL-terminated string of length at least `needle_len`,
+            // `tolower_tab` is valid, `match_1` is valid, and `i < needle_len <= MATCH_MAX_LEN <= 1024`.
+            unsafe {
+                (*match_1).lower_needle[i as usize] =
+                    *tolower_tab.offset(*needle.offset(i as isize) as c_int as isize) as c_char;
+            }
+            i += 1;
+        }
+
+        let mut i_0: c_int = 0;
+        while i_0 < haystack_len {
+            // SAFETY: `haystack` points to a NUL-terminated string of length at least `haystack_len`,
+            // `tolower_tab` is valid, `match_1` is valid, and `i_0 < haystack_len <= MATCH_MAX_LEN <= 1024`.
+            unsafe {
+                (*match_1).lower_haystack[i_0 as usize] =
+                    *tolower_tab.offset(*haystack.offset(i_0 as isize) as c_int as isize) as c_char;
+            }
+            i_0 += 1;
+        }
+    }
+
+    // SAFETY: `haystack` and `match_1` are valid per the original function contract.
+    unsafe {
+        precompute_bonus(haystack, &raw mut (*match_1).match_bonus as *mut score_t);
+    }
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-07 08:30:09
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : precompute_bonus
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/fzy/3_perf_opt_freeform/crate/src/match.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 1094
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/match.rs
+symbol: precompute_bonus
+signature: unsafe fn precompute_bonus(
+    mut haystack: *const c_char,
+    mut match_bonus: *mut score_t,
+)
+location: 85..99  (attrs included)
+
+```rust
+unsafe fn precompute_bonus(
+    mut haystack: *const c_char,
+    mut match_bonus: *mut score_t,
+) {
+    let mut last_ch: c_char = '/' as i32 as c_char;
+    let mut i: c_int = 0 as c_int;
+    while *haystack.offset(i as isize) != 0 {
+        let mut ch: c_char = *haystack.offset(i as isize);
+        *match_bonus.offset(i as isize) = bonus_states
+            [bonus_index[ch as c_uchar as usize] as usize]
+            [last_ch as c_uchar as usize];
+        last_ch = ch;
+        i += 1;
+    }
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+unsafe fn precompute_bonus(
+    mut haystack: *const c_char,
+    mut match_bonus: *mut score_t,
+) {
+    let mut last_ch: c_char = '/' as i32 as c_char;
+    loop {
+        let ch = unsafe { *haystack }; // SAFETY: caller guarantees `haystack` points to a valid NUL-terminated byte string; we read one byte at the current position.
+        if ch == 0 {
+            break;
+        }
+        let idx = bonus_index[ch as c_uchar as usize] as usize;
+        unsafe {
+            *match_bonus = bonus_states[idx][last_ch as c_uchar as usize];
+        } // SAFETY: caller guarantees `match_bonus` has space for each non-NUL byte in `haystack`; indices are derived from `u8` values and stay within the lookup tables as in the original code.
+        last_ch = ch;
+        haystack = unsafe { haystack.add(1) }; // SAFETY: advancing within the same valid NUL-terminated string by one byte after a successful read.
+        match_bonus = unsafe { match_bonus.add(1) }; // SAFETY: advancing the output pointer in lockstep with processed input bytes; caller guarantees sufficient capacity.
+    }
+}
+```
+================================================================================
+

@@ -1,0 +1,213 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.02605256601007092,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.16723823359108947,
+            "aggregate_ci_low_pct": -0.2193433656112313,
+            "aggregate_pct": -0.02605256601007092,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.0192,
+                "ci_low_pct": -0.0075,
+                "insns_delta_pct": -0.004,
+                "mean_delta_pct": 0.0058,
+                "op": "api_sweep",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 1.1647,
+                "ci_low_pct": -0.1924,
+                "insns_delta_pct": -0.0492,
+                "mean_delta_pct": 0.4861,
+                "op": "decode_buffer",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              },
+              {
+                "ci_high_pct": 0.0576,
+                "ci_low_pct": -0.3367,
+                "insns_delta_pct": -0.0012,
+                "mean_delta_pct": -0.1396,
+                "op": "encode_buffer",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.1903,
+                "ci_low_pct": -1.3444,
+                "insns_delta_pct": -0.5875,
+                "mean_delta_pct": -0.577,
+                "op": "lowlevel_probe",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.0122,
+                "ci_low_pct": -0.0445,
+                "insns_delta_pct": -0.0175,
+                "mean_delta_pct": -0.0161,
+                "op": "shared_dict_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.8271,
+                "ci_low_pct": -0.6581,
+                "insns_delta_pct": -0.0008,
+                "mean_delta_pct": 0.0845,
+                "op": "stream_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.24692377182038416,
+            "aggregate_ci_low_pct": -0.31570970858245595,
+            "aggregate_pct": -0.034392968381035886,
+            "checkpoint": 20,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.2459,
+                "ci_low_pct": -0.3147,
+                "insns_delta_pct": 0.0142,
+                "mean_delta_pct": -0.0344,
+                "op": "decode_buffer",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "decode_buffer"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "decode_buffer"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be",
+      "changeset_id": "legacy-f3c9af113e869d9f",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-310985c3aead8a3a",
+          "replacement_function_source": "#[inline(always)]\npub unsafe fn BrotliDropBits(br: *mut BrotliBitReader, mut n_bits: uint64_t) {\n    // SAFETY: caller guarantees `br` is a valid, writable pointer to `BrotliBitReader`.\n    let br = unsafe { &mut *br };\n    br.bit_pos_ = br.bit_pos_.wrapping_sub(n_bits);\n    br.val_ >>= n_bits;\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "ec0fdc462f08445a98e602d0a37debd584854f4625002f3a95cdd1794b99ad54",
+            "file_hint": "src/c_inlined_fns.rs",
+            "qualified_name": "crate::BrotliDropBits",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "BrotliDropBits-0bf1a0b27243",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "BrotliDropBits",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "aa786ec8ab437c9418bc5ed38b9d34b59089edd5f648f4566184d1e3ccac1201",
+            "edit_id": "edit-replace-310985c3aead8a3a",
+            "end_byte": 2474,
+            "operation_id": "replace-310985c3aead8a3a",
+            "relative_path": "src/c_inlined_fns.rs",
+            "replacement_text": "#[inline(always)]\npub unsafe fn BrotliDropBits(br: *mut BrotliBitReader, mut n_bits: uint64_t) {\n    // SAFETY: caller guarantees `br` is a valid, writable pointer to `BrotliBitReader`.\n    let br = unsafe { &mut *br };\n    br.bit_pos_ = br.bit_pos_.wrapping_sub(n_bits);\n    br.val_ >>= n_bits;\n}",
+            "start_byte": 2234
+          }
+        ],
+        "facts": {
+          "fn_name": "BrotliDropBits",
+          "target_span_hash": "ec0fdc462f08445a98e602d0a37debd584854f4625002f3a95cdd1794b99ad54"
+        },
+        "operation_id": "replace-310985c3aead8a3a"
+      }
+    ],
+    "resolved_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/c_inlined_fns.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

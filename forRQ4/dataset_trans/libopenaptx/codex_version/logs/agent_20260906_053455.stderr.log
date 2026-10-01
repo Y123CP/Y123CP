@@ -1,0 +1,155 @@
+2026-09-06T12:34:56.833456Z ERROR codex_skills_extension::host_service: failed to install system skills: io error while remove existing system skills dir: Not a directory (os error 20)
+2026-09-06T12:34:57.043442Z ERROR codex_skills_extension::host_service: failed to install system skills: io error while remove existing system skills dir: Not a directory (os error 20)
+2026-09-06T12:34:57.085174Z ERROR codex_skills_extension::host_service: failed to install system skills: io error while remove existing system skills dir: Not a directory (os error 20)
+2026-09-06T12:34:57.092385Z ERROR codex_skills_extension::host_service: failed to install system skills: io error while remove existing system skills dir: Not a directory (os error 20)
+2026-09-06T12:40:23.799285Z ERROR codex_core::tools::router: error=apply_patch verification failed: Failed to find expected lines in /home/anonymous/artifact/PerfTrans/dataset_trans/libopenaptx/codex_version/code/src/openaptx.rs:
+unsafe extern "C" fn aptx_encode_samples(
+    mut ctx: *mut aptx_context,
+    mut samples: *mut [int32_t; 4],
+    mut output: *mut uint8_t,
+) {
+    let mut channel: ::core::ffi::c_uint = 0;
+    channel = 0 as ::core::ffi::c_uint;
+    while channel < NB_CHANNELS as ::core::ffi::c_int as ::core::ffi::c_uint {
+        aptx_encode_channel(
+            (&raw mut (*ctx).channels as *mut aptx_channel).offset(channel as isize)
+                as *mut aptx_channel,
+            &raw mut *samples.offset(channel as isize) as *mut int32_t as *const int32_t,
+            (*ctx).hd as ::core::ffi::c_int,
+        );
+        channel = channel.wrapping_add(1);
+    }
+    aptx_insert_sync(
+        &raw mut (*ctx).channels as *mut aptx_channel,
+        &raw mut (*ctx).sync_idx,
+    );
+    channel = 0 as ::core::ffi::c_uint;
+    while channel < NB_CHANNELS as ::core::ffi::c_int as ::core::ffi::c_uint {
+        aptx_invert_quantize_and_prediction(
+            (&raw mut (*ctx).channels as *mut aptx_channel).offset(channel as isize)
+                as *mut aptx_channel,
+            (*ctx).hd as ::core::ffi::c_int,
+        );
+        if (*ctx).hd != 0 {
+            let mut codeword: uint32_t = aptxhd_pack_codeword(
+                (&raw mut (*ctx).channels as *mut aptx_channel).offset(channel as isize)
+                    as *mut aptx_channel,
+            );
+            *output.offset(
+                (3 as ::core::ffi::c_uint)
+                    .wrapping_mul(channel)
+                    .wrapping_add(0 as ::core::ffi::c_uint) as isize,
+            ) = (codeword >> 16 as ::core::ffi::c_int & 0xff as uint32_t) as uint8_t;
+            *output.offset(
+                (3 as ::core::ffi::c_uint)
+                    .wrapping_mul(channel)
+                    .wrapping_add(1 as ::core::ffi::c_uint) as isize,
+            ) = (codeword >> 8 as ::core::ffi::c_int & 0xff as uint32_t) as uint8_t;
+            *output.offset(
+                (3 as ::core::ffi::c_uint)
+                    .wrapping_mul(channel)
+                    .wrapping_add(2 as ::core::ffi::c_uint) as isize,
+            ) = (codeword >> 0 as ::core::ffi::c_int & 0xff as uint32_t) as uint8_t;
+        } else {
+            let mut codeword_0: uint16_t = aptx_pack_codeword(
+                (&raw mut (*ctx).channels as *mut aptx_channel).offset(channel as isize)
+                    as *mut aptx_channel,
+            );
+            *output.offset(
+                (2 as ::core::ffi::c_uint)
+                    .wrapping_mul(channel)
+                    .wrapping_add(0 as ::core::ffi::c_uint) as isize,
+            ) = (codeword_0 as ::core::ffi::c_int >> 8 as ::core::ffi::c_int
+                & 0xff as ::core::ffi::c_int) as uint8_t;
+            *output.offset(
+                (2 as ::core::ffi::c_uint)
+                    .wrapping_mul(channel)
+                    .wrapping_add(1 as ::core::ffi::c_uint) as isize,
+            ) = (codeword_0 as ::core::ffi::c_int >> 0 as ::core::ffi::c_int
+                & 0xff as ::core::ffi::c_int) as uint8_t;
+        }
+        channel = channel.wrapping_add(1);
+    }
+}
+unsafe extern "C" fn aptx_decode_samples(
+    mut ctx: *mut aptx_context,
+    mut input: *const uint8_t,
+    mut samples: *mut [int32_t; 4],
+) -> ::core::ffi::c_int {
+    let mut channel: ::core::ffi::c_uint = 0;
+    let mut ret: ::core::ffi::c_int = 0;
+    channel = 0 as ::core::ffi::c_uint;
+    while channel < NB_CHANNELS as ::core::ffi::c_int as ::core::ffi::c_uint {
+        aptx_generate_dither(
+            (&raw mut (*ctx).channels as *mut aptx_channel).offset(channel as isize)
+                as *mut aptx_channel,
+        );
+        if (*ctx).hd != 0 {
+            aptxhd_unpack_codeword(
+                (&raw mut (*ctx).channels as *mut aptx_channel).offset(channel as isize)
+                    as *mut aptx_channel,
+                (*input.offset(
+                    (3 as ::core::ffi::c_uint)
+                        .wrapping_mul(channel)
+                        .wrapping_add(0 as ::core::ffi::c_uint) as isize,
+                ) as uint32_t)
+                    << 16 as ::core::ffi::c_int
+                    | (*input.offset(
+                        (3 as ::core::ffi::c_uint)
+                            .wrapping_mul(channel)
+                            .wrapping_add(1 as ::core::ffi::c_uint)
+                            as isize,
+                    ) as uint32_t)
+                        << 8 as ::core::ffi::c_int
+                    | (*input.offset(
+                        (3 as ::core::ffi::c_uint)
+                            .wrapping_mul(channel)
+                            .wrapping_add(2 as ::core::ffi::c_uint)
+                            as isize,
+                    ) as uint32_t)
+                        << 0 as ::core::ffi::c_int,
+            );
+        } else {
+            aptx_unpack_codeword(
+                (&raw mut (*ctx).channels as *mut aptx_channel).offset(channel as isize)
+                    as *mut aptx_channel,
+                ((*input.offset(
+                    (2 as ::core::ffi::c_uint)
+                        .wrapping_mul(channel)
+                        .wrapping_add(0 as ::core::ffi::c_uint) as isize,
+                ) as uint16_t as ::core::ffi::c_int)
+                    << 8 as ::core::ffi::c_int
+                    | (*input.offset(
+                        (2 as ::core::ffi::c_uint)
+                            .wrapping_mul(channel)
+                            .wrapping_add(1 as ::core::ffi::c_uint)
+                            as isize,
+                    ) as uint16_t as ::core::ffi::c_int)
+                        << 0 as ::core::ffi::c_int) as uint16_t,
+            );
+        }
+        aptx_invert_quantize_and_prediction(
+            (&raw mut (*ctx).channels as *mut aptx_channel).offset(channel as isize)
+                as *mut aptx_channel,
+            (*ctx).hd as ::core::ffi::c_int,
+        );
+        channel = channel.wrapping_add(1);
+    }
+    ret = aptx_check_parity(
+        &raw mut (*ctx).channels as *mut aptx_channel as *const aptx_channel,
+        &raw mut (*ctx).sync_idx,
+    );
+    channel = 0 as ::core::ffi::c_uint;
+    while channel < NB_CHANNELS as ::core::ffi::c_int as ::core::ffi::c_uint {
+        aptx_decode_channel(
+            (&raw mut (*ctx).channels as *mut aptx_channel).offset(channel as isize)
+                as *mut aptx_channel,
+            &raw mut *samples.offset(channel as isize) as *mut int32_t,
+        );
+        channel = channel.wrapping_add(1);
+    }
+    return ret;
+}
+#[no_mangle]
+pub unsafe extern "C" fn aptx_init(mut hd: ::core::ffi::c_int) -> *mut aptx_context {
+2026-09-06T12:46:48.066018Z ERROR codex_core::tools::router: error=exec_command failed for `/bin/bash -lc 'rm -rf work/baseline_code && mkdir -p work/baseline_code && git archive HEAD code | tar -x -C work/baseline_code --strip-components=1'`: CreateProcess { message: "Rejected(\"`/bin/bash -lc 'rm -rf work/baseline_code && mkdir -p work/baseline_code && git archive HEAD code | tar -x -C work/baseline_code --strip-components=1'` rejected: rm -f style commands are not permitted. Use a safer approach\")" }

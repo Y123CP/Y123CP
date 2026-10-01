@@ -1,0 +1,218 @@
+{
+  "hot_function": {
+    "symbol": "xmlDictFindEntry",
+    "location": "src/dict.rs:571-623",
+    "workload": "html_push_parse",
+    "hot_region": "src/dict.rs:571-623",
+    "rust_source": "unsafe fn xmlDictFindEntry(\n    mut dict: *const xmlDict,\n    mut prefix: *const xmlChar,\n    mut name: *const xmlChar,\n    mut len: c_int,\n    mut hashValue: c_uint,\n    mut pfound: *mut c_int,\n) -> *mut xmlDictEntry {\n    let mut entry: *mut xmlDictEntry = ::core::ptr::null_mut::<xmlDictEntry>();\n    let mut mask: c_uint = 0;\n    let mut pos: c_uint = 0;\n    let mut displ: c_uint = 0;\n    let mut found: c_int = 0 as c_int;\n    mask = (*dict).size.wrapping_sub(1 as size_t) as c_uint;\n    pos = hashValue & mask;\n    entry = (*dict).table.offset(pos as isize) as *mut xmlDictEntry;\n    if (*entry).hashValue != 0 as c_uint {\n        displ = 0 as c_uint;\n        loop {\n            if (*entry).hashValue == hashValue {\n                if prefix.is_null() {\n                    if strncmp(\n                        (*entry).name as *const c_char,\n                        name as *const c_char,\n                        len as size_t,\n                    ) == 0 as c_int\n                        && *(*entry).name.offset(len as isize) as c_int\n                            == 0 as c_int\n                    {\n                        found = 1 as c_int;\n                        break;\n                    }\n                } else if xmlStrQEqual(prefix, name, (*entry).name) != 0 {\n                    found = 1 as c_int;\n                    break;\n                }\n            }\n            displ = displ.wrapping_add(1);\n            pos = pos.wrapping_add(1);\n            entry = entry.offset(1);\n            if pos & mask == 0 as c_uint {\n                entry = (*dict).table;\n            }\n            if !((*entry).hashValue != 0 as c_uint\n                && pos.wrapping_sub((*entry).hashValue) & mask >= displ)\n            {\n                break;\n            }\n        }\n    }\n    *pfound = found;\n    return entry;\n}",
+    "signature": "unsafe fn xmlDictFindEntry(\n    mut dict: *const xmlDict,\n    mut prefix: *const xmlChar,\n    mut name: *const xmlChar,\n    mut len: c_int,\n    mut hashValue: c_uint,\n    mut pfound: *mut c_int,\n) -> *mut xmlDictEntry",
+    "profile": {
+      "self_time_ratio": 0.0344,
+      "call_count": null,
+      "retired_instructions": 740403879,
+      "instructions_per_call": null,
+      "cpi": 0.27,
+      "tma": {
+        "scope": "process",
+        "retiring": 55.096498330094484,
+        "frontend_bound": 30.042227530080183,
+        "bad_speculation": 4.756478362319564,
+        "backend_bound": 10.10479577750577,
+        "memory_bound": 5.644617152766263,
+        "core_bound": 4.460178624739506,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0044
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {},
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 592,
+        "message": "strncmp will not be inlined into _ZN15libxml2_cleaned3src4dict16xmlDictFindEntry17h9abd79ab5c5f2e24E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 603,
+        "message": "'_ZN15libxml2_cleaned3src9xmlstring12xmlStrQEqual17h4f8671c57d49053bE' inlined into '_ZN15libxml2_cleaned3src4dict16xmlDictFindEntry17h9abd79ab5c5f2e24E' with (cost=65, threshold=325) at callsite _ZN15libxml2_cleaned3src4dict16xmlDictFindEntry17h9abd79ab5c5f2e24E:32:27;"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 591,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 590,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 590,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 571,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN15libxml2_cleaned3src4dict16xmlDictFindEntry17h9abd79ab5c5f2e24E: MI Instruction count changed from 0 to 130; Delta: 130"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 571,
+        "message": "Early Tail Duplication: Function: _ZN15libxml2_cleaned3src4dict16xmlDictFindEntry17h9abd79ab5c5f2e24E: MI Instruction count changed from 130 to 128; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 571,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN15libxml2_cleaned3src4dict16xmlDictFindEntry17h9abd79ab5c5f2e24E: MI Instruction count changed from 128 to 129; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 571,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN15libxml2_cleaned3src4dict16xmlDictFindEntry17h9abd79ab5c5f2e24E: MI Instruction count changed from 129 to 126; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 571,
+        "message": "Peephole Optimizations: Function: _ZN15libxml2_cleaned3src4dict16xmlDictFindEntry17h9abd79ab5c5f2e24E: MI Instruction count changed from 126 to 125; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 571,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN15libxml2_cleaned3src4dict16xmlDictFindEntry17h9abd79ab5c5f2e24E: MI Instruction count changed from 125 to 161; Delta: 36"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 571,
+        "message": "Two-Address instruction pass: Function: _ZN15libxml2_cleaned3src4dict16xmlDictFindEntry17h9abd79ab5c5f2e24E: MI Instruction count changed from 161 to 180; Delta: 19"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 571,
+        "message": "Register Coalescer: Function: _ZN15libxml2_cleaned3src4dict16xmlDictFindEntry17h9abd79ab5c5f2e24E: MI Instruction count changed from 180 to 114; Delta: -66"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 590,
+        "message": "1 spills 1.748718e+00 total spills cost 4 reloads 4.805128e+00 total reloads cost 5 virtual registers copies 8.743590e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 590,
+        "message": "3 virtual registers copies 1.677949e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 571,
+        "message": "3 spills 2.215385e+00 total spills cost 4 reloads 4.805128e+00 total reloads cost 14 virtual registers copies 3.152308e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 571,
+        "message": "Greedy Register Allocator: Function: _ZN15libxml2_cleaned3src4dict16xmlDictFindEntry17h9abd79ab5c5f2e24E: MI Instruction count changed from 114 to 125; Delta: 11"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 571,
+        "message": "Virtual Register Rewriter: Function: _ZN15libxml2_cleaned3src4dict16xmlDictFindEntry17h9abd79ab5c5f2e24E: MI Instruction count changed from 125 to 118; Delta: -7"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 571,
+        "message": "72 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 571,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN15libxml2_cleaned3src4dict16xmlDictFindEntry17h9abd79ab5c5f2e24E: MI Instruction count changed from 118 to 150; Delta: 32"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 571,
+        "message": "Control Flow Optimizer: Function: _ZN15libxml2_cleaned3src4dict16xmlDictFindEntry17h9abd79ab5c5f2e24E: MI Instruction count changed from 150 to 137; Delta: -13"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 571,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN15libxml2_cleaned3src4dict16xmlDictFindEntry17h9abd79ab5c5f2e24E: MI Instruction count changed from 137 to 136; Delta: -1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 590,
+        "message": "BasicBlock: bb2.preheader16"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 590,
+        "message": "BasicBlock: bb2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 603,
+        "message": "BasicBlock: bb3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 590,
+        "message": "BasicBlock: bb2.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 593,
+        "message": "BasicBlock: bb3.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 621,
+        "message": "BasicBlock: bb26"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 571,
+        "message": "116 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

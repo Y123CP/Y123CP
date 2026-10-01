@@ -1,0 +1,235 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.9240641195906844,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 1.0916655447852666,
+            "aggregate_ci_low_pct": 0.7564626943961021,
+            "aggregate_pct": 0.9240641195906844,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.2109,
+                "ci_low_pct": -0.2195,
+                "insns_delta_pct": -0.0137,
+                "mean_delta_pct": -0.0043,
+                "op": "png_palette_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 2.1383,
+                "ci_low_pct": 1.5666,
+                "insns_delta_pct": 0.0327,
+                "mean_delta_pct": 1.8524,
+                "op": "png_write_read_roundtrip",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "png_palette_roundtrip",
+          "png_write_read_roundtrip"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "png_write_read_roundtrip"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "c8b3d69d7259f04aa4373db4421c0fb3896cb4d0",
+      "changeset_id": "region-a5cc0646a4a8527d",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [
+            "c7c79275a7033dabec15c0f2093e8a3696e26c7b8a913b8a70815a5050abc969",
+            "96f91aa06d40b839a02c4d8d3307e24fb137b9f935d6e0f452aca43b6aa471f0",
+            "fb113eaf0b2035633dfce8dcdfe38bcdd03b8d6e670bcb5df64987bb138f4b87",
+            "89a92ef6749d4acb718a4f27a5871062e2d3c4105542545c6447f314596fbdca",
+            "a9f5e2323f98931f8693a320ca656fd30efad78cc4f0a62ff60af110fbe1a48f",
+            "c86ed2687d15abe5eca78471b4e684f67f51979c070aba54b80aa9a1cfe58201"
+          ],
+          "operation_id": "replace-region-9e2f5c4c7c0c0ebb",
+          "region": {
+            "anchor_hit_ids": [
+              "c7c79275a7033dabec15c0f2093e8a3696e26c7b8a913b8a70815a5050abc969",
+              "96f91aa06d40b839a02c4d8d3307e24fb137b9f935d6e0f452aca43b6aa471f0",
+              "fb113eaf0b2035633dfce8dcdfe38bcdd03b8d6e670bcb5df64987bb138f4b87",
+              "89a92ef6749d4acb718a4f27a5871062e2d3c4105542545c6447f314596fbdca",
+              "a9f5e2323f98931f8693a320ca656fd30efad78cc4f0a62ff60af110fbe1a48f",
+              "c86ed2687d15abe5eca78471b4e684f67f51979c070aba54b80aa9a1cfe58201"
+            ],
+            "anchor_lines": [
+              1683,
+              1685,
+              1687,
+              1688,
+              1703,
+              1704
+            ],
+            "end_byte": 64853,
+            "expected_region_hash": "3d7bad9f133f8f4198da0b43a91a6e7c90ac56b65b0066be2f86d5d48b98b071",
+            "parent_kind": "block",
+            "region_kind": "node_sequence",
+            "relative_path": "src/libpng/pngrutil.rs",
+            "start_byte": 63339,
+            "target_function": {
+              "declaration_hash": "9482fd9c1df46d0a95a837c77349c37447c0014b82edd1c1757bb5725ebbf5cb",
+              "file_hint": "src/libpng/pngrutil.rs",
+              "qualified_name": "png_combine_row",
+              "symbol_kind": "function"
+            }
+          },
+          "replacement_region_source": "let c_words: size_t =\n    (bytes_to_copy as size_t).wrapping_div(::core::mem::size_of::<png_uint_32>() as size_t);\n// SAFETY: `sp32` and `dp32` are derived from valid aligned raw pointers established above;\n// this loop copies exactly `c_words` contiguous `png_uint_32` elements, and the original code\n// already performed equivalent elementwise loads/stores over this range.\nlet src32 = ::core::slice::from_raw_parts(sp32, c_words);\nlet dst32 = ::core::slice::from_raw_parts_mut(dp32, c_words);\ndst32.copy_from_slice(src32);\nif row_width <= bytes_to_jump as png_alloc_size_t {\n    return;\n}\ndp32 = dp32.offset((c_words.wrapping_add(skip)) as isize);\nsp32 = sp32.offset((c_words.wrapping_add(skip)) as isize);\nrow_width = (row_width as c_ulong)\n    .wrapping_sub(bytes_to_jump as c_ulong)\n    as png_alloc_size_t\n    as png_alloc_size_t;",
+          "rule_id": "II_vec,III④"
+        }
+      ],
+      "trigger": {
+        "candidate_id": "png_combine_row-region-83830f89ed5b954d",
+        "evidence_artifacts": [],
+        "hit_ids": [
+          "c7c79275a7033dabec15c0f2093e8a3696e26c7b8a913b8a70815a5050abc969",
+          "96f91aa06d40b839a02c4d8d3307e24fb137b9f935d6e0f452aca43b6aa471f0",
+          "fb113eaf0b2035633dfce8dcdfe38bcdd03b8d6e670bcb5df64987bb138f4b87",
+          "89a92ef6749d4acb718a4f27a5871062e2d3c4105542545c6447f314596fbdca",
+          "a9f5e2323f98931f8693a320ca656fd30efad78cc4f0a62ff60af110fbe1a48f",
+          "c86ed2687d15abe5eca78471b4e684f67f51979c070aba54b80aa9a1cfe58201"
+        ],
+        "hot_function": "png_combine_row",
+        "rule_id": "II_vec,III④"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "688a9528545176c9f13816003d1931e7d89e5ba2dacf5ac816e467a861621bc1",
+            "edit_id": "edit-replace-region-9e2f5c4c7c0c0ebb",
+            "end_byte": 64853,
+            "operation_id": "replace-region-9e2f5c4c7c0c0ebb",
+            "relative_path": "src/libpng/pngrutil.rs",
+            "replacement_text": "let c_words: size_t =\n    (bytes_to_copy as size_t).wrapping_div(::core::mem::size_of::<png_uint_32>() as size_t);\n// SAFETY: `sp32` and `dp32` are derived from valid aligned raw pointers established above;\n// this loop copies exactly `c_words` contiguous `png_uint_32` elements, and the original code\n// already performed equivalent elementwise loads/stores over this range.\nlet src32 = ::core::slice::from_raw_parts(sp32, c_words);\nlet dst32 = ::core::slice::from_raw_parts_mut(dp32, c_words);\ndst32.copy_from_slice(src32);\nif row_width <= bytes_to_jump as png_alloc_size_t {\n    return;\n}\ndp32 = dp32.offset((c_words.wrapping_add(skip)) as isize);\nsp32 = sp32.offset((c_words.wrapping_add(skip)) as isize);\nrow_width = (row_width as c_ulong)\n    .wrapping_sub(bytes_to_jump as c_ulong)\n    as png_alloc_size_t\n    as png_alloc_size_t;",
+            "start_byte": 63339
+          }
+        ],
+        "facts": {
+          "declaration_span": [
+            51455,
+            70313
+          ],
+          "function_name": "png_combine_row",
+          "function_parent_fingerprint": [
+            {
+              "index": 0,
+              "type": "source_file"
+            },
+            {
+              "index": 98,
+              "type": "function_item"
+            }
+          ],
+          "function_span": [
+            51468,
+            70313
+          ],
+          "original_file_length": 690120,
+          "original_item_counts": {
+            "extern_crate_declaration": 0,
+            "foreign_mod_item": 1,
+            "function_item": 37,
+            "function_signature_item": 24,
+            "impl_item": 0,
+            "macro_definition": 0,
+            "mod_item": 0,
+            "trait_item": 0
+          },
+          "original_region_length": 1514,
+          "original_region_macro_hashes": [],
+          "original_region_node_types": [
+            "let_declaration",
+            "expression_statement",
+            "expression_statement",
+            "expression_statement",
+            "expression_statement",
+            "expression_statement"
+          ],
+          "parent_kind": "block",
+          "prefix_sha256": "9f69df84e9670680ce1885931567b40aa7e05ba8667b1049582e87fbe714169b",
+          "region_kind": "node_sequence",
+          "region_line_bounds": [
+            1682,
+            1708
+          ],
+          "suffix_sha256": "3a6edcb77270bbd73381c558324e07741c800ac41bd21669ad29c860d32b3ba0"
+        },
+        "operation_id": "replace-region-9e2f5c4c7c0c0ebb"
+      }
+    ],
+    "resolved_head": "c8b3d69d7259f04aa4373db4421c0fb3896cb4d0"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/libpng/pngrutil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_region_shape",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_region_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,162 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.8774056199632339,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 1.0098561211903643,
+            "aggregate_ci_low_pct": 0.7449551187361034,
+            "aggregate_pct": 0.8774056199632339,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 1.2363,
+                "ci_low_pct": 0.7557,
+                "insns_delta_pct": -1.1792,
+                "mean_delta_pct": 0.996,
+                "op": "encode_buffer",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              },
+              {
+                "ci_high_pct": -2.3668,
+                "ci_low_pct": -2.4707,
+                "insns_delta_pct": -1.9251,
+                "mean_delta_pct": -2.4188,
+                "op": "shared_dict_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 4.4006,
+                "ci_low_pct": 3.7094,
+                "insns_delta_pct": 0.2875,
+                "mean_delta_pct": 4.055,
+                "op": "stream_roundtrip",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_buffer",
+          "shared_dict_roundtrip",
+          "stream_roundtrip"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "stream_roundtrip"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be",
+      "changeset_id": "legacy-7c4cea1b27a58c7f",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-053c08181f9f6d89",
+          "replacement_function_source": "unsafe fn ComputeMinimumCopyLength(\n    start_cost: c_float,\n    mut nodes: *const ZopfliNode,\n    num_bytes: size_t,\n    pos: size_t,\n) -> size_t {\n    let mut min_cost: c_float = start_cost;\n    let mut len: size_t = 2 as size_t;\n    let mut next_len_bucket: size_t = 4 as size_t;\n    let mut next_len_offset: size_t = 10 as size_t;\n\n    let remaining = num_bytes.wrapping_sub(pos);\n    if remaining < len {\n        return len;\n    }\n\n    let mut p = nodes.wrapping_add(pos.wrapping_add(len));\n    let end = nodes.wrapping_add(num_bytes);\n\n    while p <= end\n        && {\n            // SAFETY: `p <= end == nodes.add(num_bytes)` and `p` starts at `nodes.add(pos + 2)`;\n            // the loop only dereferences while `p <= end`, matching the original valid index range.\n            unsafe { (*p).u.cost <= min_cost }\n        }\n    {\n        len = len.wrapping_add(1);\n        // SAFETY: advancing by 1 preserves the correspondence with `len`; dereference is guarded by `p <= end`.\n        p = unsafe { p.add(1) };\n        if len == next_len_offset {\n            min_cost += 1.0f32;\n            next_len_offset = next_len_offset.wrapping_add(next_len_bucket);\n            next_len_bucket = next_len_bucket.wrapping_mul(2 as size_t);\n        }\n    }\n    len\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "78b5365d89081570985c6cb1961b9db6ed3e998aabed0dab60b4194a4066ee1f",
+            "file_hint": "src/enc/backward_references_hq.rs",
+            "qualified_name": "crate::ComputeMinimumCopyLength",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "ComputeMinimumCopyLength-7547372e989b",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "ComputeMinimumCopyLength",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "5f6e937fff859451f9b9a3d43e9a6848124aae582e157c9042191ef1139080e6",
+            "edit_id": "edit-replace-053c08181f9f6d89",
+            "end_byte": 42246,
+            "operation_id": "replace-053c08181f9f6d89",
+            "relative_path": "src/enc/backward_references_hq.rs",
+            "replacement_text": "unsafe fn ComputeMinimumCopyLength(\n    start_cost: c_float,\n    mut nodes: *const ZopfliNode,\n    num_bytes: size_t,\n    pos: size_t,\n) -> size_t {\n    let mut min_cost: c_float = start_cost;\n    let mut len: size_t = 2 as size_t;\n    let mut next_len_bucket: size_t = 4 as size_t;\n    let mut next_len_offset: size_t = 10 as size_t;\n\n    let remaining = num_bytes.wrapping_sub(pos);\n    if remaining < len {\n        return len;\n    }\n\n    let mut p = nodes.wrapping_add(pos.wrapping_add(len));\n    let end = nodes.wrapping_add(num_bytes);\n\n    while p <= end\n        && {\n            // SAFETY: `p <= end == nodes.add(num_bytes)` and `p` starts at `nodes.add(pos + 2)`;\n            // the loop only dereferences while `p <= end`, matching the original valid index range.\n            unsafe { (*p).u.cost <= min_cost }\n        }\n    {\n        len = len.wrapping_add(1);\n        // SAFETY: advancing by 1 preserves the correspondence with `len`; dereference is guarded by `p <= end`.\n        p = unsafe { p.add(1) };\n        if len == next_len_offset {\n            min_cost += 1.0f32;\n            next_len_offset = next_len_offset.wrapping_add(next_len_bucket);\n            next_len_bucket = next_len_bucket.wrapping_mul(2 as size_t);\n        }\n    }\n    len\n}",
+            "start_byte": 41352
+          }
+        ],
+        "facts": {
+          "fn_name": "ComputeMinimumCopyLength",
+          "target_span_hash": "78b5365d89081570985c6cb1961b9db6ed3e998aabed0dab60b4194a4066ee1f"
+        },
+        "operation_id": "replace-053c08181f9f6d89"
+      }
+    ],
+    "resolved_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/enc/backward_references_hq.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

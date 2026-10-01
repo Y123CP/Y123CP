@@ -1,0 +1,217 @@
+{
+  "applied_rules": [
+    "C7,C3,III④"
+  ],
+  "commit_sha": "a7bf4c6",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -16.874258574025674,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -16.154610368433968,
+            "aggregate_ci_low_pct": -17.59390677961738,
+            "aggregate_pct": -16.874258574025674,
+            "checkpoint": 20,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -45.4946,
+                "ci_low_pct": -45.8817,
+                "insns_delta_pct": -56.5389,
+                "mean_delta_pct": -45.6881,
+                "op": "builtin_script_matrix",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.3809,
+                "ci_low_pct": -3.9014,
+                "insns_delta_pct": -0.5236,
+                "mean_delta_pct": -1.7603,
+                "op": "native_call_state",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "per_op_uncertain"
+              },
+              {
+                "ci_high_pct": -2.9465,
+                "ci_low_pct": -3.4022,
+                "insns_delta_pct": -12.4681,
+                "mean_delta_pct": -3.1744,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -11.634415457873537,
+            "aggregate_ci_low_pct": -12.523015713222268,
+            "aggregate_pct": -12.078715585547902,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -45.0599,
+                "ci_low_pct": -45.5458,
+                "insns_delta_pct": -56.4547,
+                "mean_delta_pct": -45.3029,
+                "op": "builtin_script_matrix",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.324,
+                "ci_low_pct": -0.1693,
+                "insns_delta_pct": 0.0566,
+                "mean_delta_pct": 0.0773,
+                "op": "expr_embedded_builtins",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.0635,
+                "ci_low_pct": -0.8776,
+                "insns_delta_pct": -0.5395,
+                "mean_delta_pct": -0.4705,
+                "op": "native_call_state",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.8931,
+                "ci_low_pct": -4.3445,
+                "insns_delta_pct": -12.4643,
+                "mean_delta_pct": -2.6188,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "builtin_script_matrix",
+          "native_call_state",
+          "subst_list_pipeline"
+        ],
+        "reason": "accepted",
+        "triggering_op": "native_call_state"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "95a7b857a6a6a863f52ff94c69f5afa4d1830b0b",
+      "changeset_id": "legacy-8caf61fefa16646a",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-3f04e605443de063",
+          "replacement_function_source": "// Applied rules: [C7, C3, III④]\n// Skipped rules: [III②: Hit [10] is a realloc on memory stored back into struct field `(*val).d`, so allocation ownership escapes the function and free occurs elsewhere; RAII conversion violates III② scope rules and is subsumed by C7's in-place amortized-growth rewrite.; II_vec: The reported vectorization hits [3, 4, 5, 6, 7, 8, 9] are not actionable here: this function has no source-level data loop to canonicalize, and the libcall is allocator `realloc`, which C7 addresses directly. Any loop/vectorizer remarks are likely from inlining/context rather than a local loop shape rewrite.]\npub fn lil_append_char(\n    mut val: lil_value_t,\n    mut ch: c_char,\n) -> c_int { unsafe {\n    extern \"C\" {\n        fn malloc_usable_size(p: *mut c_void) -> size_t;\n    }\n\n    let len = (*val).l;\n    let data = (*val).d;\n    let need = len.wrapping_add(2 as size_t);\n    let have = if data.is_null() {\n        0 as size_t\n    } else {\n        malloc_usable_size(data as *mut c_void)\n    };\n    let new = if need <= have {\n        data\n    } else {\n        let mut cap = have.wrapping_add(have.wrapping_div(2 as size_t));\n        if cap < need {\n            cap = need;\n        }\n        if cap < 32 as size_t {\n            cap = 32 as size_t;\n        }\n        realloc(data as *mut c_void, cap) as *mut c_char\n    };\n    if new.is_null() {\n        return 0 as c_int;\n    }\n\n    // SAFETY: `new` is either the existing allocation with at least `have >= need`\n    // bytes available, or a successful `realloc` to `cap >= need`; therefore it\n    // points to writable storage for at least `need == len + 2` bytes. We create\n    // a temporary view only after the null check, and use it for exactly the two\n    // adjacent writes at indices `len` and `len + 1`, both within that range.\n    let buf = unsafe { core::slice::from_raw_parts_mut(new as *mut u8, need as usize) };\n    buf[len as usize] = ch as u8;\n    buf[len.wrapping_add(1 as size_t) as usize] = 0;\n\n    (*val).l = len.wrapping_add(1 as size_t);\n    (*val).d = new;\n    return 1 as c_int;\n} }",
+          "rule_id": "C7,C3,III④",
+          "target": {
+            "declaration_hash": "afbcc570dd5a76c7586bb2526e5dfb47b3b66a45c778270137736670c8bd9ffc",
+            "file_hint": "src/lil.rs",
+            "qualified_name": "crate::lil_append_char",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "lil_append_char-703a49b748dc",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "lil_append_char",
+        "rule_id": "C7,C3,III④"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "5f17a192cac1125dbe645029de43ccf2a287dad85a08732f55f3a96072242a53",
+            "edit_id": "edit-replace-3f04e605443de063",
+            "end_byte": 11548,
+            "operation_id": "replace-3f04e605443de063",
+            "relative_path": "src/lil.rs",
+            "replacement_text": "// Applied rules: [C7, C3, III④]\n// Skipped rules: [III②: Hit [10] is a realloc on memory stored back into struct field `(*val).d`, so allocation ownership escapes the function and free occurs elsewhere; RAII conversion violates III② scope rules and is subsumed by C7's in-place amortized-growth rewrite.; II_vec: The reported vectorization hits [3, 4, 5, 6, 7, 8, 9] are not actionable here: this function has no source-level data loop to canonicalize, and the libcall is allocator `realloc`, which C7 addresses directly. Any loop/vectorizer remarks are likely from inlining/context rather than a local loop shape rewrite.]\npub fn lil_append_char(\n    mut val: lil_value_t,\n    mut ch: c_char,\n) -> c_int { unsafe {\n    extern \"C\" {\n        fn malloc_usable_size(p: *mut c_void) -> size_t;\n    }\n\n    let len = (*val).l;\n    let data = (*val).d;\n    let need = len.wrapping_add(2 as size_t);\n    let have = if data.is_null() {\n        0 as size_t\n    } else {\n        malloc_usable_size(data as *mut c_void)\n    };\n    let new = if need <= have {\n        data\n    } else {\n        let mut cap = have.wrapping_add(have.wrapping_div(2 as size_t));\n        if cap < need {\n            cap = need;\n        }\n        if cap < 32 as size_t {\n            cap = 32 as size_t;\n        }\n        realloc(data as *mut c_void, cap) as *mut c_char\n    };\n    if new.is_null() {\n        return 0 as c_int;\n    }\n\n    // SAFETY: `new` is either the existing allocation with at least `have >= need`\n    // bytes available, or a successful `realloc` to `cap >= need`; therefore it\n    // points to writable storage for at least `need == len + 2` bytes. We create\n    // a temporary view only after the null check, and use it for exactly the two\n    // adjacent writes at indices `len` and `len + 1`, both within that range.\n    let buf = unsafe { core::slice::from_raw_parts_mut(new as *mut u8, need as usize) };\n    buf[len as usize] = ch as u8;\n    buf[len.wrapping_add(1 as size_t) as usize] = 0;\n\n    (*val).l = len.wrapping_add(1 as size_t);\n    (*val).d = new;\n    return 1 as c_int;\n} }",
+            "start_byte": 11046
+          }
+        ],
+        "facts": {
+          "fn_name": "lil_append_char",
+          "target_span_hash": "afbcc570dd5a76c7586bb2526e5dfb47b3b66a45c778270137736670c8bd9ffc"
+        },
+        "operation_id": "replace-3f04e605443de063"
+      }
+    ],
+    "resolved_head": "95a7b857a6a6a863f52ff94c69f5afa4d1830b0b"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/lil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

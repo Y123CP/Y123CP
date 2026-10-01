@@ -1,0 +1,182 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.012018835078359023,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.5604154337476899,
+            "aggregate_ci_low_pct": -0.5844531039044079,
+            "aggregate_pct": -0.012018835078359023,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.5604,
+                "ci_low_pct": -0.5845,
+                "insns_delta_pct": -0.0003,
+                "mean_delta_pct": -0.012,
+                "op": "regexp_pattern",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "regexp_pattern"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "regexp_pattern"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "f9ecdde7271d90e0d2b152c070f156dd098e07f6",
+      "changeset_id": "bitfield-ba4271e5236fe08b",
+      "impact_scope": "crate_global",
+      "operations": [
+        {
+          "end_byte": 63171,
+          "evidence_hit_ids": [],
+          "expected_span_hash": "e742d3c940c198b42656f54a30c7292e3cfc31d29bdeefc0500bebc0097b13be",
+          "operation_id": "bitfield-74e5e94e8cb6985d",
+          "relative_path": "src/xmlschemastypes.rs",
+          "replacement_text": "#[derive(Copy, Clone)]\n#[repr(C)]\npub struct _xmlSchemaValDecimal {\n    pub lo: c_ulong,\n    pub mi: c_ulong,\n    pub hi: c_ulong,\n    pub extra: c_uint,\n    pub sign_frac_total: [u8; 2],\n    pub c2rust_padding: [u8; 2],\n}\n// C9 — bitfield accessors lowered from the `c2rust-bitfields` derive.\n// The derive loops once per bit (bounds-checked, not inlined); these do\n// the same read/modify/write in one mask+shift on the little-endian\n// integer the `[u8; N]` block already is.  Layout, names, signatures and\n// visibility are unchanged, so call sites keep working verbatim.\n#[automatically_derived]\nimpl _xmlSchemaValDecimal {\n    /// Read `width` bits starting at `lhs` out of a 2-byte\n    /// little-endian bitfield block (replaces the derive's per-bit loop).\n    #[inline(always)]\n    fn _bf_get_2(field: &[u8; 2], lhs: u32, width: u32) -> u16 {\n        let raw = u16::from_le_bytes(*field);\n        let mask = if width >= 16 { u16::MAX } else { ((1 as u16) << width) - 1 };\n        (raw >> lhs) & mask\n    }\n    /// Write the low `width` bits of `val` at `lhs`, leaving the rest\n    /// of the block untouched.\n    #[inline(always)]\n    fn _bf_set_2(field: &mut [u8; 2], lhs: u32, width: u32, val: u16) {\n        let mask = if width >= 16 { u16::MAX } else { ((1 as u16) << width) - 1 };\n        let raw = u16::from_le_bytes(*field);\n        let out = (raw & !(mask << lhs)) | ((val & mask) << lhs);\n        *field = out.to_le_bytes();\n    }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn sign(&self) -> c_uint { Self::_bf_get_2(&self.sign_frac_total, 0, 1) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_sign(&mut self, int: c_uint) { Self::_bf_set_2(&mut self.sign_frac_total, 0, 1, int as u16) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn frac(&self) -> c_uint { Self::_bf_get_2(&self.sign_frac_total, 1, 7) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_frac(&mut self, int: c_uint) { Self::_bf_set_2(&mut self.sign_frac_total, 1, 7, int as u16) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn total(&self) -> c_uint { Self::_bf_get_2(&self.sign_frac_total, 8, 8) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_total(&mut self, int: c_uint) { Self::_bf_set_2(&mut self.sign_frac_total, 8, 8, int as u16) }\n}",
+          "rule_id": "C9",
+          "start_byte": 62720,
+          "struct_name": "_xmlSchemaValDecimal"
+        },
+        {
+          "end_byte": 62666,
+          "evidence_hit_ids": [],
+          "expected_span_hash": "60b8d5e66d218e31fb9aaa04f0262fb4c7b06ae6d542ea409f78982d41d5dca8",
+          "operation_id": "bitfield-78ba1a86893fd372",
+          "relative_path": "src/xmlschemastypes.rs",
+          "replacement_text": "#[derive(Copy, Clone)]\n#[repr(C)]\npub struct _xmlSchemaValDate {\n    pub year: c_long,\n    pub mon_day_hour_min: [u8; 3],\n    pub c2rust_padding: [u8; 5],\n    pub sec: c_double,\n    pub tz_flag_tzo: [u8; 2],\n    pub c2rust_padding_0: [u8; 6],\n}\n// C9 — bitfield accessors lowered from the `c2rust-bitfields` derive.\n// The derive loops once per bit (bounds-checked, not inlined); these do\n// the same read/modify/write in one mask+shift on the little-endian\n// integer the `[u8; N]` block already is.  Layout, names, signatures and\n// visibility are unchanged, so call sites keep working verbatim.\n#[automatically_derived]\nimpl _xmlSchemaValDate {\n    /// Read `width` bits starting at `lhs` out of a 2-byte\n    /// little-endian bitfield block (replaces the derive's per-bit loop).\n    #[inline(always)]\n    fn _bf_get_2(field: &[u8; 2], lhs: u32, width: u32) -> u16 {\n        let raw = u16::from_le_bytes(*field);\n        let mask = if width >= 16 { u16::MAX } else { ((1 as u16) << width) - 1 };\n        (raw >> lhs) & mask\n    }\n    /// Write the low `width` bits of `val` at `lhs`, leaving the rest\n    /// of the block untouched.\n    #[inline(always)]\n    fn _bf_set_2(field: &mut [u8; 2], lhs: u32, width: u32, val: u16) {\n        let mask = if width >= 16 { u16::MAX } else { ((1 as u16) << width) - 1 };\n        let raw = u16::from_le_bytes(*field);\n        let out = (raw & !(mask << lhs)) | ((val & mask) << lhs);\n        *field = out.to_le_bytes();\n    }\n    /// Sign-extend a `width`-bit value read out of the block, so a\n    /// signed bitfield keeps the derive's sign-extension semantics.\n    #[inline(always)]\n    fn _bf_sext_2(val: u16, width: u32) -> u16 {\n        let shift = 16 - width;\n        (((val << shift) as i16) >> shift) as u16\n    }\n    /// Read `width` bits starting at `lhs` out of a 3-byte\n    /// little-endian bitfield block (replaces the derive's per-bit loop).\n    #[inline(always)]\n    fn _bf_get_3(field: &[u8; 3], lhs: u32, width: u32) -> u32 {\n        let mut buf = [0u8; 4];\n        buf[..3].copy_from_slice(field);\n        let raw = u32::from_le_bytes(buf);\n        let mask = if width >= 32 { u32::MAX } else { ((1 as u32) << width) - 1 };\n        (raw >> lhs) & mask\n    }\n    /// Write the low `width` bits of `val` at `lhs`, leaving the rest\n    /// of the block untouched.\n    #[inline(always)]\n    fn _bf_set_3(field: &mut [u8; 3], lhs: u32, width: u32, val: u32) {\n        let mask = if width >= 32 { u32::MAX } else { ((1 as u32) << width) - 1 };\n        let mut buf = [0u8; 4];\n        buf[..3].copy_from_slice(field);\n        let raw = u32::from_le_bytes(buf);\n        let out = (raw & !(mask << lhs)) | ((val & mask) << lhs);\n        field.copy_from_slice(&out.to_le_bytes()[..3]);\n    }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn mon(&self) -> c_uint { Self::_bf_get_3(&self.mon_day_hour_min, 0, 4) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_mon(&mut self, int: c_uint) { Self::_bf_set_3(&mut self.mon_day_hour_min, 0, 4, int as u32) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn day(&self) -> c_uint { Self::_bf_get_3(&self.mon_day_hour_min, 4, 5) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_day(&mut self, int: c_uint) { Self::_bf_set_3(&mut self.mon_day_hour_min, 4, 5, int as u32) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn hour(&self) -> c_uint { Self::_bf_get_3(&self.mon_day_hour_min, 9, 5) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_hour(&mut self, int: c_uint) { Self::_bf_set_3(&mut self.mon_day_hour_min, 9, 5, int as u32) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn min(&self) -> c_uint { Self::_bf_get_3(&self.mon_day_hour_min, 14, 6) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_min(&mut self, int: c_uint) { Self::_bf_set_3(&mut self.mon_day_hour_min, 14, 6, int as u32) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn tz_flag(&self) -> c_uint { Self::_bf_get_2(&self.tz_flag_tzo, 0, 1) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_tz_flag(&mut self, int: c_uint) { Self::_bf_set_2(&mut self.tz_flag_tzo, 0, 1, int as u16) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn tzo(&self) -> c_int { Self::_bf_sext_2(Self::_bf_get_2(&self.tz_flag_tzo, 1, 12), 12) as c_int }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_tzo(&mut self, int: c_int) { Self::_bf_set_2(&mut self.tz_flag_tzo, 1, 12, int as u16) }\n}",
+          "rule_id": "C9",
+          "start_byte": 61982,
+          "struct_name": "_xmlSchemaValDate"
+        }
+      ],
+      "trigger": {
+        "candidate_id": "xmlRegNewAtom-C9-222fd7e8e5ad",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "xmlRegNewAtom",
+        "rule_id": "C9"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "6b8d123f5ba2e9abae747aaa1b83ed6a9da1ec4e350e70b42b9344c5bd535a3c",
+            "edit_id": "edit-bitfield-74e5e94e8cb6985d",
+            "end_byte": 63171,
+            "operation_id": "bitfield-74e5e94e8cb6985d",
+            "relative_path": "src/xmlschemastypes.rs",
+            "replacement_text": "#[derive(Copy, Clone)]\n#[repr(C)]\npub struct _xmlSchemaValDecimal {\n    pub lo: c_ulong,\n    pub mi: c_ulong,\n    pub hi: c_ulong,\n    pub extra: c_uint,\n    pub sign_frac_total: [u8; 2],\n    pub c2rust_padding: [u8; 2],\n}\n// C9 — bitfield accessors lowered from the `c2rust-bitfields` derive.\n// The derive loops once per bit (bounds-checked, not inlined); these do\n// the same read/modify/write in one mask+shift on the little-endian\n// integer the `[u8; N]` block already is.  Layout, names, signatures and\n// visibility are unchanged, so call sites keep working verbatim.\n#[automatically_derived]\nimpl _xmlSchemaValDecimal {\n    /// Read `width` bits starting at `lhs` out of a 2-byte\n    /// little-endian bitfield block (replaces the derive's per-bit loop).\n    #[inline(always)]\n    fn _bf_get_2(field: &[u8; 2], lhs: u32, width: u32) -> u16 {\n        let raw = u16::from_le_bytes(*field);\n        let mask = if width >= 16 { u16::MAX } else { ((1 as u16) << width) - 1 };\n        (raw >> lhs) & mask\n    }\n    /// Write the low `width` bits of `val` at `lhs`, leaving the rest\n    /// of the block untouched.\n    #[inline(always)]\n    fn _bf_set_2(field: &mut [u8; 2], lhs: u32, width: u32, val: u16) {\n        let mask = if width >= 16 { u16::MAX } else { ((1 as u16) << width) - 1 };\n        let raw = u16::from_le_bytes(*field);\n        let out = (raw & !(mask << lhs)) | ((val & mask) << lhs);\n        *field = out.to_le_bytes();\n    }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn sign(&self) -> c_uint { Self::_bf_get_2(&self.sign_frac_total, 0, 1) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_sign(&mut self, int: c_uint) { Self::_bf_set_2(&mut self.sign_frac_total, 0, 1, int as u16) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn frac(&self) -> c_uint { Self::_bf_get_2(&self.sign_frac_total, 1, 7) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_frac(&mut self, int: c_uint) { Self::_bf_set_2(&mut self.sign_frac_total, 1, 7, int as u16) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn total(&self) -> c_uint { Self::_bf_get_2(&self.sign_frac_total, 8, 8) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_total(&mut self, int: c_uint) { Self::_bf_set_2(&mut self.sign_frac_total, 8, 8, int as u16) }\n}",
+            "start_byte": 62720
+          }
+        ],
+        "facts": {
+          "original_span": "#[derive(Copy, Clone, BitfieldStruct)]\n#[repr(C)]\npub struct _xmlSchemaValDecimal {\n    pub lo: c_ulong,\n    pub mi: c_ulong,\n    pub hi: c_ulong,\n    pub extra: c_uint,\n    #[bitfield(name = \"sign\", ty = \"c_uint\", bits = \"0..=0\")]\n    #[bitfield(name = \"frac\", ty = \"c_uint\", bits = \"1..=7\")]\n    #[bitfield(name = \"total\", ty = \"c_uint\", bits = \"8..=15\")]\n    pub sign_frac_total: [u8; 2],\n    #[bitfield(padding)]\n    pub c2rust_padding: [u8; 2],\n}",
+          "relative_path": "src/xmlschemastypes.rs",
+          "replacement_text": "#[derive(Copy, Clone)]\n#[repr(C)]\npub struct _xmlSchemaValDecimal {\n    pub lo: c_ulong,\n    pub mi: c_ulong,\n    pub hi: c_ulong,\n    pub extra: c_uint,\n    pub sign_frac_total: [u8; 2],\n    pub c2rust_padding: [u8; 2],\n}\n// C9 — bitfield accessors lowered from the `c2rust-bitfields` derive.\n// The derive loops once per bit (bounds-checked, not inlined); these do\n// the same read/modify/write in one mask+shift on the little-endian\n// integer the `[u8; N]` block already is.  Layout, names, signatures and\n// visibility are unchanged, so call sites keep working verbatim.\n#[automatically_derived]\nimpl _xmlSchemaValDecimal {\n    /// Read `width` bits starting at `lhs` out of a 2-byte\n    /// little-endian bitfield block (replaces the derive's per-bit loop).\n    #[inline(always)]\n    fn _bf_get_2(field: &[u8; 2], lhs: u32, width: u32) -> u16 {\n        let raw = u16::from_le_bytes(*field);\n        let mask = if width >= 16 { u16::MAX } else { ((1 as u16) << width) - 1 };\n        (raw >> lhs) & mask\n    }\n    /// Write the low `width` bits of `val` at `lhs`, leaving the rest\n    /// of the block untouched.\n    #[inline(always)]\n    fn _bf_set_2(field: &mut [u8; 2], lhs: u32, width: u32, val: u16) {\n        let mask = if width >= 16 { u16::MAX } else { ((1 as u16) << width) - 1 };\n        let raw = u16::from_le_bytes(*field);\n        let out = (raw & !(mask << lhs)) | ((val & mask) << lhs);\n        *field = out.to_le_bytes();\n    }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn sign(&self) -> c_uint { Self::_bf_get_2(&self.sign_frac_total, 0, 1) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_sign(&mut self, int: c_uint) { Self::_bf_set_2(&mut self.sign_frac_total, 0, 1, int as u16) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn frac(&self) -> c_uint { Self::_bf_get_2(&self.sign_frac_total, 1, 7) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_frac(&mut self, int: c_uint) { Self::_bf_set_2(&mut self.sign_frac_total, 1, 7, int as u16) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn total(&self) -> c_uint { Self::_bf_get_2(&self.sign_frac_total, 8, 8) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_total(&mut self, int: c_uint) { Self::_bf_set_2(&mut self.sign_frac_total, 8, 8, int as u16) }\n}",
+          "struct_name": "_xmlSchemaValDecimal"
+        },
+        "operation_id": "bitfield-74e5e94e8cb6985d"
+      },
+      {
+        "edits": [
+          {
+            "before_hash": "6b8d123f5ba2e9abae747aaa1b83ed6a9da1ec4e350e70b42b9344c5bd535a3c",
+            "edit_id": "edit-bitfield-78ba1a86893fd372",
+            "end_byte": 62666,
+            "operation_id": "bitfield-78ba1a86893fd372",
+            "relative_path": "src/xmlschemastypes.rs",
+            "replacement_text": "#[derive(Copy, Clone)]\n#[repr(C)]\npub struct _xmlSchemaValDate {\n    pub year: c_long,\n    pub mon_day_hour_min: [u8; 3],\n    pub c2rust_padding: [u8; 5],\n    pub sec: c_double,\n    pub tz_flag_tzo: [u8; 2],\n    pub c2rust_padding_0: [u8; 6],\n}\n// C9 — bitfield accessors lowered from the `c2rust-bitfields` derive.\n// The derive loops once per bit (bounds-checked, not inlined); these do\n// the same read/modify/write in one mask+shift on the little-endian\n// integer the `[u8; N]` block already is.  Layout, names, signatures and\n// visibility are unchanged, so call sites keep working verbatim.\n#[automatically_derived]\nimpl _xmlSchemaValDate {\n    /// Read `width` bits starting at `lhs` out of a 2-byte\n    /// little-endian bitfield block (replaces the derive's per-bit loop).\n    #[inline(always)]\n    fn _bf_get_2(field: &[u8; 2], lhs: u32, width: u32) -> u16 {\n        let raw = u16::from_le_bytes(*field);\n        let mask = if width >= 16 { u16::MAX } else { ((1 as u16) << width) - 1 };\n        (raw >> lhs) & mask\n    }\n    /// Write the low `width` bits of `val` at `lhs`, leaving the rest\n    /// of the block untouched.\n    #[inline(always)]\n    fn _bf_set_2(field: &mut [u8; 2], lhs: u32, width: u32, val: u16) {\n        let mask = if width >= 16 { u16::MAX } else { ((1 as u16) << width) - 1 };\n        let raw = u16::from_le_bytes(*field);\n        let out = (raw & !(mask << lhs)) | ((val & mask) << lhs);\n        *field = out.to_le_bytes();\n    }\n    /// Sign-extend a `width`-bit value read out of the block, so a\n    /// signed bitfield keeps the derive's sign-extension semantics.\n    #[inline(always)]\n    fn _bf_sext_2(val: u16, width: u32) -> u16 {\n        let shift = 16 - width;\n        (((val << shift) as i16) >> shift) as u16\n    }\n    /// Read `width` bits starting at `lhs` out of a 3-byte\n    /// little-endian bitfield block (replaces the derive's per-bit loop).\n    #[inline(always)]\n    fn _bf_get_3(field: &[u8; 3], lhs: u32, width: u32) -> u32 {\n        let mut buf = [0u8; 4];\n        buf[..3].copy_from_slice(field);\n        let raw = u32::from_le_bytes(buf);\n        let mask = if width >= 32 { u32::MAX } else { ((1 as u32) << width) - 1 };\n        (raw >> lhs) & mask\n    }\n    /// Write the low `width` bits of `val` at `lhs`, leaving the rest\n    /// of the block untouched.\n    #[inline(always)]\n    fn _bf_set_3(field: &mut [u8; 3], lhs: u32, width: u32, val: u32) {\n        let mask = if width >= 32 { u32::MAX } else { ((1 as u32) << width) - 1 };\n        let mut buf = [0u8; 4];\n        buf[..3].copy_from_slice(field);\n        let raw = u32::from_le_bytes(buf);\n        let out = (raw & !(mask << lhs)) | ((val & mask) << lhs);\n        field.copy_from_slice(&out.to_le_bytes()[..3]);\n    }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn mon(&self) -> c_uint { Self::_bf_get_3(&self.mon_day_hour_min, 0, 4) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_mon(&mut self, int: c_uint) { Self::_bf_set_3(&mut self.mon_day_hour_min, 0, 4, int as u32) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn day(&self) -> c_uint { Self::_bf_get_3(&self.mon_day_hour_min, 4, 5) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_day(&mut self, int: c_uint) { Self::_bf_set_3(&mut self.mon_day_hour_min, 4, 5, int as u32) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn hour(&self) -> c_uint { Self::_bf_get_3(&self.mon_day_hour_min, 9, 5) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_hour(&mut self, int: c_uint) { Self::_bf_set_3(&mut self.mon_day_hour_min, 9, 5, int as u32) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn min(&self) -> c_uint { Self::_bf_get_3(&self.mon_day_hour_min, 14, 6) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_min(&mut self, int: c_uint) { Self::_bf_set_3(&mut self.mon_day_hour_min, 14, 6, int as u32) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn tz_flag(&self) -> c_uint { Self::_bf_get_2(&self.tz_flag_tzo, 0, 1) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_tz_flag(&mut self, int: c_uint) { Self::_bf_set_2(&mut self.tz_flag_tzo, 0, 1, int as u16) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn tzo(&self) -> c_int { Self::_bf_sext_2(Self::_bf_get_2(&self.tz_flag_tzo, 1, 12), 12) as c_int }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_tzo(&mut self, int: c_int) { Self::_bf_set_2(&mut self.tz_flag_tzo, 1, 12, int as u16) }\n}",
+            "start_byte": 61982
+          }
+        ],
+        "facts": {
+          "original_span": "#[derive(Copy, Clone, BitfieldStruct)]\n#[repr(C)]\npub struct _xmlSchemaValDate {\n    pub year: c_long,\n    #[bitfield(name = \"mon\", ty = \"c_uint\", bits = \"0..=3\")]\n    #[bitfield(name = \"day\", ty = \"c_uint\", bits = \"4..=8\")]\n    #[bitfield(name = \"hour\", ty = \"c_uint\", bits = \"9..=13\")]\n    #[bitfield(name = \"min\", ty = \"c_uint\", bits = \"14..=19\")]\n    pub mon_day_hour_min: [u8; 3],\n    #[bitfield(padding)]\n    pub c2rust_padding: [u8; 5],\n    pub sec: c_double,\n    #[bitfield(name = \"tz_flag\", ty = \"c_uint\", bits = \"0..=0\")]\n    #[bitfield(name = \"tzo\", ty = \"c_int\", bits = \"1..=12\")]\n    pub tz_flag_tzo: [u8; 2],\n    #[bitfield(padding)]\n    pub c2rust_padding_0: [u8; 6],\n}",
+          "relative_path": "src/xmlschemastypes.rs",
+          "replacement_text": "#[derive(Copy, Clone)]\n#[repr(C)]\npub struct _xmlSchemaValDate {\n    pub year: c_long,\n    pub mon_day_hour_min: [u8; 3],\n    pub c2rust_padding: [u8; 5],\n    pub sec: c_double,\n    pub tz_flag_tzo: [u8; 2],\n    pub c2rust_padding_0: [u8; 6],\n}\n// C9 — bitfield accessors lowered from the `c2rust-bitfields` derive.\n// The derive loops once per bit (bounds-checked, not inlined); these do\n// the same read/modify/write in one mask+shift on the little-endian\n// integer the `[u8; N]` block already is.  Layout, names, signatures and\n// visibility are unchanged, so call sites keep working verbatim.\n#[automatically_derived]\nimpl _xmlSchemaValDate {\n    /// Read `width` bits starting at `lhs` out of a 2-byte\n    /// little-endian bitfield block (replaces the derive's per-bit loop).\n    #[inline(always)]\n    fn _bf_get_2(field: &[u8; 2], lhs: u32, width: u32) -> u16 {\n        let raw = u16::from_le_bytes(*field);\n        let mask = if width >= 16 { u16::MAX } else { ((1 as u16) << width) - 1 };\n        (raw >> lhs) & mask\n    }\n    /// Write the low `width` bits of `val` at `lhs`, leaving the rest\n    /// of the block untouched.\n    #[inline(always)]\n    fn _bf_set_2(field: &mut [u8; 2], lhs: u32, width: u32, val: u16) {\n        let mask = if width >= 16 { u16::MAX } else { ((1 as u16) << width) - 1 };\n        let raw = u16::from_le_bytes(*field);\n        let out = (raw & !(mask << lhs)) | ((val & mask) << lhs);\n        *field = out.to_le_bytes();\n    }\n    /// Sign-extend a `width`-bit value read out of the block, so a\n    /// signed bitfield keeps the derive's sign-extension semantics.\n    #[inline(always)]\n    fn _bf_sext_2(val: u16, width: u32) -> u16 {\n        let shift = 16 - width;\n        (((val << shift) as i16) >> shift) as u16\n    }\n    /// Read `width` bits starting at `lhs` out of a 3-byte\n    /// little-endian bitfield block (replaces the derive's per-bit loop).\n    #[inline(always)]\n    fn _bf_get_3(field: &[u8; 3], lhs: u32, width: u32) -> u32 {\n        let mut buf = [0u8; 4];\n        buf[..3].copy_from_slice(field);\n        let raw = u32::from_le_bytes(buf);\n        let mask = if width >= 32 { u32::MAX } else { ((1 as u32) << width) - 1 };\n        (raw >> lhs) & mask\n    }\n    /// Write the low `width` bits of `val` at `lhs`, leaving the rest\n    /// of the block untouched.\n    #[inline(always)]\n    fn _bf_set_3(field: &mut [u8; 3], lhs: u32, width: u32, val: u32) {\n        let mask = if width >= 32 { u32::MAX } else { ((1 as u32) << width) - 1 };\n        let mut buf = [0u8; 4];\n        buf[..3].copy_from_slice(field);\n        let raw = u32::from_le_bytes(buf);\n        let out = (raw & !(mask << lhs)) | ((val & mask) << lhs);\n        field.copy_from_slice(&out.to_le_bytes()[..3]);\n    }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn mon(&self) -> c_uint { Self::_bf_get_3(&self.mon_day_hour_min, 0, 4) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_mon(&mut self, int: c_uint) { Self::_bf_set_3(&mut self.mon_day_hour_min, 0, 4, int as u32) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn day(&self) -> c_uint { Self::_bf_get_3(&self.mon_day_hour_min, 4, 5) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_day(&mut self, int: c_uint) { Self::_bf_set_3(&mut self.mon_day_hour_min, 4, 5, int as u32) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn hour(&self) -> c_uint { Self::_bf_get_3(&self.mon_day_hour_min, 9, 5) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_hour(&mut self, int: c_uint) { Self::_bf_set_3(&mut self.mon_day_hour_min, 9, 5, int as u32) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn min(&self) -> c_uint { Self::_bf_get_3(&self.mon_day_hour_min, 14, 6) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_min(&mut self, int: c_uint) { Self::_bf_set_3(&mut self.mon_day_hour_min, 14, 6, int as u32) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn tz_flag(&self) -> c_uint { Self::_bf_get_2(&self.tz_flag_tzo, 0, 1) as c_uint }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_tz_flag(&mut self, int: c_uint) { Self::_bf_set_2(&mut self.tz_flag_tzo, 0, 1, int as u16) }\n    /// This method allows you to read from a bitfield to a value\n    #[inline(always)]\n    pub fn tzo(&self) -> c_int { Self::_bf_sext_2(Self::_bf_get_2(&self.tz_flag_tzo, 1, 12), 12) as c_int }\n    /// This method allows you to write to a bitfield with a value\n    #[inline(always)]\n    pub fn set_tzo(&mut self, int: c_int) { Self::_bf_set_2(&mut self.tz_flag_tzo, 1, 12, int as u16) }\n}",
+          "struct_name": "_xmlSchemaValDate"
+        },
+        "operation_id": "bitfield-78ba1a86893fd372"
+      }
+    ],
+    "resolved_head": "f9ecdde7271d90e0d2b152c070f156dd098e07f6"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/xmlschemastypes.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "bitfield_span_fresh",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "bitfield_span_fresh",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "bitfield_struct_lowered",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "bitfield_struct_lowered",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

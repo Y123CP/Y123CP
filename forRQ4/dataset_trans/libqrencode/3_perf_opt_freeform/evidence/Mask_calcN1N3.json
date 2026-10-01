@@ -1,0 +1,182 @@
+{
+  "hot_function": {
+    "symbol": "Mask_calcN1N3",
+    "location": "src/mask.rs:392-433",
+    "workload": "encode_data_and_input",
+    "hot_region": "src/mask.rs:392-433",
+    "rust_source": "unsafe fn Mask_calcN1N3(\n    mut length: c_int,\n    mut runLength: *mut c_int,\n) -> c_int {\n    let mut i: c_int = 0;\n    let mut demerit: c_int = 0 as c_int;\n    let mut fact: c_int = 0;\n    i = 0 as c_int;\n    while i < length {\n        if *runLength.offset(i as isize) >= 5 as c_int {\n            demerit += N1 + (*runLength.offset(i as isize) - 5 as c_int);\n        }\n        if i & 1 as c_int != 0 {\n            if i >= 3 as c_int\n                && i < length - 2 as c_int\n                && *runLength.offset(i as isize) % 3 as c_int\n                    == 0 as c_int\n            {\n                fact = *runLength.offset(i as isize) / 3 as c_int;\n                if *runLength.offset((i - 2 as c_int) as isize) == fact\n                    && *runLength.offset((i - 1 as c_int) as isize) == fact\n                    && *runLength.offset((i + 1 as c_int) as isize) == fact\n                    && *runLength.offset((i + 2 as c_int) as isize) == fact\n                {\n                    if i == 3 as c_int\n                        || *runLength.offset((i - 3 as c_int) as isize)\n                            >= 4 as c_int * fact\n                    {\n                        demerit += N3;\n                    } else if i + 4 as c_int >= length\n                        || *runLength.offset((i + 3 as c_int) as isize)\n                            >= 4 as c_int * fact\n                    {\n                        demerit += N3;\n                    }\n                }\n            }\n        }\n        i += 1;\n    }\n    return demerit;\n}",
+    "signature": "unsafe fn Mask_calcN1N3(\n    mut length: c_int,\n    mut runLength: *mut c_int,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.2603,
+      "call_count": null,
+      "retired_instructions": 2735486985,
+      "instructions_per_call": null,
+      "cpi": 0.539,
+      "tma": {
+        "scope": "process",
+        "retiring": 40.33045162859861,
+        "frontend_bound": 14.018133540048284,
+        "bad_speculation": 36.63843515486249,
+        "backend_bound": 9.012979676490616,
+        "memory_bound": 2.6460572530993196,
+        "core_bound": 6.366922423391296,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0943
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {},
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 392,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN19libqrencode_cleaned3src4mask13Mask_calcN1N317ha06100f71554655cE: MI Instruction count changed from 0 to 125; Delta: 125"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 392,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN19libqrencode_cleaned3src4mask13Mask_calcN1N317ha06100f71554655cE: MI Instruction count changed from 125 to 124; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 392,
+        "message": "Peephole Optimizations: Function: _ZN19libqrencode_cleaned3src4mask13Mask_calcN1N317ha06100f71554655cE: MI Instruction count changed from 124 to 116; Delta: -8"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 392,
+        "message": "Remove dead machine instructions: Function: _ZN19libqrencode_cleaned3src4mask13Mask_calcN1N317ha06100f71554655cE: MI Instruction count changed from 116 to 115; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 392,
+        "message": "Process Implicit Definitions: Function: _ZN19libqrencode_cleaned3src4mask13Mask_calcN1N317ha06100f71554655cE: MI Instruction count changed from 115 to 108; Delta: -7"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 392,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN19libqrencode_cleaned3src4mask13Mask_calcN1N317ha06100f71554655cE: MI Instruction count changed from 108 to 128; Delta: 20"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 392,
+        "message": "Two-Address instruction pass: Function: _ZN19libqrencode_cleaned3src4mask13Mask_calcN1N317ha06100f71554655cE: MI Instruction count changed from 128 to 146; Delta: 18"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 392,
+        "message": "Register Coalescer: Function: _ZN19libqrencode_cleaned3src4mask13Mask_calcN1N317ha06100f71554655cE: MI Instruction count changed from 146 to 85; Delta: -61"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 400,
+        "message": "5 virtual registers copies 5.277451e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 392,
+        "message": "5 virtual registers copies 5.277451e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 392,
+        "message": "Virtual Register Rewriter: Function: _ZN19libqrencode_cleaned3src4mask13Mask_calcN1N317ha06100f71554655cE: MI Instruction count changed from 85 to 83; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 392,
+        "message": "Shrink Wrapping analysis: Function: _ZN19libqrencode_cleaned3src4mask13Mask_calcN1N317ha06100f71554655cE: MI Instruction count changed from 83 to 84; Delta: 1"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 392,
+        "message": "40 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 392,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN19libqrencode_cleaned3src4mask13Mask_calcN1N317ha06100f71554655cE: MI Instruction count changed from 84 to 114; Delta: 30"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 392,
+        "message": "Control Flow Optimizer: Function: _ZN19libqrencode_cleaned3src4mask13Mask_calcN1N317ha06100f71554655cE: MI Instruction count changed from 114 to 100; Delta: -14"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 392,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN19libqrencode_cleaned3src4mask13Mask_calcN1N317ha06100f71554655cE: MI Instruction count changed from 100 to 99; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 392,
+        "message": "X86 LEA Fixup: Function: _ZN19libqrencode_cleaned3src4mask13Mask_calcN1N317ha06100f71554655cE: MI Instruction count changed from 99 to 102; Delta: 3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 430,
+        "message": "BasicBlock: bb36"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 404,
+        "message": "BasicBlock: bb2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 413,
+        "message": "BasicBlock: bb13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 416,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 421,
+        "message": "BasicBlock: bb19"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 392,
+        "message": "81 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -1.7614355152997943,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": -1.3848345865087495,
+            "aggregate_ci_low_pct": -2.138036444090839,
+            "aggregate_pct": -1.7614355152997943,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -2.8283,
+                "ci_low_pct": -3.4502,
+                "insns_delta_pct": -1.7709,
+                "mean_delta_pct": -3.1392,
+                "op": "choices_add_search",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -5.483,
+                "ci_low_pct": -7.1333,
+                "insns_delta_pct": -2.6851,
+                "mean_delta_pct": -6.3081,
+                "op": "choices_fread_search",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 5.014,
+                "ci_low_pct": 3.3121,
+                "insns_delta_pct": 0.0208,
+                "mean_delta_pct": 4.163,
+                "op": "match_primitives",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "choices_add_search",
+          "choices_fread_search",
+          "match_primitives"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "match_primitives"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "80b68ab1d2a7d280f454b41df8dc3636c9e8322a",
+      "changeset_id": "legacy-f8032e9e42772aad",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-be2431d13e07f59f",
+          "replacement_function_source": "// Applied rules: [C12, C3, C1]\n// Skipped rules: [C12: Hit [0] on match_struct zero-init is not safely rewritable from the provided context: setup_match_struct writes only prefixes of lower_needle/lower_haystack and delegates match_bonus filling to opaque precompute_bonus, so unread-tail deadness is not proven.; C3.S1: Subsumed by abstention: match_0 is #[export_name = \"match\"] pub unsafe extern \"C\" fn, so signature lifting would break the C ABI and affect callers.]\n#[export_name = \"match\"]\npub unsafe extern \"C\" fn match_0(\n    mut needle: *const c_char,\n    mut haystack: *const c_char,\n) -> score_t {\n    if *needle == 0 {\n        return -::core::f32::INFINITY as score_t;\n    }\n    let mut match_1: match_struct = match_struct {\n        needle_len: 0,\n        haystack_len: 0,\n        lower_needle: [0; 1024],\n        lower_haystack: [0; 1024],\n        match_bonus: [0.; 1024],\n    };\n    setup_match_struct(&raw mut match_1, needle, haystack);\n    let n: c_int = match_1.needle_len;\n    let m: c_int = match_1.haystack_len;\n    if m > MATCH_MAX_LEN || n > m {\n        return -::core::f32::INFINITY as score_t;\n    } else if n == m {\n        return ::core::f32::INFINITY as score_t;\n    }\n    let mut D_store = [::core::mem::MaybeUninit::<score_t>::uninit(); 1024];\n    let mut M_store = [::core::mem::MaybeUninit::<score_t>::uninit(); 1024];\n    let (D, M): (&mut [score_t], &mut [score_t]) = unsafe {\n        // SAFETY: match_row reads and writes only indices j where 0 <= j < m; the guards above ensure m <= MATCH_MAX_LEN <= 1024, and zero is a valid bit-pattern for score_t (f32). We bulk-initialize exactly the live prefix and then expose only that prefix as &mut [score_t].\n        let d_ptr = D_store.as_mut_ptr() as *mut score_t;\n        let m_ptr = M_store.as_mut_ptr() as *mut score_t;\n        ::core::ptr::write_bytes(d_ptr, 0, m as usize);\n        ::core::ptr::write_bytes(m_ptr, 0, m as usize);\n        (\n            ::core::slice::from_raw_parts_mut(d_ptr, m as usize),\n            ::core::slice::from_raw_parts_mut(m_ptr, m as usize),\n        )\n    };\n    let mut i: c_int = 0 as c_int;\n    while i < n {\n        match_row(\n            &raw mut match_1,\n            i,\n            D.as_mut_ptr(),\n            M.as_mut_ptr(),\n            D.as_ptr(),\n            M.as_ptr(),\n        );\n        i += 1;\n    }\n    unsafe {\n        // SAFETY: reaching this point implies n != m and needle was non-empty, so n > 0 and thus m > 0 because n <= m; M has length m, therefore index (m - 1) is in-bounds.\n        *M.get_unchecked((m - 1 as c_int) as usize)\n    }\n}",
+          "rule_id": "C12,C3,C1",
+          "target": {
+            "declaration_hash": "97c94591d345ed921ef569011c1464bc51d8b59ccd356cd161fa045e98acb5d8",
+            "file_hint": "src/match.rs",
+            "qualified_name": "crate::match_0",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "match-dcc619c253bb",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "match_0",
+        "rule_id": "C12,C3,C1"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "a5aee822067990edd9540f876964e4ad081f297d6d79db149d3193ef87a1a86a",
+            "edit_id": "edit-replace-be2431d13e07f59f",
+            "end_byte": 8990,
+            "operation_id": "replace-be2431d13e07f59f",
+            "relative_path": "src/match.rs",
+            "replacement_text": "// Applied rules: [C12, C3, C1]\n// Skipped rules: [C12: Hit [0] on match_struct zero-init is not safely rewritable from the provided context: setup_match_struct writes only prefixes of lower_needle/lower_haystack and delegates match_bonus filling to opaque precompute_bonus, so unread-tail deadness is not proven.; C3.S1: Subsumed by abstention: match_0 is #[export_name = \"match\"] pub unsafe extern \"C\" fn, so signature lifting would break the C ABI and affect callers.]\n#[export_name = \"match\"]\npub unsafe extern \"C\" fn match_0(\n    mut needle: *const c_char,\n    mut haystack: *const c_char,\n) -> score_t {\n    if *needle == 0 {\n        return -::core::f32::INFINITY as score_t;\n    }\n    let mut match_1: match_struct = match_struct {\n        needle_len: 0,\n        haystack_len: 0,\n        lower_needle: [0; 1024],\n        lower_haystack: [0; 1024],\n        match_bonus: [0.; 1024],\n    };\n    setup_match_struct(&raw mut match_1, needle, haystack);\n    let n: c_int = match_1.needle_len;\n    let m: c_int = match_1.haystack_len;\n    if m > MATCH_MAX_LEN || n > m {\n        return -::core::f32::INFINITY as score_t;\n    } else if n == m {\n        return ::core::f32::INFINITY as score_t;\n    }\n    let mut D_store = [::core::mem::MaybeUninit::<score_t>::uninit(); 1024];\n    let mut M_store = [::core::mem::MaybeUninit::<score_t>::uninit(); 1024];\n    let (D, M): (&mut [score_t], &mut [score_t]) = unsafe {\n        // SAFETY: match_row reads and writes only indices j where 0 <= j < m; the guards above ensure m <= MATCH_MAX_LEN <= 1024, and zero is a valid bit-pattern for score_t (f32). We bulk-initialize exactly the live prefix and then expose only that prefix as &mut [score_t].\n        let d_ptr = D_store.as_mut_ptr() as *mut score_t;\n        let m_ptr = M_store.as_mut_ptr() as *mut score_t;\n        ::core::ptr::write_bytes(d_ptr, 0, m as usize);\n        ::core::ptr::write_bytes(m_ptr, 0, m as usize);\n        (\n            ::core::slice::from_raw_parts_mut(d_ptr, m as usize),\n            ::core::slice::from_raw_parts_mut(m_ptr, m as usize),\n        )\n    };\n    let mut i: c_int = 0 as c_int;\n    while i < n {\n        match_row(\n            &raw mut match_1,\n            i,\n            D.as_mut_ptr(),\n            M.as_mut_ptr(),\n            D.as_ptr(),\n            M.as_ptr(),\n        );\n        i += 1;\n    }\n    unsafe {\n        // SAFETY: reaching this point implies n != m and needle was non-empty, so n > 0 and thus m > 0 because n <= m; M has length m, therefore index (m - 1) is in-bounds.\n        *M.get_unchecked((m - 1 as c_int) as usize)\n    }\n}",
+            "start_byte": 7813
+          }
+        ],
+        "facts": {
+          "fn_name": "match_0",
+          "target_span_hash": "97c94591d345ed921ef569011c1464bc51d8b59ccd356cd161fa045e98acb5d8"
+        },
+        "operation_id": "replace-be2431d13e07f59f"
+      }
+    ],
+    "resolved_head": "80b68ab1d2a7d280f454b41df8dc3636c9e8322a"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/match.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

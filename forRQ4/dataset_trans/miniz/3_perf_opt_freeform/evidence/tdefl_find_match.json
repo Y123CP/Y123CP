@@ -1,0 +1,365 @@
+{
+  "hot_function": {
+    "symbol": "tdefl_find_match",
+    "location": "src/miniz_tdef.rs:3328-3438",
+    "workload": "tdefl_encode_blob",
+    "hot_region": "src/miniz_tdef.rs:3328-3438",
+    "rust_source": "unsafe fn tdefl_find_match(\n    mut d: *mut tdefl_compressor,\n    mut lookahead_pos: mz_uint,\n    mut max_dist: mz_uint,\n    mut max_match_len: mz_uint,\n    mut pMatch_dist: *mut mz_uint,\n    mut pMatch_len: *mut mz_uint,\n) {\n    let mut dist: mz_uint = 0;\n    let mut pos: mz_uint = lookahead_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n    let mut match_len: mz_uint = *pMatch_len;\n    let mut probe_pos: mz_uint = pos;\n    let mut next_probe_pos: mz_uint = 0;\n    let mut probe_len: mz_uint = 0;\n    let mut num_probes_left: mz_uint =\n        (*d).m_max_probes[(match_len >= 32 as mz_uint) as c_int as usize];\n    let mut s: *const mz_uint8 = (&raw mut (*d).m_dict as *mut mz_uint8).offset(pos as isize);\n    let mut p: *const mz_uint8 = ::core::ptr::null::<mz_uint8>();\n    let mut q: *const mz_uint8 = ::core::ptr::null::<mz_uint8>();\n    let mut c0: mz_uint8 = (*d).m_dict[pos.wrapping_add(match_len) as usize];\n    let mut c1: mz_uint8 =\n        (*d).m_dict[pos.wrapping_add(match_len).wrapping_sub(1 as mz_uint) as usize];\n    if max_match_len <= match_len {\n        return;\n    }\n    loop {\n        loop {\n            num_probes_left = num_probes_left.wrapping_sub(1);\n            if num_probes_left == 0 as mz_uint {\n                return;\n            }\n            next_probe_pos = (*d).m_next[probe_pos as usize] as mz_uint;\n            if next_probe_pos == 0 || {\n                dist = lookahead_pos.wrapping_sub(next_probe_pos) as mz_uint16 as mz_uint;\n                dist > max_dist\n            } {\n                return;\n            }\n            probe_pos = next_probe_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n            if (*d).m_dict[probe_pos.wrapping_add(match_len) as usize] as c_int\n                == c0 as c_int\n                && (*d).m_dict\n                    [probe_pos.wrapping_add(match_len).wrapping_sub(1 as mz_uint) as usize]\n                    as c_int\n                    == c1 as c_int\n            {\n                break;\n            }\n            next_probe_pos = (*d).m_next[probe_pos as usize] as mz_uint;\n            if next_probe_pos == 0 || {\n                dist = lookahead_pos.wrapping_sub(next_probe_pos) as mz_uint16 as mz_uint;\n                dist > max_dist\n            } {\n                return;\n            }\n            probe_pos = next_probe_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n            if (*d).m_dict[probe_pos.wrapping_add(match_len) as usize] as c_int\n                == c0 as c_int\n                && (*d).m_dict\n                    [probe_pos.wrapping_add(match_len).wrapping_sub(1 as mz_uint) as usize]\n                    as c_int\n                    == c1 as c_int\n            {\n                break;\n            }\n            next_probe_pos = (*d).m_next[probe_pos as usize] as mz_uint;\n            if next_probe_pos == 0 || {\n                dist = lookahead_pos.wrapping_sub(next_probe_pos) as mz_uint16 as mz_uint;\n                dist > max_dist\n            } {\n                return;\n            }\n            probe_pos = next_probe_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n            if (*d).m_dict[probe_pos.wrapping_add(match_len) as usize] as c_int\n                == c0 as c_int\n                && (*d).m_dict\n                    [probe_pos.wrapping_add(match_len).wrapping_sub(1 as mz_uint) as usize]\n                    as c_int\n                    == c1 as c_int\n            {\n                break;\n            }\n        }\n        if dist == 0 {\n            break;\n        }\n        p = s;\n        q = (&raw mut (*d).m_dict as *mut mz_uint8).offset(probe_pos as isize);\n        probe_len = 0 as mz_uint;\n        while probe_len < max_match_len {\n            let fresh85 = p;\n            p = p.offset(1);\n            let fresh86 = q;\n            q = q.offset(1);\n            if *fresh85 as c_int != *fresh86 as c_int {\n                break;\n            }\n            probe_len = probe_len.wrapping_add(1);\n        }\n        if probe_len > match_len {\n            *pMatch_dist = dist;\n            match_len = probe_len;\n            *pMatch_len = match_len;\n            if *pMatch_len == max_match_len {\n                return;\n            }\n            c0 = (*d).m_dict[pos.wrapping_add(match_len) as usize];\n            c1 = (*d).m_dict[pos.wrapping_add(match_len).wrapping_sub(1 as mz_uint) as usize];\n        }\n    }\n}",
+    "signature": "unsafe fn tdefl_find_match(\n    mut d: *mut tdefl_compressor,\n    mut lookahead_pos: mz_uint,\n    mut max_dist: mz_uint,\n    mut max_match_len: mz_uint,\n    mut pMatch_dist: *mut mz_uint,\n    mut pMatch_len: *mut mz_uint,\n)",
+    "profile": {
+      "self_time_ratio": 0.718,
+      "call_count": null,
+      "retired_instructions": 6682298151,
+      "instructions_per_call": null,
+      "cpi": 0.467,
+      "tma": {
+        "scope": "process",
+        "retiring": 43.96808925189169,
+        "frontend_bound": 26.453034562045627,
+        "bad_speculation": 10.866525828532803,
+        "backend_bound": 18.71235035752988,
+        "memory_bound": 15.467340645745667,
+        "core_bound": 3.245009711784211,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0122
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C1": 10,
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3347,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef16tdefl_find_match17h5c2d70b2a36d4e75E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3349,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef16tdefl_find_match17h5c2d70b2a36d4e75E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3367,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef16tdefl_find_match17h5c2d70b2a36d4e75E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3369,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef16tdefl_find_match17h5c2d70b2a36d4e75E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3384,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef16tdefl_find_match17h5c2d70b2a36d4e75E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3386,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef16tdefl_find_match17h5c2d70b2a36d4e75E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3401,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef16tdefl_find_match17h5c2d70b2a36d4e75E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3403,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef16tdefl_find_match17h5c2d70b2a36d4e75E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3434,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef16tdefl_find_match17h5c2d70b2a36d4e75E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3435,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef16tdefl_find_match17h5c2d70b2a36d4e75E because its definition is unavailable"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3361,
+        "message": "hoisting trunc"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3422,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3347,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3349,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3367,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3369,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3384,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3386,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3401,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3403,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3434,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3435,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E because its definition is unavailable"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3344,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3356,
+        "message": "10 reloads 4.984788e+01 total reloads cost 3 virtual registers copies 2.236696e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3417,
+        "message": "1 reloads 5.325690e+00 total reloads cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3356,
+        "message": "5 spills 2.613616e+00 total spills cost 14 reloads 5.598213e+01 total reloads cost 2 folded reloads 6.553040e-01 total folded reloads cost 6 virtual registers copies 2.466618e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3356,
+        "message": "BasicBlock: bb44.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3359,
+        "message": "BasicBlock: bb9.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3361,
+        "message": "BasicBlock: bb11.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3366,
+        "message": "BasicBlock: bb13.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3376,
+        "message": "BasicBlock: bb21.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3378,
+        "message": "BasicBlock: bb23.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3383,
+        "message": "BasicBlock: bb25.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3393,
+        "message": "BasicBlock: bb33.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3395,
+        "message": "BasicBlock: bb35.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3400,
+        "message": "BasicBlock: bb37.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3411,
+        "message": "BasicBlock: bb45.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3415,
+        "message": "BasicBlock: bb47.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3417,
+        "message": "BasicBlock: bb51.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3427,
+        "message": "BasicBlock: bb53.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3431,
+        "message": "BasicBlock: bb54.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3434,
+        "message": "BasicBlock: bb58.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3356,
+        "message": "BasicBlock: bb60.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3367,
+        "message": "BasicBlock: panic9.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3384,
+        "message": "BasicBlock: panic18.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3401,
+        "message": "BasicBlock: panic27.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3347,
+        "message": "BasicBlock: panic1.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3349,
+        "message": "BasicBlock: panic3.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3369,
+        "message": "BasicBlock: panic13.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3386,
+        "message": "BasicBlock: panic22.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3403,
+        "message": "BasicBlock: panic31.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3434,
+        "message": "BasicBlock: panic37.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3435,
+        "message": "BasicBlock: panic40.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

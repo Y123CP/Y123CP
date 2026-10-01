@@ -1,0 +1,7 @@
+已完成优化，正式源码只改了 [code/src/openaptx.rs](/home/anonymous/artifact/PerfTrans/dataset_trans/libopenaptx/codex_version/code/src/openaptx.rs)。另外新增了 [work/bench/Cargo.toml](/home/anonymous/artifact/PerfTrans/dataset_trans/libopenaptx/codex_version/work/bench/Cargo.toml)、[work/bench/src/main.rs](/home/anonymous/artifact/PerfTrans/dataset_trans/libopenaptx/codex_version/work/bench/src/main.rs) 作为临时基准，以及 [results/agent_report.md](/home/anonymous/artifact/PerfTrans/dataset_trans/libopenaptx/codex_version/results/agent_report.md) 记录分析与结果。
+
+`openaptx.rs` 里的改动意图主要有四类：把极小且高频的 helper 标成 `#[inline(always)]`；把固定长度的小循环直接展开，覆盖 dither 生成、16-tap QMF 卷积、polyphase 分析/合成、4 个 subband 的处理和 2 个声道的 pack/unpack；去掉预测历史更新里的 `% order`；把 `aptx_encode` / `aptx_decode` 的 24-bit PCM 读写改成固定块布局访问。收益来源主要是减少热路径里的循环控制、分支、指针偏移和重复表寻址，让 LLVM 更容易内联和常量传播。
+
+自测方面，我先用 `cargo +nightly-2024-01-15 build --release` 在 `code/` 下确认可编译，然后用 `work/bench` 做本地吞吐测试。基线是：`std encode 26.36 MiB/s, std decode 40.69 MiB/s, hd encode 28.35 MiB/s, hd decode 42.02 MiB/s`。优化后是：`std encode 31.94 MiB/s, std decode 48.44 MiB/s, hd encode 31.24 MiB/s, hd decode 48.72 MiB/s`，大致对应 `+21% / +19% / +10% / +16%`。优化后基准同时输出了编码/解码结果 hash，详见报告。
+
+Agent 自测数据仅供参考；你们在拿到我的优化结果后，一定会使用外部后验脚本重新编译并统一测量，并应以外部测量结果作为最终性能结论。

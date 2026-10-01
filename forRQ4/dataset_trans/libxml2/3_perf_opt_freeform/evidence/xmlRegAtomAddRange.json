@@ -1,0 +1,227 @@
+{
+  "hot_function": {
+    "symbol": "xmlRegAtomAddRange",
+    "location": "src/xmlregexp.rs:2355-2425",
+    "workload": "regexp_pattern",
+    "hot_region": "src/xmlregexp.rs:2355-2425",
+    "rust_source": "unsafe fn xmlRegAtomAddRange(\n    mut ctxt: xmlRegParserCtxtPtr,\n    mut atom: xmlRegAtomPtr,\n    mut neg: c_int,\n    mut type_0: xmlRegAtomType,\n    mut start: c_int,\n    mut end: c_int,\n    mut blockName: *mut xmlChar,\n) -> xmlRegRangePtr {\n    let mut range: xmlRegRangePtr = ::core::ptr::null_mut::<xmlRegRange>();\n    if atom.is_null() {\n        (*ctxt).error = XML_REGEXP_COMPILE_ERROR as c_int;\n        xmlRegexpErrCompile(\n            ctxt,\n            b\"add range: atom is NULL\\0\" as *const u8 as *const c_char,\n        );\n        return ::core::ptr::null_mut::<xmlRegRange>();\n    }\n    if (*atom).type_0 as c_uint\n        != XML_REGEXP_RANGES as c_int as c_uint\n    {\n        (*ctxt).error = XML_REGEXP_COMPILE_ERROR as c_int;\n        xmlRegexpErrCompile(\n            ctxt,\n            b\"add range: atom is not ranges\\0\" as *const u8 as *const c_char,\n        );\n        return ::core::ptr::null_mut::<xmlRegRange>();\n    }\n    if (*atom).maxRanges == 0 as c_int {\n        (*atom).maxRanges = 4 as c_int;\n        (*atom).ranges = xmlMalloc.expect(\"non-null function pointer\")(\n            ((*atom).maxRanges as size_t)\n                .wrapping_mul(::core::mem::size_of::<xmlRegRangePtr>() as size_t),\n        ) as *mut xmlRegRangePtr;\n        if (*atom).ranges.is_null() {\n            xmlRegexpErrMemory(\n                ctxt,\n                b\"adding ranges\\0\" as *const u8 as *const c_char,\n            );\n            (*atom).maxRanges = 0 as c_int;\n            return ::core::ptr::null_mut::<xmlRegRange>();\n        }\n    } else if (*atom).nbRanges >= (*atom).maxRanges {\n        let mut tmp: *mut xmlRegRangePtr = ::core::ptr::null_mut::<xmlRegRangePtr>();\n        (*atom).maxRanges *= 2 as c_int;\n        tmp = xmlRealloc.expect(\"non-null function pointer\")(\n            (*atom).ranges as *mut c_void,\n            ((*atom).maxRanges as size_t)\n                .wrapping_mul(::core::mem::size_of::<xmlRegRangePtr>() as size_t),\n        ) as *mut xmlRegRangePtr;\n        if tmp.is_null() {\n            xmlRegexpErrMemory(\n                ctxt,\n                b\"adding ranges\\0\" as *const u8 as *const c_char,\n            );\n            (*atom).maxRanges /= 2 as c_int;\n            return ::core::ptr::null_mut::<xmlRegRange>();\n        }\n        (*atom).ranges = tmp;\n    }\n    range = xmlRegNewRange(ctxt, neg, type_0, start, end);\n    if range.is_null() {\n        return ::core::ptr::null_mut::<xmlRegRange>();\n    }\n    (*range).blockName = blockName;\n    let fresh12 = (*atom).nbRanges;\n    (*atom).nbRanges = (*atom).nbRanges + 1;\n    let ref mut fresh13 = *(*atom).ranges.offset(fresh12 as isize);\n    *fresh13 = range;\n    return range;\n}",
+    "signature": "unsafe fn xmlRegAtomAddRange(\n    mut ctxt: xmlRegParserCtxtPtr,\n    mut atom: xmlRegAtomPtr,\n    mut neg: c_int,\n    mut type_0: xmlRegAtomType,\n    mut start: c_int,\n    mut end: c_int,\n    mut blockName: *mut xmlChar,\n) -> xmlRegRangePtr",
+    "profile": {
+      "self_time_ratio": 0.0341,
+      "call_count": null,
+      "retired_instructions": 633291701,
+      "instructions_per_call": null,
+      "cpi": 0.319,
+      "tma": {
+        "scope": "process",
+        "retiring": 66.30455474487951,
+        "frontend_bound": 29.28114904240403,
+        "bad_speculation": 2.2946739351292185,
+        "backend_bound": 2.1196222775872466,
+        "memory_bound": 1.614317514420731,
+        "core_bound": 0.5053047631665157,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0015
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C1": 2,
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2367,
+        "message": "'_ZN15libxml2_cleaned3src9xmlregexp19xmlRegexpErrCompile17hfc50b135ef584248E' inlined into '_ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E' with (cost=105, threshold=250) at callsite _ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E:12:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2377,
+        "message": "'_ZN15libxml2_cleaned3src9xmlregexp19xmlRegexpErrCompile17hfc50b135ef584248E' inlined into '_ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E' with (cost=105, threshold=250) at callsite _ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E:22:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2390,
+        "message": "'_ZN15libxml2_cleaned3src9xmlregexp18xmlRegexpErrMemory17h9d4281d4071982d3E' inlined into '_ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E' with (cost=95, threshold=250) at callsite _ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E:35:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2415,
+        "message": "'_ZN15libxml2_cleaned3src9xmlregexp14xmlRegNewRange17hdff843b4b799b5edE' inlined into '_ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E' with (cost=-14820, threshold=250) at callsite _ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E:60:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2406,
+        "message": "'_ZN15libxml2_cleaned3src9xmlregexp18xmlRegexpErrMemory17h9d4281d4071982d3E' inlined into '_ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E' with (cost=95, threshold=250) at callsite _ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E:51:13;"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2410,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2420,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2422,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2355,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E: MI Instruction count changed from 0 to 284; Delta: 284"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2355,
+        "message": "Peephole Optimizations: Function: _ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E: MI Instruction count changed from 284 to 282; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2355,
+        "message": "X86 Optimize Call Frame: Function: _ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E: MI Instruction count changed from 282 to 336; Delta: 54"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2355,
+        "message": "Process Implicit Definitions: Function: _ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E: MI Instruction count changed from 336 to 334; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2355,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E: MI Instruction count changed from 334 to 340; Delta: 6"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2355,
+        "message": "Two-Address instruction pass: Function: _ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E: MI Instruction count changed from 340 to 348; Delta: 8"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2355,
+        "message": "Register Coalescer: Function: _ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E: MI Instruction count changed from 348 to 307; Delta: -41"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2355,
+        "message": "1 spills 2.319335e-01 total spills cost 1 reloads 1.449583e-01 total reloads cost 9 virtual registers copies 7.268554e+00 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2355,
+        "message": "Greedy Register Allocator: Function: _ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E: MI Instruction count changed from 307 to 309; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2355,
+        "message": "Virtual Register Rewriter: Function: _ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E: MI Instruction count changed from 309 to 299; Delta: -10"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 2355,
+        "message": "56 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2355,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E: MI Instruction count changed from 299 to 331; Delta: 32"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2355,
+        "message": "Control Flow Optimizer: Function: _ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E: MI Instruction count changed from 331 to 283; Delta: -48"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2355,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN15libxml2_cleaned3src9xmlregexp18xmlRegAtomAddRange17hdb4a5208311816b4E: MI Instruction count changed from 283 to 286; Delta: 3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2397,
+        "message": "BasicBlock: bb8"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2399,
+        "message": "BasicBlock: bb13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2401,
+        "message": "BasicBlock: bb29"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2413,
+        "message": "BasicBlock: bb19"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2425,
+        "message": "BasicBlock: bb25"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2384,
+        "message": "BasicBlock: bb7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2385,
+        "message": "BasicBlock: bb27"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2355,
+        "message": "211 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

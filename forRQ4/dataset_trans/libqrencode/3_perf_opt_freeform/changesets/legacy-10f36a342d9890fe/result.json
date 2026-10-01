@@ -1,0 +1,194 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.0031933922117711767,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.15657175028254866,
+            "aggregate_ci_low_pct": -0.162958534706091,
+            "aggregate_pct": -0.0031933922117711767,
+            "checkpoint": 40,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.0136,
+                "ci_low_pct": -0.0857,
+                "insns_delta_pct": 0.0073,
+                "mean_delta_pct": -0.036,
+                "op": "encode_data_and_input",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.0442,
+                "ci_low_pct": -0.0257,
+                "insns_delta_pct": 0.0021,
+                "mean_delta_pct": 0.0092,
+                "op": "encode_string_api",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.4931,
+                "ci_low_pct": -0.4586,
+                "insns_delta_pct": 1.8028,
+                "mean_delta_pct": 0.0172,
+                "op": "spec_mask_ecc",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "per_op_uncertain"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.18993376257903152,
+            "aggregate_ci_low_pct": -0.3916112221575778,
+            "aggregate_pct": -0.10083872978927313,
+            "checkpoint": 20,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.1332,
+                "ci_low_pct": -0.1149,
+                "insns_delta_pct": 0.0072,
+                "mean_delta_pct": 0.0091,
+                "op": "encode_data_and_input",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.3614,
+                "ci_low_pct": -0.783,
+                "insns_delta_pct": 1.8603,
+                "mean_delta_pct": -0.2108,
+                "op": "spec_mask_ecc",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_data_and_input",
+          "spec_mask_ecc"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "spec_mask_ecc"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "fde8f4701f22d2ef8bd1522bccc9ac698988d024",
+      "changeset_id": "legacy-10f36a342d9890fe",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-c88984ccbf8574b0",
+          "replacement_function_source": "#[inline]\npub unsafe fn BitStream_toByte(\n    mut bstream: *mut BitStream,\n) -> *mut c_uchar {\n    let bstream_view: &BitStream = unsafe { &*bstream }; // SAFETY: caller provides a valid pointer to BitStream as required by the original unsafe API.\n    let size: size_t = bstream_view.length;\n    if size == 0 as size_t {\n        return ::core::ptr::null_mut::<c_uchar>();\n    }\n\n    let out_len = size.wrapping_add(7 as size_t).wrapping_div(8 as size_t);\n    let data = malloc(out_len) as *mut c_uchar;\n    if data.is_null() {\n        return ::core::ptr::null_mut::<c_uchar>();\n    }\n\n    let bytes = size.wrapping_div(8 as size_t);\n    let oddbits = size & 7 as size_t;\n    let mut p = bstream_view.data;\n    let mut out = data;\n\n    let mut i = 0 as size_t;\n    while i < bytes {\n        let v = ((*p.add(0) as c_uchar) << 7)\n            | ((*p.add(1) as c_uchar) << 6)\n            | ((*p.add(2) as c_uchar) << 5)\n            | ((*p.add(3) as c_uchar) << 4)\n            | ((*p.add(4) as c_uchar) << 3)\n            | ((*p.add(5) as c_uchar) << 2)\n            | ((*p.add(6) as c_uchar) << 1)\n            | (*p.add(7) as c_uchar);\n        unsafe {\n            // SAFETY: p points into the bitstream data and there are at least 8 input bits available for each full output byte; out points into the malloc-allocated output buffer with at least `bytes` writable positions.\n            *out = v;\n            p = p.add(8);\n            out = out.add(1);\n        }\n        i = i.wrapping_add(1);\n    }\n\n    if oddbits > 0 as size_t {\n        let v = match oddbits {\n            1 => unsafe {\n                // SAFETY: oddbits == 1 guarantees one remaining input bit at p.\n                (*p.add(0) as c_uchar) << 7\n            },\n            2 => unsafe {\n                // SAFETY: oddbits == 2 guarantees two remaining input bits at p..p+2.\n                ((*p.add(0) as c_uchar) << 7) | ((*p.add(1) as c_uchar) << 6)\n            },\n            3 => unsafe {\n                // SAFETY: oddbits == 3 guarantees three remaining input bits at p..p+3.\n                ((*p.add(0) as c_uchar) << 7)\n                    | ((*p.add(1) as c_uchar) << 6)\n                    | ((*p.add(2) as c_uchar) << 5)\n            },\n            4 => unsafe {\n                // SAFETY: oddbits == 4 guarantees four remaining input bits at p..p+4.\n                ((*p.add(0) as c_uchar) << 7)\n                    | ((*p.add(1) as c_uchar) << 6)\n                    | ((*p.add(2) as c_uchar) << 5)\n                    | ((*p.add(3) as c_uchar) << 4)\n            },\n            5 => unsafe {\n                // SAFETY: oddbits == 5 guarantees five remaining input bits at p..p+5.\n                ((*p.add(0) as c_uchar) << 7)\n                    | ((*p.add(1) as c_uchar) << 6)\n                    | ((*p.add(2) as c_uchar) << 5)\n                    | ((*p.add(3) as c_uchar) << 4)\n                    | ((*p.add(4) as c_uchar) << 3)\n            },\n            6 => unsafe {\n                // SAFETY: oddbits == 6 guarantees six remaining input bits at p..p+6.\n                ((*p.add(0) as c_uchar) << 7)\n                    | ((*p.add(1) as c_uchar) << 6)\n                    | ((*p.add(2) as c_uchar) << 5)\n                    | ((*p.add(3) as c_uchar) << 4)\n                    | ((*p.add(4) as c_uchar) << 3)\n                    | ((*p.add(5) as c_uchar) << 2)\n            },\n            7 => unsafe {\n                // SAFETY: oddbits == 7 guarantees seven remaining input bits at p..p+7.\n                ((*p.add(0) as c_uchar) << 7)\n                    | ((*p.add(1) as c_uchar) << 6)\n                    | ((*p.add(2) as c_uchar) << 5)\n                    | ((*p.add(3) as c_uchar) << 4)\n                    | ((*p.add(4) as c_uchar) << 3)\n                    | ((*p.add(5) as c_uchar) << 2)\n                    | ((*p.add(6) as c_uchar) << 1)\n            },\n            _ => 0 as c_uchar,\n        };\n        unsafe {\n            // SAFETY: when oddbits > 0, one final output byte remains within the allocated buffer.\n            *out = v;\n        }\n    }\n\n    data\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "4c381a97b241c67ba4cbe793a3439877e105dcf68072db5d9d284185431f6a83",
+            "file_hint": "src/bitstream.rs",
+            "qualified_name": "crate::BitStream_toByte",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "BitStream_toByte-db5ed275a153",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "BitStream_toByte",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "1b9d4de9e36cc3e15b7d6743da9bd4ca4e4e41f77376e770100db6a84f5fe870",
+            "edit_id": "edit-replace-c88984ccbf8574b0",
+            "end_byte": 6501,
+            "operation_id": "replace-c88984ccbf8574b0",
+            "relative_path": "src/bitstream.rs",
+            "replacement_text": "#[inline]\npub unsafe fn BitStream_toByte(\n    mut bstream: *mut BitStream,\n) -> *mut c_uchar {\n    let bstream_view: &BitStream = unsafe { &*bstream }; // SAFETY: caller provides a valid pointer to BitStream as required by the original unsafe API.\n    let size: size_t = bstream_view.length;\n    if size == 0 as size_t {\n        return ::core::ptr::null_mut::<c_uchar>();\n    }\n\n    let out_len = size.wrapping_add(7 as size_t).wrapping_div(8 as size_t);\n    let data = malloc(out_len) as *mut c_uchar;\n    if data.is_null() {\n        return ::core::ptr::null_mut::<c_uchar>();\n    }\n\n    let bytes = size.wrapping_div(8 as size_t);\n    let oddbits = size & 7 as size_t;\n    let mut p = bstream_view.data;\n    let mut out = data;\n\n    let mut i = 0 as size_t;\n    while i < bytes {\n        let v = ((*p.add(0) as c_uchar) << 7)\n            | ((*p.add(1) as c_uchar) << 6)\n            | ((*p.add(2) as c_uchar) << 5)\n            | ((*p.add(3) as c_uchar) << 4)\n            | ((*p.add(4) as c_uchar) << 3)\n            | ((*p.add(5) as c_uchar) << 2)\n            | ((*p.add(6) as c_uchar) << 1)\n            | (*p.add(7) as c_uchar);\n        unsafe {\n            // SAFETY: p points into the bitstream data and there are at least 8 input bits available for each full output byte; out points into the malloc-allocated output buffer with at least `bytes` writable positions.\n            *out = v;\n            p = p.add(8);\n            out = out.add(1);\n        }\n        i = i.wrapping_add(1);\n    }\n\n    if oddbits > 0 as size_t {\n        let v = match oddbits {\n            1 => unsafe {\n                // SAFETY: oddbits == 1 guarantees one remaining input bit at p.\n                (*p.add(0) as c_uchar) << 7\n            },\n            2 => unsafe {\n                // SAFETY: oddbits == 2 guarantees two remaining input bits at p..p+2.\n                ((*p.add(0) as c_uchar) << 7) | ((*p.add(1) as c_uchar) << 6)\n            },\n            3 => unsafe {\n                // SAFETY: oddbits == 3 guarantees three remaining input bits at p..p+3.\n                ((*p.add(0) as c_uchar) << 7)\n                    | ((*p.add(1) as c_uchar) << 6)\n                    | ((*p.add(2) as c_uchar) << 5)\n            },\n            4 => unsafe {\n                // SAFETY: oddbits == 4 guarantees four remaining input bits at p..p+4.\n                ((*p.add(0) as c_uchar) << 7)\n                    | ((*p.add(1) as c_uchar) << 6)\n                    | ((*p.add(2) as c_uchar) << 5)\n                    | ((*p.add(3) as c_uchar) << 4)\n            },\n            5 => unsafe {\n                // SAFETY: oddbits == 5 guarantees five remaining input bits at p..p+5.\n                ((*p.add(0) as c_uchar) << 7)\n                    | ((*p.add(1) as c_uchar) << 6)\n                    | ((*p.add(2) as c_uchar) << 5)\n                    | ((*p.add(3) as c_uchar) << 4)\n                    | ((*p.add(4) as c_uchar) << 3)\n            },\n            6 => unsafe {\n                // SAFETY: oddbits == 6 guarantees six remaining input bits at p..p+6.\n                ((*p.add(0) as c_uchar) << 7)\n                    | ((*p.add(1) as c_uchar) << 6)\n                    | ((*p.add(2) as c_uchar) << 5)\n                    | ((*p.add(3) as c_uchar) << 4)\n                    | ((*p.add(4) as c_uchar) << 3)\n                    | ((*p.add(5) as c_uchar) << 2)\n            },\n            7 => unsafe {\n                // SAFETY: oddbits == 7 guarantees seven remaining input bits at p..p+7.\n                ((*p.add(0) as c_uchar) << 7)\n                    | ((*p.add(1) as c_uchar) << 6)\n                    | ((*p.add(2) as c_uchar) << 5)\n                    | ((*p.add(3) as c_uchar) << 4)\n                    | ((*p.add(4) as c_uchar) << 3)\n                    | ((*p.add(5) as c_uchar) << 2)\n                    | ((*p.add(6) as c_uchar) << 1)\n            },\n            _ => 0 as c_uchar,\n        };\n        unsafe {\n            // SAFETY: when oddbits > 0, one final output byte remains within the allocated buffer.\n            *out = v;\n        }\n    }\n\n    data\n}",
+            "start_byte": 4797
+          }
+        ],
+        "facts": {
+          "fn_name": "BitStream_toByte",
+          "target_span_hash": "4c381a97b241c67ba4cbe793a3439877e105dcf68072db5d9d284185431f6a83"
+        },
+        "operation_id": "replace-c88984ccbf8574b0"
+      }
+    ],
+    "resolved_head": "fde8f4701f22d2ef8bd1522bccc9ac698988d024"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/bitstream.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,217 @@
+{
+  "applied_rules": [
+    "C7,III③"
+  ],
+  "commit_sha": "285142f",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.7084978450300028,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -0.5615871215932917,
+            "aggregate_ci_low_pct": -0.8554085684667139,
+            "aggregate_pct": -0.7084978450300028,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -0.9607,
+                "ci_low_pct": -1.5633,
+                "insns_delta_pct": -0.2031,
+                "mean_delta_pct": -1.262,
+                "op": "builtin_script_matrix",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2446,
+                "ci_low_pct": -0.2844,
+                "insns_delta_pct": -0.0815,
+                "mean_delta_pct": -0.0199,
+                "op": "expr_embedded_builtins",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.5706,
+                "ci_low_pct": -1.1166,
+                "insns_delta_pct": -1.4382,
+                "mean_delta_pct": -0.8436,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -12.913252418593988,
+            "aggregate_ci_low_pct": -13.657667884030733,
+            "aggregate_pct": -13.28546015131236,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -46.4462,
+                "ci_low_pct": -46.7582,
+                "insns_delta_pct": -56.5765,
+                "mean_delta_pct": -46.6022,
+                "op": "builtin_script_matrix",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.4326,
+                "ci_low_pct": -0.1484,
+                "insns_delta_pct": -0.0176,
+                "mean_delta_pct": 0.1421,
+                "op": "expr_embedded_builtins",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.141,
+                "ci_low_pct": -1.9226,
+                "insns_delta_pct": -0.3894,
+                "mean_delta_pct": -1.5318,
+                "op": "native_call_state",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -3.7062,
+                "ci_low_pct": -6.5937,
+                "insns_delta_pct": -13.8579,
+                "mean_delta_pct": -5.15,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "builtin_script_matrix",
+          "expr_embedded_builtins",
+          "subst_list_pipeline"
+        ],
+        "reason": "accepted",
+        "triggering_op": "expr_embedded_builtins"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "ea427d903f7bc34a203513985256cde8ba382447",
+      "changeset_id": "legacy-4bffdabd130c7269",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-2a305f2ece8cda9a",
+          "replacement_function_source": "// Applied rules: [C7, III③]\n// Skipped rules: [C3: All listed C3 hits are at lines 427..443, outside the target function span 467..492. Within lil_append_val there is no loop and no repeated invariant raw-pointer load worth hoisting; the single-use field loads around realloc/memcpy do not meet the card's leverage threshold.; III②: The realloc target is a buffer stored in the lil_value_t struct field and persists beyond this function; ownership/free pairing is not local to the function, so RAII container conversion would ripple through the struct representation and destructor paths.; II_vec: All II_vec hits are at line 434, outside the target function span. lil_append_val itself has no loop to canonicalize or vectorize.]\npub fn lil_append_val(\n    mut val: lil_value_t,\n    mut v: lil_value_t,\n) -> c_int { unsafe {\n    extern \"C\" {\n        fn malloc_usable_size(p: *mut c_void) -> size_t;\n    }\n\n    let mut new: *mut c_char;\n    let add_len: size_t;\n    let old_len: size_t;\n    let need: size_t;\n    let have: size_t;\n\n    if v.is_null() || (*v).l == 0 {\n        return 1 as c_int;\n    }\n\n    add_len = (*v).l;\n    old_len = (*val).l;\n    need = old_len.wrapping_add(add_len).wrapping_add(1 as size_t);\n    have = if (*val).d.is_null() {\n        0 as size_t\n    } else {\n        malloc_usable_size((*val).d as *mut c_void)\n    };\n\n    new = if need <= have {\n        (*val).d\n    } else {\n        let mut cap = have.wrapping_add(have.wrapping_div(2 as size_t));\n        if cap < need {\n            cap = need;\n        }\n        if cap < 32 as size_t {\n            cap = 32 as size_t;\n        }\n        realloc((*val).d as *mut c_void, cap) as *mut c_char\n    };\n\n    if new.is_null() {\n        return 0 as c_int;\n    }\n\n    // SAFETY: `new.add(old_len)` points into the destination allocation, which is valid for\n    // `add_len + 1` bytes because `need = old_len + add_len + 1` and either `need <= have`\n    // for the existing block or `realloc` returned a block of at least `cap >= need` bytes.\n    // `(*v).d` is the source buffer for `add_len + 1` bytes including the trailing NUL by the\n    // original function's contract. This preserves memcpy semantics and assumes non-overlap.\n    core::ptr::copy_nonoverlapping(\n        (*v).d as *const c_char,\n        new.offset(old_len as isize),\n        add_len.wrapping_add(1 as size_t),\n    );\n\n    (*val).d = new;\n    (*val).l = (old_len as c_ulong).wrapping_add(add_len as c_ulong) as size_t as size_t;\n    return 1 as c_int;\n} }",
+          "rule_id": "C7,III③",
+          "target": {
+            "declaration_hash": "f8138beea6984c7e7be7aadd33d994b27ce05148aecac990bb164efa2cc38bbf",
+            "file_hint": "src/lil.rs",
+            "qualified_name": "crate::lil_append_val",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "lil_append_val-ae701b923f3d",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "lil_append_val",
+        "rule_id": "C7,III③"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "4b6f257cfdbc81ac6a0c411639d64b2f71bdecf779bc55b21c1f8cc184d9d015",
+            "edit_id": "edit-replace-2a305f2ece8cda9a",
+            "end_byte": 16496,
+            "operation_id": "replace-2a305f2ece8cda9a",
+            "relative_path": "src/lil.rs",
+            "replacement_text": "// Applied rules: [C7, III③]\n// Skipped rules: [C3: All listed C3 hits are at lines 427..443, outside the target function span 467..492. Within lil_append_val there is no loop and no repeated invariant raw-pointer load worth hoisting; the single-use field loads around realloc/memcpy do not meet the card's leverage threshold.; III②: The realloc target is a buffer stored in the lil_value_t struct field and persists beyond this function; ownership/free pairing is not local to the function, so RAII container conversion would ripple through the struct representation and destructor paths.; II_vec: All II_vec hits are at line 434, outside the target function span. lil_append_val itself has no loop to canonicalize or vectorize.]\npub fn lil_append_val(\n    mut val: lil_value_t,\n    mut v: lil_value_t,\n) -> c_int { unsafe {\n    extern \"C\" {\n        fn malloc_usable_size(p: *mut c_void) -> size_t;\n    }\n\n    let mut new: *mut c_char;\n    let add_len: size_t;\n    let old_len: size_t;\n    let need: size_t;\n    let have: size_t;\n\n    if v.is_null() || (*v).l == 0 {\n        return 1 as c_int;\n    }\n\n    add_len = (*v).l;\n    old_len = (*val).l;\n    need = old_len.wrapping_add(add_len).wrapping_add(1 as size_t);\n    have = if (*val).d.is_null() {\n        0 as size_t\n    } else {\n        malloc_usable_size((*val).d as *mut c_void)\n    };\n\n    new = if need <= have {\n        (*val).d\n    } else {\n        let mut cap = have.wrapping_add(have.wrapping_div(2 as size_t));\n        if cap < need {\n            cap = need;\n        }\n        if cap < 32 as size_t {\n            cap = 32 as size_t;\n        }\n        realloc((*val).d as *mut c_void, cap) as *mut c_char\n    };\n\n    if new.is_null() {\n        return 0 as c_int;\n    }\n\n    // SAFETY: `new.add(old_len)` points into the destination allocation, which is valid for\n    // `add_len + 1` bytes because `need = old_len + add_len + 1` and either `need <= have`\n    // for the existing block or `realloc` returned a block of at least `cap >= need` bytes.\n    // `(*v).d` is the source buffer for `add_len + 1` bytes including the trailing NUL by the\n    // original function's contract. This preserves memcpy semantics and assumes non-overlap.\n    core::ptr::copy_nonoverlapping(\n        (*v).d as *const c_char,\n        new.offset(old_len as isize),\n        add_len.wrapping_add(1 as size_t),\n    );\n\n    (*val).d = new;\n    (*val).l = (old_len as c_ulong).wrapping_add(add_len as c_ulong) as size_t as size_t;\n    return 1 as c_int;\n} }",
+            "start_byte": 15769
+          }
+        ],
+        "facts": {
+          "fn_name": "lil_append_val",
+          "target_span_hash": "f8138beea6984c7e7be7aadd33d994b27ce05148aecac990bb164efa2cc38bbf"
+        },
+        "operation_id": "replace-2a305f2ece8cda9a"
+      }
+    ],
+    "resolved_head": "ea427d903f7bc34a203513985256cde8ba382447"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/lil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

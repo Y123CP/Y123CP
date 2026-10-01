@@ -1,0 +1,143 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 5.3957549386606924,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 5.6768817830718925,
+            "aggregate_ci_low_pct": 5.114628094249492,
+            "aggregate_pct": 5.3957549386606924,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 5.6769,
+                "ci_low_pct": 5.1146,
+                "insns_delta_pct": 0.0998,
+                "mean_delta_pct": 5.3958,
+                "op": "raw_deflate_inflate",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_png",
+          "file_codec",
+          "memory_codec",
+          "raw_deflate_inflate"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "raw_deflate_inflate"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "a7c9bc142de3fcb7e564655f2d45e49a3e52811d",
+      "changeset_id": "legacy-d1d0d7c8004b8d62",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-9438aba674278106",
+          "replacement_function_source": "// Applied rules: [C3]\n// Skipped rules: [III④: Hits [10, 11, 12, 13, 14, 15, 16, 17, 18, 19] are fixed-size-array-field / data-indexed accesses (`wpos`, `hashval`, `numzeros`), not a forward cursor walk. No explicit length source is present in the signature/body for safe slice formation, and the pattern is exactly the card's abstain case for hash-chain style indexed accesses where slice-ification would devolve to indexing without iterator benefits.]\nunsafe fn updateHashChain(\n    mut hash: *mut Hash,\n    mut wpos: size_t,\n    mut hashval: c_uint,\n    mut numzeros: c_ushort,\n) {\n    let hash_view: &Hash = unsafe {\n        // SAFETY: caller provides a valid `hash` pointer for the duration of this function.\n        &*hash\n    };\n    let head = hash_view.head;\n    let chain = hash_view.chain;\n    let val = hash_view.val;\n    let headz = hash_view.headz;\n    let chainz = hash_view.chainz;\n    let zeros = hash_view.zeros;\n\n    *val.offset(wpos as isize) = hashval as c_int;\n\n    let head_hashval = *head.offset(hashval as isize);\n    if head_hashval != -(1 as c_int) {\n        *chain.offset(wpos as isize) = head_hashval as c_ushort;\n    }\n    *head.offset(hashval as isize) = wpos as c_int;\n\n    *zeros.offset(wpos as isize) = numzeros;\n\n    let headz_numzeros = *headz.offset(numzeros as isize);\n    if headz_numzeros != -(1 as c_int) {\n        *chainz.offset(wpos as isize) = headz_numzeros as c_ushort;\n    }\n    *headz.offset(numzeros as isize) = wpos as c_int;\n}",
+          "rule_id": "C3",
+          "target": {
+            "declaration_hash": "7d8534c54da0d8b504f2ae11db56cdc7a9df6763e25c3cbb9f22334c8ab3be60",
+            "file_hint": "src/lodepng.rs",
+            "qualified_name": "crate::updateHashChain",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "updateHashChain-176f7a29dc53",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "updateHashChain",
+        "rule_id": "C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "22be6140b043f2277539498f913889bb792f47374d9397381fdcf369729160ee",
+            "edit_id": "edit-replace-9438aba674278106",
+            "end_byte": 87655,
+            "operation_id": "replace-9438aba674278106",
+            "relative_path": "src/lodepng.rs",
+            "replacement_text": "// Applied rules: [C3]\n// Skipped rules: [III④: Hits [10, 11, 12, 13, 14, 15, 16, 17, 18, 19] are fixed-size-array-field / data-indexed accesses (`wpos`, `hashval`, `numzeros`), not a forward cursor walk. No explicit length source is present in the signature/body for safe slice formation, and the pattern is exactly the card's abstain case for hash-chain style indexed accesses where slice-ification would devolve to indexing without iterator benefits.]\nunsafe fn updateHashChain(\n    mut hash: *mut Hash,\n    mut wpos: size_t,\n    mut hashval: c_uint,\n    mut numzeros: c_ushort,\n) {\n    let hash_view: &Hash = unsafe {\n        // SAFETY: caller provides a valid `hash` pointer for the duration of this function.\n        &*hash\n    };\n    let head = hash_view.head;\n    let chain = hash_view.chain;\n    let val = hash_view.val;\n    let headz = hash_view.headz;\n    let chainz = hash_view.chainz;\n    let zeros = hash_view.zeros;\n\n    *val.offset(wpos as isize) = hashval as c_int;\n\n    let head_hashval = *head.offset(hashval as isize);\n    if head_hashval != -(1 as c_int) {\n        *chain.offset(wpos as isize) = head_hashval as c_ushort;\n    }\n    *head.offset(hashval as isize) = wpos as c_int;\n\n    *zeros.offset(wpos as isize) = numzeros;\n\n    let headz_numzeros = *headz.offset(numzeros as isize);\n    if headz_numzeros != -(1 as c_int) {\n        *chainz.offset(wpos as isize) = headz_numzeros as c_ushort;\n    }\n    *headz.offset(numzeros as isize) = wpos as c_int;\n}",
+            "start_byte": 86854
+          }
+        ],
+        "facts": {
+          "fn_name": "updateHashChain",
+          "target_span_hash": "7d8534c54da0d8b504f2ae11db56cdc7a9df6763e25c3cbb9f22334c8ab3be60"
+        },
+        "operation_id": "replace-9438aba674278106"
+      }
+    ],
+    "resolved_head": "a7c9bc142de3fcb7e564655f2d45e49a3e52811d"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/lodepng.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

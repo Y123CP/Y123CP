@@ -1,0 +1,524 @@
+{
+  "hot_function": {
+    "symbol": "encodeLZ77",
+    "location": "src/lodepng.rs:2517-2752",
+    "workload": "encode_png",
+    "hot_region": "src/lodepng.rs:2517-2752",
+    "rust_source": "unsafe fn encodeLZ77(\n    mut out: *mut uivector,\n    mut hash: *mut Hash,\n    mut in_0: *const c_uchar,\n    mut inpos: size_t,\n    mut insize: size_t,\n    mut windowsize: c_uint,\n    mut minmatch: c_uint,\n    mut nicematch: c_uint,\n    mut lazymatching: c_uint,\n) -> c_uint {\n    let hash_view: &Hash = unsafe { &*hash };\n    let mut pos: size_t = 0;\n    let mut i: c_uint = 0;\n    let mut error: c_uint = 0 as c_uint;\n    let mut maxchainlength: c_uint = if windowsize >= 8192 as c_uint {\n        windowsize\n    } else {\n        windowsize.wrapping_div(8 as c_uint)\n    };\n    let mut maxlazymatch: c_uint = if windowsize >= 8192 as c_uint {\n        MAX_SUPPORTED_DEFLATE_LENGTH\n    } else {\n        64 as c_uint\n    };\n    let mut usezeros: c_uint = 1 as c_uint;\n    let mut numzeros: c_uint = 0 as c_uint;\n    let mut offset: c_uint = 0;\n    let mut length: c_uint = 0;\n    let mut lazy: c_uint = 0 as c_uint;\n    let mut lazylength: c_uint = 0 as c_uint;\n    let mut lazyoffset: c_uint = 0 as c_uint;\n    let mut hashval: c_uint = 0;\n    let mut current_offset: c_uint = 0;\n    let mut current_length: c_uint = 0;\n    let mut prev_offset: c_uint = 0;\n    let mut lastptr: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut foreptr: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut backptr: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut hashpos: c_uint = 0;\n    if windowsize == 0 as c_uint || windowsize > 32768 as c_uint {\n        return 60 as c_uint;\n    }\n    if windowsize & windowsize.wrapping_sub(1 as c_uint) != 0 as c_uint {\n        return 90 as c_uint;\n    }\n    if nicematch > MAX_SUPPORTED_DEFLATE_LENGTH {\n        nicematch = MAX_SUPPORTED_DEFLATE_LENGTH;\n    }\n    let mut current_block_78: u64;\n    pos = inpos;\n    while pos < insize {\n        let mut wpos: size_t = pos & windowsize.wrapping_sub(1 as c_uint) as size_t;\n        let mut chainlength: c_uint = 0 as c_uint;\n        hashval = getHash(in_0, insize, pos);\n        if usezeros != 0 && hashval == 0 as c_uint {\n            if numzeros == 0 as c_uint {\n                numzeros = countZeros(in_0, insize, pos);\n            } else if pos.wrapping_add(numzeros as size_t) > insize\n                || *in_0.offset(\n                    pos.wrapping_add(numzeros as size_t)\n                        .wrapping_sub(1 as size_t) as isize,\n                ) as c_int\n                    != 0 as c_int\n            {\n                numzeros = numzeros.wrapping_sub(1);\n            }\n        } else {\n            numzeros = 0 as c_uint;\n        }\n        updateHashChain(hash, wpos, hashval, numzeros as c_ushort);\n        length = 0 as c_uint;\n        offset = 0 as c_uint;\n        hashpos = *hash_view.chain.offset(wpos as isize) as c_uint;\n        lastptr = in_0.offset(\n            (if insize < pos.wrapping_add(MAX_SUPPORTED_DEFLATE_LENGTH as size_t) {\n                insize\n            } else {\n                pos.wrapping_add(MAX_SUPPORTED_DEFLATE_LENGTH as size_t)\n            }) as isize,\n        ) as *const c_uchar;\n        prev_offset = 0 as c_uint;\n        loop {\n            let fresh93 = chainlength;\n            chainlength = chainlength.wrapping_add(1);\n            if fresh93 >= maxchainlength {\n                break;\n            }\n            current_offset = (if hashpos as size_t <= wpos {\n                wpos.wrapping_sub(hashpos as size_t)\n            } else {\n                wpos.wrapping_sub(hashpos as size_t)\n                    .wrapping_add(windowsize as size_t)\n            }) as c_uint;\n            if current_offset < prev_offset {\n                break;\n            }\n            prev_offset = current_offset;\n            if current_offset > 0 as c_uint {\n                foreptr = in_0.offset(pos as isize) as *const c_uchar;\n                backptr = in_0.offset(pos.wrapping_sub(current_offset as size_t) as isize)\n                    as *const c_uchar;\n                if numzeros >= 3 as c_uint {\n                    let mut skip: c_uint =\n                        *hash_view.zeros.offset(hashpos as isize) as c_uint;\n                    if skip > numzeros {\n                        skip = numzeros;\n                    }\n                    backptr = backptr.offset(skip as isize);\n                    foreptr = foreptr.offset(skip as isize);\n                }\n                while foreptr != lastptr\n                    && *backptr as c_int == *foreptr as c_int\n                {\n                    backptr = backptr.offset(1);\n                    foreptr = foreptr.offset(1);\n                }\n                current_length = foreptr\n                    .offset_from(in_0.offset(pos as isize) as *const c_uchar)\n                    as c_long as c_uint;\n                if current_length > length {\n                    length = current_length;\n                    offset = current_offset;\n                    if current_length >= nicematch {\n                        break;\n                    }\n                }\n            }\n            if hashpos == *hash_view.chain.offset(hashpos as isize) as c_uint {\n                break;\n            }\n            if numzeros >= 3 as c_uint && length > numzeros {\n                hashpos = *hash_view.chainz.offset(hashpos as isize) as c_uint;\n                if *hash_view.zeros.offset(hashpos as isize) as c_uint != numzeros {\n                    break;\n                }\n            } else {\n                hashpos = *hash_view.chain.offset(hashpos as isize) as c_uint;\n                if *hash_view.val.offset(hashpos as isize) != hashval as c_int {\n                    break;\n                }\n            }\n        }\n        if lazymatching != 0 {\n            if lazy == 0\n                && length >= 3 as c_uint\n                && length <= maxlazymatch\n                && length < MAX_SUPPORTED_DEFLATE_LENGTH\n            {\n                lazy = 1 as c_uint;\n                lazylength = length;\n                lazyoffset = offset;\n                current_block_78 = 13536709405535804910;\n            } else if lazy != 0 {\n                lazy = 0 as c_uint;\n                if pos == 0 as size_t {\n                    error = 81 as c_uint;\n                    break;\n                } else if length > lazylength.wrapping_add(1 as c_uint) {\n                    if uivector_push_back(\n                        out,\n                        *in_0.offset(pos.wrapping_sub(1 as size_t) as isize) as c_uint,\n                    ) == 0\n                    {\n                        error = 83 as c_uint;\n                        break;\n                    }\n                } else {\n                    length = lazylength;\n                    offset = lazyoffset;\n                    *hash_view.head.offset(hashval as isize) = -(1 as c_int);\n                    *hash_view.headz.offset(numzeros as isize) = -(1 as c_int);\n                    pos = pos.wrapping_sub(1);\n                }\n                current_block_78 = 5028470053297453708;\n            } else {\n                current_block_78 = 5028470053297453708;\n            }\n        } else {\n            current_block_78 = 5028470053297453708;\n        }\n        match current_block_78 {\n            5028470053297453708 => {\n                if length >= 3 as c_uint && offset > windowsize {\n                    error = 86 as c_uint;\n                    break;\n                } else if length < 3 as c_uint {\n                    if uivector_push_back(out, *in_0.offset(pos as isize) as c_uint)\n                        == 0\n                    {\n                        error = 83 as c_uint;\n                        break;\n                    }\n                } else if length < minmatch\n                    || length == 3 as c_uint && offset > 4096 as c_uint\n                {\n                    if uivector_push_back(out, *in_0.offset(pos as isize) as c_uint)\n                        == 0\n                    {\n                        error = 83 as c_uint;\n                        break;\n                    }\n                } else {\n                    addLengthDistance(out, length as size_t, offset as size_t);\n                    i = 1 as c_uint;\n                    while i < length {\n                        pos = pos.wrapping_add(1);\n                        wpos = pos & windowsize.wrapping_sub(1 as c_uint) as size_t;\n                        hashval = getHash(in_0, insize, pos);\n                        if usezeros != 0 && hashval == 0 as c_uint {\n                            if numzeros == 0 as c_uint {\n                                numzeros = countZeros(in_0, insize, pos);\n                            } else if pos.wrapping_add(numzeros as size_t) > insize\n                                || *in_0.offset(\n                                    pos.wrapping_add(numzeros as size_t)\n                                        .wrapping_sub(1 as size_t)\n                                        as isize,\n                                ) as c_int\n                                    != 0 as c_int\n                            {\n                                numzeros = numzeros.wrapping_sub(1);\n                            }\n                        } else {\n                            numzeros = 0 as c_uint;\n                        }\n                        updateHashChain(hash, wpos, hashval, numzeros as c_ushort);\n                        i = i.wrapping_add(1);\n                    }\n                }\n            }\n            _ => {}\n        }\n        pos = pos.wrapping_add(1);\n    }\n    return error;\n}",
+    "signature": "unsafe fn encodeLZ77(\n    mut out: *mut uivector,\n    mut hash: *mut Hash,\n    mut in_0: *const c_uchar,\n    mut inpos: size_t,\n    mut insize: size_t,\n    mut windowsize: c_uint,\n    mut minmatch: c_uint,\n    mut nicematch: c_uint,\n    mut lazymatching: c_uint,\n) -> c_uint",
+    "profile": {
+      "self_time_ratio": 0.7626,
+      "call_count": null,
+      "retired_instructions": 8547521114,
+      "instructions_per_call": null,
+      "cpi": 0.455,
+      "tma": {
+        "scope": "process",
+        "retiring": 49.87303188880295,
+        "frontend_bound": 31.243827438489305,
+        "bad_speculation": 13.162179248628778,
+        "backend_bound": 5.720961424078968,
+        "memory_bound": 2.703622653791961,
+        "core_bound": 3.0173387702870067,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0178
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_vec": {
+        "CantComputeNumberOfIterations": 1
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2571,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng7getHash17h2f81303abca734ecE' inlined into '_ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E' with (cost=75, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E:54:19;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2574,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng10countZeros17h892ad24700815f87E' inlined into '_ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E' with (cost=5, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E:57:28;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2587,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng15updateHashChain17h44113d5bf1857de6E' inlined into '_ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E' with (cost=55, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E:70:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2676,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng18uivector_push_back17h5dcb700be456a22fE' inlined into '_ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E' with (cost=75, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E:159:24;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2704,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng18uivector_push_back17h5dcb700be456a22fE' inlined into '_ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E' with (cost=75, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E:187:24;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2713,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng18uivector_push_back17h5dcb700be456a22fE' inlined into '_ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E' with (cost=-14925, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E:196:24;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2720,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng17addLengthDistance17hccac9ce00e555c54E' inlined into '_ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E' with (cost=-14550, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E:203:21;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2725,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng7getHash17h2f81303abca734ecE' inlined into '_ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E' with (cost=-14925, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E:208:35;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2728,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng10countZeros17h892ad24700815f87E' inlined into '_ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E' with (cost=-14995, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E:211:44;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2742,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng15updateHashChain17h44113d5bf1857de6E' inlined into '_ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E' with (cost=-14945, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E:225:25;"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2621,
+        "message": "failed to hoist load with loop-invariant address because load is conditionally executed"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2655,
+        "message": "failed to hoist load with loop-invariant address because load is conditionally executed"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2649,
+        "message": "failed to hoist load with loop-invariant address because load is conditionally executed"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2650,
+        "message": "failed to hoist load with loop-invariant address because load is conditionally executed"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2605,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2619,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2648,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2687,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2569,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2590,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2590,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2649,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2602,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2660,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2688,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 2568,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2590,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2590,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2621,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2629,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2655,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2649,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2650,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2687,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2688,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2678,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2629,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2629,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2517,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E: MI Instruction count changed from 0 to 768; Delta: 768"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2517,
+        "message": "X86 cmov Conversion: Function: _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E: MI Instruction count changed from 768 to 770; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2517,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E: MI Instruction count changed from 770 to 760; Delta: -10"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2517,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E: MI Instruction count changed from 760 to 758; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2517,
+        "message": "Machine code sinking: Function: _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E: MI Instruction count changed from 758 to 760; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2517,
+        "message": "Peephole Optimizations: Function: _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E: MI Instruction count changed from 760 to 753; Delta: -7"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2517,
+        "message": "Process Implicit Definitions: Function: _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E: MI Instruction count changed from 753 to 751; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2517,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E: MI Instruction count changed from 751 to 960; Delta: 209"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2517,
+        "message": "Two-Address instruction pass: Function: _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E: MI Instruction count changed from 960 to 1047; Delta: 87"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2517,
+        "message": "Register Coalescer: Function: _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E: MI Instruction count changed from 1047 to 670; Delta: -377"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2602,
+        "message": "3 reloads 1.107340e+01 total reloads cost 4 folded reloads 2.524206e+01 total folded reloads cost 10 virtual registers copies 4.851471e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2568,
+        "message": "13 spills 7.312516e+00 total spills cost 62 reloads 4.353814e+01 total reloads cost 10 folded reloads 3.701624e+01 total folded reloads cost 60 virtual registers copies 1.421109e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2517,
+        "message": "29 spills 1.206250e+01 total spills cost 1 folded spills 1.249988e-01 total folded spills cost 62 reloads 4.353814e+01 total reloads cost 10 folded reloads 3.701624e+01 total folded reloads cost 63 virtual registers copies 1.451109e+02 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2517,
+        "message": "Greedy Register Allocator: Function: _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E: MI Instruction count changed from 670 to 775; Delta: 105"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2517,
+        "message": "Virtual Register Rewriter: Function: _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E: MI Instruction count changed from 775 to 753; Delta: -22"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 2517,
+        "message": "264 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2517,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E: MI Instruction count changed from 753 to 775; Delta: 22"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2517,
+        "message": "Control Flow Optimizer: Function: _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E: MI Instruction count changed from 775 to 694; Delta: -81"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2517,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E: MI Instruction count changed from 694 to 692; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2517,
+        "message": "X86 vzeroupper inserter: Function: _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E: MI Instruction count changed from 692 to 698; Delta: 6"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2517,
+        "message": "X86 LEA Fixup: Function: _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E: MI Instruction count changed from 698 to 700; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2517,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN15lodepng_cleaned3src7lodepng10encodeLZ7717h2089508273d0cd91E: MI Instruction count changed from 700 to 701; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2573,
+        "message": "BasicBlock: bb17"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2575,
+        "message": "BasicBlock: bb20"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2576,
+        "message": "BasicBlock: bb22"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2615,
+        "message": "BasicBlock: bb39"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2617,
+        "message": "BasicBlock: bb40"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2629,
+        "message": "BasicBlock: bb49"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2645,
+        "message": "BasicBlock: bb59"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2648,
+        "message": "BasicBlock: bb61"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2661,
+        "message": "BasicBlock: bb74"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2672,
+        "message": "BasicBlock: bb84"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2687,
+        "message": "BasicBlock: bb91"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2700,
+        "message": "BasicBlock: bb97"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2703,
+        "message": "BasicBlock: bb102"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2710,
+        "message": "BasicBlock: bb107"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2711,
+        "message": "BasicBlock: bb109"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2727,
+        "message": "BasicBlock: bb122"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2729,
+        "message": "BasicBlock: bb125"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2752,
+        "message": "BasicBlock: bb144"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2517,
+        "message": "679 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

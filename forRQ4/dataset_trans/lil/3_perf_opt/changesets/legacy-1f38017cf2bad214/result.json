@@ -1,0 +1,215 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -12.79419861609692,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -12.57451894801486,
+            "aggregate_ci_low_pct": -13.01387828417898,
+            "aggregate_pct": -12.79419861609692,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -45.5175,
+                "ci_low_pct": -46.2041,
+                "insns_delta_pct": -56.6572,
+                "mean_delta_pct": -45.8608,
+                "op": "builtin_script_matrix",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 1.0182,
+                "ci_low_pct": -0.6023,
+                "insns_delta_pct": -0.0767,
+                "mean_delta_pct": 0.2079,
+                "op": "expr_embedded_builtins",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              },
+              {
+                "ci_high_pct": -1.6237,
+                "ci_low_pct": -2.0234,
+                "insns_delta_pct": -0.7181,
+                "mean_delta_pct": -1.8235,
+                "op": "native_call_state",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -3.4635,
+                "ci_low_pct": -3.9373,
+                "insns_delta_pct": -12.7083,
+                "mean_delta_pct": -3.7004,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.20294229231044442,
+            "aggregate_ci_low_pct": -0.20606468142972106,
+            "aggregate_pct": -0.0015611945596383375,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.2495,
+                "ci_low_pct": -0.271,
+                "insns_delta_pct": -0.0486,
+                "mean_delta_pct": -0.0108,
+                "op": "expr_embedded_builtins",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.4446,
+                "ci_low_pct": -0.6825,
+                "insns_delta_pct": -0.3434,
+                "mean_delta_pct": -0.1189,
+                "op": "native_call_state",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.3089,
+                "ci_low_pct": -0.0588,
+                "insns_delta_pct": -0.1482,
+                "mean_delta_pct": 0.125,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "expr_embedded_builtins",
+          "native_call_state",
+          "subst_list_pipeline"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "expr_embedded_builtins"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "ea427d903f7bc34a203513985256cde8ba382447",
+      "changeset_id": "legacy-1f38017cf2bad214",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-3eb636d04d5bb2a3",
+          "replacement_function_source": "// Applied rules: [III④, C3, III③]\n// Skipped rules: [III②: Hit [3] is an interior `realloc` on `(*cell).e` whose ownership escapes this function via the hashmap field and is paired outside `hm_put`; alloc/free are not in the same function scope, so RAII conversion is out of scope.; II_vec: Hits [1,2] point at the search loop, but this function's loop trip count is data-dependent on `(*cell).c` and the main blocker is likely the opaque `strcmp` plus raw-pointer shape. Applying III④ and III③ first may moot the vectorization remarks; no standalone II_vec canonicalization targets a concrete remaining site here.]\n#[inline]\nunsafe fn hm_put(\n    mut hm: *mut hashmap_t,\n    mut key: *const c_char,\n    mut value: *mut c_void,\n) {\n    let mut cell: *mut hashcell_t = (&raw mut (*hm).cell as *mut hashcell_t)\n        .offset((hm_hash(key) & HASHMAP_CELLMASK as c_ulong) as isize);\n    let count: size_t = (*cell).c;\n    let entries_ptr: *mut hashentry_t = (*cell).e;\n    let mut i: size_t = 0;\n    i = 0 as size_t;\n    while i < count {\n        // SAFETY: `entries_ptr` is the bucket entry-array base, `count` is the stable\n        // pre-realloc length for this search loop, `i < count` by the loop condition,\n        // and no slice/reference aliases are created; this stays within the original\n        // unchecked raw-pointer semantics.\n        let entry: *mut hashentry_t = unsafe { entries_ptr.offset(i as isize) };\n        if strcmp(key, (*entry).k) == 0 {\n            (*entry).v = value;\n            return;\n        }\n        i = i.wrapping_add(1);\n    }\n    (*cell).e = realloc(\n        (*cell).e as *mut c_void,\n        (::core::mem::size_of::<hashentry_t>() as size_t)\n            .wrapping_mul(count.wrapping_add(1 as size_t)),\n    ) as *mut hashentry_t;\n    let append_idx: size_t = count;\n    // SAFETY: `append_idx == count` is the first newly allocated slot after growing the\n    // bucket storage to `count + 1` entries, matching the original append position.\n    let entry: *mut hashentry_t = unsafe { (*cell).e.offset(append_idx as isize) };\n    (*entry).k = strclone(key);\n    (*entry).v = value;\n    (*cell).c = count.wrapping_add(1);\n}",
+          "rule_id": "C3",
+          "target": {
+            "declaration_hash": "3d59000fbb930d5c504c4fd0b66e95e22430756eef9905e47f1b8199586e4225",
+            "file_hint": "src/lil.rs",
+            "qualified_name": "crate::hm_put",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "hm_put-9559b1d115e2",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "hm_put",
+        "rule_id": "C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "4b6f257cfdbc81ac6a0c411639d64b2f71bdecf779bc55b21c1f8cc184d9d015",
+            "edit_id": "edit-replace-3eb636d04d5bb2a3",
+            "end_byte": 9734,
+            "operation_id": "replace-3eb636d04d5bb2a3",
+            "relative_path": "src/lil.rs",
+            "replacement_text": "// Applied rules: [III④, C3, III③]\n// Skipped rules: [III②: Hit [3] is an interior `realloc` on `(*cell).e` whose ownership escapes this function via the hashmap field and is paired outside `hm_put`; alloc/free are not in the same function scope, so RAII conversion is out of scope.; II_vec: Hits [1,2] point at the search loop, but this function's loop trip count is data-dependent on `(*cell).c` and the main blocker is likely the opaque `strcmp` plus raw-pointer shape. Applying III④ and III③ first may moot the vectorization remarks; no standalone II_vec canonicalization targets a concrete remaining site here.]\n#[inline]\nunsafe fn hm_put(\n    mut hm: *mut hashmap_t,\n    mut key: *const c_char,\n    mut value: *mut c_void,\n) {\n    let mut cell: *mut hashcell_t = (&raw mut (*hm).cell as *mut hashcell_t)\n        .offset((hm_hash(key) & HASHMAP_CELLMASK as c_ulong) as isize);\n    let count: size_t = (*cell).c;\n    let entries_ptr: *mut hashentry_t = (*cell).e;\n    let mut i: size_t = 0;\n    i = 0 as size_t;\n    while i < count {\n        // SAFETY: `entries_ptr` is the bucket entry-array base, `count` is the stable\n        // pre-realloc length for this search loop, `i < count` by the loop condition,\n        // and no slice/reference aliases are created; this stays within the original\n        // unchecked raw-pointer semantics.\n        let entry: *mut hashentry_t = unsafe { entries_ptr.offset(i as isize) };\n        if strcmp(key, (*entry).k) == 0 {\n            (*entry).v = value;\n            return;\n        }\n        i = i.wrapping_add(1);\n    }\n    (*cell).e = realloc(\n        (*cell).e as *mut c_void,\n        (::core::mem::size_of::<hashentry_t>() as size_t)\n            .wrapping_mul(count.wrapping_add(1 as size_t)),\n    ) as *mut hashentry_t;\n    let append_idx: size_t = count;\n    // SAFETY: `append_idx == count` is the first newly allocated slot after growing the\n    // bucket storage to `count + 1` entries, matching the original append position.\n    let entry: *mut hashentry_t = unsafe { (*cell).e.offset(append_idx as isize) };\n    (*entry).k = strclone(key);\n    (*entry).v = value;\n    (*cell).c = count.wrapping_add(1);\n}",
+            "start_byte": 8728
+          }
+        ],
+        "facts": {
+          "fn_name": "hm_put",
+          "target_span_hash": "3d59000fbb930d5c504c4fd0b66e95e22430756eef9905e47f1b8199586e4225"
+        },
+        "operation_id": "replace-3eb636d04d5bb2a3"
+      }
+    ],
+    "resolved_head": "ea427d903f7bc34a203513985256cde8ba382447"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/lil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

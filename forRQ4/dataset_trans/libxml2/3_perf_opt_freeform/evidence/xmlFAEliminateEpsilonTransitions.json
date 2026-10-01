@@ -1,0 +1,910 @@
+{
+  "hot_function": {
+    "symbol": "xmlFAEliminateEpsilonTransitions",
+    "location": "src/xmlregexp.rs:3147-3294",
+    "workload": "regexp_pattern",
+    "hot_region": "src/xmlregexp.rs:3147-3294",
+    "rust_source": "fn xmlFAEliminateEpsilonTransitions(mut ctxt: xmlRegParserCtxtPtr) { unsafe {\n    let mut statenr: c_int = 0;\n    let mut transnr: c_int = 0;\n    let mut state: xmlRegStatePtr = ::core::ptr::null_mut::<xmlRegState>();\n    let mut has_epsilon: c_int = 0;\n    if (*ctxt).states.is_null() {\n        return;\n    }\n    xmlFAEliminateSimpleEpsilonTransitions(ctxt);\n    statenr = 0 as c_int;\n    while statenr < (*ctxt).nbStates {\n        state = *(*ctxt).states.offset(statenr as isize);\n        if !state.is_null()\n            && (*state).type_0 as c_uint\n                == XML_REGEXP_UNREACH_STATE as c_int as c_uint\n        {\n            xmlRegFreeState(state);\n            let ref mut fresh5 = *(*ctxt).states.offset(statenr as isize);\n            *fresh5 = ::core::ptr::null_mut::<xmlRegState>();\n        }\n        statenr += 1;\n    }\n    has_epsilon = 0 as c_int;\n    statenr = (*ctxt).nbStates - 1 as c_int;\n    while statenr >= 0 as c_int {\n        state = *(*ctxt).states.offset(statenr as isize);\n        if !state.is_null() {\n            if (*state).nbTrans == 0 as c_int\n                && (*state).type_0 as c_uint\n                    != XML_REGEXP_FINAL_STATE as c_int as c_uint\n            {\n                (*state).type_0 = XML_REGEXP_SINK_STATE;\n            }\n            transnr = 0 as c_int;\n            while transnr < (*state).nbTrans {\n                if (*(*state).trans.offset(transnr as isize)).atom.is_null()\n                    && (*(*state).trans.offset(transnr as isize)).to >= 0 as c_int\n                {\n                    if (*(*state).trans.offset(transnr as isize)).to == statenr {\n                        (*(*state).trans.offset(transnr as isize)).to = -(1 as c_int);\n                    } else if (*(*state).trans.offset(transnr as isize)).count\n                        < 0 as c_int\n                    {\n                        let mut newto: c_int =\n                            (*(*state).trans.offset(transnr as isize)).to;\n                        has_epsilon = 1 as c_int;\n                        (*(*state).trans.offset(transnr as isize)).to = -(2 as c_int);\n                        (*state).mark = XML_REGEXP_MARK_START;\n                        xmlFAReduceEpsilonTransitions(\n                            ctxt,\n                            statenr,\n                            newto,\n                            (*(*state).trans.offset(transnr as isize)).counter,\n                        );\n                        xmlFAFinishReduceEpsilonTransitions(ctxt, newto);\n                        (*state).mark = XML_REGEXP_MARK_NORMAL;\n                    }\n                }\n                transnr += 1;\n            }\n        }\n        statenr -= 1;\n    }\n    if has_epsilon != 0 {\n        statenr = 0 as c_int;\n        while statenr < (*ctxt).nbStates {\n            state = *(*ctxt).states.offset(statenr as isize);\n            if !state.is_null() {\n                transnr = 0 as c_int;\n                while transnr < (*state).nbTrans {\n                    let mut trans: xmlRegTransPtr =\n                        (*state).trans.offset(transnr as isize) as xmlRegTransPtr;\n                    if (*trans).atom.is_null()\n                        && (*trans).count < 0 as c_int\n                        && (*trans).to >= 0 as c_int\n                    {\n                        (*trans).to = -(1 as c_int);\n                    }\n                    transnr += 1;\n                }\n            }\n            statenr += 1;\n        }\n    }\n    statenr = 0 as c_int;\n    while statenr < (*ctxt).nbStates {\n        state = *(*ctxt).states.offset(statenr as isize);\n        if !state.is_null() {\n            (*state).reached = XML_REGEXP_MARK_NORMAL;\n        }\n        statenr += 1;\n    }\n    state = *(*ctxt).states.offset(0 as c_int as isize);\n    if !state.is_null() {\n        (*state).reached = XML_REGEXP_MARK_START;\n    }\n    while !state.is_null() {\n        let mut target: xmlRegStatePtr = ::core::ptr::null_mut::<xmlRegState>();\n        (*state).reached = XML_REGEXP_MARK_VISITED;\n        transnr = 0 as c_int;\n        while transnr < (*state).nbTrans {\n            if (*(*state).trans.offset(transnr as isize)).to >= 0 as c_int\n                && (!(*(*state).trans.offset(transnr as isize)).atom.is_null()\n                    || (*(*state).trans.offset(transnr as isize)).count >= 0 as c_int)\n            {\n                let mut newto_0: c_int = (*(*state).trans.offset(transnr as isize)).to;\n                if !(*(*ctxt).states.offset(newto_0 as isize)).is_null() {\n                    if (**(*ctxt).states.offset(newto_0 as isize)).reached as c_uint\n                        == XML_REGEXP_MARK_NORMAL as c_int as c_uint\n                    {\n                        (**(*ctxt).states.offset(newto_0 as isize)).reached = XML_REGEXP_MARK_START;\n                        target = *(*ctxt).states.offset(newto_0 as isize);\n                    }\n                }\n            }\n            transnr += 1;\n        }\n        if target.is_null() {\n            statenr = 1 as c_int;\n            while statenr < (*ctxt).nbStates {\n                state = *(*ctxt).states.offset(statenr as isize);\n                if !state.is_null()\n                    && (*state).reached as c_uint\n                        == XML_REGEXP_MARK_START as c_int as c_uint\n                {\n                    target = state;\n                    break;\n                } else {\n                    statenr += 1;\n                }\n            }\n        }\n        state = target;\n    }\n    statenr = 0 as c_int;\n    while statenr < (*ctxt).nbStates {\n        state = *(*ctxt).states.offset(statenr as isize);\n        if !state.is_null()\n            && (*state).reached as c_uint\n                == XML_REGEXP_MARK_NORMAL as c_int as c_uint\n        {\n            xmlRegFreeState(state);\n            let ref mut fresh6 = *(*ctxt).states.offset(statenr as isize);\n            *fresh6 = ::core::ptr::null_mut::<xmlRegState>();\n        }\n        statenr += 1;\n    }\n} }",
+    "signature": "fn xmlFAEliminateEpsilonTransitions(mut ctxt: xmlRegParserCtxtPtr)",
+    "profile": {
+      "self_time_ratio": 0.0447,
+      "call_count": null,
+      "retired_instructions": 987672996,
+      "instructions_per_call": null,
+      "cpi": 0.268,
+      "tma": {
+        "scope": "process",
+        "retiring": 66.30455474487951,
+        "frontend_bound": 29.28114904240403,
+        "bad_speculation": 2.2946739351292185,
+        "backend_bound": 2.1196222775872466,
+        "memory_bound": 1.614317514420731,
+        "core_bound": 0.5053047631665157,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0015
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 3155,
+        "message": "'_ZN15libxml2_cleaned3src9xmlregexp38xmlFAEliminateSimpleEpsilonTransitions17h8aac8644189f94fdE' inlined into '_ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE' with (cost=-14570, threshold=250) at callsite _ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE:8:5;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 3288,
+        "message": "'_ZN15libxml2_cleaned3src9xmlregexp15xmlRegFreeState17hffbbfff57913f52dE' inlined into '_ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE' with (cost=205, threshold=250) at callsite _ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE:141:13;"
+      },
+      {
+        "pass": "inline-cost",
+        "status": "missed",
+        "line": 3195,
+        "message": "_ZN15libxml2_cleaned3src9xmlregexp29xmlFAReduceEpsilonTransitions17hf19babadbd55a2c4E has uninlinable pattern (recursive) and cost is not fully computed"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3195,
+        "message": "'_ZN15libxml2_cleaned3src9xmlregexp29xmlFAReduceEpsilonTransitions17hf19babadbd55a2c4E' not inlined into '_ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE' because it should never be inlined (cost=never): recursive"
+      },
+      {
+        "pass": "inline-cost",
+        "status": "missed",
+        "line": 3201,
+        "message": "_ZN15libxml2_cleaned3src9xmlregexp35xmlFAFinishReduceEpsilonTransitions17hce3a53cd174b28e0E has uninlinable pattern (recursive) and cost is not fully computed"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3201,
+        "message": "'_ZN15libxml2_cleaned3src9xmlregexp35xmlFAFinishReduceEpsilonTransitions17hce3a53cd174b28e0E' not inlined into '_ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE' because it should never be inlined (cost=never): recursive"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 3163,
+        "message": "'_ZN15libxml2_cleaned3src9xmlregexp15xmlRegFreeState17hffbbfff57913f52dE' inlined into '_ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE' with (cost=205, threshold=250) at callsite _ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE:16:13;"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3157,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3158,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3164,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3181,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3182,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3182,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3194,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3199,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3172,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3216,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3216,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3218,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3218,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3212,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3213,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3232,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3233,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3247,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3247,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3253,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3258,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3248,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3248,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3266,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3267,
+        "message": "failed to hoist load with loop-invariant address because load is conditionally executed"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3267,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3282,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3283,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3289,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 3159,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 3181,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 3173,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 3284,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 3157,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3158,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3164,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3157,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 3157,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3172,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 3181,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3182,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3199,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3199,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3181,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3212,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3213,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3218,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3216,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 3216,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 3212,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3232,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 3232,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3233,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3239,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3248,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3253,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3258,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3258,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3247,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 3247,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3282,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3283,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3289,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 3282,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3147,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE: MI Instruction count changed from 0 to 553; Delta: 553"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3147,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE: MI Instruction count changed from 553 to 545; Delta: -8"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3147,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE: MI Instruction count changed from 545 to 544; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3147,
+        "message": "Peephole Optimizations: Function: _ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE: MI Instruction count changed from 544 to 537; Delta: -7"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3147,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE: MI Instruction count changed from 537 to 657; Delta: 120"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3147,
+        "message": "Two-Address instruction pass: Function: _ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE: MI Instruction count changed from 657 to 673; Delta: 16"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3147,
+        "message": "Register Coalescer: Function: _ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE: MI Instruction count changed from 673 to 473; Delta: -200"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3284,
+        "message": "1 virtual registers copies 2.929611e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3247,
+        "message": "1 virtual registers copies 6.432113e-01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3181,
+        "message": "5 virtual registers copies 2.145750e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3173,
+        "message": "6 virtual registers copies 3.395739e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3159,
+        "message": "1 virtual registers copies 2.441351e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3147,
+        "message": "2 spills 6.008147e-01 total spills cost 2 reloads 1.144409e+00 total reloads cost 17 virtual registers copies 9.652821e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3147,
+        "message": "Greedy Register Allocator: Function: _ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE: MI Instruction count changed from 473 to 481; Delta: 8"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3147,
+        "message": "Virtual Register Rewriter: Function: _ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE: MI Instruction count changed from 481 to 460; Delta: -21"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 3147,
+        "message": "72 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3147,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE: MI Instruction count changed from 460 to 464; Delta: 4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3147,
+        "message": "Control Flow Optimizer: Function: _ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE: MI Instruction count changed from 464 to 367; Delta: -97"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3147,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE: MI Instruction count changed from 367 to 379; Delta: 12"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3147,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN15libxml2_cleaned3src9xmlregexp32xmlFAEliminateEpsilonTransitions17h733e3b376b98b5cdE: MI Instruction count changed from 379 to 380; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3152,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3157,
+        "message": "BasicBlock: _ZN15libxml2_cleaned3src9xmlregexp38xmlFAEliminateSimpleEpsilonTransitions17h8aac8644189f94fdE.exit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3167,
+        "message": "BasicBlock: bb11"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3158,
+        "message": "BasicBlock: bb5"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3160,
+        "message": "BasicBlock: bb7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3171,
+        "message": "BasicBlock: bb13.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3173,
+        "message": "BasicBlock: bb14.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3172,
+        "message": "BasicBlock: bb14"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3174,
+        "message": "BasicBlock: bb16"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3181,
+        "message": "BasicBlock: bb21"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3186,
+        "message": "BasicBlock: bb26"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3205,
+        "message": "BasicBlock: bb36"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3182,
+        "message": "BasicBlock: bb23"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3183,
+        "message": "BasicBlock: bb24"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3185,
+        "message": "BasicBlock: bb25"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3187,
+        "message": "BasicBlock: bb27"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3193,
+        "message": "BasicBlock: bb28"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3175,
+        "message": "BasicBlock: bb17"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3178,
+        "message": "BasicBlock: bb18"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3232,
+        "message": "BasicBlock: bb39"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3212,
+        "message": "BasicBlock: bb42.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3212,
+        "message": "BasicBlock: bb56.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3228,
+        "message": "BasicBlock: bb56"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3213,
+        "message": "BasicBlock: bb43"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3216,
+        "message": "BasicBlock: bb46.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3225,
+        "message": "BasicBlock: bb54"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3218,
+        "message": "BasicBlock: bb47"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3220,
+        "message": "BasicBlock: bb48"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3221,
+        "message": "BasicBlock: bb49"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3223,
+        "message": "BasicBlock: bb50"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3232,
+        "message": "BasicBlock: bb58"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3237,
+        "message": "BasicBlock: bb63"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3233,
+        "message": "BasicBlock: bb60"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3235,
+        "message": "BasicBlock: bb62"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3239,
+        "message": "BasicBlock: bb64"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3241,
+        "message": "BasicBlock: bb69.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3245,
+        "message": "BasicBlock: bb69"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3262,
+        "message": "BasicBlock: bb82"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3248,
+        "message": "BasicBlock: bb71"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3249,
+        "message": "BasicBlock: bb72"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3250,
+        "message": "BasicBlock: bb73"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3253,
+        "message": "BasicBlock: bb75"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3254,
+        "message": "BasicBlock: bb77"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3257,
+        "message": "BasicBlock: bb78"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3275,
+        "message": "BasicBlock: bb91"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3267,
+        "message": "BasicBlock: bb86"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3269,
+        "message": "BasicBlock: bb88"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3282,
+        "message": "BasicBlock: bb96.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3292,
+        "message": "BasicBlock: bb103"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3283,
+        "message": "BasicBlock: bb97"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3285,
+        "message": "BasicBlock: bb99"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3294,
+        "message": "BasicBlock: bb105"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3147,
+        "message": "359 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

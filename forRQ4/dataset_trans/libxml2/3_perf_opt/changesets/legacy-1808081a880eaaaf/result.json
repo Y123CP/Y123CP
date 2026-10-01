@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.30431104789536795,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.7037954306668623,
+            "aggregate_ci_low_pct": -0.09517333487612645,
+            "aggregate_pct": 0.30431104789536795,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.7038,
+                "ci_low_pct": -0.0952,
+                "insns_delta_pct": 0.0501,
+                "mean_delta_pct": 0.3043,
+                "op": "regexp_pattern",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "regexp_pattern"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "regexp_pattern"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "f9ecdde7271d90e0d2b152c070f156dd098e07f6",
+      "changeset_id": "legacy-1808081a880eaaaf",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-1688b7ec3a468d57",
+          "replacement_function_source": "// Applied rules: [C3]\n// Skipped rules: [III④: Only concrete hit is [9], a single terminal write through `transTo.offset(nbTransTo)`. No L1-L4 length source is available for a sound slice view over `transTo` at that point, and the view would serve essentially one access, violating the rule's own abstain guidance. Also this site is better handled indirectly by C3 hoisting of `transTo`/`nbTransTo` locals.]\nfn xmlRegStateAddTransTo(\n    mut ctxt: xmlRegParserCtxtPtr,\n    mut target: xmlRegStatePtr,\n    mut from: c_int,\n) {\n    unsafe {\n        // SAFETY: `target` is assumed valid by the original function contract; we only\n        // cache and update its fields locally within this function, preserving the same\n        // raw-pointer semantics and failure behavior as the original code.\n        let mut max_trans_to = (*target).maxTransTo;\n        if max_trans_to == 0 as c_int {\n            max_trans_to = 8 as c_int;\n            (*target).maxTransTo = max_trans_to;\n            let trans_to = xmlMalloc.expect(\"non-null function pointer\")(\n                (max_trans_to as size_t)\n                    .wrapping_mul(::core::mem::size_of::<c_int>() as size_t),\n            ) as *mut c_int;\n            (*target).transTo = trans_to;\n            if trans_to.is_null() {\n                xmlRegexpErrMemory(\n                    ctxt,\n                    b\"adding transition\\0\" as *const u8 as *const c_char,\n                );\n                (*target).maxTransTo = 0 as c_int;\n                return;\n            }\n        } else {\n            let nb_trans_to = (*target).nbTransTo;\n            if nb_trans_to >= max_trans_to {\n                let trans_to = (*target).transTo;\n                max_trans_to *= 2 as c_int;\n                (*target).maxTransTo = max_trans_to;\n                let tmp = xmlRealloc.expect(\"non-null function pointer\")(\n                    trans_to as *mut c_void,\n                    (max_trans_to as size_t)\n                        .wrapping_mul(::core::mem::size_of::<c_int>() as size_t),\n                ) as *mut c_int;\n                if tmp.is_null() {\n                    xmlRegexpErrMemory(\n                        ctxt,\n                        b\"adding transition\\0\" as *const u8 as *const c_char,\n                    );\n                    (*target).maxTransTo /= 2 as c_int;\n                    return;\n                }\n                (*target).transTo = tmp;\n            }\n        }\n\n        let nb_trans_to = (*target).nbTransTo;\n        let trans_to = (*target).transTo;\n        *trans_to.offset(nb_trans_to as isize) = from;\n        (*target).nbTransTo = nb_trans_to + 1;\n    }\n}",
+          "rule_id": "C3",
+          "target": {
+            "declaration_hash": "48730294a62b3df3325480347f9c6e778ce2d08090ebea4e37db35c0af46751a",
+            "file_hint": "src/xmlregexp.rs",
+            "qualified_name": "crate::xmlRegStateAddTransTo",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "xmlRegStateAddTransTo-e2dd1421d9da",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "xmlRegStateAddTransTo",
+        "rule_id": "C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "c178aa5a97a53da935b11585b40187c07663c51dda0d16bba06ce87556cccc1d",
+            "edit_id": "edit-replace-1688b7ec3a468d57",
+            "end_byte": 113440,
+            "operation_id": "replace-1688b7ec3a468d57",
+            "relative_path": "src/xmlregexp.rs",
+            "replacement_text": "// Applied rules: [C3]\n// Skipped rules: [III④: Only concrete hit is [9], a single terminal write through `transTo.offset(nbTransTo)`. No L1-L4 length source is available for a sound slice view over `transTo` at that point, and the view would serve essentially one access, violating the rule's own abstain guidance. Also this site is better handled indirectly by C3 hoisting of `transTo`/`nbTransTo` locals.]\nfn xmlRegStateAddTransTo(\n    mut ctxt: xmlRegParserCtxtPtr,\n    mut target: xmlRegStatePtr,\n    mut from: c_int,\n) {\n    unsafe {\n        // SAFETY: `target` is assumed valid by the original function contract; we only\n        // cache and update its fields locally within this function, preserving the same\n        // raw-pointer semantics and failure behavior as the original code.\n        let mut max_trans_to = (*target).maxTransTo;\n        if max_trans_to == 0 as c_int {\n            max_trans_to = 8 as c_int;\n            (*target).maxTransTo = max_trans_to;\n            let trans_to = xmlMalloc.expect(\"non-null function pointer\")(\n                (max_trans_to as size_t)\n                    .wrapping_mul(::core::mem::size_of::<c_int>() as size_t),\n            ) as *mut c_int;\n            (*target).transTo = trans_to;\n            if trans_to.is_null() {\n                xmlRegexpErrMemory(\n                    ctxt,\n                    b\"adding transition\\0\" as *const u8 as *const c_char,\n                );\n                (*target).maxTransTo = 0 as c_int;\n                return;\n            }\n        } else {\n            let nb_trans_to = (*target).nbTransTo;\n            if nb_trans_to >= max_trans_to {\n                let trans_to = (*target).transTo;\n                max_trans_to *= 2 as c_int;\n                (*target).maxTransTo = max_trans_to;\n                let tmp = xmlRealloc.expect(\"non-null function pointer\")(\n                    trans_to as *mut c_void,\n                    (max_trans_to as size_t)\n                        .wrapping_mul(::core::mem::size_of::<c_int>() as size_t),\n                ) as *mut c_int;\n                if tmp.is_null() {\n                    xmlRegexpErrMemory(\n                        ctxt,\n                        b\"adding transition\\0\" as *const u8 as *const c_char,\n                    );\n                    (*target).maxTransTo /= 2 as c_int;\n                    return;\n                }\n                (*target).transTo = tmp;\n            }\n        }\n\n        let nb_trans_to = (*target).nbTransTo;\n        let trans_to = (*target).transTo;\n        *trans_to.offset(nb_trans_to as isize) = from;\n        (*target).nbTransTo = nb_trans_to + 1;\n    }\n}",
+            "start_byte": 111942
+          }
+        ],
+        "facts": {
+          "fn_name": "xmlRegStateAddTransTo",
+          "target_span_hash": "48730294a62b3df3325480347f9c6e778ce2d08090ebea4e37db35c0af46751a"
+        },
+        "operation_id": "replace-1688b7ec3a468d57"
+      }
+    ],
+    "resolved_head": "f9ecdde7271d90e0d2b152c070f156dd098e07f6"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/xmlregexp.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

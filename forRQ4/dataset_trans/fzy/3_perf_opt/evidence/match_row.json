@@ -1,0 +1,386 @@
+{
+  "hot_function": {
+    "symbol": "match_row",
+    "location": "src/match.rs:165-225",
+    "workload": "match_primitives",
+    "hot_region": "src/match.rs:165-225",
+    "rust_source": "unsafe fn match_row(\n    mut match_1: *const match_struct,\n    mut row: c_int,\n    mut curr_D: *mut score_t,\n    mut curr_M: *mut score_t,\n    mut last_D: *const score_t,\n    mut last_M: *const score_t,\n) {\n    let mut n: c_int = (*match_1).needle_len;\n    let mut m: c_int = (*match_1).haystack_len;\n    let mut i: c_int = row;\n    let mut lower_needle: *const c_char =\n        &raw const (*match_1).lower_needle as *const c_char;\n    let mut lower_haystack: *const c_char =\n        &raw const (*match_1).lower_haystack as *const c_char;\n    let mut match_bonus: *const score_t = &raw const (*match_1).match_bonus as *const score_t;\n    let mut prev_score: score_t = -::core::f32::INFINITY as score_t;\n    let mut gap_score: score_t = if i == n - 1 as c_int {\n        SCORE_GAP_TRAILING\n    } else {\n        SCORE_GAP_INNER\n    };\n    let mut prev_M: score_t = -::core::f32::INFINITY as score_t;\n    let mut prev_D: score_t = -::core::f32::INFINITY as score_t;\n    let mut j: c_int = 0 as c_int;\n    while j < m {\n        if *lower_needle.offset(i as isize) as c_int\n            == *lower_haystack.offset(j as isize) as c_int\n        {\n            let mut score: score_t = -::core::f32::INFINITY as score_t;\n            if i == 0 {\n                score = j as score_t * SCORE_GAP_LEADING + *match_bonus.offset(j as isize);\n            } else if j != 0 {\n                score = (if prev_M + *match_bonus.offset(j as isize)\n                    > prev_D as c_double + 1.0f64\n                {\n                    prev_M as c_double\n                        + *match_bonus.offset(j as isize) as c_double\n                } else {\n                    prev_D as c_double + 1.0f64\n                }) as score_t;\n            }\n            prev_D = *last_D.offset(j as isize);\n            prev_M = *last_M.offset(j as isize);\n            *curr_D.offset(j as isize) = score;\n            prev_score = if score > prev_score + gap_score {\n                score\n            } else {\n                prev_score + gap_score\n            };\n            *curr_M.offset(j as isize) = prev_score;\n        } else {\n            prev_D = *last_D.offset(j as isize);\n            prev_M = *last_M.offset(j as isize);\n            *curr_D.offset(j as isize) = -::core::f32::INFINITY as score_t;\n            prev_score = prev_score + gap_score;\n            *curr_M.offset(j as isize) = prev_score;\n        }\n        j += 1;\n    }\n}",
+    "signature": "unsafe fn match_row(\n    mut match_1: *const match_struct,\n    mut row: c_int,\n    mut curr_D: *mut score_t,\n    mut curr_M: *mut score_t,\n    mut last_D: *const score_t,\n    mut last_M: *const score_t,\n)",
+    "profile": {
+      "self_time_ratio": 0.7288,
+      "call_count": null,
+      "retired_instructions": 8980612812,
+      "instructions_per_call": null,
+      "cpi": 0.476,
+      "tma": {
+        "scope": "process",
+        "retiring": 50.992308922545725,
+        "frontend_bound": 13.333843083857234,
+        "bad_speculation": 2.525859292301982,
+        "backend_bound": 33.14798870129506,
+        "memory_bound": 18.755582765645237,
+        "core_bound": 14.392405935649826,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0011
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_vec": {
+        "NonReductionValueUsedOutsideLoop": 1
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 191,
+        "message": "hoisting sext"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 191,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 195,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 191,
+        "message": "peeled loop by 1 iterations"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 191,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 191,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 182,
+        "message": "hoisting add"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 190,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 190,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 195,
+        "message": "peeled loop by 1 iterations"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 192,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 196,
+        "message": "load of type double not eliminated"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 191,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 191,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 191,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 191,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 191,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 191,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 191,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 191,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 191,
+        "message": "2 virtual registers copies 9.375000e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 195,
+        "message": "5 virtual registers copies 1.010742e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 182,
+        "message": "BasicBlock: bb5.us.i.preheader.us.us.peel"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 196,
+        "message": "BasicBlock: bb6.us.i.us.us.peel"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 195,
+        "message": "BasicBlock: bb10.us.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 196,
+        "message": "BasicBlock: bb6.us.i.us.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 182,
+        "message": "BasicBlock: bb10.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 198,
+        "message": "BasicBlock: bb15.i.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 191,
+        "message": "BasicBlock: bb5.i.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 217,
+        "message": "BasicBlock: bb19.i.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 191,
+        "message": "BasicBlock: bb5.us.i.us.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 220,
+        "message": "BasicBlock: bb19.us.i.us.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 196,
+        "message": "BasicBlock: bb6.us.i.us.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 191,
+        "message": "BasicBlock: bb5.us.i.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 196,
+        "message": "BasicBlock: bb6.us.i.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 220,
+        "message": "BasicBlock: bb19.us.i.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 220,
+        "message": "BasicBlock: bb19.us.i.us.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 220,
+        "message": "BasicBlock: bb19.us.i.us.us.peel"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 191,
+        "message": "2 virtual registers copies 1.250003e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 195,
+        "message": "8 virtual registers copies 1.816407e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 191,
+        "message": "2 virtual registers copies 1.562488e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 191,
+        "message": "BasicBlock: _ZN11fzy_cleaned3src5match9match_row17h697491333ff9652bE.exit.unr-lcssa"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 191,
+        "message": "BasicBlock: bb5.us.i.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 196,
+        "message": "BasicBlock: bb6.us.i.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 196,
+        "message": "BasicBlock: bb6.us.i.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 191,
+        "message": "BasicBlock: bb5.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 196,
+        "message": "BasicBlock: bb6.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 220,
+        "message": "BasicBlock: bb19.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 220,
+        "message": "BasicBlock: bb19.us.i.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 220,
+        "message": "BasicBlock: bb19.us.i.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 195,
+        "message": "BasicBlock: bb19.us.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 198,
+        "message": "BasicBlock: bb15.i.us.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 198,
+        "message": "BasicBlock: bb15.i.us.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 198,
+        "message": "BasicBlock: bb15.i.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 191,
+        "message": "BasicBlock: _ZN11fzy_cleaned3src5match9match_row17h697491333ff9652bE.exit89.us.loopexit.unr-lcssa.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 191,
+        "message": "BasicBlock: bb5.i.us.epil"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

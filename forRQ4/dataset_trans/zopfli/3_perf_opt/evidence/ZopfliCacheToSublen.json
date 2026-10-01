@@ -1,0 +1,544 @@
+{
+  "hot_function": {
+    "symbol": "ZopfliCacheToSublen",
+    "location": "src/cache.rs:112-154",
+    "workload": "cache_roundtrip",
+    "hot_region": "src/cache.rs:112-154",
+    "rust_source": "pub unsafe fn ZopfliCacheToSublen(\n    mut lmc: *const ZopfliLongestMatchCache,\n    mut pos: size_t,\n    mut length: size_t,\n    mut sublen: *mut c_ushort,\n) {\n    let lmc_view: &ZopfliLongestMatchCache = unsafe { &*lmc };\n    let mut i: size_t = 0;\n    let mut j: size_t = 0;\n    let mut maxlength: c_uint = ZopfliMaxCachedSublen(lmc, pos, length);\n    let mut prevlength: c_uint = 0 as c_uint;\n    let mut cache: *mut c_uchar = ::core::ptr::null_mut::<c_uchar>();\n    if length < 3 as size_t {\n        return;\n    }\n    cache = lmc_view.sublen.offset(\n        (ZOPFLI_CACHE_LENGTH as size_t)\n            .wrapping_mul(pos)\n            .wrapping_mul(3 as size_t) as isize,\n    ) as *mut c_uchar;\n    j = 0 as size_t;\n    while j < ZOPFLI_CACHE_LENGTH as size_t {\n        let mut length_0: c_uint =\n            (*cache.offset(j.wrapping_mul(3 as size_t) as isize) as c_int\n                + 3 as c_int) as c_uint;\n        let mut dist: c_uint =\n            (*cache.offset(j.wrapping_mul(3 as size_t).wrapping_add(1 as size_t) as isize)\n                as c_int\n                + 256 as c_int\n                    * *cache.offset(j.wrapping_mul(3 as size_t).wrapping_add(2 as size_t) as isize)\n                        as c_int) as c_uint;\n        i = prevlength as size_t;\n        while i <= length_0 as size_t {\n            *sublen.offset(i as isize) = dist as c_ushort;\n            i = i.wrapping_add(1);\n        }\n        if length_0 == maxlength {\n            break;\n        }\n        prevlength = length_0.wrapping_add(1 as c_uint);\n        j = j.wrapping_add(1);\n    }\n}",
+    "signature": "pub unsafe fn ZopfliCacheToSublen(\n    mut lmc: *const ZopfliLongestMatchCache,\n    mut pos: size_t,\n    mut length: size_t,\n    mut sublen: *mut c_ushort,\n)",
+    "profile": {
+      "self_time_ratio": 0.1477,
+      "call_count": null,
+      "retired_instructions": 2452597644,
+      "instructions_per_call": null,
+      "cpi": 0.339,
+      "tma": {
+        "scope": "process",
+        "retiring": 69.02870319882084,
+        "frontend_bound": 20.900695807784746,
+        "bad_speculation": 1.475546985659856,
+        "backend_bound": 8.595054007734566,
+        "memory_bound": 5.342356041394446,
+        "core_bound": 3.2526979663401203,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0026
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 121,
+        "message": "'_ZN14zopfli_cleaned3src5cache21ZopfliMaxCachedSublen17hccddb6f77028d5cfE' inlined into '_ZN14zopfli_cleaned3src5cache19ZopfliCacheToSublen17h22c03a7004a10d35E' with (cost=0, threshold=325) at callsite _ZN14zopfli_cleaned3src5cache19ZopfliCacheToSublen17h22c03a7004a10d35E:9:33;"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 144,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 144,
+        "message": "completely unrolled loop with 8 iterations"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 138,
+        "message": "load of type i8 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 135,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 138,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 141,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 144,
+        "message": "hoisting add"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 138,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 133,
+        "message": "completely unrolled loop with 8 iterations"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 141,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 135,
+        "message": "BasicBlock: bb7.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: vector.ph"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: vector.body"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb7.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: middle.block"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 135,
+        "message": "BasicBlock: bb8.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: vector.ph7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: vector.body12"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: middle.block4"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: bb7.1.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb7.1.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 148,
+        "message": "BasicBlock: bb8.1.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: vector.ph23"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: vector.body29"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: middle.block20"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: bb7.2.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb7.2.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 148,
+        "message": "BasicBlock: bb8.2.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: vector.ph41"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: vector.body47"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: middle.block38"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: bb7.3.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb7.3.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 148,
+        "message": "BasicBlock: bb8.3.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: vector.ph59"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: vector.body65"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: middle.block56"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: bb7.4.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb7.4.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 148,
+        "message": "BasicBlock: bb8.4.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: vector.ph77"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: vector.body83"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: middle.block74"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: bb7.5.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb7.5.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 148,
+        "message": "BasicBlock: bb8.5.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: vector.ph95"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: vector.body101"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: middle.block92"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: bb7.6.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb7.6.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 148,
+        "message": "BasicBlock: bb8.6.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: vector.ph113"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: vector.body119"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: middle.block110"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: bb7.7.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb7.7.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 135,
+        "message": "BasicBlock: bb7.preheader.i70"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: vector.ph116"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: vector.body121"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: middle.block113"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb7.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 135,
+        "message": "BasicBlock: bb8.i75"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: vector.ph99"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: vector.body105"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: middle.block96"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: vector.ph81"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: vector.body87"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: middle.block78"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: vector.ph63"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: vector.body69"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: middle.block60"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: vector.ph45"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: vector.body51"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: middle.block42"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: vector.ph27"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: vector.body33"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: middle.block24"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: vector.ph9"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: vector.body15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 144,
+        "message": "BasicBlock: middle.block6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: vector.body"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.3712579244534179,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.5439020682454204,
+            "aggregate_ci_low_pct": 0.1986137806614153,
+            "aggregate_pct": 0.3712579244534179,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.5439,
+                "ci_low_pct": 0.1986,
+                "insns_delta_pct": 0.0994,
+                "mean_delta_pct": 0.3713,
+                "op": "regexp_pattern",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "regexp_pattern"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "regexp_pattern"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "f641ddb542886e9de485798667a5f27c342ab788",
+      "changeset_id": "legacy-b13d2ad30ec24224",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-3c279515ce776d8b",
+          "replacement_function_source": "fn xmlRegStateAddTransTo(\n    mut ctxt: xmlRegParserCtxtPtr,\n    mut target: xmlRegStatePtr,\n    mut from: c_int,\n) { unsafe {\n    let state = &mut *target;\n\n    let nb = state.nbTransTo;\n    let max = state.maxTransTo;\n\n    if max == 0 as c_int {\n        let new_max = 8 as c_int;\n        let trans_to = xmlMalloc.expect(\"non-null function pointer\")(\n            (new_max as size_t).wrapping_mul(::core::mem::size_of::<c_int>() as size_t),\n        ) as *mut c_int;\n        if trans_to.is_null() {\n            xmlRegexpErrMemory(\n                ctxt,\n                b\"adding transition\\0\" as *const u8 as *const c_char,\n            );\n            state.maxTransTo = 0 as c_int;\n            return;\n        }\n        state.maxTransTo = new_max;\n        state.transTo = trans_to;\n    } else if nb >= max {\n        let new_max = max * 2 as c_int;\n        let tmp = xmlRealloc.expect(\"non-null function pointer\")(\n            state.transTo as *mut c_void,\n            (new_max as size_t).wrapping_mul(::core::mem::size_of::<c_int>() as size_t),\n        ) as *mut c_int;\n        if tmp.is_null() {\n            xmlRegexpErrMemory(\n                ctxt,\n                b\"adding transition\\0\" as *const u8 as *const c_char,\n            );\n            state.maxTransTo = max;\n            return;\n        }\n        state.maxTransTo = new_max;\n        state.transTo = tmp;\n    }\n\n    // SAFETY: transTo has been allocated/reallocated to hold at least nbTransTo + 1 elements above, and nb is the current in-bounds write index.\n    *state.transTo.add(nb as usize) = from;\n    state.nbTransTo = nb + 1;\n} }",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "48730294a62b3df3325480347f9c6e778ce2d08090ebea4e37db35c0af46751a",
+            "file_hint": "src/xmlregexp.rs",
+            "qualified_name": "crate::xmlRegStateAddTransTo",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "xmlRegStateAddTransTo-4659bcf96756",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "xmlRegStateAddTransTo",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "76a22ecef2f0059743daf7e6f4f4fc8f130f6953f8fbe3dee2d5ae7b189e879e",
+            "edit_id": "edit-replace-3c279515ce776d8b",
+            "end_byte": 113440,
+            "operation_id": "replace-3c279515ce776d8b",
+            "relative_path": "src/xmlregexp.rs",
+            "replacement_text": "fn xmlRegStateAddTransTo(\n    mut ctxt: xmlRegParserCtxtPtr,\n    mut target: xmlRegStatePtr,\n    mut from: c_int,\n) { unsafe {\n    let state = &mut *target;\n\n    let nb = state.nbTransTo;\n    let max = state.maxTransTo;\n\n    if max == 0 as c_int {\n        let new_max = 8 as c_int;\n        let trans_to = xmlMalloc.expect(\"non-null function pointer\")(\n            (new_max as size_t).wrapping_mul(::core::mem::size_of::<c_int>() as size_t),\n        ) as *mut c_int;\n        if trans_to.is_null() {\n            xmlRegexpErrMemory(\n                ctxt,\n                b\"adding transition\\0\" as *const u8 as *const c_char,\n            );\n            state.maxTransTo = 0 as c_int;\n            return;\n        }\n        state.maxTransTo = new_max;\n        state.transTo = trans_to;\n    } else if nb >= max {\n        let new_max = max * 2 as c_int;\n        let tmp = xmlRealloc.expect(\"non-null function pointer\")(\n            state.transTo as *mut c_void,\n            (new_max as size_t).wrapping_mul(::core::mem::size_of::<c_int>() as size_t),\n        ) as *mut c_int;\n        if tmp.is_null() {\n            xmlRegexpErrMemory(\n                ctxt,\n                b\"adding transition\\0\" as *const u8 as *const c_char,\n            );\n            state.maxTransTo = max;\n            return;\n        }\n        state.maxTransTo = new_max;\n        state.transTo = tmp;\n    }\n\n    // SAFETY: transTo has been allocated/reallocated to hold at least nbTransTo + 1 elements above, and nb is the current in-bounds write index.\n    *state.transTo.add(nb as usize) = from;\n    state.nbTransTo = nb + 1;\n} }",
+            "start_byte": 111942
+          }
+        ],
+        "facts": {
+          "fn_name": "xmlRegStateAddTransTo",
+          "target_span_hash": "48730294a62b3df3325480347f9c6e778ce2d08090ebea4e37db35c0af46751a"
+        },
+        "operation_id": "replace-3c279515ce776d8b"
+      }
+    ],
+    "resolved_head": "f641ddb542886e9de485798667a5f27c342ab788"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/xmlregexp.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

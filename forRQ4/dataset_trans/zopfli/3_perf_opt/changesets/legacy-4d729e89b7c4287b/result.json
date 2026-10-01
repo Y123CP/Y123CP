@@ -1,0 +1,142 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 10.788820704990739,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 11.46864711361513,
+            "aggregate_ci_low_pct": 10.108994296366347,
+            "aggregate_pct": 10.788820704990739,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 11.4686,
+                "ci_low_pct": 10.109,
+                "insns_delta_pct": 9.9277,
+                "mean_delta_pct": 10.7888,
+                "op": "cache_roundtrip",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "cache_roundtrip",
+          "raw_deflate",
+          "zlib_compress"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "cache_roundtrip"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "b9e085c87da204ee4b086b0c9ae5c4d0acc5ad9b",
+      "changeset_id": "legacy-4d729e89b7c4287b",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-f256607d91b65f87",
+          "replacement_function_source": "// Applied rules: [III④, C3]\n// Skipped rules: [III③: Hit [3] points at a call to `ZopfliMaxCachedSublen`, but this function body contains no visible libc/custom bytewise memory wrapper to rewrite in-place. Rewriting that callee would be a separate target, not a concrete transformation of this function.]\n#[inline]\npub unsafe fn ZopfliCacheToSublen(\n    mut lmc: *const ZopfliLongestMatchCache,\n    mut pos: size_t,\n    mut length: size_t,\n    mut sublen: *mut c_ushort,\n) {\n    let lmc_view: &ZopfliLongestMatchCache = unsafe { &*lmc };\n    let mut j: size_t = 0;\n    let maxlength: c_uint = ZopfliMaxCachedSublen(lmc, pos, length);\n    let mut prevlength: c_uint = 0 as c_uint;\n\n    if length < 3 as size_t {\n        return;\n    }\n\n    let cache = unsafe {\n        // SAFETY: `lmc_view.sublen` is the backing storage for cached sublen data;\n        // this function computes the per-`pos` row base exactly as the original code did.\n        // The row length is the compile-time constant `ZOPFLI_CACHE_LENGTH * 3`, and callers\n        // of this unsafe function guarantee `lmc` is valid and that this row lies within the\n        // allocation. We create only a shared slice view here, and do not mutate through any\n        // alias while it is live.\n        core::slice::from_raw_parts(\n            lmc_view.sublen.offset(\n                (ZOPFLI_CACHE_LENGTH as size_t)\n                    .wrapping_mul(pos)\n                    .wrapping_mul(3 as size_t) as isize,\n            ) as *const c_uchar,\n            ZOPFLI_CACHE_LENGTH as usize * 3usize,\n        )\n    };\n    let sublen = unsafe {\n        // SAFETY: `length >= 3` on this path, and callers of this unsafe function guarantee\n        // `sublen` is non-null and valid for writes for indices used by this routine. The\n        // original code writes up to `maxlength`, where `maxlength` is derived from `length`\n        // by `ZopfliMaxCachedSublen`; using `length + 1` preserves the original reachable\n        // index range including index `length`. This mutable slice is the only mutable view\n        // created for this output region in this function.\n        core::slice::from_raw_parts_mut(sublen, length.wrapping_add(1))\n    };\n\n    while j < ZOPFLI_CACHE_LENGTH as size_t {\n        let row = &cache[j.wrapping_mul(3 as size_t)..j.wrapping_mul(3 as size_t).wrapping_add(3)];\n        let length_0: c_uint = (row[0] as c_int + 3 as c_int) as c_uint;\n        let dist: c_uint =\n            (row[1] as c_int + 256 as c_int * row[2] as c_int) as c_uint;\n\n        let start = prevlength as usize;\n        let end = length_0 as usize;\n        for dst in sublen[start..end.wrapping_add(1)].iter_mut() {\n            *dst = dist as c_ushort;\n        }\n\n        if length_0 == maxlength {\n            break;\n        }\n        prevlength = length_0.wrapping_add(1 as c_uint);\n        j = j.wrapping_add(1);\n    }\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "817aca3d7417f3cc7444407497b3f892ae77d09191638e9ded65dae46f9962b3",
+            "file_hint": "src/cache.rs",
+            "qualified_name": "crate::ZopfliCacheToSublen",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "ZopfliCacheToSublen-dcce1069f0b5",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "ZopfliCacheToSublen",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "ca407c6e9666fd076760e5007573f7be4995f876d7061d8891278837acfdb22b",
+            "edit_id": "edit-replace-f256607d91b65f87",
+            "end_byte": 6842,
+            "operation_id": "replace-f256607d91b65f87",
+            "relative_path": "src/cache.rs",
+            "replacement_text": "// Applied rules: [III④, C3]\n// Skipped rules: [III③: Hit [3] points at a call to `ZopfliMaxCachedSublen`, but this function body contains no visible libc/custom bytewise memory wrapper to rewrite in-place. Rewriting that callee would be a separate target, not a concrete transformation of this function.]\n#[inline]\npub unsafe fn ZopfliCacheToSublen(\n    mut lmc: *const ZopfliLongestMatchCache,\n    mut pos: size_t,\n    mut length: size_t,\n    mut sublen: *mut c_ushort,\n) {\n    let lmc_view: &ZopfliLongestMatchCache = unsafe { &*lmc };\n    let mut j: size_t = 0;\n    let maxlength: c_uint = ZopfliMaxCachedSublen(lmc, pos, length);\n    let mut prevlength: c_uint = 0 as c_uint;\n\n    if length < 3 as size_t {\n        return;\n    }\n\n    let cache = unsafe {\n        // SAFETY: `lmc_view.sublen` is the backing storage for cached sublen data;\n        // this function computes the per-`pos` row base exactly as the original code did.\n        // The row length is the compile-time constant `ZOPFLI_CACHE_LENGTH * 3`, and callers\n        // of this unsafe function guarantee `lmc` is valid and that this row lies within the\n        // allocation. We create only a shared slice view here, and do not mutate through any\n        // alias while it is live.\n        core::slice::from_raw_parts(\n            lmc_view.sublen.offset(\n                (ZOPFLI_CACHE_LENGTH as size_t)\n                    .wrapping_mul(pos)\n                    .wrapping_mul(3 as size_t) as isize,\n            ) as *const c_uchar,\n            ZOPFLI_CACHE_LENGTH as usize * 3usize,\n        )\n    };\n    let sublen = unsafe {\n        // SAFETY: `length >= 3` on this path, and callers of this unsafe function guarantee\n        // `sublen` is non-null and valid for writes for indices used by this routine. The\n        // original code writes up to `maxlength`, where `maxlength` is derived from `length`\n        // by `ZopfliMaxCachedSublen`; using `length + 1` preserves the original reachable\n        // index range including index `length`. This mutable slice is the only mutable view\n        // created for this output region in this function.\n        core::slice::from_raw_parts_mut(sublen, length.wrapping_add(1))\n    };\n\n    while j < ZOPFLI_CACHE_LENGTH as size_t {\n        let row = &cache[j.wrapping_mul(3 as size_t)..j.wrapping_mul(3 as size_t).wrapping_add(3)];\n        let length_0: c_uint = (row[0] as c_int + 3 as c_int) as c_uint;\n        let dist: c_uint =\n            (row[1] as c_int + 256 as c_int * row[2] as c_int) as c_uint;\n\n        let start = prevlength as usize;\n        let end = length_0 as usize;\n        for dst in sublen[start..end.wrapping_add(1)].iter_mut() {\n            *dst = dist as c_ushort;\n        }\n\n        if length_0 == maxlength {\n            break;\n        }\n        prevlength = length_0.wrapping_add(1 as c_uint);\n        j = j.wrapping_add(1);\n    }\n}",
+            "start_byte": 5258
+          }
+        ],
+        "facts": {
+          "fn_name": "ZopfliCacheToSublen",
+          "target_span_hash": "817aca3d7417f3cc7444407497b3f892ae77d09191638e9ded65dae46f9962b3"
+        },
+        "operation_id": "replace-f256607d91b65f87"
+      }
+    ],
+    "resolved_head": "b9e085c87da204ee4b086b0c9ae5c4d0acc5ad9b"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/cache.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "hot_function": {
+    "symbol": "aptx_invert_quantization",
+    "location": "src/openaptx.rs:2304-2345",
+    "workload": "decode_sync_hd",
+    "hot_region": "src/openaptx.rs:2304-2345",
+    "rust_source": "unsafe fn aptx_invert_quantization(\n    mut invert_quantize: *mut aptx_invert_quantize,\n    mut quantized_sample: int32_t,\n    mut dither: int32_t,\n    mut tables: *const aptx_tables,\n) {\n    let invert_quantize_view: &mut aptx_invert_quantize = unsafe { &mut *invert_quantize };\n    let mut qr: int32_t = 0;\n    let mut idx: int32_t = 0;\n    let mut shift: int32_t = 0;\n    let mut factor_select: int32_t = 0;\n    idx = (quantized_sample ^ -((quantized_sample < 0 as int32_t) as c_int))\n        + 1 as int32_t;\n    qr = *(*tables).quantize_intervals.offset(idx as isize) / 2 as int32_t;\n    if quantized_sample < 0 as int32_t {\n        qr = -qr;\n    }\n    qr = rshift64_clip24(\n        qr as int64_t * ((1 as c_int as int64_t) << 32 as c_int)\n            + dither as int64_t\n                * *(*tables)\n                    .invert_quantize_dither_factors\n                    .offset(idx as isize) as int64_t,\n        32 as c_uint,\n    );\n    invert_quantize_view.reconstructed_difference =\n        (invert_quantize_view.quantization_factor as int64_t * qr as int64_t\n            >> 19 as c_int) as int32_t;\n    factor_select = 32620 as int32_t * invert_quantize_view.factor_select;\n    factor_select = rshift32(\n        factor_select\n            + *(*tables).quantize_factor_select_offset.offset(idx as isize) as int32_t\n                * ((1 as int32_t) << 15 as c_int),\n        15 as c_uint,\n    );\n    invert_quantize_view.factor_select = clip(factor_select, 0 as int32_t, (*tables).factor_max);\n    idx = (invert_quantize_view.factor_select & 0xff as int32_t) >> 3 as c_int;\n    shift = (*tables).factor_max - invert_quantize_view.factor_select >> 8 as c_int;\n    invert_quantize_view.quantization_factor =\n        ((quantization_factors[idx as usize] as c_int) << 11 as c_int\n            >> shift) as int32_t;\n}",
+    "signature": "unsafe fn aptx_invert_quantization(\n    mut invert_quantize: *mut aptx_invert_quantize,\n    mut quantized_sample: int32_t,\n    mut dither: int32_t,\n    mut tables: *const aptx_tables,\n)",
+    "profile": {
+      "self_time_ratio": 0.0555,
+      "call_count": null,
+      "retired_instructions": 1397581242,
+      "instructions_per_call": null,
+      "cpi": 0.234,
+      "tma": {
+        "scope": "process",
+        "retiring": 79.3284483278184,
+        "frontend_bound": 1.864414501975815,
+        "bad_speculation": 0.6259028077203586,
+        "backend_bound": 18.18123436248542,
+        "memory_bound": 12.978468891547378,
+        "core_bound": 5.202765470938041,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.001
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2321,
+        "message": "'_ZN19libopenaptx_cleaned3src8openaptx15rshift64_clip2417h5d6c729228f230ceE' inlined into '_ZN19libopenaptx_cleaned3src8openaptx24aptx_invert_quantization17he49c70a045f0d99bE' with (cost=-15000, threshold=487) at callsite _ZN19libopenaptx_cleaned3src8openaptx24aptx_invert_quantization17he49c70a045f0d99bE:17:10;"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2335,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2335,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2339,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2341,
+        "message": "load of type i32 not eliminated"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

@@ -1,0 +1,686 @@
+{
+  "hot_function": {
+    "symbol": "lodepng_convert",
+    "location": "src/lodepng.rs:8201-8331",
+    "workload": "color_convert",
+    "hot_region": "src/lodepng.rs:8201-8331",
+    "rust_source": "pub unsafe fn lodepng_convert(\n    mut out: *mut c_uchar,\n    mut in_0: *const c_uchar,\n    mut mode_out: *const LodePNGColorMode,\n    mut mode_in: *const LodePNGColorMode,\n    mut w: c_uint,\n    mut h: c_uint,\n) -> c_uint {\n    let mut i: size_t = 0;\n    let mut tree: ColorTree = ColorTree {\n        children: [::core::ptr::null_mut::<ColorTree>(); 16],\n        index: 0,\n    };\n    let mut numpixels: size_t = (w as size_t).wrapping_mul(h as size_t);\n    let mut error: c_uint = 0 as c_uint;\n    if (*mode_in).colortype as c_uint\n        == LCT_PALETTE as c_int as c_uint\n        && (*mode_in).palette.is_null()\n    {\n        return 107 as c_uint;\n    }\n    if lodepng_color_mode_equal(mode_out, mode_in) != 0 {\n        let mut numbytes: size_t = lodepng_get_raw_size(w, h, mode_in);\n        lodepng_memcpy(\n            out as *mut c_void,\n            in_0 as *const c_void,\n            numbytes,\n        );\n        return 0 as c_uint;\n    }\n    if (*mode_out).colortype as c_uint\n        == LCT_PALETTE as c_int as c_uint\n    {\n        let mut palettesize: size_t = (*mode_out).palettesize;\n        let mut palette: *const c_uchar = (*mode_out).palette;\n        let mut palsize: size_t = (1 as c_uint as size_t) << (*mode_out).bitdepth;\n        if palettesize == 0 as size_t {\n            palettesize = (*mode_in).palettesize;\n            palette = (*mode_in).palette;\n            if (*mode_in).colortype as c_uint\n                == LCT_PALETTE as c_int as c_uint\n                && (*mode_in).bitdepth == (*mode_out).bitdepth\n            {\n                let mut numbytes_0: size_t = lodepng_get_raw_size(w, h, mode_in);\n                lodepng_memcpy(\n                    out as *mut c_void,\n                    in_0 as *const c_void,\n                    numbytes_0,\n                );\n                return 0 as c_uint;\n            }\n        }\n        if palettesize < palsize {\n            palsize = palettesize;\n        }\n        color_tree_init(&raw mut tree);\n        i = 0 as size_t;\n        while i != palsize {\n            let mut p: *const c_uchar =\n                palette.offset(i.wrapping_mul(4 as size_t) as isize) as *const c_uchar;\n            error = color_tree_add(\n                &raw mut tree,\n                *p.offset(0 as c_int as isize),\n                *p.offset(1 as c_int as isize),\n                *p.offset(2 as c_int as isize),\n                *p.offset(3 as c_int as isize),\n                i as c_uint,\n            );\n            if error != 0 {\n                break;\n            }\n            i = i.wrapping_add(1);\n        }\n    }\n    if error == 0 {\n        if (*mode_in).bitdepth == 16 as c_uint\n            && (*mode_out).bitdepth == 16 as c_uint\n        {\n            i = 0 as size_t;\n            while i != numpixels {\n                let mut r: c_ushort = 0 as c_ushort;\n                let mut g: c_ushort = 0 as c_ushort;\n                let mut b: c_ushort = 0 as c_ushort;\n                let mut a: c_ushort = 0 as c_ushort;\n                getPixelColorRGBA16(\n                    &raw mut r, &raw mut g, &raw mut b, &raw mut a, in_0, i, mode_in,\n                );\n                rgba16ToPixel(out, i, mode_out, r, g, b, a);\n                i = i.wrapping_add(1);\n            }\n        } else if (*mode_out).bitdepth == 8 as c_uint\n            && (*mode_out).colortype as c_uint\n                == LCT_RGBA as c_int as c_uint\n        {\n            getPixelColorsRGBA8(out, numpixels, in_0, mode_in);\n        } else if (*mode_out).bitdepth == 8 as c_uint\n            && (*mode_out).colortype as c_uint\n                == LCT_RGB as c_int as c_uint\n        {\n            getPixelColorsRGB8(out, numpixels, in_0, mode_in);\n        } else {\n            let mut r_0: c_uchar = 0 as c_uchar;\n            let mut g_0: c_uchar = 0 as c_uchar;\n            let mut b_0: c_uchar = 0 as c_uchar;\n            let mut a_0: c_uchar = 0 as c_uchar;\n            i = 0 as size_t;\n            while i != numpixels {\n                getPixelColorRGBA8(\n                    &raw mut r_0,\n                    &raw mut g_0,\n                    &raw mut b_0,\n                    &raw mut a_0,\n                    in_0,\n                    i,\n                    mode_in,\n                );\n                error = rgba8ToPixel(out, i, mode_out, &raw mut tree, r_0, g_0, b_0, a_0);\n                if error != 0 {\n                    break;\n                }\n                i = i.wrapping_add(1);\n            }\n        }\n    }\n    if (*mode_out).colortype as c_uint\n        == LCT_PALETTE as c_int as c_uint\n    {\n        color_tree_cleanup(&raw mut tree);\n    }\n    return error;\n}",
+    "signature": "pub unsafe fn lodepng_convert(\n    mut out: *mut c_uchar,\n    mut in_0: *const c_uchar,\n    mut mode_out: *const LodePNGColorMode,\n    mut mode_in: *const LodePNGColorMode,\n    mut w: c_uint,\n    mut h: c_uint,\n) -> c_uint",
+    "profile": {
+      "self_time_ratio": 0.2029,
+      "call_count": null,
+      "retired_instructions": 4256169076,
+      "instructions_per_call": null,
+      "cpi": 0.29,
+      "tma": {
+        "scope": "process",
+        "retiring": 83.2335873096292,
+        "frontend_bound": 7.418840427145197,
+        "bad_speculation": 0.10279047718839651,
+        "backend_bound": 9.244781786037205,
+        "memory_bound": 6.098685402379559,
+        "core_bound": 3.146096383657646,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_inl": {
+        "TooCostly": 6
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 8222,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng24lodepng_color_mode_equal17h83b854fea3fd46c9E' inlined into '_ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E' with (cost=170, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E:21:8;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 8224,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng14lodepng_memcpy17h00a08cb495354f9cE' inlined into '_ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E' with (cost=-10, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E:23:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 8245,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng14lodepng_memcpy17h00a08cb495354f9cE' inlined into '_ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E' with (cost=-10, threshold=45) at callsite _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E:44:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 8261,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng14color_tree_add17h5b188a92aeb96f08E' not inlined into '_ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E' because too costly to inline (cost=1015, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 8285,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng19getPixelColorRGBA1617h481410336fd12e23E' not inlined into '_ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E' because too costly to inline (cost=430, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 8288,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng13rgba16ToPixel17h87a48b4fc6b64149E' inlined into '_ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E' with (cost=235, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E:87:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 8295,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng19getPixelColorsRGBA817h4340dd92a9728289E' not inlined into '_ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E' because too costly to inline (cost=1430, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 8300,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817ha7f114ee8a5c7ddaE' not inlined into '_ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E' because too costly to inline (cost=950, threshold=45)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 8308,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng18getPixelColorRGBA817h749aa197a27c62b9E' not inlined into '_ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E' because too costly to inline (cost=900, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 8317,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng12rgba8ToPixel17h11ec834c0e56a5b6E' not inlined into '_ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E' because too costly to inline (cost=685, threshold=250)"
+      },
+      {
+        "pass": "inline-cost",
+        "status": "missed",
+        "line": 8328,
+        "message": "_ZN15lodepng_cleaned3src7lodepng18color_tree_cleanup17h907ec374984db3d0E has uninlinable pattern (recursive) and cost is not fully computed"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 8328,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng18color_tree_cleanup17h907ec374984db3d0E' not inlined into '_ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E' because it should never be inlined (cost=never): recursive"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 8317,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 8317,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 8317,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 8317,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 8288,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 8288,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 8288,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 8288,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 8269,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 8318,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 8276,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 8277,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 8291,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 8291,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 8292,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 8297,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 8317,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 8317,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 8317,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 8317,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 8288,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 8288,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 8288,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 8288,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 8325,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 8261,
+        "message": "_ZN15lodepng_cleaned3src7lodepng14color_tree_add17h5b188a92aeb96f08E will not be inlined into _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 8285,
+        "message": "_ZN15lodepng_cleaned3src7lodepng19getPixelColorRGBA1617h481410336fd12e23E will not be inlined into _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 8288,
+        "message": "_ZN15lodepng_cleaned3src7lodepng13rgba16ToPixel17h87a48b4fc6b64149E will not be inlined into _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 8295,
+        "message": "_ZN15lodepng_cleaned3src7lodepng19getPixelColorsRGBA817h4340dd92a9728289E will not be inlined into _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 8300,
+        "message": "_ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817ha7f114ee8a5c7ddaE will not be inlined into _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 8308,
+        "message": "_ZN15lodepng_cleaned3src7lodepng18getPixelColorRGBA817h749aa197a27c62b9E will not be inlined into _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 8317,
+        "message": "_ZN15lodepng_cleaned3src7lodepng12rgba8ToPixel17h11ec834c0e56a5b6E will not be inlined into _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 8328,
+        "message": "_ZN15lodepng_cleaned3src7lodepng18color_tree_cleanup17h907ec374984db3d0E will not be inlined into _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E because its definition is unavailable"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 8280,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E: MI Instruction count changed from 0 to 595; Delta: 595"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Merge disjoint stack slots: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E: MI Instruction count changed from 595 to 577; Delta: -18"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E: MI Instruction count changed from 577 to 572; Delta: -5"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Machine code sinking: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E: MI Instruction count changed from 572 to 569; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Peephole Optimizations: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E: MI Instruction count changed from 569 to 566; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Process Implicit Definitions: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E: MI Instruction count changed from 566 to 556; Delta: -10"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E: MI Instruction count changed from 556 to 644; Delta: 88"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Two-Address instruction pass: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E: MI Instruction count changed from 644 to 693; Delta: 49"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Register Coalescer: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E: MI Instruction count changed from 693 to 485; Delta: -208"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 8318,
+        "message": "1 reloads 2.195664e+00 total reloads cost 5 virtual registers copies 1.097832e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 8269,
+        "message": "3 virtual registers copies 1.106426e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 8201,
+        "message": "4 spills 3.403384e+00 total spills cost 30 reloads 2.435328e+01 total reloads cost 36 virtual registers copies 5.590599e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Greedy Register Allocator: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E: MI Instruction count changed from 485 to 521; Delta: 36"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Virtual Register Rewriter: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E: MI Instruction count changed from 521 to 495; Delta: -26"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 8201,
+        "message": "248 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E: MI Instruction count changed from 495 to 515; Delta: 20"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Control Flow Optimizer: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E: MI Instruction count changed from 515 to 462; Delta: -53"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E: MI Instruction count changed from 462 to 460; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "X86 LEA Fixup: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E: MI Instruction count changed from 460 to 461; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E: MI Instruction count changed from 461 to 462; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8218,
+        "message": "BasicBlock: bb1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8242,
+        "message": "BasicBlock: bb13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8261,
+        "message": "BasicBlock: bb25"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8276,
+        "message": "BasicBlock: bb32"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8280,
+        "message": "BasicBlock: bb35.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8281,
+        "message": "BasicBlock: bb36"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8291,
+        "message": "BasicBlock: bb42"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8292,
+        "message": "BasicBlock: bb43"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8292,
+        "message": "BasicBlock: bb43"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8295,
+        "message": "BasicBlock: bb44"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8302,
+        "message": "BasicBlock: bb52"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8308,
+        "message": "BasicBlock: bb54"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8325,
+        "message": "BasicBlock: bb62"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8331,
+        "message": "BasicBlock: bb67"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8300,
+        "message": "BasicBlock: bb49"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8201,
+        "message": "440 instructions in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E.130: MI Instruction count changed from 0 to 594; Delta: 594"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Merge disjoint stack slots: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E.130: MI Instruction count changed from 594 to 576; Delta: -18"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E.130: MI Instruction count changed from 576 to 571; Delta: -5"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Machine code sinking: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E.130: MI Instruction count changed from 571 to 568; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Peephole Optimizations: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E.130: MI Instruction count changed from 568 to 565; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Process Implicit Definitions: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E.130: MI Instruction count changed from 565 to 555; Delta: -10"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E.130: MI Instruction count changed from 555 to 641; Delta: 86"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Two-Address instruction pass: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E.130: MI Instruction count changed from 641 to 689; Delta: 48"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Register Coalescer: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E.130: MI Instruction count changed from 689 to 485; Delta: -204"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 8318,
+        "message": "2 reloads 4.322641e+00 total reloads cost 6 virtual registers copies 1.317398e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 8201,
+        "message": "4 spills 3.403384e+00 total spills cost 27 reloads 1.886959e+01 total reloads cost 2 folded reloads 6.808317e+00 total folded reloads cost 35 virtual registers copies 4.622707e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Greedy Register Allocator: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E.130: MI Instruction count changed from 485 to 521; Delta: 36"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Virtual Register Rewriter: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E.130: MI Instruction count changed from 521 to 491; Delta: -30"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E.130: MI Instruction count changed from 491 to 511; Delta: 20"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Control Flow Optimizer: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E.130: MI Instruction count changed from 511 to 457; Delta: -54"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Tail Duplication: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E.130: MI Instruction count changed from 457 to 459; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E.130: MI Instruction count changed from 459 to 457; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "X86 LEA Fixup: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E.130: MI Instruction count changed from 457 to 458; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8201,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN15lodepng_cleaned3src7lodepng15lodepng_convert17h1e871ddc3748ee81E.130: MI Instruction count changed from 458 to 459; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8234,
+        "message": "BasicBlock: bb10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8281,
+        "message": "BasicBlock: bb36"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8291,
+        "message": "BasicBlock: bb42"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8295,
+        "message": "BasicBlock: bb44"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8201,
+        "message": "437 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

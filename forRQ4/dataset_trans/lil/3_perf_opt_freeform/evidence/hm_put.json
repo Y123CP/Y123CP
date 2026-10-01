@@ -1,0 +1,244 @@
+{
+  "hot_function": {
+    "symbol": "hm_put",
+    "location": "src/lil.rs:238-265",
+    "workload": "native_call_state",
+    "hot_region": "src/lil.rs:238-265",
+    "rust_source": "unsafe fn hm_put(\n    mut hm: *mut hashmap_t,\n    mut key: *const c_char,\n    mut value: *mut c_void,\n) {\n    let mut cell: *mut hashcell_t = (&raw mut (*hm).cell as *mut hashcell_t)\n        .offset((hm_hash(key) & HASHMAP_CELLMASK as c_ulong) as isize);\n    let mut i: size_t = 0;\n    i = 0 as size_t;\n    while i < (*cell).c {\n        if strcmp(key, (*(*cell).e.offset(i as isize)).k) == 0 {\n            let ref mut fresh6 = (*(*cell).e.offset(i as isize)).v;\n            *fresh6 = value;\n            return;\n        }\n        i = i.wrapping_add(1);\n    }\n    (*cell).e = realloc(\n        (*cell).e as *mut c_void,\n        (::core::mem::size_of::<hashentry_t>() as size_t)\n            .wrapping_mul((*cell).c.wrapping_add(1 as size_t)),\n    ) as *mut hashentry_t;\n    let ref mut fresh7 = (*(*cell).e.offset((*cell).c as isize)).k;\n    *fresh7 = strclone(key);\n    let ref mut fresh8 = (*(*cell).e.offset((*cell).c as isize)).v;\n    *fresh8 = value;\n    (*cell).c = (*cell).c.wrapping_add(1);\n}",
+    "signature": "unsafe fn hm_put(\n    mut hm: *mut hashmap_t,\n    mut key: *const c_char,\n    mut value: *mut c_void,\n)",
+    "profile": {
+      "self_time_ratio": 0.0583,
+      "call_count": null,
+      "retired_instructions": 1191903490,
+      "instructions_per_call": null,
+      "cpi": 0.282,
+      "tma": {
+        "scope": "process",
+        "retiring": 65.95380920892761,
+        "frontend_bound": 27.129620509019688,
+        "bad_speculation": 1.9598783077506354,
+        "backend_bound": 4.956691974302068,
+        "memory_bound": 3.0986241106400594,
+        "core_bound": 1.8580678636620085,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0014
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 255,
+        "message": "realloc will not be inlined into _ZN11lil_cleaned3src3lil6hm_put17h1f5b0c882afabd44E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 248,
+        "message": "strcmp will not be inlined into _ZN11lil_cleaned3src3lil6hm_put17h1f5b0c882afabd44E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 244,
+        "message": "'_ZN11lil_cleaned3src3lil7hm_hash17he0c5a3f4e57d639fE' inlined into '_ZN11lil_cleaned3src3lil6hm_put17h1f5b0c882afabd44E' with (cost=10, threshold=250) at callsite _ZN11lil_cleaned3src3lil6hm_put17h1f5b0c882afabd44E:6:18;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 261,
+        "message": "'_ZN11lil_cleaned3src3lil8strclone17h54e19366a9d01026E' inlined into '_ZN11lil_cleaned3src3lil6hm_put17h1f5b0c882afabd44E' with (cost=55, threshold=250) at callsite _ZN11lil_cleaned3src3lil6hm_put17h1f5b0c882afabd44E:23:15;"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 247,
+        "message": "sinking getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 247,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 247,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 248,
+        "message": "failed to hoist load with loop-invariant address because load is conditionally executed"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 248,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 247,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 256,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 260,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 238,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN11lil_cleaned3src3lil6hm_put17h1f5b0c882afabd44E: MI Instruction count changed from 0 to 95; Delta: 95"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 238,
+        "message": "Early Tail Duplication: Function: _ZN11lil_cleaned3src3lil6hm_put17h1f5b0c882afabd44E: MI Instruction count changed from 95 to 94; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 238,
+        "message": "Remove dead machine instructions: Function: _ZN11lil_cleaned3src3lil6hm_put17h1f5b0c882afabd44E: MI Instruction count changed from 94 to 93; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 238,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN11lil_cleaned3src3lil6hm_put17h1f5b0c882afabd44E: MI Instruction count changed from 93 to 94; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 238,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN11lil_cleaned3src3lil6hm_put17h1f5b0c882afabd44E: MI Instruction count changed from 94 to 93; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 238,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN11lil_cleaned3src3lil6hm_put17h1f5b0c882afabd44E: MI Instruction count changed from 93 to 105; Delta: 12"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 238,
+        "message": "Two-Address instruction pass: Function: _ZN11lil_cleaned3src3lil6hm_put17h1f5b0c882afabd44E: MI Instruction count changed from 105 to 119; Delta: 14"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 238,
+        "message": "Register Coalescer: Function: _ZN11lil_cleaned3src3lil6hm_put17h1f5b0c882afabd44E: MI Instruction count changed from 119 to 87; Delta: -32"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 248,
+        "message": "1 virtual registers copies 1.024000e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 238,
+        "message": "5 spills 4.360000e+00 total spills cost 7 reloads 4.320000e+00 total reloads cost 14 virtual registers copies 3.796000e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 238,
+        "message": "Greedy Register Allocator: Function: _ZN11lil_cleaned3src3lil6hm_put17h1f5b0c882afabd44E: MI Instruction count changed from 87 to 97; Delta: 10"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 238,
+        "message": "Virtual Register Rewriter: Function: _ZN11lil_cleaned3src3lil6hm_put17h1f5b0c882afabd44E: MI Instruction count changed from 97 to 92; Delta: -5"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 238,
+        "message": "72 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 238,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN11lil_cleaned3src3lil6hm_put17h1f5b0c882afabd44E: MI Instruction count changed from 92 to 116; Delta: 24"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 238,
+        "message": "Control Flow Optimizer: Function: _ZN11lil_cleaned3src3lil6hm_put17h1f5b0c882afabd44E: MI Instruction count changed from 116 to 110; Delta: -6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 244,
+        "message": "BasicBlock: _ZN11lil_cleaned3src3lil7hm_hash17he0c5a3f4e57d639fE.exit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 248,
+        "message": "BasicBlock: bb3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 247,
+        "message": "BasicBlock: bb2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 261,
+        "message": "BasicBlock: _ZN11lil_cleaned3src3lil8strclone17h54e19366a9d01026E.exit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 265,
+        "message": "BasicBlock: bb10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 238,
+        "message": "90 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

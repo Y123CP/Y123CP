@@ -1,0 +1,101 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": "png_palette_roundtrip:d2fb8be1: exit -6 ≠ 0\nstderr: libpng error: IDAT: incorrect data check"
+      },
+      "gate": "w1",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "5a37a4b1ab464f92ead6ffe81f6bd88220b44dec",
+      "changeset_id": "legacy-194138cadc9b6b03",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-889bc93fc6c95e2e",
+          "replacement_function_source": "unsafe fn longest_match(mut s: *mut deflate_state, mut cur_match: IPos) -> uInt {\n    let s_view: &mut deflate_state = unsafe { &mut *s }; // SAFETY: caller guarantees `s` is a valid mutable pointer to `deflate_state`.\n    let mut chain_length: c_uint = s_view.max_chain_length as c_uint;\n    let scan_base: *mut Bytef = unsafe { s_view.window.add(s_view.strstart as usize) }; // SAFETY: zlib invariants ensure `window` is valid and `strstart` is within the allocated window.\n    let mut best_len: c_int = s_view.prev_length as c_int;\n    let mut nice_match: c_int = s_view.nice_match;\n    let limit: IPos = if s_view.strstart > (s_view.w_size as c_uint).wrapping_sub(MIN_LOOKAHEAD as c_uint)\n    {\n        (s_view.strstart as IPos)\n            .wrapping_sub((s_view.w_size as c_uint).wrapping_sub(MIN_LOOKAHEAD as c_uint))\n    } else {\n        NIL as IPos\n    };\n    let prev: *mut Posf = s_view.prev;\n    let wmask: uInt = s_view.w_mask;\n    let strend: *mut Bytef = unsafe { scan_base.add(MAX_MATCH as usize) }; // SAFETY: zlib guarantees enough accessible bytes for comparisons up to `MAX_MATCH`.\n    let mut scan_end1: Byte = unsafe { *scan_base.add((best_len - 1) as usize) as Byte }; // SAFETY: `best_len >= 1` by zlib invariant for this routine.\n    let mut scan_end: Byte = unsafe { *scan_base.add(best_len as usize) as Byte }; // SAFETY: zlib guarantees lookahead/window coverage for this probe.\n\n    if s_view.prev_length >= s_view.good_match {\n        chain_length >>= 2;\n    }\n    if nice_match as uInt > s_view.lookahead {\n        nice_match = s_view.lookahead as c_int;\n    }\n\n    loop {\n        let mut match_0: *mut Bytef = unsafe { s_view.window.add(cur_match as usize) }; // SAFETY: `cur_match` comes from the hash chain and is within the window.\n\n        let quick_reject = unsafe {\n            // SAFETY: all probed offsets are within the same valid zlib window region as in the original implementation.\n            *match_0.add(best_len as usize) as c_int != scan_end as c_int\n                || *match_0.add((best_len - 1) as usize) as c_int != scan_end1 as c_int\n                || *match_0 as c_int != *scan_base as c_int\n                || *match_0.add(1) as c_int != *scan_base.add(1) as c_int\n        };\n\n        if !quick_reject {\n            let mut scan = unsafe { scan_base.add(2) }; // SAFETY: compared bytes 0 and 1 already; advancing by 2 stays within the compared window.\n            match_0 = unsafe { match_0.add(1) }; // SAFETY: matching the original pointer progression.\n\n            while unsafe { scan < strend } {\n                // SAFETY: loop condition and zlib's overread allowance match the original implementation's pointer arithmetic.\n                if unsafe { *scan as c_int != *match_0.add(1) as c_int } {\n                    break;\n                }\n                scan = unsafe { scan.add(1) }; // SAFETY: see loop invariant above.\n                match_0 = unsafe { match_0.add(1) }; // SAFETY: see loop invariant above.\n\n                if unsafe { *scan.add(1) as c_int != *match_0.add(1) as c_int } {\n                    break;\n                }\n                scan = unsafe { scan.add(1) }; // SAFETY: see loop invariant above.\n                match_0 = unsafe { match_0.add(1) }; // SAFETY: see loop invariant above.\n\n                if unsafe { *scan.add(1) as c_int != *match_0.add(1) as c_int } {\n                    break;\n                }\n                scan = unsafe { scan.add(1) }; // SAFETY: see loop invariant above.\n                match_0 = unsafe { match_0.add(1) }; // SAFETY: see loop invariant above.\n\n                if unsafe { *scan.add(1) as c_int != *match_0.add(1) as c_int } {\n                    break;\n                }\n                scan = unsafe { scan.add(1) }; // SAFETY: see loop invariant above.\n                match_0 = unsafe { match_0.add(1) }; // SAFETY: see loop invariant above.\n\n                if unsafe { *scan.add(1) as c_int != *match_0.add(1) as c_int } {\n                    break;\n                }\n                scan = unsafe { scan.add(1) }; // SAFETY: see loop invariant above.\n                match_0 = unsafe { match_0.add(1) }; // SAFETY: see loop invariant above.\n\n                if unsafe { *scan.add(1) as c_int != *match_0.add(1) as c_int } {\n                    break;\n                }\n                scan = unsafe { scan.add(1) }; // SAFETY: see loop invariant above.\n                match_0 = unsafe { match_0.add(1) }; // SAFETY: see loop invariant above.\n\n                if unsafe { *scan.add(1) as c_int != *match_0.add(1) as c_int } {\n                    break;\n                }\n                scan = unsafe { scan.add(1) }; // SAFETY: see loop invariant above.\n                match_0 = unsafe { match_0.add(1) }; // SAFETY: see loop invariant above.\n\n                if unsafe { *scan.add(1) as c_int != *match_0.add(1) as c_int } {\n                    break;\n                }\n                scan = unsafe { scan.add(1) }; // SAFETY: see loop invariant above.\n                match_0 = unsafe { match_0.add(1) }; // SAFETY: see loop invariant above.\n            }\n\n            let len = MAX_MATCH - unsafe { strend.offset_from(scan) as c_int }; // SAFETY: `scan` and `strend` are derived from the same allocation.\n            if len > best_len {\n                s_view.match_start = cur_match as uInt;\n                best_len = len;\n                if len >= nice_match {\n                    break;\n                }\n                scan_end1 = unsafe { *scan_base.add((best_len - 1) as usize) as Byte }; // SAFETY: same bounds rationale as initial load.\n                scan_end = unsafe { *scan_base.add(best_len as usize) as Byte }; // SAFETY: same bounds rationale as initial load.\n            }\n        }\n\n        cur_match = unsafe { *prev.add((cur_match as uInt & wmask) as usize) as IPos }; // SAFETY: masked index is within the circular `prev` table.\n        chain_length = chain_length.wrapping_sub(1);\n        if !(cur_match > limit && chain_length != 0) {\n            break;\n        }\n    }\n\n    if best_len as uInt <= s_view.lookahead {\n        best_len as uInt\n    } else {\n        s_view.lookahead\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "5d9068e0afff423357d2ab7c6a9213db038216bb653847e101446b70c7be5fe1",
+            "file_hint": "src/zlib/deflate.rs",
+            "qualified_name": "crate::longest_match",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "longest_match-ec910eea2d05",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "longest_match",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "ba0cec8dcca41044883fce8c4abea54b0512a43950f92d0110f6b5d44f677616",
+            "edit_id": "edit-replace-889bc93fc6c95e2e",
+            "end_byte": 46983,
+            "operation_id": "replace-889bc93fc6c95e2e",
+            "relative_path": "src/zlib/deflate.rs",
+            "replacement_text": "unsafe fn longest_match(mut s: *mut deflate_state, mut cur_match: IPos) -> uInt {\n    let s_view: &mut deflate_state = unsafe { &mut *s }; // SAFETY: caller guarantees `s` is a valid mutable pointer to `deflate_state`.\n    let mut chain_length: c_uint = s_view.max_chain_length as c_uint;\n    let scan_base: *mut Bytef = unsafe { s_view.window.add(s_view.strstart as usize) }; // SAFETY: zlib invariants ensure `window` is valid and `strstart` is within the allocated window.\n    let mut best_len: c_int = s_view.prev_length as c_int;\n    let mut nice_match: c_int = s_view.nice_match;\n    let limit: IPos = if s_view.strstart > (s_view.w_size as c_uint).wrapping_sub(MIN_LOOKAHEAD as c_uint)\n    {\n        (s_view.strstart as IPos)\n            .wrapping_sub((s_view.w_size as c_uint).wrapping_sub(MIN_LOOKAHEAD as c_uint))\n    } else {\n        NIL as IPos\n    };\n    let prev: *mut Posf = s_view.prev;\n    let wmask: uInt = s_view.w_mask;\n    let strend: *mut Bytef = unsafe { scan_base.add(MAX_MATCH as usize) }; // SAFETY: zlib guarantees enough accessible bytes for comparisons up to `MAX_MATCH`.\n    let mut scan_end1: Byte = unsafe { *scan_base.add((best_len - 1) as usize) as Byte }; // SAFETY: `best_len >= 1` by zlib invariant for this routine.\n    let mut scan_end: Byte = unsafe { *scan_base.add(best_len as usize) as Byte }; // SAFETY: zlib guarantees lookahead/window coverage for this probe.\n\n    if s_view.prev_length >= s_view.good_match {\n        chain_length >>= 2;\n    }\n    if nice_match as uInt > s_view.lookahead {\n        nice_match = s_view.lookahead as c_int;\n    }\n\n    loop {\n        let mut match_0: *mut Bytef = unsafe { s_view.window.add(cur_match as usize) }; // SAFETY: `cur_match` comes from the hash chain and is within the window.\n\n        let quick_reject = unsafe {\n            // SAFETY: all probed offsets are within the same valid zlib window region as in the original implementation.\n            *match_0.add(best_len as usize) as c_int != scan_end as c_int\n                || *match_0.add((best_len - 1) as usize) as c_int != scan_end1 as c_int\n                || *match_0 as c_int != *scan_base as c_int\n                || *match_0.add(1) as c_int != *scan_base.add(1) as c_int\n        };\n\n        if !quick_reject {\n            let mut scan = unsafe { scan_base.add(2) }; // SAFETY: compared bytes 0 and 1 already; advancing by 2 stays within the compared window.\n            match_0 = unsafe { match_0.add(1) }; // SAFETY: matching the original pointer progression.\n\n            while unsafe { scan < strend } {\n                // SAFETY: loop condition and zlib's overread allowance match the original implementation's pointer arithmetic.\n                if unsafe { *scan as c_int != *match_0.add(1) as c_int } {\n                    break;\n                }\n                scan = unsafe { scan.add(1) }; // SAFETY: see loop invariant above.\n                match_0 = unsafe { match_0.add(1) }; // SAFETY: see loop invariant above.\n\n                if unsafe { *scan.add(1) as c_int != *match_0.add(1) as c_int } {\n                    break;\n                }\n                scan = unsafe { scan.add(1) }; // SAFETY: see loop invariant above.\n                match_0 = unsafe { match_0.add(1) }; // SAFETY: see loop invariant above.\n\n                if unsafe { *scan.add(1) as c_int != *match_0.add(1) as c_int } {\n                    break;\n                }\n                scan = unsafe { scan.add(1) }; // SAFETY: see loop invariant above.\n                match_0 = unsafe { match_0.add(1) }; // SAFETY: see loop invariant above.\n\n                if unsafe { *scan.add(1) as c_int != *match_0.add(1) as c_int } {\n                    break;\n                }\n                scan = unsafe { scan.add(1) }; // SAFETY: see loop invariant above.\n                match_0 = unsafe { match_0.add(1) }; // SAFETY: see loop invariant above.\n\n                if unsafe { *scan.add(1) as c_int != *match_0.add(1) as c_int } {\n                    break;\n                }\n                scan = unsafe { scan.add(1) }; // SAFETY: see loop invariant above.\n                match_0 = unsafe { match_0.add(1) }; // SAFETY: see loop invariant above.\n\n                if unsafe { *scan.add(1) as c_int != *match_0.add(1) as c_int } {\n                    break;\n                }\n                scan = unsafe { scan.add(1) }; // SAFETY: see loop invariant above.\n                match_0 = unsafe { match_0.add(1) }; // SAFETY: see loop invariant above.\n\n                if unsafe { *scan.add(1) as c_int != *match_0.add(1) as c_int } {\n                    break;\n                }\n                scan = unsafe { scan.add(1) }; // SAFETY: see loop invariant above.\n                match_0 = unsafe { match_0.add(1) }; // SAFETY: see loop invariant above.\n\n                if unsafe { *scan.add(1) as c_int != *match_0.add(1) as c_int } {\n                    break;\n                }\n                scan = unsafe { scan.add(1) }; // SAFETY: see loop invariant above.\n                match_0 = unsafe { match_0.add(1) }; // SAFETY: see loop invariant above.\n            }\n\n            let len = MAX_MATCH - unsafe { strend.offset_from(scan) as c_int }; // SAFETY: `scan` and `strend` are derived from the same allocation.\n            if len > best_len {\n                s_view.match_start = cur_match as uInt;\n                best_len = len;\n                if len >= nice_match {\n                    break;\n                }\n                scan_end1 = unsafe { *scan_base.add((best_len - 1) as usize) as Byte }; // SAFETY: same bounds rationale as initial load.\n                scan_end = unsafe { *scan_base.add(best_len as usize) as Byte }; // SAFETY: same bounds rationale as initial load.\n            }\n        }\n\n        cur_match = unsafe { *prev.add((cur_match as uInt & wmask) as usize) as IPos }; // SAFETY: masked index is within the circular `prev` table.\n        chain_length = chain_length.wrapping_sub(1);\n        if !(cur_match > limit && chain_length != 0) {\n            break;\n        }\n    }\n\n    if best_len as uInt <= s_view.lookahead {\n        best_len as uInt\n    } else {\n        s_view.lookahead\n    }\n}",
+            "start_byte": 42404
+          }
+        ],
+        "facts": {
+          "fn_name": "longest_match",
+          "target_span_hash": "5d9068e0afff423357d2ab7c6a9213db038216bb653847e101446b70c7be5fe1"
+        },
+        "operation_id": "replace-889bc93fc6c95e2e"
+      }
+    ],
+    "resolved_head": "5a37a4b1ab464f92ead6ffe81f6bd88220b44dec"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w1",
+  "touched_paths": [
+    "src/zlib/deflate.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

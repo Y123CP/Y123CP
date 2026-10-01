@@ -1,0 +1,101 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": "encode_data_and_input:75b62744: sha256 b9a15b7dab0f… ≠ ceda0c64c4ab…"
+      },
+      "gate": "w1",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "479c2317bb3082b8d085c4dbb2494bb404ae69f4",
+      "changeset_id": "legacy-de93475f863a2303",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-dafcdb710b9477a5",
+          "replacement_function_source": "unsafe fn Mask_calcN2(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n) -> c_int {\n    let mut demerit: c_int = 0;\n    if width <= 1 {\n        return demerit;\n    }\n\n    let w = width as isize;\n    let mut y: c_int = 1;\n    let mut row = frame.offset(w).offset(1);\n\n    while y < width {\n        let mut x: c_int = 1;\n        let mut p = row;\n        while x < width {\n            let c = *p as c_int;\n            let l = *p.offset(-1) as c_int;\n            let u = *p.offset(-w) as c_int;\n            let ul = *p.offset(-w - 1) as c_int;\n\n            if ((c & l & u & ul) | ((c | l | u | ul) ^ 1)) & 1 != 0 {\n                demerit += N2;\n            }\n\n            p = p.offset(1);\n            x += 1;\n        }\n        row = row.offset(w + 1);\n        y += 1;\n    }\n\n    demerit\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "cfb697fa975488702e2c8444dc8d28c34466534f45bfe060d3889edec1247ae1",
+            "file_hint": "src/mask.rs",
+            "qualified_name": "crate::Mask_calcN2",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "Mask_calcN2-b6df17259d94",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "Mask_calcN2",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "5b43af3fc7bc8ddcc2622e5c5903fac4250c7b3881a938fb500cf81bb97e7a0b",
+            "edit_id": "edit-replace-dafcdb710b9477a5",
+            "end_byte": 13367,
+            "operation_id": "replace-dafcdb710b9477a5",
+            "relative_path": "src/mask.rs",
+            "replacement_text": "unsafe fn Mask_calcN2(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n) -> c_int {\n    let mut demerit: c_int = 0;\n    if width <= 1 {\n        return demerit;\n    }\n\n    let w = width as isize;\n    let mut y: c_int = 1;\n    let mut row = frame.offset(w).offset(1);\n\n    while y < width {\n        let mut x: c_int = 1;\n        let mut p = row;\n        while x < width {\n            let c = *p as c_int;\n            let l = *p.offset(-1) as c_int;\n            let u = *p.offset(-w) as c_int;\n            let ul = *p.offset(-w - 1) as c_int;\n\n            if ((c & l & u & ul) | ((c | l | u | ul) ^ 1)) & 1 != 0 {\n                demerit += N2;\n            }\n\n            p = p.offset(1);\n            x += 1;\n        }\n        row = row.offset(w + 1);\n        y += 1;\n    }\n\n    demerit\n}",
+            "start_byte": 12047
+          }
+        ],
+        "facts": {
+          "fn_name": "Mask_calcN2",
+          "target_span_hash": "cfb697fa975488702e2c8444dc8d28c34466534f45bfe060d3889edec1247ae1"
+        },
+        "operation_id": "replace-dafcdb710b9477a5"
+      }
+    ],
+    "resolved_head": "479c2317bb3082b8d085c4dbb2494bb404ae69f4"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w1",
+  "touched_paths": [
+    "src/mask.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

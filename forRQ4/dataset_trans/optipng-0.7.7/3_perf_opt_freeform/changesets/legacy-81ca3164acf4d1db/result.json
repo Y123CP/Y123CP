@@ -1,0 +1,141 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 2.028641063326343,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 2.3049167040710152,
+            "aggregate_ci_low_pct": 1.7523654225816712,
+            "aggregate_pct": 2.028641063326343,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 2.3049,
+                "ci_low_pct": 1.7524,
+                "insns_delta_pct": -0.5986,
+                "mean_delta_pct": 2.0286,
+                "op": "png_palette_roundtrip",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "png_palette_roundtrip",
+          "png_write_read_roundtrip"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "png_palette_roundtrip"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "7b674297e5fd1f4e2634af15882e955f617da983",
+      "changeset_id": "legacy-81ca3164acf4d1db",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-b5b4a4cf2f34f99b",
+          "replacement_function_source": "#[inline]\npub fn png_read_row(\n    mut png_ptr: png_structrp,\n    mut row: png_bytep,\n    mut dsp_row: png_bytep,\n) {\n    unsafe {\n        // SAFETY: All raw pointer dereferences below require `png_ptr` to be non-null;\n        // this is checked immediately and all other pointers/fields are used exactly as\n        // in the original function under libpng's invariants.\n        if png_ptr.is_null() {\n            return;\n        }\n\n        let pp = &mut *png_ptr;\n\n        if pp.flags as c_uint & PNG_FLAG_ROW_INIT == 0 {\n            png_read_start_row(png_ptr);\n        }\n\n        let mut row_info = png_row_info {\n            width: pp.iwidth,\n            rowbytes: 0,\n            color_type: pp.color_type,\n            bit_depth: pp.bit_depth,\n            channels: pp.channels,\n            pixel_depth: pp.pixel_depth,\n        };\n\n        let pixel_depth = row_info.pixel_depth as png_size_t;\n        let width = row_info.width as png_size_t;\n        row_info.rowbytes = if row_info.pixel_depth as c_int >= 8 {\n            width.wrapping_mul(pixel_depth >> 3)\n        } else {\n            width.wrapping_mul(pixel_depth).wrapping_add(7) >> 3\n        };\n\n        let interlace_xform =\n            pp.interlaced as c_int != 0 && (pp.transformations as c_uint & PNG_INTERLACE) != 0;\n\n        if interlace_xform {\n            let row_number = pp.row_number as c_uint;\n            let pass = pp.pass as c_int;\n            let width_u = pp.width;\n\n            match pass {\n                0 => {\n                    if row_number & 0x7 != 0 {\n                        if !dsp_row.is_null() {\n                            png_combine_row(png_ptr, dsp_row, 1);\n                        }\n                        png_read_finish_row(png_ptr);\n                        return;\n                    }\n                }\n                1 => {\n                    if row_number & 0x7 != 0 || width_u < 5 {\n                        if !dsp_row.is_null() {\n                            png_combine_row(png_ptr, dsp_row, 1);\n                        }\n                        png_read_finish_row(png_ptr);\n                        return;\n                    }\n                }\n                2 => {\n                    if row_number & 0x7 != 4 {\n                        if !dsp_row.is_null() && (row_number & 4) != 0 {\n                            png_combine_row(png_ptr, dsp_row, 1);\n                        }\n                        png_read_finish_row(png_ptr);\n                        return;\n                    }\n                }\n                3 => {\n                    if row_number & 3 != 0 || width_u < 3 {\n                        if !dsp_row.is_null() {\n                            png_combine_row(png_ptr, dsp_row, 1);\n                        }\n                        png_read_finish_row(png_ptr);\n                        return;\n                    }\n                }\n                4 => {\n                    if row_number & 3 != 2 {\n                        if !dsp_row.is_null() && (row_number & 2) != 0 {\n                            png_combine_row(png_ptr, dsp_row, 1);\n                        }\n                        png_read_finish_row(png_ptr);\n                        return;\n                    }\n                }\n                5 => {\n                    if row_number & 1 != 0 || width_u < 2 {\n                        if !dsp_row.is_null() {\n                            png_combine_row(png_ptr, dsp_row, 1);\n                        }\n                        png_read_finish_row(png_ptr);\n                        return;\n                    }\n                }\n                _ => {\n                    if row_number & 1 == 0 {\n                        png_read_finish_row(png_ptr);\n                        return;\n                    }\n                }\n            }\n        }\n\n        if pp.mode as c_uint & PNG_HAVE_IDAT == 0 {\n            png_error(\n                png_ptr,\n                b\"Invalid attempt to read row data\\0\" as *const u8 as png_const_charp,\n            );\n        }\n\n        let row_buf = pp.row_buf;\n        let prev_row = pp.prev_row;\n\n        *row_buf.offset(0) = 255 as png_byte;\n        png_read_IDAT_data(\n            png_ptr,\n            row_buf,\n            (row_info.rowbytes as png_alloc_size_t).wrapping_add(1),\n        );\n\n        let filter = *row_buf.offset(0) as c_int;\n        if filter > PNG_FILTER_VALUE_NONE {\n            if filter < PNG_FILTER_VALUE_LAST {\n                png_read_filter_row(\n                    png_ptr,\n                    &raw mut row_info,\n                    row_buf.offset(1),\n                    prev_row.offset(1) as png_const_bytep,\n                    filter,\n                );\n            } else {\n                png_error(\n                    png_ptr,\n                    b\"bad adaptive filter value\\0\" as *const u8 as png_const_charp,\n                );\n            }\n        }\n\n        memcpy(\n            prev_row as *mut c_void,\n            row_buf as *const c_void,\n            (row_info.rowbytes as size_t).wrapping_add(1),\n        );\n\n        if pp.transformations != 0 {\n            png_do_read_transformations(png_ptr, &raw mut row_info);\n        }\n\n        if pp.transformed_pixel_depth as c_int == 0 {\n            pp.transformed_pixel_depth = row_info.pixel_depth;\n            if row_info.pixel_depth as c_int > pp.maximum_pixel_depth as c_int {\n                png_error(\n                    png_ptr,\n                    b\"sequential row overflow\\0\" as *const u8 as png_const_charp,\n                );\n            }\n        } else if pp.transformed_pixel_depth as c_int != row_info.pixel_depth as c_int {\n            png_error(\n                png_ptr,\n                b\"internal sequential row size calculation error\\0\" as *const u8\n                    as png_const_charp,\n            );\n        }\n\n        if interlace_xform {\n            if (pp.pass as c_int) < 6 {\n                png_do_read_interlace(\n                    &raw mut row_info,\n                    row_buf.offset(1),\n                    pp.pass as c_int,\n                    pp.transformations,\n                );\n            }\n            if !dsp_row.is_null() {\n                png_combine_row(png_ptr, dsp_row, 1);\n            }\n            if !row.is_null() {\n                png_combine_row(png_ptr, row, 0);\n            }\n        } else {\n            if !row.is_null() {\n                png_combine_row(png_ptr, row, -1);\n            }\n            if !dsp_row.is_null() {\n                png_combine_row(png_ptr, dsp_row, -1);\n            }\n        }\n\n        png_read_finish_row(png_ptr);\n\n        if let Some(read_row_fn) = pp.read_row_fn {\n            read_row_fn(png_ptr as png_structp, pp.row_number, pp.pass as c_int);\n        }\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "707378338190e37b2e34e9478974cea8ecf85989c4098fa3b7bb896a329af218",
+            "file_hint": "src/libpng/pngread.rs",
+            "qualified_name": "crate::png_read_row",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "png_read_row-24a86e93910c",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "png_read_row",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "4dd9a2c7db10ff8baefd98b00bbfe8f13eab37adbb0bbbbd68213f41a02ee130",
+            "edit_id": "edit-replace-b5b4a4cf2f34f99b",
+            "end_byte": 21815,
+            "operation_id": "replace-b5b4a4cf2f34f99b",
+            "relative_path": "src/libpng/pngread.rs",
+            "replacement_text": "#[inline]\npub fn png_read_row(\n    mut png_ptr: png_structrp,\n    mut row: png_bytep,\n    mut dsp_row: png_bytep,\n) {\n    unsafe {\n        // SAFETY: All raw pointer dereferences below require `png_ptr` to be non-null;\n        // this is checked immediately and all other pointers/fields are used exactly as\n        // in the original function under libpng's invariants.\n        if png_ptr.is_null() {\n            return;\n        }\n\n        let pp = &mut *png_ptr;\n\n        if pp.flags as c_uint & PNG_FLAG_ROW_INIT == 0 {\n            png_read_start_row(png_ptr);\n        }\n\n        let mut row_info = png_row_info {\n            width: pp.iwidth,\n            rowbytes: 0,\n            color_type: pp.color_type,\n            bit_depth: pp.bit_depth,\n            channels: pp.channels,\n            pixel_depth: pp.pixel_depth,\n        };\n\n        let pixel_depth = row_info.pixel_depth as png_size_t;\n        let width = row_info.width as png_size_t;\n        row_info.rowbytes = if row_info.pixel_depth as c_int >= 8 {\n            width.wrapping_mul(pixel_depth >> 3)\n        } else {\n            width.wrapping_mul(pixel_depth).wrapping_add(7) >> 3\n        };\n\n        let interlace_xform =\n            pp.interlaced as c_int != 0 && (pp.transformations as c_uint & PNG_INTERLACE) != 0;\n\n        if interlace_xform {\n            let row_number = pp.row_number as c_uint;\n            let pass = pp.pass as c_int;\n            let width_u = pp.width;\n\n            match pass {\n                0 => {\n                    if row_number & 0x7 != 0 {\n                        if !dsp_row.is_null() {\n                            png_combine_row(png_ptr, dsp_row, 1);\n                        }\n                        png_read_finish_row(png_ptr);\n                        return;\n                    }\n                }\n                1 => {\n                    if row_number & 0x7 != 0 || width_u < 5 {\n                        if !dsp_row.is_null() {\n                            png_combine_row(png_ptr, dsp_row, 1);\n                        }\n                        png_read_finish_row(png_ptr);\n                        return;\n                    }\n                }\n                2 => {\n                    if row_number & 0x7 != 4 {\n                        if !dsp_row.is_null() && (row_number & 4) != 0 {\n                            png_combine_row(png_ptr, dsp_row, 1);\n                        }\n                        png_read_finish_row(png_ptr);\n                        return;\n                    }\n                }\n                3 => {\n                    if row_number & 3 != 0 || width_u < 3 {\n                        if !dsp_row.is_null() {\n                            png_combine_row(png_ptr, dsp_row, 1);\n                        }\n                        png_read_finish_row(png_ptr);\n                        return;\n                    }\n                }\n                4 => {\n                    if row_number & 3 != 2 {\n                        if !dsp_row.is_null() && (row_number & 2) != 0 {\n                            png_combine_row(png_ptr, dsp_row, 1);\n                        }\n                        png_read_finish_row(png_ptr);\n                        return;\n                    }\n                }\n                5 => {\n                    if row_number & 1 != 0 || width_u < 2 {\n                        if !dsp_row.is_null() {\n                            png_combine_row(png_ptr, dsp_row, 1);\n                        }\n                        png_read_finish_row(png_ptr);\n                        return;\n                    }\n                }\n                _ => {\n                    if row_number & 1 == 0 {\n                        png_read_finish_row(png_ptr);\n                        return;\n                    }\n                }\n            }\n        }\n\n        if pp.mode as c_uint & PNG_HAVE_IDAT == 0 {\n            png_error(\n                png_ptr,\n                b\"Invalid attempt to read row data\\0\" as *const u8 as png_const_charp,\n            );\n        }\n\n        let row_buf = pp.row_buf;\n        let prev_row = pp.prev_row;\n\n        *row_buf.offset(0) = 255 as png_byte;\n        png_read_IDAT_data(\n            png_ptr,\n            row_buf,\n            (row_info.rowbytes as png_alloc_size_t).wrapping_add(1),\n        );\n\n        let filter = *row_buf.offset(0) as c_int;\n        if filter > PNG_FILTER_VALUE_NONE {\n            if filter < PNG_FILTER_VALUE_LAST {\n                png_read_filter_row(\n                    png_ptr,\n                    &raw mut row_info,\n                    row_buf.offset(1),\n                    prev_row.offset(1) as png_const_bytep,\n                    filter,\n                );\n            } else {\n                png_error(\n                    png_ptr,\n                    b\"bad adaptive filter value\\0\" as *const u8 as png_const_charp,\n                );\n            }\n        }\n\n        memcpy(\n            prev_row as *mut c_void,\n            row_buf as *const c_void,\n            (row_info.rowbytes as size_t).wrapping_add(1),\n        );\n\n        if pp.transformations != 0 {\n            png_do_read_transformations(png_ptr, &raw mut row_info);\n        }\n\n        if pp.transformed_pixel_depth as c_int == 0 {\n            pp.transformed_pixel_depth = row_info.pixel_depth;\n            if row_info.pixel_depth as c_int > pp.maximum_pixel_depth as c_int {\n                png_error(\n                    png_ptr,\n                    b\"sequential row overflow\\0\" as *const u8 as png_const_charp,\n                );\n            }\n        } else if pp.transformed_pixel_depth as c_int != row_info.pixel_depth as c_int {\n            png_error(\n                png_ptr,\n                b\"internal sequential row size calculation error\\0\" as *const u8\n                    as png_const_charp,\n            );\n        }\n\n        if interlace_xform {\n            if (pp.pass as c_int) < 6 {\n                png_do_read_interlace(\n                    &raw mut row_info,\n                    row_buf.offset(1),\n                    pp.pass as c_int,\n                    pp.transformations,\n                );\n            }\n            if !dsp_row.is_null() {\n                png_combine_row(png_ptr, dsp_row, 1);\n            }\n            if !row.is_null() {\n                png_combine_row(png_ptr, row, 0);\n            }\n        } else {\n            if !row.is_null() {\n                png_combine_row(png_ptr, row, -1);\n            }\n            if !dsp_row.is_null() {\n                png_combine_row(png_ptr, dsp_row, -1);\n            }\n        }\n\n        png_read_finish_row(png_ptr);\n\n        if let Some(read_row_fn) = pp.read_row_fn {\n            read_row_fn(png_ptr as png_structp, pp.row_number, pp.pass as c_int);\n        }\n    }\n}",
+            "start_byte": 14306
+          }
+        ],
+        "facts": {
+          "fn_name": "png_read_row",
+          "target_span_hash": "707378338190e37b2e34e9478974cea8ecf85989c4098fa3b7bb896a329af218"
+        },
+        "operation_id": "replace-b5b4a4cf2f34f99b"
+      }
+    ],
+    "resolved_head": "7b674297e5fd1f4e2634af15882e955f617da983"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/libpng/pngread.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

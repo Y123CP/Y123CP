@@ -1,0 +1,142 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 2.3003208554556904,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 2.6957571057310217,
+            "aggregate_ci_low_pct": 1.9048846051803592,
+            "aggregate_pct": 2.3003208554556904,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 2.6958,
+                "ci_low_pct": 1.9049,
+                "insns_delta_pct": 8.6352,
+                "mean_delta_pct": 2.3003,
+                "op": "lz77_blocksplit_analysis",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "lz77_blocksplit_analysis",
+          "raw_deflate",
+          "zlib_compress"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "lz77_blocksplit_analysis"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "b9fdc8fcee9868a2f292c1931d75dd5030ca59c8",
+      "changeset_id": "legacy-bdeb1c75d55d590e",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-e073165e57e9f17f",
+          "replacement_function_source": "// Applied rules: [C3]\n// Skipped rules: [III④: Most concrete hits are data-dependent hash-chain/ring-buffer accesses in a hot inner loop ([13, 14, 17, 18, 22, 23, 24]) or pointer bumps feeding GetMatch ([19, 20]); per card §5 these are non-monotone/data-dependent and do not admit a clean forward iterator, so slice-ification would likely add checks without restoring enough optimization leverage. The remaining isolated derefs ([15, 16, 21]) are too few/localized to justify partial slice views, and [21] is a single output write inside a small scalar loop better left raw.; II_inl: The only hit is TryGetFromLongestMatchCache at [0], but this function is already outside the main chain-walk loop and the caller already carries #[inline]. Without callee size/cold-path evidence, forcing inline on a TooCostly miss risks code-size regression; no safe concrete rewrite can be committed from the provided evidence alone.]\n#[inline]\npub unsafe fn ZopfliFindLongestMatch(\n    mut s: *mut ZopfliBlockState,\n    mut h: *const ZopfliHash,\n    mut array: *const c_uchar,\n    mut pos: size_t,\n    mut size: size_t,\n    mut limit: size_t,\n    mut sublen: *mut c_ushort,\n    mut distance: *mut c_ushort,\n    mut length: *mut c_ushort,\n) {\n    let h_view: &ZopfliHash = unsafe { &*h };\n    let mut hpos: c_ushort =\n        (pos & ZOPFLI_WINDOW_MASK as size_t) as c_ushort;\n    let mut p: c_ushort = 0;\n    let mut pp: c_ushort = 0;\n    let mut bestdist: c_ushort = 0 as c_ushort;\n    let mut bestlength: c_ushort = 1 as c_ushort;\n    let mut scan: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut match_0: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut arrayend: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut arrayend_safe: *const c_uchar =\n        ::core::ptr::null::<c_uchar>();\n    let mut chain_counter: c_int = ZOPFLI_MAX_CHAIN_HITS;\n    let mut dist: c_uint = 0 as c_uint;\n\n    let head = h_view.head;\n    let prev = h_view.prev;\n    let val = h_view.val;\n    let head2 = h_view.head2;\n    let prev2 = h_view.prev2;\n    let hashval2 = h_view.hashval2;\n    let val2 = h_view.val2;\n    let same = h_view.same;\n\n    let mut hhead: *mut c_int = head;\n    let mut hprev: *mut c_ushort = prev;\n    let mut hhashval: *mut c_int = h_view.hashval;\n    let mut hval: c_int = val;\n    let pos_ptr = unsafe { array.offset(pos as isize) as *const c_uchar }; // SAFETY: caller guarantees `array` is valid for reads up to `size`, and `pos <= size` is relied on by the original raw-pointer code.\n    let same_hpos = unsafe { *same.offset(hpos as isize) }; // SAFETY: `hpos` is masked to the window range exactly as in the original code; `same` points to the hash window table.\n\n    if TryGetFromLongestMatchCache(s, pos, &raw mut limit, sublen, distance, length) != 0 {\n        return;\n    }\n    if size.wrapping_sub(pos) < ZOPFLI_MIN_MATCH as size_t {\n        *length = 0 as c_ushort;\n        *distance = 0 as c_ushort;\n        return;\n    }\n    if pos.wrapping_add(limit) > size {\n        limit = size.wrapping_sub(pos);\n    }\n    arrayend = unsafe { pos_ptr.offset(limit as isize) }; // SAFETY: `limit` was clamped so `pos + limit <= size`, matching the original pointer arithmetic.\n    arrayend_safe = unsafe { arrayend.offset(-(8 as c_int as isize)) }; // SAFETY: preserves the original code's contract with `GetMatch`; no additional assumptions are introduced.\n    pp = unsafe { *hhead.offset(hval as isize) as c_ushort }; // SAFETY: `hhead`/`hval` come from the validated hash state exactly as in the original code.\n    p = unsafe { *hprev.offset(pp as isize) }; // SAFETY: `pp` is produced from the hash head table and used identically to the original code.\n    dist = (if (p as c_int) < pp as c_int {\n        pp as c_int - p as c_int\n    } else {\n        ZOPFLI_WINDOW_SIZE - p as c_int + pp as c_int\n    }) as c_uint;\n    while dist < ZOPFLI_WINDOW_SIZE as c_uint {\n        let mut currentlength: c_ushort = 0 as c_ushort;\n        if dist > 0 as c_uint {\n            scan = pos_ptr;\n            match_0 = unsafe { array.offset(pos.wrapping_sub(dist as size_t) as isize) as *const c_uchar }; // SAFETY: this uses the same distance-bounded backward reference as the original code.\n            if pos.wrapping_add(bestlength as size_t) >= size\n                || unsafe { *scan.offset(bestlength as c_int as isize) as c_int } // SAFETY: identical unchecked lookahead as the original code under the same preconditions.\n                    == unsafe { *match_0.offset(bestlength as c_int as isize) as c_int }\n            {\n                let mut same0: c_ushort = same_hpos;\n                if same0 as c_int > 2 as c_int\n                    && unsafe { *scan as c_int == *match_0 as c_int }\n                {\n                    let mut same1: c_ushort = unsafe {\n                        *same.offset(\n                            (pos.wrapping_sub(dist as size_t) & ZOPFLI_WINDOW_MASK as size_t)\n                                as isize,\n                        )\n                    }; // SAFETY: masked ring-buffer index, same as the original code.\n                    let mut same_len: c_ushort =\n                        (if (same0 as c_int) < same1 as c_int {\n                            same0 as c_int\n                        } else {\n                            same1 as c_int\n                        }) as c_ushort;\n                    if same_len as size_t > limit {\n                        same_len = limit as c_ushort;\n                    }\n                    scan = unsafe { scan.offset(same_len as c_int as isize) }; // SAFETY: offset is bounded by `limit`, matching the original code.\n                    match_0 = unsafe { match_0.offset(same_len as c_int as isize) }; // SAFETY: offset mirrors `scan` exactly as in the original code.\n                }\n                scan = GetMatch(scan, match_0, arrayend, arrayend_safe);\n                currentlength =\n                    unsafe { scan.offset_from(pos_ptr) as c_long as c_ushort }; // SAFETY: both pointers derive from the same `array` allocation and this mirrors the original computation.\n            }\n            if currentlength as c_int > bestlength as c_int {\n                if !sublen.is_null() {\n                    let mut j: c_ushort = 0;\n                    j = (bestlength as c_int + 1 as c_int)\n                        as c_ushort;\n                    while j as c_int <= currentlength as c_int {\n                        unsafe { *sublen.offset(j as isize) = dist as c_ushort }; // SAFETY: unchanged raw write into caller-provided `sublen` buffer for the same index range as the original code.\n                        j = j.wrapping_add(1);\n                    }\n                }\n                bestdist = dist as c_ushort;\n                bestlength = currentlength;\n                if currentlength as size_t >= limit {\n                    break;\n                }\n            }\n        }\n        if hhead != head2\n            && bestlength as c_int >= same_hpos as c_int\n            && val2 == unsafe { *hashval2.offset(p as isize) }\n        {\n            hhead = head2;\n            hprev = prev2;\n            hhashval = hashval2;\n            hval = val2;\n        }\n        pp = p;\n        p = unsafe { *hprev.offset(p as isize) }; // SAFETY: `p` remains a hash-chain cursor exactly as in the original code.\n        if p as c_int == pp as c_int {\n            break;\n        }\n        dist = dist.wrapping_add(\n            (if (p as c_int) < pp as c_int {\n                pp as c_int - p as c_int\n            } else {\n                ZOPFLI_WINDOW_SIZE - p as c_int + pp as c_int\n            }) as c_uint,\n        );\n        chain_counter -= 1;\n        if chain_counter <= 0 as c_int {\n            break;\n        }\n    }\n    let _ = hhashval;\n    StoreInLongestMatchCache(s, pos, limit, sublen, bestdist, bestlength);\n    *distance = bestdist;\n    *length = bestlength;\n}",
+          "rule_id": "C3",
+          "target": {
+            "declaration_hash": "584996fcaac572bc732d33e8566210b0c11cfedda5d2ceab15af3331e89abc3e",
+            "file_hint": "src/lz77.rs",
+            "qualified_name": "crate::ZopfliFindLongestMatch",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "ZopfliFindLongestMatch-a5b1b0022f08",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "ZopfliFindLongestMatch",
+        "rule_id": "C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "7790e0be7420157b0199719bfb0015afa00854e7542fb888eb1dedb24f631752",
+            "edit_id": "edit-replace-e073165e57e9f17f",
+            "end_byte": 31055,
+            "operation_id": "replace-e073165e57e9f17f",
+            "relative_path": "src/lz77.rs",
+            "replacement_text": "// Applied rules: [C3]\n// Skipped rules: [III④: Most concrete hits are data-dependent hash-chain/ring-buffer accesses in a hot inner loop ([13, 14, 17, 18, 22, 23, 24]) or pointer bumps feeding GetMatch ([19, 20]); per card §5 these are non-monotone/data-dependent and do not admit a clean forward iterator, so slice-ification would likely add checks without restoring enough optimization leverage. The remaining isolated derefs ([15, 16, 21]) are too few/localized to justify partial slice views, and [21] is a single output write inside a small scalar loop better left raw.; II_inl: The only hit is TryGetFromLongestMatchCache at [0], but this function is already outside the main chain-walk loop and the caller already carries #[inline]. Without callee size/cold-path evidence, forcing inline on a TooCostly miss risks code-size regression; no safe concrete rewrite can be committed from the provided evidence alone.]\n#[inline]\npub unsafe fn ZopfliFindLongestMatch(\n    mut s: *mut ZopfliBlockState,\n    mut h: *const ZopfliHash,\n    mut array: *const c_uchar,\n    mut pos: size_t,\n    mut size: size_t,\n    mut limit: size_t,\n    mut sublen: *mut c_ushort,\n    mut distance: *mut c_ushort,\n    mut length: *mut c_ushort,\n) {\n    let h_view: &ZopfliHash = unsafe { &*h };\n    let mut hpos: c_ushort =\n        (pos & ZOPFLI_WINDOW_MASK as size_t) as c_ushort;\n    let mut p: c_ushort = 0;\n    let mut pp: c_ushort = 0;\n    let mut bestdist: c_ushort = 0 as c_ushort;\n    let mut bestlength: c_ushort = 1 as c_ushort;\n    let mut scan: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut match_0: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut arrayend: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut arrayend_safe: *const c_uchar =\n        ::core::ptr::null::<c_uchar>();\n    let mut chain_counter: c_int = ZOPFLI_MAX_CHAIN_HITS;\n    let mut dist: c_uint = 0 as c_uint;\n\n    let head = h_view.head;\n    let prev = h_view.prev;\n    let val = h_view.val;\n    let head2 = h_view.head2;\n    let prev2 = h_view.prev2;\n    let hashval2 = h_view.hashval2;\n    let val2 = h_view.val2;\n    let same = h_view.same;\n\n    let mut hhead: *mut c_int = head;\n    let mut hprev: *mut c_ushort = prev;\n    let mut hhashval: *mut c_int = h_view.hashval;\n    let mut hval: c_int = val;\n    let pos_ptr = unsafe { array.offset(pos as isize) as *const c_uchar }; // SAFETY: caller guarantees `array` is valid for reads up to `size`, and `pos <= size` is relied on by the original raw-pointer code.\n    let same_hpos = unsafe { *same.offset(hpos as isize) }; // SAFETY: `hpos` is masked to the window range exactly as in the original code; `same` points to the hash window table.\n\n    if TryGetFromLongestMatchCache(s, pos, &raw mut limit, sublen, distance, length) != 0 {\n        return;\n    }\n    if size.wrapping_sub(pos) < ZOPFLI_MIN_MATCH as size_t {\n        *length = 0 as c_ushort;\n        *distance = 0 as c_ushort;\n        return;\n    }\n    if pos.wrapping_add(limit) > size {\n        limit = size.wrapping_sub(pos);\n    }\n    arrayend = unsafe { pos_ptr.offset(limit as isize) }; // SAFETY: `limit` was clamped so `pos + limit <= size`, matching the original pointer arithmetic.\n    arrayend_safe = unsafe { arrayend.offset(-(8 as c_int as isize)) }; // SAFETY: preserves the original code's contract with `GetMatch`; no additional assumptions are introduced.\n    pp = unsafe { *hhead.offset(hval as isize) as c_ushort }; // SAFETY: `hhead`/`hval` come from the validated hash state exactly as in the original code.\n    p = unsafe { *hprev.offset(pp as isize) }; // SAFETY: `pp` is produced from the hash head table and used identically to the original code.\n    dist = (if (p as c_int) < pp as c_int {\n        pp as c_int - p as c_int\n    } else {\n        ZOPFLI_WINDOW_SIZE - p as c_int + pp as c_int\n    }) as c_uint;\n    while dist < ZOPFLI_WINDOW_SIZE as c_uint {\n        let mut currentlength: c_ushort = 0 as c_ushort;\n        if dist > 0 as c_uint {\n            scan = pos_ptr;\n            match_0 = unsafe { array.offset(pos.wrapping_sub(dist as size_t) as isize) as *const c_uchar }; // SAFETY: this uses the same distance-bounded backward reference as the original code.\n            if pos.wrapping_add(bestlength as size_t) >= size\n                || unsafe { *scan.offset(bestlength as c_int as isize) as c_int } // SAFETY: identical unchecked lookahead as the original code under the same preconditions.\n                    == unsafe { *match_0.offset(bestlength as c_int as isize) as c_int }\n            {\n                let mut same0: c_ushort = same_hpos;\n                if same0 as c_int > 2 as c_int\n                    && unsafe { *scan as c_int == *match_0 as c_int }\n                {\n                    let mut same1: c_ushort = unsafe {\n                        *same.offset(\n                            (pos.wrapping_sub(dist as size_t) & ZOPFLI_WINDOW_MASK as size_t)\n                                as isize,\n                        )\n                    }; // SAFETY: masked ring-buffer index, same as the original code.\n                    let mut same_len: c_ushort =\n                        (if (same0 as c_int) < same1 as c_int {\n                            same0 as c_int\n                        } else {\n                            same1 as c_int\n                        }) as c_ushort;\n                    if same_len as size_t > limit {\n                        same_len = limit as c_ushort;\n                    }\n                    scan = unsafe { scan.offset(same_len as c_int as isize) }; // SAFETY: offset is bounded by `limit`, matching the original code.\n                    match_0 = unsafe { match_0.offset(same_len as c_int as isize) }; // SAFETY: offset mirrors `scan` exactly as in the original code.\n                }\n                scan = GetMatch(scan, match_0, arrayend, arrayend_safe);\n                currentlength =\n                    unsafe { scan.offset_from(pos_ptr) as c_long as c_ushort }; // SAFETY: both pointers derive from the same `array` allocation and this mirrors the original computation.\n            }\n            if currentlength as c_int > bestlength as c_int {\n                if !sublen.is_null() {\n                    let mut j: c_ushort = 0;\n                    j = (bestlength as c_int + 1 as c_int)\n                        as c_ushort;\n                    while j as c_int <= currentlength as c_int {\n                        unsafe { *sublen.offset(j as isize) = dist as c_ushort }; // SAFETY: unchanged raw write into caller-provided `sublen` buffer for the same index range as the original code.\n                        j = j.wrapping_add(1);\n                    }\n                }\n                bestdist = dist as c_ushort;\n                bestlength = currentlength;\n                if currentlength as size_t >= limit {\n                    break;\n                }\n            }\n        }\n        if hhead != head2\n            && bestlength as c_int >= same_hpos as c_int\n            && val2 == unsafe { *hashval2.offset(p as isize) }\n        {\n            hhead = head2;\n            hprev = prev2;\n            hhashval = hashval2;\n            hval = val2;\n        }\n        pp = p;\n        p = unsafe { *hprev.offset(p as isize) }; // SAFETY: `p` remains a hash-chain cursor exactly as in the original code.\n        if p as c_int == pp as c_int {\n            break;\n        }\n        dist = dist.wrapping_add(\n            (if (p as c_int) < pp as c_int {\n                pp as c_int - p as c_int\n            } else {\n                ZOPFLI_WINDOW_SIZE - p as c_int + pp as c_int\n            }) as c_uint,\n        );\n        chain_counter -= 1;\n        if chain_counter <= 0 as c_int {\n            break;\n        }\n    }\n    let _ = hhashval;\n    StoreInLongestMatchCache(s, pos, limit, sublen, bestdist, bestlength);\n    *distance = bestdist;\n    *length = bestlength;\n}",
+            "start_byte": 25693
+          }
+        ],
+        "facts": {
+          "fn_name": "ZopfliFindLongestMatch",
+          "target_span_hash": "584996fcaac572bc732d33e8566210b0c11cfedda5d2ceab15af3331e89abc3e"
+        },
+        "operation_id": "replace-e073165e57e9f17f"
+      }
+    ],
+    "resolved_head": "b9fdc8fcee9868a2f292c1931d75dd5030ca59c8"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/lz77.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

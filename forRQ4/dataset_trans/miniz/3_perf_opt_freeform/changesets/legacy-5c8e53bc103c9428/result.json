@@ -1,0 +1,94 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "af5e78c7dec8fd9a231c6af098b5792145b3bd4b",
+      "changeset_id": "legacy-5c8e53bc103c9428",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-c69030f1ec563a57",
+          "replacement_function_source": "unsafe fn tdefl_compress_lz_codes(mut d: *mut tdefl_compressor) -> mz_bool {\n    // SAFETY: Caller provides a valid, unique pointer to tdefl_compressor for the duration\n    // of this function, matching the original function's contract.\n    let d_view: &mut tdefl_compressor = unsafe { &mut *d };\n\n    let mut flags: mz_uint = 1;\n    let mut p_lz_codes: *mut mz_uint8 = d_view.m_lz_code_buf.as_mut_ptr();\n\n    let litlen_codes = &d_view.m_huff_codes[0];\n    let litlen_sizes = &d_view.m_huff_code_sizes[0];\n    let dist_codes = &d_view.m_huff_codes[1];\n    let dist_sizes = &d_view.m_huff_code_sizes[1];\n\n    let mut bit_buffer = d_view.m_bit_buffer;\n    let mut bits_in = d_view.m_bits_in;\n    let mut out_ptr = d_view.m_pOutput_buf;\n    let out_end = d_view.m_pOutput_buf_end;\n    let lz_end = d_view.m_pLZ_code_buf;\n\n    #[inline(always)]\n    unsafe fn put_bits(\n        bit_buffer: &mut mz_uint,\n        bits_in: &mut mz_uint,\n        out_ptr: &mut *mut mz_uint8,\n        out_end: *mut mz_uint8,\n        bits: mz_uint,\n        len: mz_uint,\n    ) {\n        *bit_buffer |= bits << *bits_in;\n        *bits_in = bits_in.wrapping_add(len);\n        while *bits_in >= 8 {\n            if *out_ptr < out_end {\n                let p = *out_ptr;\n                // SAFETY: p is checked to be within the writable output buffer before write,\n                // and then advanced by exactly one byte.\n                unsafe {\n                    *p = *bit_buffer as mz_uint8;\n                }\n                // SAFETY: Advancing by one stays within or one-past the output buffer because\n                // the pointer was strictly less than out_end.\n                *out_ptr = unsafe { p.add(1) };\n            }\n            *bit_buffer >>= 8;\n            *bits_in = bits_in.wrapping_sub(8);\n        }\n    }\n\n    while p_lz_codes < lz_end {\n        if flags == 1 {\n            let fresh = p_lz_codes;\n            // SAFETY: p_lz_codes < lz_end, so reading one byte and advancing by one is valid.\n            flags = (unsafe { *fresh } as c_int | 0x100) as mz_uint;\n            // SAFETY: See above; advancing by one byte remains within the encoded stream.\n            p_lz_codes = unsafe { p_lz_codes.add(1) };\n        }\n\n        if flags & 1 != 0 {\n            // SAFETY: Match entries consume 3 bytes and the original code assumes the stream is valid.\n            let match_len = unsafe { *p_lz_codes.add(0) as mz_uint };\n            // SAFETY: See above; bytes 1 and 2 are part of the same valid 3-byte match entry.\n            let match_dist = (unsafe { *p_lz_codes.add(1) as c_int }\n                | ((unsafe { *p_lz_codes.add(2) as c_int }) << 8)) as mz_uint;\n            // SAFETY: Advancing by the 3-byte match entry size is valid for a valid encoded stream.\n            p_lz_codes = unsafe { p_lz_codes.add(3) };\n\n            let len_sym = s_tdefl_len_sym[match_len as usize] as usize;\n            put_bits(\n                &mut bit_buffer,\n                &mut bits_in,\n                &mut out_ptr,\n                out_end,\n                litlen_codes[len_sym] as mz_uint,\n                litlen_sizes[len_sym] as mz_uint,\n            );\n\n            let len_extra = s_tdefl_len_extra[match_len as usize] as mz_uint;\n            put_bits(\n                &mut bit_buffer,\n                &mut bits_in,\n                &mut out_ptr,\n                out_end,\n                match_len & mz_bitmasks[len_extra as usize],\n                len_extra,\n            );\n\n            let (sym, num_extra_bits) = if match_dist < 512 {\n                (\n                    s_tdefl_small_dist_sym[match_dist as usize] as mz_uint,\n                    s_tdefl_small_dist_extra[match_dist as usize] as mz_uint,\n                )\n            } else {\n                let idx = (match_dist >> 8) as usize;\n                (\n                    s_tdefl_large_dist_sym[idx] as mz_uint,\n                    s_tdefl_large_dist_extra[idx] as mz_uint,\n                )\n            };\n\n            let sym_usize = sym as usize;\n            put_bits(\n                &mut bit_buffer,\n                &mut bits_in,\n                &mut out_ptr,\n                out_end,\n                dist_codes[sym_usize] as mz_uint,\n                dist_sizes[sym_usize] as mz_uint,\n            );\n\n            put_bits(\n                &mut bit_buffer,\n                &mut bits_in,\n                &mut out_ptr,\n                out_end,\n                match_dist & mz_bitmasks[num_extra_bits as usize],\n                num_extra_bits,\n            );\n        } else {\n            let fresh = p_lz_codes;\n            // SAFETY: Literal entries consume 1 byte and p_lz_codes < lz_end here.\n            let lit = unsafe { *fresh as mz_uint };\n            // SAFETY: Advancing by one byte after consuming the literal is valid.\n            p_lz_codes = unsafe { p_lz_codes.add(1) };\n\n            let lit_usize = lit as usize;\n            put_bits(\n                &mut bit_buffer,\n                &mut bits_in,\n                &mut out_ptr,\n                out_end,\n                litlen_codes[lit_usize] as mz_uint,\n                litlen_sizes[lit_usize] as mz_uint,\n            );\n        }\n\n        flags >>= 1;\n    }\n\n    put_bits(\n        &mut bit_buffer,\n        &mut bits_in,\n        &mut out_ptr,\n        out_end,\n        litlen_codes[256] as mz_uint,\n        litlen_sizes[256] as mz_uint,\n    );\n\n    d_view.m_bit_buffer = bit_buffer;\n    d_view.m_bits_in = bits_in;\n    d_view.m_pOutput_buf = out_ptr;\n\n    (out_ptr < out_end) as c_int\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "2e81c3e7f967fcedb07f747cc59177d29b93f85a1fa683048ca9fe9eee8e2e13",
+            "file_hint": "src/miniz_tdef.rs",
+            "qualified_name": "crate::tdefl_compress_lz_codes",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "tdefl_compress_lz_codes-ef72309477af",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "tdefl_compress_lz_codes",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "70e40899ac75ab6e03ce1c3f9e039bdb366d69cec5aa8e1f75ea20847fdd7943",
+            "edit_id": "edit-replace-c69030f1ec563a57",
+            "end_byte": 101939,
+            "operation_id": "replace-c69030f1ec563a57",
+            "relative_path": "src/miniz_tdef.rs",
+            "replacement_text": "unsafe fn tdefl_compress_lz_codes(mut d: *mut tdefl_compressor) -> mz_bool {\n    // SAFETY: Caller provides a valid, unique pointer to tdefl_compressor for the duration\n    // of this function, matching the original function's contract.\n    let d_view: &mut tdefl_compressor = unsafe { &mut *d };\n\n    let mut flags: mz_uint = 1;\n    let mut p_lz_codes: *mut mz_uint8 = d_view.m_lz_code_buf.as_mut_ptr();\n\n    let litlen_codes = &d_view.m_huff_codes[0];\n    let litlen_sizes = &d_view.m_huff_code_sizes[0];\n    let dist_codes = &d_view.m_huff_codes[1];\n    let dist_sizes = &d_view.m_huff_code_sizes[1];\n\n    let mut bit_buffer = d_view.m_bit_buffer;\n    let mut bits_in = d_view.m_bits_in;\n    let mut out_ptr = d_view.m_pOutput_buf;\n    let out_end = d_view.m_pOutput_buf_end;\n    let lz_end = d_view.m_pLZ_code_buf;\n\n    #[inline(always)]\n    unsafe fn put_bits(\n        bit_buffer: &mut mz_uint,\n        bits_in: &mut mz_uint,\n        out_ptr: &mut *mut mz_uint8,\n        out_end: *mut mz_uint8,\n        bits: mz_uint,\n        len: mz_uint,\n    ) {\n        *bit_buffer |= bits << *bits_in;\n        *bits_in = bits_in.wrapping_add(len);\n        while *bits_in >= 8 {\n            if *out_ptr < out_end {\n                let p = *out_ptr;\n                // SAFETY: p is checked to be within the writable output buffer before write,\n                // and then advanced by exactly one byte.\n                unsafe {\n                    *p = *bit_buffer as mz_uint8;\n                }\n                // SAFETY: Advancing by one stays within or one-past the output buffer because\n                // the pointer was strictly less than out_end.\n                *out_ptr = unsafe { p.add(1) };\n            }\n            *bit_buffer >>= 8;\n            *bits_in = bits_in.wrapping_sub(8);\n        }\n    }\n\n    while p_lz_codes < lz_end {\n        if flags == 1 {\n            let fresh = p_lz_codes;\n            // SAFETY: p_lz_codes < lz_end, so reading one byte and advancing by one is valid.\n            flags = (unsafe { *fresh } as c_int | 0x100) as mz_uint;\n            // SAFETY: See above; advancing by one byte remains within the encoded stream.\n            p_lz_codes = unsafe { p_lz_codes.add(1) };\n        }\n\n        if flags & 1 != 0 {\n            // SAFETY: Match entries consume 3 bytes and the original code assumes the stream is valid.\n            let match_len = unsafe { *p_lz_codes.add(0) as mz_uint };\n            // SAFETY: See above; bytes 1 and 2 are part of the same valid 3-byte match entry.\n            let match_dist = (unsafe { *p_lz_codes.add(1) as c_int }\n                | ((unsafe { *p_lz_codes.add(2) as c_int }) << 8)) as mz_uint;\n            // SAFETY: Advancing by the 3-byte match entry size is valid for a valid encoded stream.\n            p_lz_codes = unsafe { p_lz_codes.add(3) };\n\n            let len_sym = s_tdefl_len_sym[match_len as usize] as usize;\n            put_bits(\n                &mut bit_buffer,\n                &mut bits_in,\n                &mut out_ptr,\n                out_end,\n                litlen_codes[len_sym] as mz_uint,\n                litlen_sizes[len_sym] as mz_uint,\n            );\n\n            let len_extra = s_tdefl_len_extra[match_len as usize] as mz_uint;\n            put_bits(\n                &mut bit_buffer,\n                &mut bits_in,\n                &mut out_ptr,\n                out_end,\n                match_len & mz_bitmasks[len_extra as usize],\n                len_extra,\n            );\n\n            let (sym, num_extra_bits) = if match_dist < 512 {\n                (\n                    s_tdefl_small_dist_sym[match_dist as usize] as mz_uint,\n                    s_tdefl_small_dist_extra[match_dist as usize] as mz_uint,\n                )\n            } else {\n                let idx = (match_dist >> 8) as usize;\n                (\n                    s_tdefl_large_dist_sym[idx] as mz_uint,\n                    s_tdefl_large_dist_extra[idx] as mz_uint,\n                )\n            };\n\n            let sym_usize = sym as usize;\n            put_bits(\n                &mut bit_buffer,\n                &mut bits_in,\n                &mut out_ptr,\n                out_end,\n                dist_codes[sym_usize] as mz_uint,\n                dist_sizes[sym_usize] as mz_uint,\n            );\n\n            put_bits(\n                &mut bit_buffer,\n                &mut bits_in,\n                &mut out_ptr,\n                out_end,\n                match_dist & mz_bitmasks[num_extra_bits as usize],\n                num_extra_bits,\n            );\n        } else {\n            let fresh = p_lz_codes;\n            // SAFETY: Literal entries consume 1 byte and p_lz_codes < lz_end here.\n            let lit = unsafe { *fresh as mz_uint };\n            // SAFETY: Advancing by one byte after consuming the literal is valid.\n            p_lz_codes = unsafe { p_lz_codes.add(1) };\n\n            let lit_usize = lit as usize;\n            put_bits(\n                &mut bit_buffer,\n                &mut bits_in,\n                &mut out_ptr,\n                out_end,\n                litlen_codes[lit_usize] as mz_uint,\n                litlen_sizes[lit_usize] as mz_uint,\n            );\n        }\n\n        flags >>= 1;\n    }\n\n    put_bits(\n        &mut bit_buffer,\n        &mut bits_in,\n        &mut out_ptr,\n        out_end,\n        litlen_codes[256] as mz_uint,\n        litlen_sizes[256] as mz_uint,\n    );\n\n    d_view.m_bit_buffer = bit_buffer;\n    d_view.m_bits_in = bits_in;\n    d_view.m_pOutput_buf = out_ptr;\n\n    (out_ptr < out_end) as c_int\n}",
+            "start_byte": 95043
+          }
+        ],
+        "facts": {
+          "fn_name": "tdefl_compress_lz_codes",
+          "target_span_hash": "2e81c3e7f967fcedb07f747cc59177d29b93f85a1fa683048ca9fe9eee8e2e13"
+        },
+        "operation_id": "replace-c69030f1ec563a57"
+      }
+    ],
+    "resolved_head": "af5e78c7dec8fd9a231c6af098b5792145b3bd4b"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_post_validation",
+  "touched_paths": [
+    "src/miniz_tdef.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "added_bounds_check_in_loop",
+      "detail": "rewrite adds a bounds check inside a loop the original indexed unchecked (6 site(s)): mz_bitmasks[num_extra_bits as usize], s_tdefl_small_dist_extra[match_dist as usize], s_tdefl_small_dist_sym[match_dist as usize], mz_bitmasks[len_extra as usize], s_tdefl_len_extra[match_len as usize], s_tdefl_len_sym[match_len as usize]",
+      "ok": false
+    }
+  ]
+}

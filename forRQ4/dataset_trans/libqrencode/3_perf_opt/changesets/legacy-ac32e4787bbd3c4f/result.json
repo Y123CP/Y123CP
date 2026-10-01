@@ -1,0 +1,142 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 3.482801219164017,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 3.641180578269376,
+            "aggregate_ci_low_pct": 3.324421860058658,
+            "aggregate_pct": 3.482801219164017,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 3.6412,
+                "ci_low_pct": 3.3244,
+                "insns_delta_pct": -0.3506,
+                "mean_delta_pct": 3.4828,
+                "op": "encode_string_api",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_data_and_input",
+          "encode_string_api",
+          "spec_mask_ecc"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "encode_string_api"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "00c1abaccee7fef47111a0dddb2b5e9877768a1f",
+      "changeset_id": "legacy-ac32e4787bbd3c4f",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-8dc0a9f8fc78716e",
+          "replacement_function_source": "// Applied rules: [III④]\n// Skipped rules: []\nunsafe fn Mask_calcN2(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n) -> c_int {\n    let width_usize = width as usize;\n    // SAFETY: `width` is the explicit length source (L1); the original code\n    // accesses elements within a `width * width` frame, so caller must provide\n    // a non-null pointer to at least that many `c_uchar`s. This function\n    // creates only one mutable slice for the region and does not create any\n    // other references to it across the rewrite region.\n    let frame = unsafe { core::slice::from_raw_parts_mut(frame, width_usize * width_usize) };\n\n    let mut demerit: c_int = 0;\n    let mut y = 1usize;\n    while y < width_usize {\n        let prev_row = &frame[(y - 1) * width_usize..y * width_usize];\n        let row = &frame[y * width_usize..(y + 1) * width_usize];\n\n        for (top, bottom) in prev_row.windows(2).zip(row.windows(2)) {\n            let b22 = (top[0] & top[1] & bottom[0] & bottom[1]) as c_uchar;\n            let w22 = (top[0] | top[1] | bottom[0] | bottom[1]) as c_uchar;\n            if ((b22 as c_int) | ((w22 as c_int) ^ 1 as c_int)) & 1 as c_int != 0 {\n                demerit += N2;\n            }\n        }\n        y += 1;\n    }\n    demerit\n}",
+          "rule_id": "III④",
+          "target": {
+            "declaration_hash": "cfb697fa975488702e2c8444dc8d28c34466534f45bfe060d3889edec1247ae1",
+            "file_hint": "src/mask.rs",
+            "qualified_name": "crate::Mask_calcN2",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "Mask_calcN2-bc7f0b2c9a92",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "Mask_calcN2",
+        "rule_id": "III④"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "439d761a2319181e00c5988269089255189084514966d5892f2d7934b93d974b",
+            "edit_id": "edit-replace-8dc0a9f8fc78716e",
+            "end_byte": 13172,
+            "operation_id": "replace-8dc0a9f8fc78716e",
+            "relative_path": "src/mask.rs",
+            "replacement_text": "// Applied rules: [III④]\n// Skipped rules: []\nunsafe fn Mask_calcN2(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n) -> c_int {\n    let width_usize = width as usize;\n    // SAFETY: `width` is the explicit length source (L1); the original code\n    // accesses elements within a `width * width` frame, so caller must provide\n    // a non-null pointer to at least that many `c_uchar`s. This function\n    // creates only one mutable slice for the region and does not create any\n    // other references to it across the rewrite region.\n    let frame = unsafe { core::slice::from_raw_parts_mut(frame, width_usize * width_usize) };\n\n    let mut demerit: c_int = 0;\n    let mut y = 1usize;\n    while y < width_usize {\n        let prev_row = &frame[(y - 1) * width_usize..y * width_usize];\n        let row = &frame[y * width_usize..(y + 1) * width_usize];\n\n        for (top, bottom) in prev_row.windows(2).zip(row.windows(2)) {\n            let b22 = (top[0] & top[1] & bottom[0] & bottom[1]) as c_uchar;\n            let w22 = (top[0] | top[1] | bottom[0] | bottom[1]) as c_uchar;\n            if ((b22 as c_int) | ((w22 as c_int) ^ 1 as c_int)) & 1 as c_int != 0 {\n                demerit += N2;\n            }\n        }\n        y += 1;\n    }\n    demerit\n}",
+            "start_byte": 11852
+          }
+        ],
+        "facts": {
+          "fn_name": "Mask_calcN2",
+          "target_span_hash": "cfb697fa975488702e2c8444dc8d28c34466534f45bfe060d3889edec1247ae1"
+        },
+        "operation_id": "replace-8dc0a9f8fc78716e"
+      }
+    ],
+    "resolved_head": "00c1abaccee7fef47111a0dddb2b5e9877768a1f"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/mask.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

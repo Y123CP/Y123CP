@@ -1,0 +1,173 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.6110617055957803,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.8414358364900569,
+            "aggregate_ci_low_pct": 0.3806875747015037,
+            "aggregate_pct": 0.6110617055957803,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 1.8024,
+                "ci_low_pct": 0.0842,
+                "insns_delta_pct": 2.0684,
+                "mean_delta_pct": 0.9433,
+                "op": "decode_std",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              },
+              {
+                "ci_high_pct": 0.729,
+                "ci_low_pct": 0.3122,
+                "insns_delta_pct": 1.9183,
+                "mean_delta_pct": 0.5206,
+                "op": "decode_sync_hd",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.7923,
+                "ci_low_pct": 0.131,
+                "insns_delta_pct": 1.5368,
+                "mean_delta_pct": 0.4616,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.7526,
+                "ci_low_pct": 0.2847,
+                "insns_delta_pct": 1.4328,
+                "mean_delta_pct": 0.5187,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "decode_std",
+          "decode_sync_hd",
+          "encode_hd_reset",
+          "encode_std"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "decode_std"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "d7120e40e30b59fde26e3d01c8b6e0a8c81ace78",
+      "changeset_id": "legacy-a823bb68f6f35bea",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-db8830c84d13c602",
+          "replacement_function_source": "// Applied rules: [III④, C3]\n// Skipped rules: [C3.S1: Not chosen: changing `prediction: *mut aptx_prediction` to `&mut aptx_prediction` would require caller analysis and cross-function signature rewrite, while the same local aliasing recovery can be achieved in-body for this private helper.]\nunsafe fn aptx_reconstructed_differences_update(\n    mut prediction: *mut aptx_prediction,\n    mut reconstructed_difference: int32_t,\n    mut order: c_int,\n) -> *mut int32_t {\n    let prediction_view: &mut aptx_prediction = unsafe { &mut *prediction };\n    let p: c_int = prediction_view.pos as c_int;\n    let next_p: c_int = (p + 1 as c_int) % order;\n    let order_usize = order as usize;\n    let p_usize = p as usize;\n    let next_p_usize = next_p as usize;\n\n    let reconstructed_differences: &mut [int32_t] = &mut prediction_view.reconstructed_differences;\n    let (rd1, rd2) = reconstructed_differences.split_at_mut(order_usize);\n\n    rd1[p_usize] = rd2[p_usize];\n    prediction_view.pos = next_p as int32_t;\n    rd2[next_p_usize] = reconstructed_difference;\n    &mut rd2[next_p_usize] as *mut int32_t\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "70e7e51d3a5eec3520dcc0fa09b41b4bdd16e39cb04445efa4f8b22de272da8a",
+            "file_hint": "src/openaptx.rs",
+            "qualified_name": "crate::aptx_reconstructed_differences_update",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "aptx_reconstructed_differences_update-cc7669d678f9",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "aptx_reconstructed_differences_update",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "21b65bbbab1b1f87c4ad4f89b01fc8b0b881f3d93fac4b803a0b4f108cd7339d",
+            "edit_id": "edit-replace-db8830c84d13c602",
+            "end_byte": 60956,
+            "operation_id": "replace-db8830c84d13c602",
+            "relative_path": "src/openaptx.rs",
+            "replacement_text": "// Applied rules: [III④, C3]\n// Skipped rules: [C3.S1: Not chosen: changing `prediction: *mut aptx_prediction` to `&mut aptx_prediction` would require caller analysis and cross-function signature rewrite, while the same local aliasing recovery can be achieved in-body for this private helper.]\nunsafe fn aptx_reconstructed_differences_update(\n    mut prediction: *mut aptx_prediction,\n    mut reconstructed_difference: int32_t,\n    mut order: c_int,\n) -> *mut int32_t {\n    let prediction_view: &mut aptx_prediction = unsafe { &mut *prediction };\n    let p: c_int = prediction_view.pos as c_int;\n    let next_p: c_int = (p + 1 as c_int) % order;\n    let order_usize = order as usize;\n    let p_usize = p as usize;\n    let next_p_usize = next_p as usize;\n\n    let reconstructed_differences: &mut [int32_t] = &mut prediction_view.reconstructed_differences;\n    let (rd1, rd2) = reconstructed_differences.split_at_mut(order_usize);\n\n    rd1[p_usize] = rd2[p_usize];\n    prediction_view.pos = next_p as int32_t;\n    rd2[next_p_usize] = reconstructed_difference;\n    &mut rd2[next_p_usize] as *mut int32_t\n}",
+            "start_byte": 60253
+          }
+        ],
+        "facts": {
+          "fn_name": "aptx_reconstructed_differences_update",
+          "target_span_hash": "70e7e51d3a5eec3520dcc0fa09b41b4bdd16e39cb04445efa4f8b22de272da8a"
+        },
+        "operation_id": "replace-db8830c84d13c602"
+      }
+    ],
+    "resolved_head": "d7120e40e30b59fde26e3d01c8b6e0a8c81ace78"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/openaptx.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

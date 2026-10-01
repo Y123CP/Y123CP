@@ -1,0 +1,230 @@
+{
+  "hot_function": {
+    "symbol": "add_func",
+    "location": "src/lil.rs:635-671",
+    "workload": "native_call_state",
+    "hot_region": "src/lil.rs:635-671",
+    "rust_source": "unsafe fn add_func(mut lil: lil_t, mut name: *const c_char) -> lil_func_t {\n    let mut cmd: lil_func_t = ::core::ptr::null_mut::<_lil_func_t>();\n    let mut ncmd: *mut lil_func_t = ::core::ptr::null_mut::<lil_func_t>();\n    cmd = find_cmd(lil, name);\n    if !cmd.is_null() {\n        if !(*cmd).argnames.is_null() {\n            lil_free_list((*cmd).argnames);\n        }\n        lil_free_value((*cmd).code);\n        (*cmd).argnames = ::core::ptr::null_mut::<_lil_list_t>();\n        (*cmd).code = ::core::ptr::null_mut::<_lil_value_t>();\n        (*cmd).proc_0 = None;\n        return cmd;\n    }\n    cmd = calloc(1 as size_t, ::core::mem::size_of::<_lil_func_t>() as size_t) as lil_func_t;\n    (*cmd).name = strclone(name);\n    ncmd = realloc(\n        (*lil).cmd as *mut c_void,\n        (::core::mem::size_of::<lil_func_t>() as size_t)\n            .wrapping_mul((*lil).cmds.wrapping_add(1 as size_t)),\n    ) as *mut lil_func_t;\n    if ncmd.is_null() {\n        free(cmd as *mut c_void);\n        return ::core::ptr::null_mut::<_lil_func_t>();\n    }\n    (*lil).cmd = ncmd;\n    let fresh16 = (*lil).cmds;\n    (*lil).cmds = (*lil).cmds.wrapping_add(1);\n    let ref mut fresh17 = *ncmd.offset(fresh16 as isize);\n    *fresh17 = cmd;\n    hm_put(\n        &raw mut (*lil).cmdmap,\n        name,\n        cmd as *mut c_void,\n    );\n    return cmd;\n}",
+    "signature": "unsafe fn add_func(mut lil: lil_t, mut name: *const c_char) -> lil_func_t",
+    "profile": {
+      "self_time_ratio": 0.1271,
+      "call_count": null,
+      "retired_instructions": 2280785096,
+      "instructions_per_call": null,
+      "cpi": 0.321,
+      "tma": {
+        "scope": "process",
+        "retiring": 65.95380920892761,
+        "frontend_bound": 27.129620509019688,
+        "bad_speculation": 1.9598783077506354,
+        "backend_bound": 4.956691974302068,
+        "memory_bound": 3.0986241106400594,
+        "core_bound": 1.8580678636620085,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0014
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_inl": {
+        "TooCostly": 1
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 649,
+        "message": "calloc will not be inlined into _ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 651,
+        "message": "realloc will not be inlined into _ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 657,
+        "message": "free will not be inlined into _ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 638,
+        "message": "'_ZN11lil_cleaned3src3lil8find_cmd17h533aea3ef31e36d5E' inlined into '_ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE' with (cost=115, threshold=250) at callsite _ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE:3:11;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 650,
+        "message": "'_ZN11lil_cleaned3src3lil8strclone17h54e19366a9d01026E' inlined into '_ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE' with (cost=55, threshold=250) at callsite _ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE:15:19;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 665,
+        "message": "'_ZN11lil_cleaned3src3lil6hm_put17h1f5b0c882afabd44E' not inlined into '_ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE' because too costly to inline (cost=290, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 641,
+        "message": "'_ZN11lil_cleaned3src3lil13lil_free_list17hc59e0297c8871795E' inlined into '_ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE' with (cost=170, threshold=325) at callsite _ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE:6:13;"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 643,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 661,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 635,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE: MI Instruction count changed from 0 to 183; Delta: 183"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 635,
+        "message": "Remove dead machine instructions: Function: _ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE: MI Instruction count changed from 183 to 182; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 635,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE: MI Instruction count changed from 182 to 183; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 635,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE: MI Instruction count changed from 183 to 204; Delta: 21"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 635,
+        "message": "Two-Address instruction pass: Function: _ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE: MI Instruction count changed from 204 to 214; Delta: 10"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 635,
+        "message": "Register Coalescer: Function: _ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE: MI Instruction count changed from 214 to 164; Delta: -50"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 635,
+        "message": "20 virtual registers copies 4.224272e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 635,
+        "message": "Virtual Register Rewriter: Function: _ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE: MI Instruction count changed from 164 to 156; Delta: -8"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 635,
+        "message": "56 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 635,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE: MI Instruction count changed from 156 to 162; Delta: 6"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 635,
+        "message": "Control Flow Optimizer: Function: _ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE: MI Instruction count changed from 162 to 150; Delta: -12"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 635,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN11lil_cleaned3src3lil8add_func17h991bfb59c6bdda0fE: MI Instruction count changed from 150 to 156; Delta: 6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 640,
+        "message": "BasicBlock: bb3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 649,
+        "message": "BasicBlock: bb2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 650,
+        "message": "BasicBlock: _ZN11lil_cleaned3src3lil8strclone17h54e19366a9d01026E.exit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 660,
+        "message": "BasicBlock: bb13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 657,
+        "message": "BasicBlock: bb11"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 643,
+        "message": "BasicBlock: bb7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 645,
+        "message": "BasicBlock: bb16"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 671,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 635,
+        "message": "136 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

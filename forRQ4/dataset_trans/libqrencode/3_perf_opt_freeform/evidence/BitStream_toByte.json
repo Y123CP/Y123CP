@@ -1,0 +1,292 @@
+{
+  "hot_function": {
+    "symbol": "BitStream_toByte",
+    "location": "src/bitstream.rs:165-216",
+    "workload": "spec_mask_ecc",
+    "hot_region": "src/bitstream.rs:165-216",
+    "rust_source": "pub unsafe fn BitStream_toByte(\n    mut bstream: *mut BitStream,\n) -> *mut c_uchar {\n    let bstream_view: &BitStream = unsafe { &*bstream };\n    let mut i: size_t = 0;\n    let mut j: size_t = 0;\n    let mut size: size_t = 0;\n    let mut bytes: size_t = 0;\n    let mut oddbits: size_t = 0;\n    let mut data: *mut c_uchar = ::core::ptr::null_mut::<c_uchar>();\n    let mut v: c_uchar = 0;\n    let mut p: *mut c_uchar = ::core::ptr::null_mut::<c_uchar>();\n    size = bstream_view.length;\n    if size == 0 as size_t {\n        return ::core::ptr::null_mut::<c_uchar>();\n    }\n    data = malloc(size.wrapping_add(7 as size_t).wrapping_div(8 as size_t))\n        as *mut c_uchar;\n    if data.is_null() {\n        return ::core::ptr::null_mut::<c_uchar>();\n    }\n    bytes = size.wrapping_div(8 as size_t);\n    p = bstream_view.data;\n    i = 0 as size_t;\n    while i < bytes {\n        v = 0 as c_uchar;\n        j = 0 as size_t;\n        while j < 8 as size_t {\n            v = ((v as c_int) << 1 as c_int) as c_uchar;\n            v = (v as c_int | *p as c_int) as c_uchar;\n            p = p.offset(1);\n            j = j.wrapping_add(1);\n        }\n        *data.offset(i as isize) = v;\n        i = i.wrapping_add(1);\n    }\n    oddbits = size & 7 as size_t;\n    if oddbits > 0 as size_t {\n        v = 0 as c_uchar;\n        j = 0 as size_t;\n        while j < oddbits {\n            v = ((v as c_int) << 1 as c_int) as c_uchar;\n            v = (v as c_int | *p as c_int) as c_uchar;\n            p = p.offset(1);\n            j = j.wrapping_add(1);\n        }\n        *data.offset(bytes as isize) = ((v as c_int)\n            << (8 as size_t).wrapping_sub(oddbits))\n            as c_uchar;\n    }\n    return data;\n}",
+    "signature": "pub unsafe fn BitStream_toByte(\n    mut bstream: *mut BitStream,\n) -> *mut c_uchar",
+    "profile": {
+      "self_time_ratio": 0.3501,
+      "call_count": null,
+      "retired_instructions": 6124666908,
+      "instructions_per_call": null,
+      "cpi": 0.314,
+      "tma": {
+        "scope": "process",
+        "retiring": 66.85358125063222,
+        "frontend_bound": 6.059300117554229,
+        "bad_speculation": 2.1058779335004827,
+        "backend_bound": 24.98124069831307,
+        "memory_bound": 13.331907086665025,
+        "core_bound": 11.649333611648045,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0007
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 181,
+        "message": "malloc will not be inlined into _ZN19libqrencode_cleaned3src9bitstream16BitStream_toByte17h5e942027eea5f92aE because its definition is unavailable"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 192,
+        "message": "completely unrolled loop with 8 iterations"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 177,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 187,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 194,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 207,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 177,
+        "message": "BasicBlock: bb6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 192,
+        "message": "BasicBlock: bb8.preheader.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 194,
+        "message": "BasicBlock: bb8.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 202,
+        "message": "BasicBlock: bb11.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 207,
+        "message": "BasicBlock: bb15.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb15.i.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb15.i.2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb15.i.3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb15.i.4"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb15.i.5"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb15.i.6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 211,
+        "message": "BasicBlock: bb16.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 177,
+        "message": "BasicBlock: bb6.i155"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 192,
+        "message": "BasicBlock: bb8.preheader.preheader.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 194,
+        "message": "BasicBlock: bb8.preheader.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 202,
+        "message": "BasicBlock: bb11.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 207,
+        "message": "BasicBlock: bb15.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb15.i.i.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb15.i.i.2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb15.i.i.3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb15.i.i.4"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb15.i.i.5"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb15.i.i.6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 211,
+        "message": "BasicBlock: bb16.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 192,
+        "message": "BasicBlock: bb8.preheader.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 194,
+        "message": "BasicBlock: bb8.preheader.i516"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 202,
+        "message": "BasicBlock: bb11.i520"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 207,
+        "message": "BasicBlock: bb15.i521"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb15.i521.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb15.i521.2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb15.i521.3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb15.i521.4"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb15.i521.5"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb15.i521.6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 211,
+        "message": "BasicBlock: bb16.i524"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

@@ -1,0 +1,98 @@
+# ============================================================================
+                                                                 
+#
+                                     
+#   c / raw(0_raw) / cleaned(1_cleaned) / stage_a(2_stage_a) / perf_opt(3_perf_opt)
+                                                        
+                                                                      
+#
+                                                               
+#   bash perf_run.sh script_c2rust/.venv/bin/python \
+#       dataset_trans/run_validation.py \
+#       dataset_trans/libopenaptx/validation_workload/purebin/study.toml
+# ============================================================================
+
+[study]
+project     = "libopenaptx"
+compare     = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+report_mode = "per_input"
+
+[builds.c]
+binary_path = "dataset_trans/libopenaptx/validation_workload/purebin/bin/libopenaptx_c"
+[builds.raw]
+binary_path = "dataset_trans/libopenaptx/validation_workload/purebin/bin/libopenaptx_raw"
+[builds.stage_a]                                 # E1 + intra_ptr(struct&mut)+ deunsafe
+binary_path = "dataset_trans/libopenaptx/validation_workload/purebin/bin/libopenaptx_stage_a"
+[builds.codex]
+binary_path = "dataset_trans/libopenaptx/validation_workload/purebin/bin/libopenaptx_codex"
+[builds.freeform]
+binary_path = "dataset_trans/libopenaptx/validation_workload/purebin/bin/libopenaptx_freeform"
+[builds.full]                                  # full arm = 3_perf_opt (rule-guided)
+binary_path = "dataset_trans/libopenaptx/validation_workload/purebin/bin/libopenaptx_full"
+
+[measure]
+warmup_runs  = 5
+measure_runs = 30
+required_cv  = 0.03
+max_load     = 1.0                                               
+cv_retries   = 2                            
+pin_cpu      = 16
+order        = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+
+[gates]
+equivalence = "stdout_sha256"
+
+                                                                            
+[[operations]]
+name = "encode"
+args = ["encode", "$INPUT", "$ITERS"]
+  [[operations.inputs]]
+  name = "testsignal.pcm"
+  path = "dataset_trans/libopenaptx/validation_workload/inputs/testsignal.pcm"
+  iters = 8
+  stdout_sha256 = "6267c341f39be92ec997018e48e18f95a6a861603e81f8b637c12e56fbc96638"
+
+[[operations]]
+name = "encode_hd"
+args = ["encode_hd", "$INPUT", "$ITERS"]
+  [[operations.inputs]]
+  name = "testsignal.pcm"
+  path = "dataset_trans/libopenaptx/validation_workload/inputs/testsignal.pcm"
+  iters = 8
+  stdout_sha256 = "61b2ba31c7882cd2be9964de9be483a58420fe58d6ec99121c3f524bf62383f3"
+
+[[operations]]
+name = "decode"
+args = ["decode", "$INPUT", "$ITERS"]
+  [[operations.inputs]]
+  name = "testsignal.aptx"
+  path = "dataset_trans/libopenaptx/validation_workload/inputs/testsignal.aptx"
+  iters = 11
+  stdout_sha256 = "4ac62ea70452c42e5d72851d11a2773413d4f8fd80bbee20c4c61d3a6183bc32"
+
+[[operations]]
+name = "decode_hd"
+args = ["decode_hd", "$INPUT", "$ITERS"]
+  [[operations.inputs]]
+  name = "testsignal.aptxhd"
+  path = "dataset_trans/libopenaptx/validation_workload/inputs/testsignal.aptxhd"
+  iters = 11
+  stdout_sha256 = "ec20088410c785c7dd8db1f8d48f8f95927f80d02214cc9e60129062f6f60b86"
+
+[[operations]]
+name = "decode_sync"
+args = ["decode_sync", "$INPUT", "$ITERS"]
+  [[operations.inputs]]
+  name = "testsignal.aptx"
+  path = "dataset_trans/libopenaptx/validation_workload/inputs/testsignal.aptx"
+  iters = 11
+  stdout_sha256 = "efeafac235e73e4913495042dfe1a0a19e69bfa83d4f8012093f1125d06b6009"
+
+[[operations]]
+name = "reset_stream"
+args = ["reset_stream", "$INPUT", "$ITERS"]
+  [[operations.inputs]]
+  name = "testsignal.pcm"
+  path = "dataset_trans/libopenaptx/validation_workload/inputs/testsignal.pcm"
+  iters = 8
+  stdout_sha256 = "3d9b2b2a0d5c5c765dee984dcc4a4906b558d7ff18f74fd513ad78b767997a63"

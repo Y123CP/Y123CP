@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.2852101729727687,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.4371588797230877,
+            "aggregate_ci_low_pct": -1.0075792256686251,
+            "aggregate_pct": -0.2852101729727687,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.4372,
+                "ci_low_pct": -1.0076,
+                "insns_delta_pct": -0.6535,
+                "mean_delta_pct": -0.2852,
+                "op": "lowlevel_probe",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "lowlevel_probe"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "lowlevel_probe"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be",
+      "changeset_id": "legacy-d73989785fb104d3",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-8ccbb11e99a39292",
+          "replacement_function_source": "#[inline]\npub unsafe fn BrotliStoreUncompressedMetaBlock(\n    mut is_final_block: c_int,\n    mut input: *const uint8_t,\n    mut position: size_t,\n    mut mask: size_t,\n    mut len: size_t,\n    mut storage_ix: *mut size_t,\n    mut storage: *mut uint8_t,\n) {\n    let mut masked_pos: size_t = position & mask;\n    BrotliStoreUncompressedMetaBlockHeader(len, storage_ix, storage);\n    JumpToByteBoundary(storage_ix, storage);\n\n    let mut ix = *storage_ix;\n    let mut dst = storage.offset((ix >> 3) as isize);\n\n    if masked_pos.wrapping_add(len) > mask.wrapping_add(1 as size_t) {\n        let len1 = mask.wrapping_add(1 as size_t).wrapping_sub(masked_pos);\n        memcpy(\n            dst as *mut c_void,\n            input.offset(masked_pos as isize) as *const c_void,\n            len1,\n        );\n        ix = (ix as c_ulong).wrapping_add((len1 << 3) as c_ulong) as size_t;\n        len = (len as c_ulong).wrapping_sub(len1 as c_ulong) as size_t;\n        masked_pos = 0;\n        dst = storage.offset((ix >> 3) as isize);\n    }\n\n    memcpy(\n        dst as *mut c_void,\n        input.offset(masked_pos as isize) as *const c_void,\n        len,\n    );\n    ix = (ix as c_ulong).wrapping_add((len << 3) as c_ulong) as size_t;\n    *storage_ix = ix;\n\n    BrotliWriteBitsPrepareStorage(ix, storage);\n    if is_final_block != 0 {\n        BrotliWriteBits(1 as size_t, 1 as uint64_t, storage_ix, storage);\n        BrotliWriteBits(1 as size_t, 1 as uint64_t, storage_ix, storage);\n        JumpToByteBoundary(storage_ix, storage);\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "7f42eefc75aa1712c943bf6b01d78c5ba01a32b0bfc9c96f92fc1c90ca5221d4",
+            "file_hint": "src/enc/brotli_bit_stream.rs",
+            "qualified_name": "crate::BrotliStoreUncompressedMetaBlock",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "BrotliStoreUncompressedMetaBlock-dd4dbfba58d0",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "BrotliStoreUncompressedMetaBlock",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "faf712f55d193a9571b8f4ac5d5fadcbdd6c758db85b8569335d06831ca8f679",
+            "edit_id": "edit-replace-8ccbb11e99a39292",
+            "end_byte": 86474,
+            "operation_id": "replace-8ccbb11e99a39292",
+            "relative_path": "src/enc/brotli_bit_stream.rs",
+            "replacement_text": "#[inline]\npub unsafe fn BrotliStoreUncompressedMetaBlock(\n    mut is_final_block: c_int,\n    mut input: *const uint8_t,\n    mut position: size_t,\n    mut mask: size_t,\n    mut len: size_t,\n    mut storage_ix: *mut size_t,\n    mut storage: *mut uint8_t,\n) {\n    let mut masked_pos: size_t = position & mask;\n    BrotliStoreUncompressedMetaBlockHeader(len, storage_ix, storage);\n    JumpToByteBoundary(storage_ix, storage);\n\n    let mut ix = *storage_ix;\n    let mut dst = storage.offset((ix >> 3) as isize);\n\n    if masked_pos.wrapping_add(len) > mask.wrapping_add(1 as size_t) {\n        let len1 = mask.wrapping_add(1 as size_t).wrapping_sub(masked_pos);\n        memcpy(\n            dst as *mut c_void,\n            input.offset(masked_pos as isize) as *const c_void,\n            len1,\n        );\n        ix = (ix as c_ulong).wrapping_add((len1 << 3) as c_ulong) as size_t;\n        len = (len as c_ulong).wrapping_sub(len1 as c_ulong) as size_t;\n        masked_pos = 0;\n        dst = storage.offset((ix >> 3) as isize);\n    }\n\n    memcpy(\n        dst as *mut c_void,\n        input.offset(masked_pos as isize) as *const c_void,\n        len,\n    );\n    ix = (ix as c_ulong).wrapping_add((len << 3) as c_ulong) as size_t;\n    *storage_ix = ix;\n\n    BrotliWriteBitsPrepareStorage(ix, storage);\n    if is_final_block != 0 {\n        BrotliWriteBits(1 as size_t, 1 as uint64_t, storage_ix, storage);\n        BrotliWriteBits(1 as size_t, 1 as uint64_t, storage_ix, storage);\n        JumpToByteBoundary(storage_ix, storage);\n    }\n}",
+            "start_byte": 84749
+          }
+        ],
+        "facts": {
+          "fn_name": "BrotliStoreUncompressedMetaBlock",
+          "target_span_hash": "7f42eefc75aa1712c943bf6b01d78c5ba01a32b0bfc9c96f92fc1c90ca5221d4"
+        },
+        "operation_id": "replace-8ccbb11e99a39292"
+      }
+    ],
+    "resolved_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/enc/brotli_bit_stream.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

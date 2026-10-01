@@ -1,0 +1,25 @@
+# Workload harness for binn (W1/W2/W3 in binn/workloads/*.toml).
+#
+# Reads a .binn file, opens it as a binn document via binn_open(), walks
+# the top-level container counting items, then frees. Prints
+# `items=N size=M` so workload manifests can hash-compare against the
+# C reference harness (dataset_source/binn/src/binn_exhaustive_driver.c).
+#
+# Path-dep points at the staged Rust crate; Stage A re-wires this to
+# 2_stage_a when it runs (see main.py:_reset_harness_to_head).
+[package]
+name = "binn_roundtrip"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+binn_cleaned = { path = "../rust_raw", package = "binn_raw" }
+
+# perf_opt fair-build profile — see script_c2rust/docs/perf_tree_design.md §2.8.
+[profile.release]
+opt-level     = 3
+lto           = "fat"
+codegen-units = 1
+panic         = "abort"
+debug         = false

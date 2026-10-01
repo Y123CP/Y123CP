@@ -1,0 +1,226 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -13.587080199442521,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -13.498122445968797,
+            "aggregate_ci_low_pct": -13.676037952916246,
+            "aggregate_pct": -13.587080199442521,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -14.711,
+                "ci_low_pct": -14.9873,
+                "insns_delta_pct": -27.5997,
+                "mean_delta_pct": -14.8491,
+                "op": "decode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -14.7622,
+                "ci_low_pct": -15.1485,
+                "insns_delta_pct": -27.8386,
+                "mean_delta_pct": -14.9554,
+                "op": "decode_sync_hd",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -11.729,
+                "ci_low_pct": -12.1649,
+                "insns_delta_pct": -22.6889,
+                "mean_delta_pct": -11.9469,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -12.3683,
+                "ci_low_pct": -12.8255,
+                "insns_delta_pct": -23.1521,
+                "mean_delta_pct": -12.5969,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.08006550105800933,
+            "aggregate_ci_low_pct": -0.1389166615272773,
+            "aggregate_pct": -0.029425580234633982,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.3124,
+                "ci_low_pct": -0.4003,
+                "insns_delta_pct": 0.1183,
+                "mean_delta_pct": -0.0439,
+                "op": "decode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.0846,
+                "ci_low_pct": -0.332,
+                "insns_delta_pct": 0.0226,
+                "mean_delta_pct": -0.1237,
+                "op": "decode_sync_hd",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.3118,
+                "ci_low_pct": -0.0289,
+                "insns_delta_pct": 0.0274,
+                "mean_delta_pct": 0.1414,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.0848,
+                "ci_low_pct": -0.2677,
+                "insns_delta_pct": -0.0004,
+                "mean_delta_pct": -0.0915,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "decode_std",
+          "decode_sync_hd",
+          "encode_hd_reset",
+          "encode_std"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "encode_hd_reset"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "d7120e40e30b59fde26e3d01c8b6e0a8c81ace78",
+      "changeset_id": "legacy-fe8bf1c506069f94",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-70b5543fba7830c3",
+          "replacement_function_source": "// Applied rules: [C3]\n// Skipped rules: [III③: Hits [7, 8] point to ordinary project helper calls (aptx_invert_quantization, aptx_prediction_filtering), not visible memcpy/memmove/memset/memcmp/strlen-style wrappers in this target body. Rewriting would require inspecting and changing other functions, and this card explicitly advises abstaining when the custom wrapper body cannot be confirmed here. Also this function is in a hot decode kernel, where boundary-style wrapper replacement is not automatically profitable.]\nunsafe fn aptx_process_subband(\n    mut invert_quantize: *mut aptx_invert_quantize,\n    mut prediction: *mut aptx_prediction,\n    mut quantized_sample: int32_t,\n    mut dither: int32_t,\n    mut tables: *const aptx_tables,\n) {\n    let tables_view: &aptx_tables = unsafe {\n        // SAFETY: caller provides a valid non-null pointer to aptx_tables for the duration of this call.\n        &*tables\n    };\n    let mut sign: int32_t;\n    let mut same_sign: [int32_t; 2] = [0; 2];\n    let mut weight: [int32_t; 2] = [0; 2];\n    let mut sw1: int32_t;\n    let mut range: int32_t;\n\n    aptx_invert_quantization(invert_quantize, quantized_sample, dither, tables);\n\n    let reconstructed_difference = unsafe {\n        // SAFETY: invert_quantize is assumed valid by the caller; this is a read after the helper updates it.\n        (*invert_quantize).reconstructed_difference\n    };\n    let predicted_difference = unsafe {\n        // SAFETY: prediction is assumed valid by the caller; this field is only read here before any writes to it.\n        (*prediction).predicted_difference\n    };\n    sign = ((reconstructed_difference > -predicted_difference) as c_int\n        - (reconstructed_difference < -predicted_difference) as c_int) as int32_t;\n\n    let prev_sign_0 = unsafe {\n        // SAFETY: prediction is assumed valid by the caller; prev_sign[0] is read before the subsequent stores update the array.\n        (*prediction).prev_sign[0]\n    };\n    let prev_sign_1 = unsafe {\n        // SAFETY: prediction is assumed valid by the caller; prev_sign[1] is read before the subsequent stores update the array.\n        (*prediction).prev_sign[1]\n    };\n    same_sign[0] = sign * prev_sign_0;\n    same_sign[1] = sign * prev_sign_1;\n\n    unsafe {\n        // SAFETY: prediction is assumed valid by the caller; these are direct stores to its prev_sign fields.\n        (*prediction).prev_sign[0] = prev_sign_1;\n        (*prediction).prev_sign[1] = sign | 1 as int32_t;\n    }\n\n    let s_weight_1 = unsafe {\n        // SAFETY: prediction is assumed valid by the caller; s_weight[1] is read before any write to that field in this function.\n        (*prediction).s_weight[1]\n    };\n    range = 0x100000 as c_int as int32_t;\n    sw1 = rshift32(-same_sign[1] * s_weight_1, 1 as c_uint);\n    sw1 = (clip(sw1, -range, range) & !(0xf as int32_t)) * 16 as int32_t;\n\n    let s_weight_0 = unsafe {\n        // SAFETY: prediction is assumed valid by the caller; s_weight[0] is read before its update below.\n        (*prediction).s_weight[0]\n    };\n    range = 0x300000 as c_int as int32_t;\n    weight[0] = 254 as int32_t * s_weight_0 + 0x800000 as int32_t * same_sign[0] + sw1;\n    let new_s_weight_0 = clip(rshift32(weight[0], 8 as c_uint), -range, range);\n    unsafe {\n        // SAFETY: prediction is assumed valid by the caller; single store updates s_weight[0].\n        (*prediction).s_weight[0] = new_s_weight_0;\n    }\n\n    range = 0x3c0000 as int32_t - new_s_weight_0;\n    weight[1] = 255 as int32_t * s_weight_1 + 0xc00000 as int32_t * same_sign[1];\n    unsafe {\n        // SAFETY: prediction is assumed valid by the caller; single store updates s_weight[1].\n        (*prediction).s_weight[1] =\n            clip(rshift32(weight[1], 8 as c_uint), -range, range);\n    }\n\n    aptx_prediction_filtering(\n        prediction,\n        reconstructed_difference,\n        tables_view.prediction_order,\n    );\n}",
+          "rule_id": "C3",
+          "target": {
+            "declaration_hash": "7a0b4e58b82935ad6622da7ca580d045700944466d4bb0b27d8503c660238983",
+            "file_hint": "src/openaptx.rs",
+            "qualified_name": "crate::aptx_process_subband",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "aptx_process_subband-82b85afa15fd",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "aptx_process_subband",
+        "rule_id": "C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "21b65bbbab1b1f87c4ad4f89b01fc8b0b881f3d93fac4b803a0b4f108cd7339d",
+            "edit_id": "edit-replace-70b5543fba7830c3",
+            "end_byte": 66913,
+            "operation_id": "replace-70b5543fba7830c3",
+            "relative_path": "src/openaptx.rs",
+            "replacement_text": "// Applied rules: [C3]\n// Skipped rules: [III③: Hits [7, 8] point to ordinary project helper calls (aptx_invert_quantization, aptx_prediction_filtering), not visible memcpy/memmove/memset/memcmp/strlen-style wrappers in this target body. Rewriting would require inspecting and changing other functions, and this card explicitly advises abstaining when the custom wrapper body cannot be confirmed here. Also this function is in a hot decode kernel, where boundary-style wrapper replacement is not automatically profitable.]\nunsafe fn aptx_process_subband(\n    mut invert_quantize: *mut aptx_invert_quantize,\n    mut prediction: *mut aptx_prediction,\n    mut quantized_sample: int32_t,\n    mut dither: int32_t,\n    mut tables: *const aptx_tables,\n) {\n    let tables_view: &aptx_tables = unsafe {\n        // SAFETY: caller provides a valid non-null pointer to aptx_tables for the duration of this call.\n        &*tables\n    };\n    let mut sign: int32_t;\n    let mut same_sign: [int32_t; 2] = [0; 2];\n    let mut weight: [int32_t; 2] = [0; 2];\n    let mut sw1: int32_t;\n    let mut range: int32_t;\n\n    aptx_invert_quantization(invert_quantize, quantized_sample, dither, tables);\n\n    let reconstructed_difference = unsafe {\n        // SAFETY: invert_quantize is assumed valid by the caller; this is a read after the helper updates it.\n        (*invert_quantize).reconstructed_difference\n    };\n    let predicted_difference = unsafe {\n        // SAFETY: prediction is assumed valid by the caller; this field is only read here before any writes to it.\n        (*prediction).predicted_difference\n    };\n    sign = ((reconstructed_difference > -predicted_difference) as c_int\n        - (reconstructed_difference < -predicted_difference) as c_int) as int32_t;\n\n    let prev_sign_0 = unsafe {\n        // SAFETY: prediction is assumed valid by the caller; prev_sign[0] is read before the subsequent stores update the array.\n        (*prediction).prev_sign[0]\n    };\n    let prev_sign_1 = unsafe {\n        // SAFETY: prediction is assumed valid by the caller; prev_sign[1] is read before the subsequent stores update the array.\n        (*prediction).prev_sign[1]\n    };\n    same_sign[0] = sign * prev_sign_0;\n    same_sign[1] = sign * prev_sign_1;\n\n    unsafe {\n        // SAFETY: prediction is assumed valid by the caller; these are direct stores to its prev_sign fields.\n        (*prediction).prev_sign[0] = prev_sign_1;\n        (*prediction).prev_sign[1] = sign | 1 as int32_t;\n    }\n\n    let s_weight_1 = unsafe {\n        // SAFETY: prediction is assumed valid by the caller; s_weight[1] is read before any write to that field in this function.\n        (*prediction).s_weight[1]\n    };\n    range = 0x100000 as c_int as int32_t;\n    sw1 = rshift32(-same_sign[1] * s_weight_1, 1 as c_uint);\n    sw1 = (clip(sw1, -range, range) & !(0xf as int32_t)) * 16 as int32_t;\n\n    let s_weight_0 = unsafe {\n        // SAFETY: prediction is assumed valid by the caller; s_weight[0] is read before its update below.\n        (*prediction).s_weight[0]\n    };\n    range = 0x300000 as c_int as int32_t;\n    weight[0] = 254 as int32_t * s_weight_0 + 0x800000 as int32_t * same_sign[0] + sw1;\n    let new_s_weight_0 = clip(rshift32(weight[0], 8 as c_uint), -range, range);\n    unsafe {\n        // SAFETY: prediction is assumed valid by the caller; single store updates s_weight[0].\n        (*prediction).s_weight[0] = new_s_weight_0;\n    }\n\n    range = 0x3c0000 as int32_t - new_s_weight_0;\n    weight[1] = 255 as int32_t * s_weight_1 + 0xc00000 as int32_t * same_sign[1];\n    unsafe {\n        // SAFETY: prediction is assumed valid by the caller; single store updates s_weight[1].\n        (*prediction).s_weight[1] =\n            clip(rshift32(weight[1], 8 as c_uint), -range, range);\n    }\n\n    aptx_prediction_filtering(\n        prediction,\n        reconstructed_difference,\n        tables_view.prediction_order,\n    );\n}",
+            "start_byte": 64493
+          }
+        ],
+        "facts": {
+          "fn_name": "aptx_process_subband",
+          "target_span_hash": "7a0b4e58b82935ad6622da7ca580d045700944466d4bb0b27d8503c660238983"
+        },
+        "operation_id": "replace-70b5543fba7830c3"
+      }
+    ],
+    "resolved_head": "d7120e40e30b59fde26e3d01c8b6e0a8c81ace78"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/openaptx.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

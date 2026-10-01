@@ -1,0 +1,546 @@
+{
+  "hot_function": {
+    "symbol": "BrotliPopulationCostLiteral",
+    "location": "src/enc/bit_cost.rs:73-229",
+    "workload": "stream_roundtrip",
+    "hot_region": "src/enc/bit_cost.rs:73-229",
+    "rust_source": "pub unsafe fn BrotliPopulationCostLiteral(\n    mut histogram: *const HistogramLiteral,\n) -> c_double {\n    static mut kOneSymbolHistogramCost: c_double =\n        12 as c_int as c_double;\n    static mut kTwoSymbolHistogramCost: c_double =\n        20 as c_int as c_double;\n    static mut kThreeSymbolHistogramCost: c_double =\n        28 as c_int as c_double;\n    static mut kFourSymbolHistogramCost: c_double =\n        37 as c_int as c_double;\n    let data_size: size_t = HistogramDataSizeLiteral() as size_t;\n    let mut count: c_int = 0 as c_int;\n    let mut s: [size_t; 5] = [0; 5];\n    let mut bits: c_double = 0.0f64;\n    let mut i: size_t = 0;\n    if (*histogram).total_count_ == 0 as size_t {\n        return kOneSymbolHistogramCost;\n    }\n    i = 0 as size_t;\n    while i < data_size {\n        if (*histogram).data_[i as usize] > 0 as uint32_t {\n            s[count as usize] = i;\n            count += 1;\n            if count > 4 as c_int {\n                break;\n            }\n        }\n        i = i.wrapping_add(1);\n    }\n    if count == 1 as c_int {\n        return kOneSymbolHistogramCost;\n    }\n    if count == 2 as c_int {\n        return kTwoSymbolHistogramCost + (*histogram).total_count_ as c_double;\n    }\n    if count == 3 as c_int {\n        let histo0: uint32_t = (*histogram).data_[s[0 as c_int as usize] as usize];\n        let histo1: uint32_t = (*histogram).data_[s[1 as c_int as usize] as usize];\n        let histo2: uint32_t = (*histogram).data_[s[2 as c_int as usize] as usize];\n        let histomax: uint32_t =\n            brotli_max_uint32_t(histo0, brotli_max_uint32_t(histo1, histo2)) as uint32_t;\n        return kThreeSymbolHistogramCost\n            + (2 as uint32_t).wrapping_mul(histo0.wrapping_add(histo1).wrapping_add(histo2))\n                as c_double\n            - histomax as c_double;\n    }\n    if count == 4 as c_int {\n        let mut histo: [uint32_t; 4] = [0; 4];\n        let mut h23: uint32_t = 0;\n        let mut histomax_0: uint32_t = 0;\n        i = 0 as size_t;\n        while i < 4 as size_t {\n            histo[i as usize] = (*histogram).data_[s[i as usize] as usize];\n            i = i.wrapping_add(1);\n        }\n        i = 0 as size_t;\n        while i < 4 as size_t {\n            let mut j: size_t = 0;\n            j = i.wrapping_add(1 as size_t);\n            while j < 4 as size_t {\n                if histo[j as usize] > histo[i as usize] {\n                    let mut __brotli_swap_tmp: uint32_t = histo[j as usize];\n                    histo[j as usize] = histo[i as usize];\n                    histo[i as usize] = __brotli_swap_tmp;\n                }\n                j = j.wrapping_add(1);\n            }\n            i = i.wrapping_add(1);\n        }\n        h23 = histo[2 as c_int as usize]\n            .wrapping_add(histo[3 as c_int as usize]);\n        histomax_0 = brotli_max_uint32_t(h23, histo[0 as c_int as usize]);\n        return kFourSymbolHistogramCost\n            + (3 as uint32_t).wrapping_mul(h23) as c_double\n            + (2 as uint32_t).wrapping_mul(\n                histo[0 as c_int as usize]\n                    .wrapping_add(histo[1 as c_int as usize]),\n            ) as c_double\n            - histomax_0 as c_double;\n    }\n    let mut max_depth: size_t = 1 as size_t;\n    let mut depth_histo: [uint32_t; 18] = [\n        0 as c_int as uint32_t,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n        0,\n    ];\n    let log2total: c_double =\n        FastLog2((*histogram).total_count_) as c_double;\n    i = 0 as size_t;\n    while i < data_size {\n        if (*histogram).data_[i as usize] > 0 as uint32_t {\n            let mut log2p: c_double =\n                log2total - FastLog2((*histogram).data_[i as usize] as size_t);\n            let mut depth: size_t = (log2p + 0.5f64) as size_t;\n            bits += (*histogram).data_[i as usize] as c_double * log2p;\n            if depth > 15 as size_t {\n                depth = 15 as size_t;\n            }\n            if depth > max_depth {\n                max_depth = depth;\n            }\n            depth_histo[depth as usize] = depth_histo[depth as usize].wrapping_add(1);\n            i = i.wrapping_add(1);\n        } else {\n            let mut reps: uint32_t = 1 as uint32_t;\n            let mut k: size_t = 0;\n            k = i.wrapping_add(1 as size_t);\n            while k < data_size && (*histogram).data_[k as usize] == 0 as uint32_t {\n                reps = reps.wrapping_add(1);\n                k = k.wrapping_add(1);\n            }\n            i = (i as c_ulong).wrapping_add(reps as c_ulong) as size_t\n                as size_t;\n            if i == data_size {\n                break;\n            }\n            if reps < 3 as uint32_t {\n                depth_histo[0 as c_int as usize] =\n                    (depth_histo[0 as c_int as usize] as c_uint)\n                        .wrapping_add(reps as c_uint) as uint32_t\n                        as uint32_t;\n            } else {\n                reps = (reps as c_uint).wrapping_sub(2 as c_uint)\n                    as uint32_t as uint32_t;\n                while reps > 0 as uint32_t {\n                    depth_histo[BROTLI_REPEAT_ZERO_CODE_LENGTH as usize] =\n                        depth_histo[BROTLI_REPEAT_ZERO_CODE_LENGTH as usize].wrapping_add(1);\n                    bits += 3 as c_int as c_double;\n                    reps >>= 3 as c_int;\n                }\n            }\n        }\n    }\n    bits +=\n        (18 as size_t).wrapping_add((2 as size_t).wrapping_mul(max_depth)) as c_double;\n    bits += BrotliBitsEntropy(\n        &raw mut depth_histo as *mut uint32_t,\n        BROTLI_CODE_LENGTH_CODES as size_t,\n    );\n    return bits;\n}",
+    "signature": "pub unsafe fn BrotliPopulationCostLiteral(\n    mut histogram: *const HistogramLiteral,\n) -> c_double",
+    "profile": {
+      "self_time_ratio": 0.1562,
+      "call_count": null,
+      "retired_instructions": 2107233768,
+      "instructions_per_call": null,
+      "cpi": 0.418,
+      "tma": {
+        "scope": "process",
+        "retiring": 61.768945197341736,
+        "frontend_bound": 19.825194449307823,
+        "bad_speculation": 7.270745441977163,
+        "backend_bound": 11.135114911373286,
+        "memory_bound": 7.307037358796094,
+        "core_bound": 3.828077552577191,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0078
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C1": 5,
+      "C2": 1,
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 95,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 110,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 111,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 112,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 126,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 224,
+        "message": "'_ZN14brotli_cleaned3src3enc8bit_cost17BrotliBitsEntropy17h6dd72cc5c1327f38E' inlined into '_ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE' with (cost=220, threshold=325) at callsite _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE:151:13;"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 134,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 134,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 215,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 215,
+        "message": "failed to hoist load with loop-invariant address because load is conditionally executed"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 214,
+        "message": "Moving accesses to memory location out of the loop"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 207,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 125,
+        "message": "completely unrolled loop with 4 iterations"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 133,
+        "message": "completely unrolled loop with 4 iterations"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 133,
+        "message": "Loop deleted because it never executes"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 133,
+        "message": "completely unrolled loop with 2 iterations"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 133,
+        "message": "completely unrolled loop with 3 iterations"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 178,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 126,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 110,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 111,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 112,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 179,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 183,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 183,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 207,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 73,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE: MI Instruction count changed from 0 to 432; Delta: 432"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 73,
+        "message": "Early Tail Duplication: Function: _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE: MI Instruction count changed from 432 to 434; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 73,
+        "message": "Merge disjoint stack slots: Function: _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE: MI Instruction count changed from 434 to 430; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 73,
+        "message": "Remove dead machine instructions: Function: _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE: MI Instruction count changed from 430 to 428; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 73,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE: MI Instruction count changed from 428 to 431; Delta: 3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 73,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE: MI Instruction count changed from 431 to 416; Delta: -15"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 73,
+        "message": "Machine code sinking: Function: _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE: MI Instruction count changed from 416 to 415; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 73,
+        "message": "Peephole Optimizations: Function: _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE: MI Instruction count changed from 415 to 416; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 73,
+        "message": "Process Implicit Definitions: Function: _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE: MI Instruction count changed from 416 to 415; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 73,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE: MI Instruction count changed from 415 to 501; Delta: 86"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 73,
+        "message": "Two-Address instruction pass: Function: _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE: MI Instruction count changed from 501 to 579; Delta: 78"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 73,
+        "message": "Register Coalescer: Function: _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE: MI Instruction count changed from 579 to 375; Delta: -204"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 213,
+        "message": "1 virtual registers copies 4.231509e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 178,
+        "message": "1 spills 2.348391e+00 total spills cost 2 reloads 4.696783e+00 total reloads cost 6 virtual registers copies 6.242456e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 73,
+        "message": "11 spills 2.931071e+01 total spills cost 10 reloads 3.669408e+01 total reloads cost 2 folded reloads 6.847572e+00 total folded reloads cost 27 virtual registers copies 7.242911e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 73,
+        "message": "Greedy Register Allocator: Function: _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE: MI Instruction count changed from 375 to 408; Delta: 33"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 73,
+        "message": "Virtual Register Rewriter: Function: _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE: MI Instruction count changed from 408 to 387; Delta: -21"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 73,
+        "message": "216 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 73,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE: MI Instruction count changed from 387 to 401; Delta: 14"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 73,
+        "message": "Control Flow Optimizer: Function: _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE: MI Instruction count changed from 401 to 368; Delta: -33"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 73,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE: MI Instruction count changed from 368 to 374; Delta: 6"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 73,
+        "message": "BreakFalseDeps: Function: _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE: MI Instruction count changed from 374 to 381; Delta: 7"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 73,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN14brotli_cleaned3src3enc8bit_cost27BrotliPopulationCostLiteral17h99008096c3c8ea7dE: MI Instruction count changed from 381 to 382; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 86,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 94,
+        "message": "BasicBlock: bb5"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 95,
+        "message": "BasicBlock: bb6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 95,
+        "message": "BasicBlock: bb7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 94,
+        "message": "BasicBlock: bb11"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 95,
+        "message": "BasicBlock: bb6.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 103,
+        "message": "BasicBlock: bb13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 107,
+        "message": "BasicBlock: bb16"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 155,
+        "message": "BasicBlock: bb24"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 181,
+        "message": "BasicBlock: bb51"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 178,
+        "message": "BasicBlock: bb76"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 179,
+        "message": "BasicBlock: bb48"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 196,
+        "message": "BasicBlock: bb61.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 196,
+        "message": "BasicBlock: bb63.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 196,
+        "message": "BasicBlock: bb63"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 200,
+        "message": "BasicBlock: bb67"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 205,
+        "message": "BasicBlock: bb69"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 206,
+        "message": "BasicBlock: bb70"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 223,
+        "message": "BasicBlock: bb7.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 110,
+        "message": "BasicBlock: bb18"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 111,
+        "message": "BasicBlock: bb20"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 112,
+        "message": "BasicBlock: bb21"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 126,
+        "message": "BasicBlock: bb23"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 126,
+        "message": "BasicBlock: bb29"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 126,
+        "message": "BasicBlock: bb29.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 126,
+        "message": "BasicBlock: bb29.2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 126,
+        "message": "BasicBlock: bb35.lr.ph"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 229,
+        "message": "BasicBlock: bb80"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 95,
+        "message": "BasicBlock: panic1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 110,
+        "message": "BasicBlock: panic2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 111,
+        "message": "BasicBlock: panic3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 112,
+        "message": "BasicBlock: panic4"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 126,
+        "message": "BasicBlock: panic23"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 73,
+        "message": "361 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

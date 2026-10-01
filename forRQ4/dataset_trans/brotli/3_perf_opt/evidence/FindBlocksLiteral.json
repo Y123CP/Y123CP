@@ -1,0 +1,262 @@
+{
+  "hot_function": {
+    "symbol": "FindBlocksLiteral",
+    "location": "src/enc/block_splitter.rs:498-625",
+    "workload": "stream_roundtrip",
+    "hot_region": "src/enc/block_splitter.rs:498-625",
+    "rust_source": "unsafe fn FindBlocksLiteral(\n    mut data: *const uint8_t,\n    length: size_t,\n    block_switch_bitcost: c_double,\n    num_histograms: size_t,\n    mut histograms: *const HistogramLiteral,\n    mut insert_cost: *mut c_double,\n    mut cost: *mut c_double,\n    mut switch_signal: *mut uint8_t,\n    mut block_id: *mut uint8_t,\n) -> size_t {\n    let data_view: &[uint8_t] = unsafe { core::slice::from_raw_parts(data, (length) as usize) };\n    let alphabet_size: size_t = HistogramDataSizeLiteral() as size_t;\n    let bitmap_len: size_t = num_histograms.wrapping_add(7 as size_t) >> 3 as c_int;\n    let mut num_blocks: size_t = 1 as size_t;\n    let mut byte_ix: size_t = 0;\n    let mut i: size_t = 0;\n    let mut j: size_t = 0;\n    if num_histograms <= 1 as size_t {\n        i = 0 as size_t;\n        while i < length {\n            *block_id.offset(i as isize) = 0 as uint8_t;\n            i = i.wrapping_add(1);\n        }\n        return 1 as size_t;\n    }\n    memset(\n        insert_cost as *mut c_void,\n        0 as c_int,\n        (::core::mem::size_of::<c_double>() as size_t)\n            .wrapping_mul(alphabet_size)\n            .wrapping_mul(num_histograms),\n    );\n    i = 0 as size_t;\n    while i < num_histograms {\n        *insert_cost.offset(i as isize) =\n            FastLog2((*histograms.offset(i as isize)).total_count_ as uint32_t as size_t);\n        i = i.wrapping_add(1);\n    }\n    i = alphabet_size;\n    while i != 0 as size_t {\n        i = i.wrapping_sub(1);\n        j = 0 as size_t;\n        while j < num_histograms {\n            *insert_cost.offset(i.wrapping_mul(num_histograms).wrapping_add(j) as isize) =\n                *insert_cost.offset(j as isize)\n                    - BitCost((*histograms.offset(j as isize)).data_[i as usize] as size_t);\n            j = j.wrapping_add(1);\n        }\n    }\n    memset(\n        cost as *mut c_void,\n        0 as c_int,\n        (::core::mem::size_of::<c_double>() as size_t).wrapping_mul(num_histograms),\n    );\n    memset(\n        switch_signal as *mut c_void,\n        0 as c_int,\n        (::core::mem::size_of::<uint8_t>() as size_t)\n            .wrapping_mul(length)\n            .wrapping_mul(bitmap_len),\n    );\n    byte_ix = 0 as size_t;\n    while byte_ix < length {\n        let mut ix: size_t = byte_ix.wrapping_mul(bitmap_len);\n        let mut symbol: size_t = data_view[(byte_ix) as usize] as size_t;\n        let mut insert_cost_ix: size_t = symbol.wrapping_mul(num_histograms);\n        let mut min_cost: c_double = 1e99f64;\n        let mut block_switch_cost: c_double = block_switch_bitcost;\n        static mut prologue_length: size_t = 2000 as size_t;\n        static mut multiplier: c_double =\n            0.07f64 / 2000 as c_int as c_double;\n        let mut k: size_t = 0;\n        k = 0 as size_t;\n        while k < num_histograms {\n            *cost.offset(k as isize) +=\n                *insert_cost.offset(insert_cost_ix.wrapping_add(k) as isize);\n            if *cost.offset(k as isize) < min_cost {\n                min_cost = *cost.offset(k as isize);\n                *block_id.offset(byte_ix as isize) = k as uint8_t;\n            }\n            k = k.wrapping_add(1);\n        }\n        if byte_ix < prologue_length {\n            block_switch_cost *= 0.77f64 + multiplier * byte_ix as c_double;\n        }\n        k = 0 as size_t;\n        while k < num_histograms {\n            *cost.offset(k as isize) -= min_cost;\n            if *cost.offset(k as isize) >= block_switch_cost {\n                let mask: uint8_t = ((1 as c_uint) << (k & 7 as size_t)) as uint8_t;\n                *cost.offset(k as isize) = block_switch_cost;\n                let ref mut fresh26 =\n                    *switch_signal.offset(ix.wrapping_add(k >> 3 as c_int) as isize);\n                *fresh26 = (*fresh26 as c_int | mask as c_int) as uint8_t;\n            }\n            k = k.wrapping_add(1);\n        }\n        byte_ix = byte_ix.wrapping_add(1);\n    }\n    byte_ix = length.wrapping_sub(1 as size_t);\n    let mut ix_0: size_t = byte_ix.wrapping_mul(bitmap_len);\n    let mut cur_id: uint8_t = *block_id.offset(byte_ix as isize);\n    while byte_ix > 0 as size_t {\n        let mask_0: uint8_t = ((1 as c_uint)\n            << (cur_id as c_int & 7 as c_int))\n            as uint8_t;\n        byte_ix = byte_ix.wrapping_sub(1);\n        ix_0 = (ix_0 as c_ulong).wrapping_sub(bitmap_len as c_ulong)\n            as size_t as size_t;\n        if *switch_signal.offset(\n            ix_0.wrapping_add((cur_id as c_int >> 3 as c_int) as size_t)\n                as isize,\n        ) as c_int\n            & mask_0 as c_int\n            != 0\n        {\n            if cur_id as c_int\n                != *block_id.offset(byte_ix as isize) as c_int\n            {\n                cur_id = *block_id.offset(byte_ix as isize);\n                num_blocks = num_blocks.wrapping_add(1);\n            }\n        }\n        *block_id.offset(byte_ix as isize) = cur_id;\n    }\n    return num_blocks;\n}",
+    "signature": "unsafe fn FindBlocksLiteral(\n    mut data: *const uint8_t,\n    length: size_t,\n    block_switch_bitcost: c_double,\n    num_histograms: size_t,\n    mut histograms: *const HistogramLiteral,\n    mut insert_cost: *mut c_double,\n    mut cost: *mut c_double,\n    mut switch_signal: *mut uint8_t,\n    mut block_id: *mut uint8_t,\n) -> size_t",
+    "profile": {
+      "self_time_ratio": 0.0368,
+      "call_count": null,
+      "retired_instructions": 1125552796,
+      "instructions_per_call": null,
+      "cpi": 0.185,
+      "tma": {
+        "scope": "process",
+        "retiring": 61.768945197341736,
+        "frontend_bound": 19.825194449307823,
+        "bad_speculation": 7.270745441977163,
+        "backend_bound": 11.135114911373286,
+        "memory_bound": 7.307037358796094,
+        "core_bound": 3.828077552577191,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0078
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 544,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14brotli_cleaned3src3enc14block_splitter17FindBlocksLiteral17h351cc3dd839aa37fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 544,
+        "message": "'_ZN14brotli_cleaned3src3enc14block_splitter7BitCost17h87a42ba82e21df4eE' inlined into '_ZN14brotli_cleaned3src3enc14block_splitter17FindBlocksLiteral17h351cc3dd839aa37fE': always inline attribute at callsite _ZN14brotli_cleaned3src3enc14block_splitter17FindBlocksLiteral17h351cc3dd839aa37fE:46:23;"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 544,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 532,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 544,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "loop-idiom",
+        "status": "success",
+        "line": 519,
+        "message": "Transformed loop-strided store in _ZN14brotli_cleaned3src3enc14block_splitter17FindBlocksLiteral17h351cc3dd839aa37fE function into a call to llvm.memset.p0.i64() intrinsic"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 518,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 543,
+        "message": "load of type double not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 563,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 573,
+        "message": "load of type double not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 586,
+        "message": "load of type double not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 592,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 600,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 600,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 532,
+        "message": "1 reloads 1.388529e+00 total reloads cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 575,
+        "message": "2 virtual registers copies 4.443293e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 585,
+        "message": "2 virtual registers copies 8.886587e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 561,
+        "message": "2 reloads 4.165587e+00 total reloads cost 1 folded reloads 2.777058e+00 total folded reloads cost 10 virtual registers copies 1.440599e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 608,
+        "message": "2 virtual registers copies 4.512720e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 519,
+        "message": "BasicBlock: bb3.preheader.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 533,
+        "message": "BasicBlock: bb49.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 534,
+        "message": "BasicBlock: bb8.i.i198"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 538,
+        "message": "BasicBlock: bb10.loopexit.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 542,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3enc14block_splitter7BitCost17h87a42ba82e21df4eE.exit.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 543,
+        "message": "BasicBlock: bb13.i119.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 548,
+        "message": "BasicBlock: bb17.i.i207"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 574,
+        "message": "BasicBlock: bb24.i.i213"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 577,
+        "message": "BasicBlock: bb25.i.i294"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 574,
+        "message": "BasicBlock: bb27.i.i218"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 577,
+        "message": "BasicBlock: bb25.i.i294.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 581,
+        "message": "BasicBlock: bb28.i.i220"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 586,
+        "message": "BasicBlock: bb33.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 588,
+        "message": "BasicBlock: bb34.i.i223"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 600,
+        "message": "BasicBlock: bb38.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 622,
+        "message": "BasicBlock: bb46.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 616,
+        "message": "BasicBlock: bb41.i.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

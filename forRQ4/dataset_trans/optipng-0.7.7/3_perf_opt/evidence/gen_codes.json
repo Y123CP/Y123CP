@@ -1,0 +1,113 @@
+{
+  "hot_function": {
+    "symbol": "gen_codes",
+    "location": "src/zlib/trees.rs:3841-3869",
+    "workload": "png_write_read_roundtrip",
+    "hot_region": "src/zlib/trees.rs:3841-3869",
+    "rust_source": "unsafe fn gen_codes(\n    mut tree: *mut ct_data,\n    mut max_code: c_int,\n    mut bl_count: *mut ushf,\n) {\n    let mut next_code: [ush; 16] = [0; 16];\n    let mut code: c_uint = 0 as c_uint;\n    let mut bits: c_int = 0;\n    let mut n: c_int = 0;\n    bits = 1 as c_int;\n    while bits <= MAX_BITS {\n        code = code.wrapping_add(\n            *bl_count.offset((bits - 1 as c_int) as isize) as c_uint\n        ) << 1 as c_int;\n        next_code[bits as usize] = code as ush;\n        bits += 1;\n    }\n    n = 0 as c_int;\n    while n <= max_code {\n        let mut len: c_int = (*tree.offset(n as isize)).dl.len as c_int;\n        if !(len == 0 as c_int) {\n            let fresh54 = next_code[len as usize];\n            next_code[len as usize] = next_code[len as usize].wrapping_add(1);\n            (*tree.offset(n as isize)).fc.code =\n                bi_reverse(fresh54 as c_uint, len) as ush;\n        }\n        n += 1;\n    }\n}",
+    "signature": "unsafe fn gen_codes(\n    mut tree: *mut ct_data,\n    mut max_code: c_int,\n    mut bl_count: *mut ushf,\n)",
+    "profile": {
+      "self_time_ratio": 0.0313,
+      "call_count": null,
+      "retired_instructions": 775446983,
+      "instructions_per_call": null,
+      "cpi": 0.239,
+      "tma": {
+        "scope": "process",
+        "retiring": 51.425930929611255,
+        "frontend_bound": 25.707339535339,
+        "bad_speculation": 13.429234291527084,
+        "backend_bound": 9.437495243522658,
+        "memory_bound": 3.33716759412876,
+        "core_bound": 6.100327649393898,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0162
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C1": 1,
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3862,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN21optipng_0_7_7_cleaned3src4zlib5trees9gen_codes17hb73e45676c1c702fE because its definition is unavailable"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 3851,
+        "message": "completely unrolled loop with 15 iterations"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3853,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3861,
+        "message": "12 virtual registers copies 1.411378e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3853,
+        "message": "BasicBlock: _ZN21optipng_0_7_7_cleaned3src4zlib5trees10gen_bitlen17hab12c6d7f441c42bE.exit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3864,
+        "message": "BasicBlock: bb15.i61"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3867,
+        "message": "BasicBlock: bb11.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3860,
+        "message": "BasicBlock: bb6.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3862,
+        "message": "BasicBlock: bb7.i56"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3862,
+        "message": "BasicBlock: bb8.i59"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3862,
+        "message": "BasicBlock: panic.i58"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

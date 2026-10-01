@@ -1,0 +1,1211 @@
+{
+  "hot_function": {
+    "symbol": "EncodeTree",
+    "location": "src/deflate.rs:159-557",
+    "workload": "lz77_blocksplit_analysis",
+    "hot_region": "src/deflate.rs:159-557",
+    "rust_source": "unsafe fn EncodeTree(\n    mut ll_lengths: *const c_uint,\n    mut d_lengths: *const c_uint,\n    mut use_16: c_int,\n    mut use_17: c_int,\n    mut use_18: c_int,\n    mut bp: *mut c_uchar,\n    mut out: *mut *mut c_uchar,\n    mut outsize: *mut size_t,\n) -> size_t {\n    let mut lld_total: c_uint = 0;\n    let mut rle: *mut c_uint = ::core::ptr::null_mut::<c_uint>();\n    let mut rle_bits: *mut c_uint = ::core::ptr::null_mut::<c_uint>();\n    let mut rle_size: size_t = 0 as size_t;\n    let mut rle_bits_size: size_t = 0 as size_t;\n    let mut hlit: c_uint = 29 as c_uint;\n    let mut hdist: c_uint = 29 as c_uint;\n    let mut hclen: c_uint = 0;\n    let mut hlit2: c_uint = 0;\n    let mut i: size_t = 0;\n    let mut j: size_t = 0;\n    let mut clcounts: [size_t; 19] = [0; 19];\n    let mut clcl: [c_uint; 19] = [0; 19];\n    let mut clsymbols: [c_uint; 19] = [0; 19];\n    static mut order: [c_uint; 19] = [\n        16 as c_int as c_uint,\n        17 as c_int as c_uint,\n        18 as c_int as c_uint,\n        0 as c_int as c_uint,\n        8 as c_int as c_uint,\n        7 as c_int as c_uint,\n        9 as c_int as c_uint,\n        6 as c_int as c_uint,\n        10 as c_int as c_uint,\n        5 as c_int as c_uint,\n        11 as c_int as c_uint,\n        4 as c_int as c_uint,\n        12 as c_int as c_uint,\n        3 as c_int as c_uint,\n        13 as c_int as c_uint,\n        2 as c_int as c_uint,\n        14 as c_int as c_uint,\n        1 as c_int as c_uint,\n        15 as c_int as c_uint,\n    ];\n    let mut size_only: c_int = out.is_null() as c_int;\n    let mut result_size: size_t = 0 as size_t;\n    i = 0 as size_t;\n    while i < 19 as size_t {\n        clcounts[i as usize] = 0 as size_t;\n        i = i.wrapping_add(1);\n    }\n    while hlit > 0 as c_uint\n        && *ll_lengths.offset(\n            (257 as c_uint)\n                .wrapping_add(hlit)\n                .wrapping_sub(1 as c_uint) as isize,\n        ) == 0 as c_uint\n    {\n        hlit = hlit.wrapping_sub(1);\n    }\n    while hdist > 0 as c_uint\n        && *d_lengths.offset(\n            (1 as c_uint)\n                .wrapping_add(hdist)\n                .wrapping_sub(1 as c_uint) as isize,\n        ) == 0 as c_uint\n    {\n        hdist = hdist.wrapping_sub(1);\n    }\n    hlit2 = hlit.wrapping_add(257 as c_uint);\n    lld_total = hlit2\n        .wrapping_add(hdist)\n        .wrapping_add(1 as c_uint);\n    i = 0 as size_t;\n    while i < lld_total as size_t {\n        let mut symbol: c_uchar = (if i < hlit2 as size_t {\n            *ll_lengths.offset(i as isize)\n        } else {\n            *d_lengths.offset(i.wrapping_sub(hlit2 as size_t) as isize)\n        }) as c_uchar;\n        let mut count: c_uint = 1 as c_uint;\n        if use_16 != 0\n            || symbol as c_int == 0 as c_int\n                && (use_17 != 0 || use_18 != 0)\n        {\n            j = i.wrapping_add(1 as size_t);\n            while j < lld_total as size_t\n                && symbol as c_uint\n                    == (if j < hlit2 as size_t {\n                        *ll_lengths.offset(j as isize)\n                    } else {\n                        *d_lengths.offset(j.wrapping_sub(hlit2 as size_t) as isize)\n                    })\n            {\n                count = count.wrapping_add(1);\n                j = j.wrapping_add(1);\n            }\n        }\n        i = i.wrapping_add(count.wrapping_sub(1 as c_uint) as size_t);\n        if symbol as c_int == 0 as c_int\n            && count >= 3 as c_uint\n        {\n            if use_18 != 0 {\n                while count >= 11 as c_uint {\n                    let mut count2: c_uint = if count > 138 as c_uint {\n                        138 as c_uint\n                    } else {\n                        count\n                    };\n                    if size_only == 0 {\n                        if rle_size & rle_size.wrapping_sub(1 as size_t) == 0 {\n                            rle = (if rle_size == 0 as size_t {\n                                malloc(::core::mem::size_of::<c_uint>() as size_t)\n                            } else {\n                                realloc(\n                                    rle as *mut c_void,\n                                    rle_size.wrapping_mul(2 as size_t).wrapping_mul(\n                                        ::core::mem::size_of::<c_uint>() as size_t,\n                                    ),\n                                )\n                            }) as *mut c_uint;\n                        }\n                        *rle.offset(rle_size as isize) = 18 as c_uint;\n                        rle_size = rle_size.wrapping_add(1);\n                        if rle_bits_size & rle_bits_size.wrapping_sub(1 as size_t) == 0 {\n                            rle_bits = (if rle_bits_size == 0 as size_t {\n                                malloc(::core::mem::size_of::<c_uint>() as size_t)\n                            } else {\n                                realloc(\n                                    rle_bits as *mut c_void,\n                                    rle_bits_size.wrapping_mul(2 as size_t).wrapping_mul(\n                                        ::core::mem::size_of::<c_uint>() as size_t,\n                                    ),\n                                )\n                            }) as *mut c_uint;\n                        }\n                        *rle_bits.offset(rle_bits_size as isize) =\n                            count2.wrapping_sub(11 as c_uint);\n                        rle_bits_size = rle_bits_size.wrapping_add(1);\n                    }\n                    clcounts[18 as c_int as usize] =\n                        clcounts[18 as c_int as usize].wrapping_add(1);\n                    count = count.wrapping_sub(count2);\n                }\n            }\n            if use_17 != 0 {\n                while count >= 3 as c_uint {\n                    let mut count2_0: c_uint = if count > 10 as c_uint {\n                        10 as c_uint\n                    } else {\n                        count\n                    };\n                    if size_only == 0 {\n                        if rle_size & rle_size.wrapping_sub(1 as size_t) == 0 {\n                            rle = (if rle_size == 0 as size_t {\n                                malloc(::core::mem::size_of::<c_uint>() as size_t)\n                            } else {\n                                realloc(\n                                    rle as *mut c_void,\n                                    rle_size.wrapping_mul(2 as size_t).wrapping_mul(\n                                        ::core::mem::size_of::<c_uint>() as size_t,\n                                    ),\n                                )\n                            }) as *mut c_uint;\n                        }\n                        *rle.offset(rle_size as isize) = 17 as c_uint;\n                        rle_size = rle_size.wrapping_add(1);\n                        if rle_bits_size & rle_bits_size.wrapping_sub(1 as size_t) == 0 {\n                            rle_bits = (if rle_bits_size == 0 as size_t {\n                                malloc(::core::mem::size_of::<c_uint>() as size_t)\n                            } else {\n                                realloc(\n                                    rle_bits as *mut c_void,\n                                    rle_bits_size.wrapping_mul(2 as size_t).wrapping_mul(\n                                        ::core::mem::size_of::<c_uint>() as size_t,\n                                    ),\n                                )\n                            }) as *mut c_uint;\n                        }\n                        *rle_bits.offset(rle_bits_size as isize) =\n                            count2_0.wrapping_sub(3 as c_uint);\n                        rle_bits_size = rle_bits_size.wrapping_add(1);\n                    }\n                    clcounts[17 as c_int as usize] =\n                        clcounts[17 as c_int as usize].wrapping_add(1);\n                    count = count.wrapping_sub(count2_0);\n                }\n            }\n        }\n        if use_16 != 0 && count >= 4 as c_uint {\n            count = count.wrapping_sub(1);\n            clcounts[symbol as usize] = clcounts[symbol as usize].wrapping_add(1);\n            if size_only == 0 {\n                if rle_size & rle_size.wrapping_sub(1 as size_t) == 0 {\n                    rle = (if rle_size == 0 as size_t {\n                        malloc(::core::mem::size_of::<c_uint>() as size_t)\n                    } else {\n                        realloc(\n                            rle as *mut c_void,\n                            rle_size.wrapping_mul(2 as size_t).wrapping_mul(\n                                ::core::mem::size_of::<c_uint>() as size_t,\n                            ),\n                        )\n                    }) as *mut c_uint;\n                }\n                *rle.offset(rle_size as isize) = symbol as c_uint;\n                rle_size = rle_size.wrapping_add(1);\n                if rle_bits_size & rle_bits_size.wrapping_sub(1 as size_t) == 0 {\n                    rle_bits = (if rle_bits_size == 0 as size_t {\n                        malloc(::core::mem::size_of::<c_uint>() as size_t)\n                    } else {\n                        realloc(\n                            rle_bits as *mut c_void,\n                            rle_bits_size.wrapping_mul(2 as size_t).wrapping_mul(\n                                ::core::mem::size_of::<c_uint>() as size_t,\n                            ),\n                        )\n                    }) as *mut c_uint;\n                }\n                *rle_bits.offset(rle_bits_size as isize) = 0 as c_uint;\n                rle_bits_size = rle_bits_size.wrapping_add(1);\n            }\n            while count >= 3 as c_uint {\n                let mut count2_1: c_uint = if count > 6 as c_uint {\n                    6 as c_uint\n                } else {\n                    count\n                };\n                if size_only == 0 {\n                    if rle_size & rle_size.wrapping_sub(1 as size_t) == 0 {\n                        rle = (if rle_size == 0 as size_t {\n                            malloc(::core::mem::size_of::<c_uint>() as size_t)\n                        } else {\n                            realloc(\n                                rle as *mut c_void,\n                                rle_size.wrapping_mul(2 as size_t).wrapping_mul(\n                                    ::core::mem::size_of::<c_uint>() as size_t,\n                                ),\n                            )\n                        }) as *mut c_uint;\n                    }\n                    *rle.offset(rle_size as isize) = 16 as c_uint;\n                    rle_size = rle_size.wrapping_add(1);\n                    if rle_bits_size & rle_bits_size.wrapping_sub(1 as size_t) == 0 {\n                        rle_bits = (if rle_bits_size == 0 as size_t {\n                            malloc(::core::mem::size_of::<c_uint>() as size_t)\n                        } else {\n                            realloc(\n                                rle_bits as *mut c_void,\n                                rle_bits_size.wrapping_mul(2 as size_t).wrapping_mul(\n                                    ::core::mem::size_of::<c_uint>() as size_t,\n                                ),\n                            )\n                        }) as *mut c_uint;\n                    }\n                    *rle_bits.offset(rle_bits_size as isize) =\n                        count2_1.wrapping_sub(3 as c_uint);\n                    rle_bits_size = rle_bits_size.wrapping_add(1);\n                }\n                clcounts[16 as c_int as usize] =\n                    clcounts[16 as c_int as usize].wrapping_add(1);\n                count = count.wrapping_sub(count2_1);\n            }\n        }\n        clcounts[symbol as usize] = clcounts[symbol as usize].wrapping_add(count as size_t);\n        while count > 0 as c_uint {\n            if size_only == 0 {\n                if rle_size & rle_size.wrapping_sub(1 as size_t) == 0 {\n                    rle = (if rle_size == 0 as size_t {\n                        malloc(::core::mem::size_of::<c_uint>() as size_t)\n                    } else {\n                        realloc(\n                            rle as *mut c_void,\n                            rle_size.wrapping_mul(2 as size_t).wrapping_mul(\n                                ::core::mem::size_of::<c_uint>() as size_t,\n                            ),\n                        )\n                    }) as *mut c_uint;\n                }\n                *rle.offset(rle_size as isize) = symbol as c_uint;\n                rle_size = rle_size.wrapping_add(1);\n                if rle_bits_size & rle_bits_size.wrapping_sub(1 as size_t) == 0 {\n                    rle_bits = (if rle_bits_size == 0 as size_t {\n                        malloc(::core::mem::size_of::<c_uint>() as size_t)\n                    } else {\n                        realloc(\n                            rle_bits as *mut c_void,\n                            rle_bits_size.wrapping_mul(2 as size_t).wrapping_mul(\n                                ::core::mem::size_of::<c_uint>() as size_t,\n                            ),\n                        )\n                    }) as *mut c_uint;\n                }\n                *rle_bits.offset(rle_bits_size as isize) = 0 as c_uint;\n                rle_bits_size = rle_bits_size.wrapping_add(1);\n            }\n            count = count.wrapping_sub(1);\n        }\n        i = i.wrapping_add(1);\n    }\n    ZopfliCalculateBitLengths(\n        &raw mut clcounts as *mut size_t,\n        19 as size_t,\n        7 as c_int,\n        &raw mut clcl as *mut c_uint,\n    );\n    if size_only == 0 {\n        ZopfliLengthsToSymbols(\n            &raw mut clcl as *mut c_uint,\n            19 as size_t,\n            7 as c_uint,\n            &raw mut clsymbols as *mut c_uint,\n        );\n    }\n    hclen = 15 as c_uint;\n    while hclen > 0 as c_uint\n        && clcounts[order[hclen\n            .wrapping_add(4 as c_uint)\n            .wrapping_sub(1 as c_uint) as usize] as usize]\n            == 0 as size_t\n    {\n        hclen = hclen.wrapping_sub(1);\n    }\n    if size_only == 0 {\n        AddBits(hlit, 5 as c_uint, bp, out, outsize);\n        AddBits(hdist, 5 as c_uint, bp, out, outsize);\n        AddBits(hclen, 4 as c_uint, bp, out, outsize);\n        i = 0 as size_t;\n        while i < hclen.wrapping_add(4 as c_uint) as size_t {\n            AddBits(\n                clcl[order[i as usize] as usize],\n                3 as c_uint,\n                bp,\n                out,\n                outsize,\n            );\n            i = i.wrapping_add(1);\n        }\n        i = 0 as size_t;\n        while i < rle_size {\n            let mut symbol_0: c_uint = clsymbols[*rle.offset(i as isize) as usize];\n            AddHuffmanBits(\n                symbol_0,\n                clcl[*rle.offset(i as isize) as usize],\n                bp,\n                out,\n                outsize,\n            );\n            if *rle.offset(i as isize) == 16 as c_uint {\n                AddBits(\n                    *rle_bits.offset(i as isize),\n                    2 as c_uint,\n                    bp,\n                    out,\n                    outsize,\n                );\n            } else if *rle.offset(i as isize) == 17 as c_uint {\n                AddBits(\n                    *rle_bits.offset(i as isize),\n                    3 as c_uint,\n                    bp,\n                    out,\n                    outsize,\n                );\n            } else if *rle.offset(i as isize) == 18 as c_uint {\n                AddBits(\n                    *rle_bits.offset(i as isize),\n                    7 as c_uint,\n                    bp,\n                    out,\n                    outsize,\n                );\n            }\n            i = i.wrapping_add(1);\n        }\n    }\n    result_size = result_size.wrapping_add(14 as size_t);\n    result_size = result_size.wrapping_add(\n        hclen\n            .wrapping_add(4 as c_uint)\n            .wrapping_mul(3 as c_uint) as size_t,\n    );\n    i = 0 as size_t;\n    while i < 19 as size_t {\n        result_size = result_size\n            .wrapping_add((clcl[i as usize] as size_t).wrapping_mul(clcounts[i as usize]));\n        i = i.wrapping_add(1);\n    }\n    result_size = result_size\n        .wrapping_add(clcounts[16 as c_int as usize].wrapping_mul(2 as size_t));\n    result_size = result_size\n        .wrapping_add(clcounts[17 as c_int as usize].wrapping_mul(3 as size_t));\n    result_size = result_size\n        .wrapping_add(clcounts[18 as c_int as usize].wrapping_mul(7 as size_t));\n    free(rle as *mut c_void);\n    free(rle_bits as *mut c_void);\n    return result_size;\n}",
+    "signature": "unsafe fn EncodeTree(\n    mut ll_lengths: *const c_uint,\n    mut d_lengths: *const c_uint,\n    mut use_16: c_int,\n    mut use_17: c_int,\n    mut use_18: c_int,\n    mut bp: *mut c_uchar,\n    mut out: *mut *mut c_uchar,\n    mut outsize: *mut size_t,\n) -> size_t",
+    "profile": {
+      "self_time_ratio": 0.0735,
+      "call_count": null,
+      "retired_instructions": 656188141,
+      "instructions_per_call": null,
+      "cpi": 0.46,
+      "tma": {
+        "scope": "process",
+        "retiring": 49.54860799755135,
+        "frontend_bound": 17.25549781537076,
+        "bad_speculation": 14.320528323259266,
+        "backend_bound": 18.875365863818622,
+        "memory_bound": 10.27264282242474,
+        "core_bound": 8.602723041393883,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0176
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C1": 6,
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 476,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 476,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 554,
+        "message": "free will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 555,
+        "message": "free will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 500,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 490,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 490,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 315,
+        "message": "malloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 317,
+        "message": "realloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 329,
+        "message": "malloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 331,
+        "message": "realloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 272,
+        "message": "malloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 274,
+        "message": "realloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 286,
+        "message": "malloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 288,
+        "message": "realloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 351,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 355,
+        "message": "malloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 357,
+        "message": "realloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 369,
+        "message": "malloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 371,
+        "message": "realloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 424,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 429,
+        "message": "malloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 431,
+        "message": "realloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 443,
+        "message": "malloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 445,
+        "message": "realloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 391,
+        "message": "malloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 393,
+        "message": "realloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 405,
+        "message": "malloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 407,
+        "message": "realloc will not be inlined into _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 467,
+        "message": "'_ZN14zopfli_cleaned3src4tree22ZopfliLengthsToSymbols17h0ce1ecdee7f23886E' inlined into '_ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE' with (cost=255, threshold=325) at callsite _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE:308:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 484,
+        "message": "'_ZN14zopfli_cleaned3src7deflate7AddBits17h1bb2d7f2a01230bfE' inlined into '_ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE' with (cost=205, threshold=250) at callsite _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE:325:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 485,
+        "message": "'_ZN14zopfli_cleaned3src7deflate7AddBits17h1bb2d7f2a01230bfE' inlined into '_ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE' with (cost=205, threshold=250) at callsite _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE:326:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 486,
+        "message": "'_ZN14zopfli_cleaned3src7deflate7AddBits17h1bb2d7f2a01230bfE' inlined into '_ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE' with (cost=205, threshold=250) at callsite _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE:327:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 501,
+        "message": "'_ZN14zopfli_cleaned3src7deflate14AddHuffmanBits17hcedd12ceb1877a3fE' inlined into '_ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE' with (cost=225, threshold=250) at callsite _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE:342:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 509,
+        "message": "'_ZN14zopfli_cleaned3src7deflate7AddBits17h1bb2d7f2a01230bfE' inlined into '_ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE' with (cost=205, threshold=250) at callsite _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE:350:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 517,
+        "message": "'_ZN14zopfli_cleaned3src7deflate7AddBits17h1bb2d7f2a01230bfE' inlined into '_ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE' with (cost=205, threshold=250) at callsite _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE:358:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 525,
+        "message": "'_ZN14zopfli_cleaned3src7deflate7AddBits17h1bb2d7f2a01230bfE' inlined into '_ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE' with (cost=205, threshold=250) at callsite _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE:366:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 489,
+        "message": "'_ZN14zopfli_cleaned3src7deflate7AddBits17h1bb2d7f2a01230bfE' inlined into '_ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE' with (cost=205, threshold=250) at callsite _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE:330:13;"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 301,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 301,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 420,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 420,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 344,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 344,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 234,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 235,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 241,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 262,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 305,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 488,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "loop-idiom",
+        "status": "success",
+        "line": 208,
+        "message": "Transformed loop-strided store in _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE function into a call to llvm.memset.p0.i64() intrinsic"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 207,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 212,
+        "message": "completely unrolled loop with 29 iterations"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 220,
+        "message": "completely unrolled loop with 29 iterations"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 269,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 388,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 312,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 427,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 425,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 234,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 475,
+        "message": "completely unrolled loop with 15 iterations"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 490,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 500,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 543,
+        "message": "completely unrolled loop with 19 iterations"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 301,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 351,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 420,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 344,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 424,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 476,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 500,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 508,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 508,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 526,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 518,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 510,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 545,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 545,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 549,
+        "message": "load of type i64 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 551,
+        "message": "load of type i64 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 553,
+        "message": "load of type i64 eliminated"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 500,
+        "message": "1 spills 5.936651e+00 total spills cost 21 reloads 8.886723e+01 total reloads cost 28 virtual registers copies 2.360746e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 490,
+        "message": "6 reloads 1.085695e+01 total reloads cost 11 virtual registers copies 3.015819e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 247,
+        "message": "1 virtual registers copies 9.568181e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 269,
+        "message": "4 reloads 2.943337e+01 total reloads cost 12 virtual registers copies 1.066960e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 388,
+        "message": "4 reloads 4.412799e+01 total reloads cost 12 virtual registers copies 1.599639e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 312,
+        "message": "8 reloads 5.886674e+01 total reloads cost 12 virtual registers copies 1.066960e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 427,
+        "message": "8 reloads 3.922012e+02 total reloads cost 17 virtual registers copies 1.029528e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 234,
+        "message": "4 spills 2.402598e+01 total spills cost 40 reloads 6.078933e+02 total reloads cost 3 folded reloads 1.030168e+01 total folded reloads cost 75 virtual registers copies 1.552175e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 212,
+        "message": "BasicBlock: bb7.27.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 221,
+        "message": "BasicBlock: bb10.i2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 221,
+        "message": "BasicBlock: bb13.27.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 235,
+        "message": "BasicBlock: bb18.i7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 247,
+        "message": "BasicBlock: bb27.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 248,
+        "message": "BasicBlock: bb27.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 246,
+        "message": "BasicBlock: bb31.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 259,
+        "message": "BasicBlock: bb36.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 262,
+        "message": "BasicBlock: bb38.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 305,
+        "message": "BasicBlock: bb61.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 349,
+        "message": "BasicBlock: bb86.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 351,
+        "message": "BasicBlock: bb88.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 351,
+        "message": "BasicBlock: bb89.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 353,
+        "message": "BasicBlock: bb91.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 300,
+        "message": "BasicBlock: bb59.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 264,
+        "message": "BasicBlock: bb40.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 270,
+        "message": "BasicBlock: bb44.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 272,
+        "message": "BasicBlock: bb46.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 282,
+        "message": "BasicBlock: bb51.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 286,
+        "message": "BasicBlock: bb53.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 343,
+        "message": "BasicBlock: bb82.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 307,
+        "message": "BasicBlock: bb63.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 313,
+        "message": "BasicBlock: bb67.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 315,
+        "message": "BasicBlock: bb69.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 325,
+        "message": "BasicBlock: bb74.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 329,
+        "message": "BasicBlock: bb76.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 424,
+        "message": "BasicBlock: bb129.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 424,
+        "message": "BasicBlock: bb130.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 445,
+        "message": "BasicBlock: bb144.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 453,
+        "message": "BasicBlock: bb148.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 427,
+        "message": "BasicBlock: bb133.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 431,
+        "message": "BasicBlock: bb137.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 429,
+        "message": "BasicBlock: bb136.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 439,
+        "message": "BasicBlock: bb141.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 443,
+        "message": "BasicBlock: bb143.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 355,
+        "message": "BasicBlock: bb93.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 365,
+        "message": "BasicBlock: bb98.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 369,
+        "message": "BasicBlock: bb100.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 419,
+        "message": "BasicBlock: bb126.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 383,
+        "message": "BasicBlock: bb107.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 389,
+        "message": "BasicBlock: bb111.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 391,
+        "message": "BasicBlock: bb113.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 401,
+        "message": "BasicBlock: bb118.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 405,
+        "message": "BasicBlock: bb120.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 424,
+        "message": "BasicBlock: panic101.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 476,
+        "message": "BasicBlock: bb158.14.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 490,
+        "message": "BasicBlock: bb169.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 490,
+        "message": "BasicBlock: bb170.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 499,
+        "message": "BasicBlock: bb173.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 503,
+        "message": "BasicBlock: bb176.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 508,
+        "message": "BasicBlock: _ZN14zopfli_cleaned3src7deflate14AddHuffmanBits17hcedd12ceb1877a3fE.exit.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 554,
+        "message": "BasicBlock: _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE.exit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 490,
+        "message": "BasicBlock: panic49.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 500,
+        "message": "BasicBlock: panic38.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 351,
+        "message": "BasicBlock: panic88.i"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 159,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE.190: MI Instruction count changed from 0 to 619; Delta: 619"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 159,
+        "message": "Merge disjoint stack slots: Function: _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE.190: MI Instruction count changed from 619 to 615; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 159,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE.190: MI Instruction count changed from 615 to 611; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 159,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE.190: MI Instruction count changed from 611 to 610; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 159,
+        "message": "X86 Fixup SetCC: Function: _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE.190: MI Instruction count changed from 610 to 613; Delta: 3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 159,
+        "message": "Process Implicit Definitions: Function: _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE.190: MI Instruction count changed from 613 to 611; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 159,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE.190: MI Instruction count changed from 611 to 754; Delta: 143"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 159,
+        "message": "Two-Address instruction pass: Function: _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE.190: MI Instruction count changed from 754 to 824; Delta: 70"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 159,
+        "message": "Register Coalescer: Function: _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE.190: MI Instruction count changed from 824 to 547; Delta: -277"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 247,
+        "message": "1 virtual registers copies 2.073036e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 234,
+        "message": "1 reloads 1.275403e+01 total reloads cost 3 folded reloads 2.452698e+01 total folded reloads cost 8 virtual registers copies 2.961925e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 159,
+        "message": "4 spills 4.000000e+00 total spills cost 2 reloads 1.375403e+01 total reloads cost 4 folded reloads 2.552698e+01 total folded reloads cost 11 virtual registers copies 2.972120e+02 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 159,
+        "message": "Greedy Register Allocator: Function: _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE.190: MI Instruction count changed from 547 to 550; Delta: 3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 159,
+        "message": "Virtual Register Rewriter: Function: _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE.190: MI Instruction count changed from 550 to 542; Delta: -8"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 159,
+        "message": "312 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 159,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE.190: MI Instruction count changed from 542 to 570; Delta: 28"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 159,
+        "message": "Control Flow Optimizer: Function: _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE.190: MI Instruction count changed from 570 to 480; Delta: -90"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 159,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE.190: MI Instruction count changed from 480 to 482; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 159,
+        "message": "X86 LEA Fixup: Function: _ZN14zopfli_cleaned3src7deflate10EncodeTree17h130cd37c0f2b161aE.190: MI Instruction count changed from 482 to 484; Delta: 2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 212,
+        "message": "BasicBlock: bb7.27"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 221,
+        "message": "BasicBlock: bb10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 221,
+        "message": "BasicBlock: bb13.27"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 424,
+        "message": "BasicBlock: bb129"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 424,
+        "message": "BasicBlock: bb130"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 235,
+        "message": "BasicBlock: bb18"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 247,
+        "message": "BasicBlock: bb27.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 248,
+        "message": "BasicBlock: bb27"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 246,
+        "message": "BasicBlock: bb31"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 259,
+        "message": "BasicBlock: bb36"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 262,
+        "message": "BasicBlock: bb38"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 305,
+        "message": "BasicBlock: bb61"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 349,
+        "message": "BasicBlock: bb86"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 351,
+        "message": "BasicBlock: bb88"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 476,
+        "message": "BasicBlock: bb158.2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 476,
+        "message": "BasicBlock: bb158.3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 476,
+        "message": "BasicBlock: bb158.4"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 424,
+        "message": "BasicBlock: panic101"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 476,
+        "message": "BasicBlock: bb158.5"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 476,
+        "message": "BasicBlock: bb158.6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 351,
+        "message": "BasicBlock: panic88"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 476,
+        "message": "BasicBlock: bb158.7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 476,
+        "message": "BasicBlock: bb158.8"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 476,
+        "message": "BasicBlock: bb158.9"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 476,
+        "message": "BasicBlock: bb158.10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 476,
+        "message": "BasicBlock: bb158.11"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 476,
+        "message": "BasicBlock: bb158.12"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 476,
+        "message": "BasicBlock: bb158.13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 476,
+        "message": "BasicBlock: bb158.14"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 545,
+        "message": "BasicBlock: bb189"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 159,
+        "message": "464 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.07371527405730596,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.33484193591740063,
+            "aggregate_ci_low_pct": -0.18741138780278874,
+            "aggregate_pct": 0.07371527405730596,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.6446,
+                "ci_low_pct": -0.389,
+                "insns_delta_pct": -0.0466,
+                "mean_delta_pct": 0.1278,
+                "op": "png_write_read_roundtrip",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "per_op_uncertain"
+              },
+              {
+                "ci_high_pct": 0.0979,
+                "ci_low_pct": -0.0586,
+                "insns_delta_pct": -0.0115,
+                "mean_delta_pct": 0.0197,
+                "op": "zlib_deflate_inflate_stream",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "png_write_read_roundtrip",
+          "zlib_deflate_inflate_stream"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "png_write_read_roundtrip"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "7b674297e5fd1f4e2634af15882e955f617da983",
+      "changeset_id": "legacy-c4dcbbc4c7024530",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-c07328eff945c87b",
+          "replacement_function_source": "unsafe fn gen_codes(\n    mut tree: *mut ct_data,\n    mut max_code: c_int,\n    mut bl_count: *mut ushf,\n) {\n    let mut next_code: [ush; 16] = [0; 16];\n    let mut code: c_uint = 0;\n    let mut bits: c_int = 1;\n\n    while bits <= MAX_BITS {\n        // SAFETY: bl_count points to a valid array indexed from 0..=MAX_BITS as required by the caller.\n        code = (code.wrapping_add(unsafe { *bl_count.offset((bits - 1) as isize) as c_uint })) << 1;\n        next_code[bits as usize] = code as ush;\n        bits += 1;\n    }\n\n    let mut n: c_int = 0;\n    let mut tp = tree;\n    while n <= max_code {\n        // SAFETY: tp starts at tree and advances one element per iteration up to max_code inclusive, matching the original tree.offset(n).\n        let len = unsafe { (*tp).dl.len as c_int };\n        if len != 0 {\n            let idx = len as usize;\n            let code_u = next_code[idx];\n            next_code[idx] = code_u.wrapping_add(1);\n            // SAFETY: tp points to the current valid ct_data element in the tree array.\n            unsafe {\n                (*tp).fc.code = bi_reverse(code_u as c_uint, len) as ush;\n            }\n        }\n        n += 1;\n        // SAFETY: advancing by one stays within the same valid tree array traversed by the original code.\n        tp = unsafe { tp.add(1) };\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "d4a322f571b29d7bded696b146c864855dfd6c2b846b6a3bf910308f2188e575",
+            "file_hint": "src/zlib/trees.rs",
+            "qualified_name": "crate::gen_codes",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "gen_codes-a88a94282656",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "gen_codes",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "8d4e3e90deec8dc8def0aef0ed24c8f9bc3bca76112dc0038569eb97f4fe6a38",
+            "edit_id": "edit-replace-c07328eff945c87b",
+            "end_byte": 96544,
+            "operation_id": "replace-c07328eff945c87b",
+            "relative_path": "src/zlib/trees.rs",
+            "replacement_text": "unsafe fn gen_codes(\n    mut tree: *mut ct_data,\n    mut max_code: c_int,\n    mut bl_count: *mut ushf,\n) {\n    let mut next_code: [ush; 16] = [0; 16];\n    let mut code: c_uint = 0;\n    let mut bits: c_int = 1;\n\n    while bits <= MAX_BITS {\n        // SAFETY: bl_count points to a valid array indexed from 0..=MAX_BITS as required by the caller.\n        code = (code.wrapping_add(unsafe { *bl_count.offset((bits - 1) as isize) as c_uint })) << 1;\n        next_code[bits as usize] = code as ush;\n        bits += 1;\n    }\n\n    let mut n: c_int = 0;\n    let mut tp = tree;\n    while n <= max_code {\n        // SAFETY: tp starts at tree and advances one element per iteration up to max_code inclusive, matching the original tree.offset(n).\n        let len = unsafe { (*tp).dl.len as c_int };\n        if len != 0 {\n            let idx = len as usize;\n            let code_u = next_code[idx];\n            next_code[idx] = code_u.wrapping_add(1);\n            // SAFETY: tp points to the current valid ct_data element in the tree array.\n            unsafe {\n                (*tp).fc.code = bi_reverse(code_u as c_uint, len) as ush;\n            }\n        }\n        n += 1;\n        // SAFETY: advancing by one stays within the same valid tree array traversed by the original code.\n        tp = unsafe { tp.add(1) };\n    }\n}",
+            "start_byte": 95621
+          }
+        ],
+        "facts": {
+          "fn_name": "gen_codes",
+          "target_span_hash": "d4a322f571b29d7bded696b146c864855dfd6c2b846b6a3bf910308f2188e575"
+        },
+        "operation_id": "replace-c07328eff945c87b"
+      }
+    ],
+    "resolved_head": "7b674297e5fd1f4e2634af15882e955f617da983"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/zlib/trees.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

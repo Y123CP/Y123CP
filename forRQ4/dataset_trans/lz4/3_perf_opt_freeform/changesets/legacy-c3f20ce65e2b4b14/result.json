@@ -1,0 +1,101 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": "compress_decompress:146fcd83: exit -11 ≠ 0"
+      },
+      "gate": "w1",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "c34d7ed2cce7f9522ed22537328255dc018c2e2b",
+      "changeset_id": "legacy-c3f20ce65e2b4b14",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-4e16b1bd4347d481",
+          "replacement_function_source": "#[inline(always)]\nunsafe fn LZ4_putIndexOnHash(\n    idx: U32,\n    h: U32,\n    tableBase: *mut c_void,\n    tableType: tableType_t,\n) {\n    let p = (tableBase as *mut u8).wrapping_add(h as usize * 4);\n    match tableType as c_uint {\n        2 => {\n            // SAFETY: Preserves original semantics for tableType==2: caller provides a valid U32 hash table and h is an in-bounds element index.\n            *(p as *mut U32) = idx;\n        }\n        3 => {\n            // SAFETY: Preserves original semantics for tableType==3: caller provides a valid U16 hash table and h is an in-bounds element index; byte offset h*4 matches the original cast-before-offset behavior.\n            *(p as *mut U16) = idx as U16;\n        }\n        _ => {}\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "f749a7ec3c6f787895ea6cab690f6a303082f2a322dafebbe79a3a7bdfbdef7c",
+            "file_hint": "src/lz4.rs",
+            "qualified_name": "crate::LZ4_putIndexOnHash",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "LZ4_putIndexOnHash-a2db84f7796b",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "LZ4_putIndexOnHash",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "38d54649d8d8ecae6ce7f2b80653a8e726347d14b47a6d2945fe72e4cadce005",
+            "edit_id": "edit-replace-4e16b1bd4347d481",
+            "end_byte": 16028,
+            "operation_id": "replace-4e16b1bd4347d481",
+            "relative_path": "src/lz4.rs",
+            "replacement_text": "#[inline(always)]\nunsafe fn LZ4_putIndexOnHash(\n    idx: U32,\n    h: U32,\n    tableBase: *mut c_void,\n    tableType: tableType_t,\n) {\n    let p = (tableBase as *mut u8).wrapping_add(h as usize * 4);\n    match tableType as c_uint {\n        2 => {\n            // SAFETY: Preserves original semantics for tableType==2: caller provides a valid U32 hash table and h is an in-bounds element index.\n            *(p as *mut U32) = idx;\n        }\n        3 => {\n            // SAFETY: Preserves original semantics for tableType==3: caller provides a valid U16 hash table and h is an in-bounds element index; byte offset h*4 matches the original cast-before-offset behavior.\n            *(p as *mut U16) = idx as U16;\n        }\n        _ => {}\n    }\n}",
+            "start_byte": 15484
+          }
+        ],
+        "facts": {
+          "fn_name": "LZ4_putIndexOnHash",
+          "target_span_hash": "f749a7ec3c6f787895ea6cab690f6a303082f2a322dafebbe79a3a7bdfbdef7c"
+        },
+        "operation_id": "replace-4e16b1bd4347d481"
+      }
+    ],
+    "resolved_head": "c34d7ed2cce7f9522ed22537328255dc018c2e2b"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w1",
+  "touched_paths": [
+    "src/lz4.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

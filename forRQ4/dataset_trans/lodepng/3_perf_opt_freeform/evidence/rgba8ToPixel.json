@@ -1,0 +1,252 @@
+{
+  "hot_function": {
+    "symbol": "rgba8ToPixel",
+    "location": "src/lodepng.rs:7239-7347",
+    "workload": "color_convert",
+    "hot_region": "src/lodepng.rs:7239-7347",
+    "rust_source": "unsafe fn rgba8ToPixel(\n    mut out: *mut c_uchar,\n    mut i: size_t,\n    mut mode: *const LodePNGColorMode,\n    mut tree: *mut ColorTree,\n    mut r: c_uchar,\n    mut g: c_uchar,\n    mut b: c_uchar,\n    mut a: c_uchar,\n) -> c_uint {\n    let mode_view: &LodePNGColorMode = unsafe { &*mode };\n    if mode_view.colortype as c_uint\n        == LCT_GREY as c_int as c_uint\n    {\n        let mut gray: c_uchar = r;\n        if mode_view.bitdepth == 8 as c_uint {\n            *out.offset(i as isize) = gray;\n        } else if mode_view.bitdepth == 16 as c_uint {\n            let ref mut fresh0 =\n                *out.offset(i.wrapping_mul(2 as size_t).wrapping_add(1 as size_t) as isize);\n            *fresh0 = gray;\n            *out.offset(i.wrapping_mul(2 as size_t).wrapping_add(0 as size_t) as isize) = *fresh0;\n        } else {\n            gray = (gray as c_uint\n                >> (8 as c_uint).wrapping_sub(mode_view.bitdepth)\n                & ((1 as c_uint) << mode_view.bitdepth)\n                    .wrapping_sub(1 as c_uint))\n                as c_uchar;\n            addColorBits(out, i, mode_view.bitdepth, gray as c_uint);\n        }\n    } else if mode_view.colortype as c_uint\n        == LCT_RGB as c_int as c_uint\n    {\n        if mode_view.bitdepth == 8 as c_uint {\n            *out.offset(i.wrapping_mul(3 as size_t).wrapping_add(0 as size_t) as isize) = r;\n            *out.offset(i.wrapping_mul(3 as size_t).wrapping_add(1 as size_t) as isize) = g;\n            *out.offset(i.wrapping_mul(3 as size_t).wrapping_add(2 as size_t) as isize) = b;\n        } else {\n            let ref mut fresh1 =\n                *out.offset(i.wrapping_mul(6 as size_t).wrapping_add(1 as size_t) as isize);\n            *fresh1 = r;\n            *out.offset(i.wrapping_mul(6 as size_t).wrapping_add(0 as size_t) as isize) = *fresh1;\n            let ref mut fresh2 =\n                *out.offset(i.wrapping_mul(6 as size_t).wrapping_add(3 as size_t) as isize);\n            *fresh2 = g;\n            *out.offset(i.wrapping_mul(6 as size_t).wrapping_add(2 as size_t) as isize) = *fresh2;\n            let ref mut fresh3 =\n                *out.offset(i.wrapping_mul(6 as size_t).wrapping_add(5 as size_t) as isize);\n            *fresh3 = b;\n            *out.offset(i.wrapping_mul(6 as size_t).wrapping_add(4 as size_t) as isize) = *fresh3;\n        }\n    } else if mode_view.colortype as c_uint\n        == LCT_PALETTE as c_int as c_uint\n    {\n        let mut index: c_int = color_tree_get(tree, r, g, b, a);\n        if index < 0 as c_int {\n            return 82 as c_uint;\n        }\n        if mode_view.bitdepth == 8 as c_uint {\n            *out.offset(i as isize) = index as c_uchar;\n        } else {\n            addColorBits(out, i, mode_view.bitdepth, index as c_uint);\n        }\n    } else if mode_view.colortype as c_uint\n        == LCT_GREY_ALPHA as c_int as c_uint\n    {\n        let mut gray_0: c_uchar = r;\n        if mode_view.bitdepth == 8 as c_uint {\n            *out.offset(i.wrapping_mul(2 as size_t).wrapping_add(0 as size_t) as isize) = gray_0;\n            *out.offset(i.wrapping_mul(2 as size_t).wrapping_add(1 as size_t) as isize) = a;\n        } else if mode_view.bitdepth == 16 as c_uint {\n            let ref mut fresh4 =\n                *out.offset(i.wrapping_mul(4 as size_t).wrapping_add(1 as size_t) as isize);\n            *fresh4 = gray_0;\n            *out.offset(i.wrapping_mul(4 as size_t).wrapping_add(0 as size_t) as isize) = *fresh4;\n            let ref mut fresh5 =\n                *out.offset(i.wrapping_mul(4 as size_t).wrapping_add(3 as size_t) as isize);\n            *fresh5 = a;\n            *out.offset(i.wrapping_mul(4 as size_t).wrapping_add(2 as size_t) as isize) = *fresh5;\n        }\n    } else if mode_view.colortype as c_uint\n        == LCT_RGBA as c_int as c_uint\n    {\n        if mode_view.bitdepth == 8 as c_uint {\n            *out.offset(i.wrapping_mul(4 as size_t).wrapping_add(0 as size_t) as isize) = r;\n            *out.offset(i.wrapping_mul(4 as size_t).wrapping_add(1 as size_t) as isize) = g;\n            *out.offset(i.wrapping_mul(4 as size_t).wrapping_add(2 as size_t) as isize) = b;\n            *out.offset(i.wrapping_mul(4 as size_t).wrapping_add(3 as size_t) as isize) = a;\n        } else {\n            let ref mut fresh6 =\n                *out.offset(i.wrapping_mul(8 as size_t).wrapping_add(1 as size_t) as isize);\n            *fresh6 = r;\n            *out.offset(i.wrapping_mul(8 as size_t).wrapping_add(0 as size_t) as isize) = *fresh6;\n            let ref mut fresh7 =\n                *out.offset(i.wrapping_mul(8 as size_t).wrapping_add(3 as size_t) as isize);\n            *fresh7 = g;\n            *out.offset(i.wrapping_mul(8 as size_t).wrapping_add(2 as size_t) as isize) = *fresh7;\n            let ref mut fresh8 =\n                *out.offset(i.wrapping_mul(8 as size_t).wrapping_add(5 as size_t) as isize);\n            *fresh8 = b;\n            *out.offset(i.wrapping_mul(8 as size_t).wrapping_add(4 as size_t) as isize) = *fresh8;\n            let ref mut fresh9 =\n                *out.offset(i.wrapping_mul(8 as size_t).wrapping_add(7 as size_t) as isize);\n            *fresh9 = a;\n            *out.offset(i.wrapping_mul(8 as size_t).wrapping_add(6 as size_t) as isize) = *fresh9;\n        }\n    }\n    return 0 as c_uint;\n}",
+    "signature": "unsafe fn rgba8ToPixel(\n    mut out: *mut c_uchar,\n    mut i: size_t,\n    mut mode: *const LodePNGColorMode,\n    mut tree: *mut ColorTree,\n    mut r: c_uchar,\n    mut g: c_uchar,\n    mut b: c_uchar,\n    mut a: c_uchar,\n) -> c_uint",
+    "profile": {
+      "self_time_ratio": 0.2387,
+      "call_count": null,
+      "retired_instructions": 5007410529,
+      "instructions_per_call": null,
+      "cpi": 0.29,
+      "tma": {
+        "scope": "process",
+        "retiring": 83.2335873096292,
+        "frontend_bound": 7.418840427145197,
+        "bad_speculation": 0.10279047718839651,
+        "backend_bound": 9.244781786037205,
+        "memory_bound": 6.098685402379559,
+        "core_bound": 3.146096383657646,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {},
+    "class_ii_hits": {
+      "II_inl": {
+        "TooCostly": 1
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 7267,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng12addColorBits17h84967e4b472e82f2E' inlined into '_ZN15lodepng_cleaned3src7lodepng12rgba8ToPixel17h11ec834c0e56a5b6E' with (cost=50, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng12rgba8ToPixel17h11ec834c0e56a5b6E:28:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 7293,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng14color_tree_get17hdeb873dd0e4e0bbaE' not inlined into '_ZN15lodepng_cleaned3src7lodepng12rgba8ToPixel17h11ec834c0e56a5b6E' because too costly to inline (cost=505, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 7300,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng12addColorBits17h84967e4b472e82f2E' inlined into '_ZN15lodepng_cleaned3src7lodepng12rgba8ToPixel17h11ec834c0e56a5b6E' with (cost=-14950, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng12rgba8ToPixel17h11ec834c0e56a5b6E:61:13;"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7239,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN15lodepng_cleaned3src7lodepng12rgba8ToPixel17h11ec834c0e56a5b6E: MI Instruction count changed from 0 to 198; Delta: 198"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7239,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN15lodepng_cleaned3src7lodepng12rgba8ToPixel17h11ec834c0e56a5b6E: MI Instruction count changed from 198 to 186; Delta: -12"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7239,
+        "message": "Peephole Optimizations: Function: _ZN15lodepng_cleaned3src7lodepng12rgba8ToPixel17h11ec834c0e56a5b6E: MI Instruction count changed from 186 to 184; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7239,
+        "message": "X86 Fixup SetCC: Function: _ZN15lodepng_cleaned3src7lodepng12rgba8ToPixel17h11ec834c0e56a5b6E: MI Instruction count changed from 184 to 186; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7239,
+        "message": "Process Implicit Definitions: Function: _ZN15lodepng_cleaned3src7lodepng12rgba8ToPixel17h11ec834c0e56a5b6E: MI Instruction count changed from 186 to 184; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7239,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN15lodepng_cleaned3src7lodepng12rgba8ToPixel17h11ec834c0e56a5b6E: MI Instruction count changed from 184 to 205; Delta: 21"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7239,
+        "message": "Two-Address instruction pass: Function: _ZN15lodepng_cleaned3src7lodepng12rgba8ToPixel17h11ec834c0e56a5b6E: MI Instruction count changed from 205 to 232; Delta: 27"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7239,
+        "message": "Register Coalescer: Function: _ZN15lodepng_cleaned3src7lodepng12rgba8ToPixel17h11ec834c0e56a5b6E: MI Instruction count changed from 232 to 161; Delta: -71"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 7239,
+        "message": "11 virtual registers copies 4.594132e+00 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7239,
+        "message": "Virtual Register Rewriter: Function: _ZN15lodepng_cleaned3src7lodepng12rgba8ToPixel17h11ec834c0e56a5b6E: MI Instruction count changed from 161 to 153; Delta: -8"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 7239,
+        "message": "40 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7239,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN15lodepng_cleaned3src7lodepng12rgba8ToPixel17h11ec834c0e56a5b6E: MI Instruction count changed from 153 to 175; Delta: 22"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7239,
+        "message": "Control Flow Optimizer: Function: _ZN15lodepng_cleaned3src7lodepng12rgba8ToPixel17h11ec834c0e56a5b6E: MI Instruction count changed from 175 to 162; Delta: -13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7254,
+        "message": "BasicBlock: bb1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7254,
+        "message": "BasicBlock: bb1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7255,
+        "message": "BasicBlock: bb2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7272,
+        "message": "BasicBlock: bb9"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7293,
+        "message": "BasicBlock: bb13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7297,
+        "message": "BasicBlock: bb16"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7298,
+        "message": "BasicBlock: bb17"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7306,
+        "message": "BasicBlock: bb21"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7306,
+        "message": "BasicBlock: bb21"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7307,
+        "message": "BasicBlock: bb22"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7322,
+        "message": "BasicBlock: bb27"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7323,
+        "message": "BasicBlock: bb28"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7330,
+        "message": "BasicBlock: bb29"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7259,
+        "message": "BasicBlock: bb4"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7262,
+        "message": "BasicBlock: bb5"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7312,
+        "message": "BasicBlock: bb24"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7347,
+        "message": "BasicBlock: bb32"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7239,
+        "message": "147 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

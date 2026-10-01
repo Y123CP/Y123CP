@@ -1,0 +1,89 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": "error[E0502]: cannot borrow `content` as immutable because it is also borrowed as mutable\n    --> /perf-build/crate/src/error.rs:1369:24\n     |\n1369 |     for b in content[..content.len() - 1].iter_mut() {\n     |              ----------^^^^^^^-----------\n     |              |      |  |\n     |              |      |  immutable borrow occurs here\n     |              |      mutable borrow later used here\n     |              mutable borrow occurs here\nerror[E0502]: cannot borrow `content` as immutable because it is also borrowed as mutable\n    --> /perf-build/crate/src/error.rs:1370:40\n     |\n1369 |     for b in content[..content.len() - 1].iter_mut() {\n     |              ---------------------------------------\n     |              |\n     |              mutable borrow occurs here\n     |              mutable borrow later used here\n1370 |         if n >= col || (n as usize) >= content.len().wrapping_sub(2) || *b as c_int == 0 as c_int {\n     |                                        ^^^^^^^ immutable borrow occurs here\nerror: could not compile `libxml2_cleaned` (lib) due to 2 previous errors; 266 warnings emitted"
+      },
+      "gate": "build",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "71a2558c6645e83ae6eadbe656765c9ce0f21a29",
+      "changeset_id": "legacy-b33b6f9465f1897f",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-0ca2615e88b58643",
+          "replacement_function_source": "// Applied rules: [III④, III③]\n// Skipped rules: [III①: Although hits [2, 3] are concrete param-callback sites, applying generic callback monomorphization would change the function signature and all callers. This function is an internal error-reporting helper likely threaded through C-style call chains; without caller analysis in the evidence pack, abstain rather than guess. Its direct local benefit is also limited because the callback is invoked only twice, outside any large hot loop.; C3: Hit [1] reports a clobbered load in the `ctnt` loop, but this function has no repeated invariant struct-field reload pattern worth signature lifting, and the likely aliasing issue is better addressed by III④ converting the local content-buffer walk to a slice iterator/local index. No separate C3 hoist with clear leverage is justified.; C4: Hit [12] is a byte-cursor loop over the small fixed local buffer `content` with an upper bound of at most 79 characters. Typical trip count is short, and widening to word-at-a-time would add complexity for little payoff. A slice/iterator rewrite from III④ is the better fit.; C1: Remove the callback `expect(\"non-null function pointer\")` checks only if a preceding proof or stronger callback rewrite establishes non-nullness on all paths. That proof is not available here because III① was abstained, so keep the existing checks.]\nunsafe fn xmlParserPrintFileContextInternal(\n    mut input: xmlParserInputPtr,\n    mut channel: xmlGenericErrorFunc,\n    mut data: *mut c_void,\n) {\n    let mut cur: *const xmlChar;\n    let base: *const xmlChar;\n    let mut start: *const xmlChar = ::core::ptr::null::<xmlChar>();\n    let mut n: c_uint = 0;\n    let mut col: c_uint = 0;\n    let mut content: [xmlChar; 81] = [0; 81];\n    if input.is_null() || (*input).cur.is_null() {\n        return;\n    }\n\n    cur = (*input).cur;\n    base = (*input).base;\n\n    let back_len = cur.offset_from(base) as usize;\n    // SAFETY: `input` is non-null, `base..cur` is the same allocation by parser input\n    // invariants, `base` is non-null when `cur` is used this way in the original code,\n    // and we create only a shared slice for read-only scanning over `back_len` bytes.\n    let back = unsafe { ::core::slice::from_raw_parts(base, back_len) };\n    let mut idx = back_len;\n\n    while idx > 0 {\n        let b = back[idx - 1] as c_int;\n        if b == '\\n' as i32 || b == '\\r' as i32 {\n            idx -= 1;\n        } else {\n            break;\n        }\n    }\n\n    n = 0 as c_uint;\n    while (n as usize) < content.len().wrapping_sub(1) && idx > 0 {\n        let b = back[idx - 1] as c_int;\n        if b == '\\n' as i32 || b == '\\r' as i32 {\n            break;\n        }\n        idx -= 1;\n        n = n.wrapping_add(1);\n    }\n\n    cur = base.add(idx);\n\n    if n > 0 as c_uint {\n        let b = *cur as c_int;\n        if b == '\\n' as i32 || b == '\\r' as i32 {\n            cur = cur.add(1);\n        }\n    } else {\n        let cur_idx = (*input).cur.offset_from(base) as usize;\n        while idx < cur_idx && (back[idx] as c_int & 0xc0 as c_int) == 0x80 as c_int {\n            idx += 1;\n        }\n        cur = base.add(idx);\n    }\n\n    col = (*input).cur.offset_from(cur) as c_long as c_uint;\n    n = 0 as c_uint;\n    start = cur;\n\n    while *cur as c_int != 0 as c_int\n        && *cur as c_int != '\\n' as i32\n        && *cur as c_int != '\\r' as i32\n    {\n        let mut len: c_int = (*input).end.offset_from(cur) as c_long as c_int;\n        let c: c_int = xmlGetUTF8Char(cur as *const c_uchar, &raw mut len);\n        if c < 0 as c_int\n            || n.wrapping_add(len as c_uint) as usize > content.len().wrapping_sub(1)\n        {\n            break;\n        }\n        cur = cur.offset(len as isize);\n        n = n.wrapping_add(len as c_uint);\n    }\n\n    // SAFETY: `start..start+n` lies within the same input allocation as established by the\n    // original cursor walk, is valid for reads of `n` bytes, and `content[..n]` is a distinct\n    // stack buffer valid for writes of `n` bytes with no overlap.\n    let src = unsafe { ::core::slice::from_raw_parts(start, n as usize) };\n    content[..n as usize].copy_from_slice(src);\n    content[n as usize] = 0 as xmlChar;\n\n    channel.expect(\"non-null function pointer\")(\n        data,\n        b\"%s\\n\\0\" as *const u8 as *const c_char,\n        &raw mut content as *mut xmlChar,\n    );\n\n    n = 0 as c_uint;\n    for b in content[..content.len() - 1].iter_mut() {\n        if n >= col || (n as usize) >= content.len().wrapping_sub(2) || *b as c_int == 0 as c_int {\n            break;\n        }\n        if *b as c_int != '\\t' as i32 {\n            *b = ' ' as i32 as xmlChar;\n        }\n        n = n.wrapping_add(1);\n    }\n\n    let caret_idx = n as usize;\n    content[caret_idx] = '^' as i32 as xmlChar;\n    content[caret_idx + 1] = 0 as xmlChar;\n\n    channel.expect(\"non-null function pointer\")(\n        data,\n        b\"%s\\n\\0\" as *const u8 as *const c_char,\n        &raw mut content as *mut xmlChar,\n    );\n}",
+          "rule_id": "III④,III③",
+          "target": {
+            "declaration_hash": "97eff07d7dde016eb33e06adfee270e0e19ccab8e9491d530ddfcc76d8cd4e15",
+            "file_hint": "src/error.rs",
+            "qualified_name": "crate::xmlParserPrintFileContextInternal",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "xmlParserPrintFileContextInternal-30658e124883",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "xmlParserPrintFileContextInternal",
+        "rule_id": "III④,III③"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "eaf2493c78974a54d0ab22e8d5151c06bc68cdcf0ebb20cd9683234a79124f22",
+            "edit_id": "edit-replace-0ca2615e88b58643",
+            "end_byte": 71325,
+            "operation_id": "replace-0ca2615e88b58643",
+            "relative_path": "src/error.rs",
+            "replacement_text": "// Applied rules: [III④, III③]\n// Skipped rules: [III①: Although hits [2, 3] are concrete param-callback sites, applying generic callback monomorphization would change the function signature and all callers. This function is an internal error-reporting helper likely threaded through C-style call chains; without caller analysis in the evidence pack, abstain rather than guess. Its direct local benefit is also limited because the callback is invoked only twice, outside any large hot loop.; C3: Hit [1] reports a clobbered load in the `ctnt` loop, but this function has no repeated invariant struct-field reload pattern worth signature lifting, and the likely aliasing issue is better addressed by III④ converting the local content-buffer walk to a slice iterator/local index. No separate C3 hoist with clear leverage is justified.; C4: Hit [12] is a byte-cursor loop over the small fixed local buffer `content` with an upper bound of at most 79 characters. Typical trip count is short, and widening to word-at-a-time would add complexity for little payoff. A slice/iterator rewrite from III④ is the better fit.; C1: Remove the callback `expect(\"non-null function pointer\")` checks only if a preceding proof or stronger callback rewrite establishes non-nullness on all paths. That proof is not available here because III① was abstained, so keep the existing checks.]\nunsafe fn xmlParserPrintFileContextInternal(\n    mut input: xmlParserInputPtr,\n    mut channel: xmlGenericErrorFunc,\n    mut data: *mut c_void,\n) {\n    let mut cur: *const xmlChar;\n    let base: *const xmlChar;\n    let mut start: *const xmlChar = ::core::ptr::null::<xmlChar>();\n    let mut n: c_uint = 0;\n    let mut col: c_uint = 0;\n    let mut content: [xmlChar; 81] = [0; 81];\n    if input.is_null() || (*input).cur.is_null() {\n        return;\n    }\n\n    cur = (*input).cur;\n    base = (*input).base;\n\n    let back_len = cur.offset_from(base) as usize;\n    // SAFETY: `input` is non-null, `base..cur` is the same allocation by parser input\n    // invariants, `base` is non-null when `cur` is used this way in the original code,\n    // and we create only a shared slice for read-only scanning over `back_len` bytes.\n    let back = unsafe { ::core::slice::from_raw_parts(base, back_len) };\n    let mut idx = back_len;\n\n    while idx > 0 {\n        let b = back[idx - 1] as c_int;\n        if b == '\\n' as i32 || b == '\\r' as i32 {\n            idx -= 1;\n        } else {\n            break;\n        }\n    }\n\n    n = 0 as c_uint;\n    while (n as usize) < content.len().wrapping_sub(1) && idx > 0 {\n        let b = back[idx - 1] as c_int;\n        if b == '\\n' as i32 || b == '\\r' as i32 {\n            break;\n        }\n        idx -= 1;\n        n = n.wrapping_add(1);\n    }\n\n    cur = base.add(idx);\n\n    if n > 0 as c_uint {\n        let b = *cur as c_int;\n        if b == '\\n' as i32 || b == '\\r' as i32 {\n            cur = cur.add(1);\n        }\n    } else {\n        let cur_idx = (*input).cur.offset_from(base) as usize;\n        while idx < cur_idx && (back[idx] as c_int & 0xc0 as c_int) == 0x80 as c_int {\n            idx += 1;\n        }\n        cur = base.add(idx);\n    }\n\n    col = (*input).cur.offset_from(cur) as c_long as c_uint;\n    n = 0 as c_uint;\n    start = cur;\n\n    while *cur as c_int != 0 as c_int\n        && *cur as c_int != '\\n' as i32\n        && *cur as c_int != '\\r' as i32\n    {\n        let mut len: c_int = (*input).end.offset_from(cur) as c_long as c_int;\n        let c: c_int = xmlGetUTF8Char(cur as *const c_uchar, &raw mut len);\n        if c < 0 as c_int\n            || n.wrapping_add(len as c_uint) as usize > content.len().wrapping_sub(1)\n        {\n            break;\n        }\n        cur = cur.offset(len as isize);\n        n = n.wrapping_add(len as c_uint);\n    }\n\n    // SAFETY: `start..start+n` lies within the same input allocation as established by the\n    // original cursor walk, is valid for reads of `n` bytes, and `content[..n]` is a distinct\n    // stack buffer valid for writes of `n` bytes with no overlap.\n    let src = unsafe { ::core::slice::from_raw_parts(start, n as usize) };\n    content[..n as usize].copy_from_slice(src);\n    content[n as usize] = 0 as xmlChar;\n\n    channel.expect(\"non-null function pointer\")(\n        data,\n        b\"%s\\n\\0\" as *const u8 as *const c_char,\n        &raw mut content as *mut xmlChar,\n    );\n\n    n = 0 as c_uint;\n    for b in content[..content.len() - 1].iter_mut() {\n        if n >= col || (n as usize) >= content.len().wrapping_sub(2) || *b as c_int == 0 as c_int {\n            break;\n        }\n        if *b as c_int != '\\t' as i32 {\n            *b = ' ' as i32 as xmlChar;\n        }\n        n = n.wrapping_add(1);\n    }\n\n    let caret_idx = n as usize;\n    content[caret_idx] = '^' as i32 as xmlChar;\n    content[caret_idx + 1] = 0 as xmlChar;\n\n    channel.expect(\"non-null function pointer\")(\n        data,\n        b\"%s\\n\\0\" as *const u8 as *const c_char,\n        &raw mut content as *mut xmlChar,\n    );\n}",
+            "start_byte": 68163
+          }
+        ],
+        "facts": {
+          "fn_name": "xmlParserPrintFileContextInternal",
+          "target_span_hash": "97eff07d7dde016eb33e06adfee270e0e19ccab8e9491d530ddfcc76d8cd4e15"
+        },
+        "operation_id": "replace-0ca2615e88b58643"
+      }
+    ],
+    "resolved_head": "71a2558c6645e83ae6eadbe656765c9ce0f21a29"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_build",
+  "touched_paths": [
+    "src/error.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

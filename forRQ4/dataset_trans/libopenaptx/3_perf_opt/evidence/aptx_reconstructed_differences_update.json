@@ -1,0 +1,82 @@
+{
+  "hot_function": {
+    "symbol": "aptx_reconstructed_differences_update",
+    "location": "src/openaptx.rs:2346-2360",
+    "workload": "decode_std",
+    "hot_region": "src/openaptx.rs:2346-2360",
+    "rust_source": "unsafe fn aptx_reconstructed_differences_update(\n    mut prediction: *mut aptx_prediction,\n    mut reconstructed_difference: int32_t,\n    mut order: c_int,\n) -> *mut int32_t {\n    let prediction_view: &mut aptx_prediction = unsafe { &mut *prediction };\n    let mut rd1: *mut int32_t = &raw mut prediction_view.reconstructed_differences as *mut int32_t;\n    let mut rd2: *mut int32_t = rd1.offset(order as isize);\n    let mut p: c_int = prediction_view.pos as c_int;\n    *rd1.offset(p as isize) = *rd2.offset(p as isize);\n    p = (p + 1 as c_int) % order;\n    prediction_view.pos = p as int32_t;\n    *rd2.offset(p as isize) = reconstructed_difference;\n    return rd2.offset(p as isize) as *mut int32_t;\n}",
+    "signature": "unsafe fn aptx_reconstructed_differences_update(\n    mut prediction: *mut aptx_prediction,\n    mut reconstructed_difference: int32_t,\n    mut order: c_int,\n) -> *mut int32_t",
+    "profile": {
+      "self_time_ratio": 0.0531,
+      "call_count": null,
+      "retired_instructions": 1038033678,
+      "instructions_per_call": null,
+      "cpi": 0.303,
+      "tma": {
+        "scope": "process",
+        "retiring": 78.86118812011685,
+        "frontend_bound": 1.6805169847714616,
+        "bad_speculation": 0.8725221219319258,
+        "backend_bound": 18.585772773179766,
+        "memory_bound": 13.380170676149259,
+        "core_bound": 5.205602097030507,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0017
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2356,
+        "message": "_ZN4core9panicking5panic17hc9ef14243ed05cbcE will not be inlined into _ZN19libopenaptx_cleaned3src8openaptx37aptx_reconstructed_differences_update17ha164068c9c3bd56aE because its definition is unavailable"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2355,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2354,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2356,
+        "message": "BasicBlock: bb1.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2356,
+        "message": "BasicBlock: panic.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2356,
+        "message": "BasicBlock: panic3.i.i.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

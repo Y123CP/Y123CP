@@ -1,0 +1,94 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "2eaed4899f489bebfce5ff00b752ca5d5e999f0e",
+      "changeset_id": "legacy-b226cb7fbc000f5e",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-475e36f6ab608613",
+          "replacement_function_source": "unsafe fn build_tree(mut s: *mut deflate_state, mut desc: *mut tree_desc) {\n    let tree: *mut ct_data = (*desc).dyn_tree;\n    let stree: *const ct_data = (*(*desc).stat_desc).static_tree;\n    let elems: c_int = (*(*desc).stat_desc).elems;\n\n    let s_ref: &mut deflate_state = unsafe { &mut *s }; // SAFETY: caller guarantees `s` is a valid, unique pointer for the duration of this function.\n    let desc_ref: &mut tree_desc = unsafe { &mut *desc }; // SAFETY: caller guarantees `desc` is a valid, unique pointer for the duration of this function.\n\n    let mut max_code: c_int = -1;\n    let mut node: c_int;\n\n    s_ref.heap_len = 0;\n    s_ref.heap_max = HEAP_SIZE;\n\n    let mut n: c_int = 0;\n    while n < elems {\n        let t = unsafe { tree.add(n as usize) }; // SAFETY: `n < elems`, and caller provides a valid tree with at least `elems` entries.\n        if unsafe { (*t).fc.freq as c_int } != 0 {\n            max_code = n;\n            s_ref.heap_len += 1;\n            s_ref.heap[s_ref.heap_len as usize] = n;\n            s_ref.depth[n as usize] = 0 as uch;\n        } else {\n            unsafe { (*t).dl.len = 0 as ush }; // SAFETY: same bounds as above; writing current node's length is valid.\n        }\n        n += 1;\n    }\n\n    while s_ref.heap_len < 2 {\n        s_ref.heap_len += 1;\n        let inserted = if max_code < 2 {\n            max_code += 1;\n            max_code\n        } else {\n            0\n        };\n        s_ref.heap[s_ref.heap_len as usize] = inserted;\n        let t = unsafe { tree.add(inserted as usize) }; // SAFETY: inserted is either 0, 1, or 2 here, all valid tree indices for zlib trees.\n        unsafe { (*t).fc.freq = 1 as ush }; // SAFETY: same as above.\n        s_ref.depth[inserted as usize] = 0 as uch;\n        s_ref.opt_len = s_ref.opt_len.wrapping_sub(1);\n        if !stree.is_null() {\n            s_ref.static_len = (s_ref.static_len as c_ulong)\n                .wrapping_sub(unsafe { (*stree.add(inserted as usize)).dl.len as c_ulong })\n                as ulg;\n        }\n    }\n\n    desc_ref.max_code = max_code;\n\n    n = s_ref.heap_len / 2;\n    while n >= 1 {\n        unsafe { pqdownheap(s, tree, n) }; // SAFETY: heap/tree/state invariants are established above and match original function's requirements.\n        n -= 1;\n    }\n\n    node = elems;\n    loop {\n        n = s_ref.heap[SMALLEST as usize];\n        let last = s_ref.heap[s_ref.heap_len as usize];\n        s_ref.heap_len -= 1;\n        s_ref.heap[SMALLEST as usize] = last;\n        unsafe { pqdownheap(s, tree, SMALLEST) }; // SAFETY: heap/tree/state invariants are maintained exactly as in the original code.\n\n        let m: c_int = s_ref.heap[SMALLEST as usize];\n\n        s_ref.heap_max -= 1;\n        s_ref.heap[s_ref.heap_max as usize] = n;\n        s_ref.heap_max -= 1;\n        s_ref.heap[s_ref.heap_max as usize] = m;\n\n        let tn = unsafe { tree.add(n as usize) }; // SAFETY: `n` comes from heap entries previously populated with valid tree indices.\n        let tm = unsafe { tree.add(m as usize) }; // SAFETY: `m` comes from heap entries previously populated with valid tree indices.\n        let tnode = unsafe { tree.add(node as usize) }; // SAFETY: `node` starts at `elems` and advances within the allocated tree workspace as in original zlib logic.\n\n        unsafe {\n            (*tnode).fc.freq = ((*tn).fc.freq as c_int + (*tm).fc.freq as c_int) as ush;\n        } // SAFETY: all three pointers are valid tree nodes as established above.\n\n        let dn = s_ref.depth[n as usize] as c_int;\n        let dm = s_ref.depth[m as usize] as c_int;\n        s_ref.depth[node as usize] = (if dn >= dm { dn } else { dm } + 1) as uch;\n\n        unsafe {\n            (*tm).dl.dad = node as ush;\n            (*tn).dl.dad = (*tm).dl.dad;\n        } // SAFETY: `tn` and `tm` are valid mutable tree nodes.\n\n        let new_node = node;\n        node += 1;\n        s_ref.heap[SMALLEST as usize] = new_node;\n        unsafe { pqdownheap(s, tree, SMALLEST) }; // SAFETY: heap/tree/state invariants are maintained exactly as in the original code.\n\n        if s_ref.heap_len < 2 {\n            break;\n        }\n    }\n\n    s_ref.heap_max -= 1;\n    s_ref.heap[s_ref.heap_max as usize] = s_ref.heap[SMALLEST as usize];\n    unsafe { gen_bitlen(s, desc) }; // SAFETY: tree construction is complete and matches original preconditions.\n    unsafe { gen_codes(tree, max_code, &raw mut s_ref.bl_count as *mut ushf) }; // SAFETY: `tree` and `bl_count` are valid and initialized as required by original code.\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "eee58bd8222a03d68fdf2924358848333f3c889d1d8ed138100fd2ce326e9424",
+            "file_hint": "src/zlib/trees.rs",
+            "qualified_name": "crate::build_tree",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "build_tree-ef3bb43d90ab",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "build_tree",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "8d4e3e90deec8dc8def0aef0ed24c8f9bc3bca76112dc0038569eb97f4fe6a38",
+            "edit_id": "edit-replace-475e36f6ab608613",
+            "end_byte": 99632,
+            "operation_id": "replace-475e36f6ab608613",
+            "relative_path": "src/zlib/trees.rs",
+            "replacement_text": "unsafe fn build_tree(mut s: *mut deflate_state, mut desc: *mut tree_desc) {\n    let tree: *mut ct_data = (*desc).dyn_tree;\n    let stree: *const ct_data = (*(*desc).stat_desc).static_tree;\n    let elems: c_int = (*(*desc).stat_desc).elems;\n\n    let s_ref: &mut deflate_state = unsafe { &mut *s }; // SAFETY: caller guarantees `s` is a valid, unique pointer for the duration of this function.\n    let desc_ref: &mut tree_desc = unsafe { &mut *desc }; // SAFETY: caller guarantees `desc` is a valid, unique pointer for the duration of this function.\n\n    let mut max_code: c_int = -1;\n    let mut node: c_int;\n\n    s_ref.heap_len = 0;\n    s_ref.heap_max = HEAP_SIZE;\n\n    let mut n: c_int = 0;\n    while n < elems {\n        let t = unsafe { tree.add(n as usize) }; // SAFETY: `n < elems`, and caller provides a valid tree with at least `elems` entries.\n        if unsafe { (*t).fc.freq as c_int } != 0 {\n            max_code = n;\n            s_ref.heap_len += 1;\n            s_ref.heap[s_ref.heap_len as usize] = n;\n            s_ref.depth[n as usize] = 0 as uch;\n        } else {\n            unsafe { (*t).dl.len = 0 as ush }; // SAFETY: same bounds as above; writing current node's length is valid.\n        }\n        n += 1;\n    }\n\n    while s_ref.heap_len < 2 {\n        s_ref.heap_len += 1;\n        let inserted = if max_code < 2 {\n            max_code += 1;\n            max_code\n        } else {\n            0\n        };\n        s_ref.heap[s_ref.heap_len as usize] = inserted;\n        let t = unsafe { tree.add(inserted as usize) }; // SAFETY: inserted is either 0, 1, or 2 here, all valid tree indices for zlib trees.\n        unsafe { (*t).fc.freq = 1 as ush }; // SAFETY: same as above.\n        s_ref.depth[inserted as usize] = 0 as uch;\n        s_ref.opt_len = s_ref.opt_len.wrapping_sub(1);\n        if !stree.is_null() {\n            s_ref.static_len = (s_ref.static_len as c_ulong)\n                .wrapping_sub(unsafe { (*stree.add(inserted as usize)).dl.len as c_ulong })\n                as ulg;\n        }\n    }\n\n    desc_ref.max_code = max_code;\n\n    n = s_ref.heap_len / 2;\n    while n >= 1 {\n        unsafe { pqdownheap(s, tree, n) }; // SAFETY: heap/tree/state invariants are established above and match original function's requirements.\n        n -= 1;\n    }\n\n    node = elems;\n    loop {\n        n = s_ref.heap[SMALLEST as usize];\n        let last = s_ref.heap[s_ref.heap_len as usize];\n        s_ref.heap_len -= 1;\n        s_ref.heap[SMALLEST as usize] = last;\n        unsafe { pqdownheap(s, tree, SMALLEST) }; // SAFETY: heap/tree/state invariants are maintained exactly as in the original code.\n\n        let m: c_int = s_ref.heap[SMALLEST as usize];\n\n        s_ref.heap_max -= 1;\n        s_ref.heap[s_ref.heap_max as usize] = n;\n        s_ref.heap_max -= 1;\n        s_ref.heap[s_ref.heap_max as usize] = m;\n\n        let tn = unsafe { tree.add(n as usize) }; // SAFETY: `n` comes from heap entries previously populated with valid tree indices.\n        let tm = unsafe { tree.add(m as usize) }; // SAFETY: `m` comes from heap entries previously populated with valid tree indices.\n        let tnode = unsafe { tree.add(node as usize) }; // SAFETY: `node` starts at `elems` and advances within the allocated tree workspace as in original zlib logic.\n\n        unsafe {\n            (*tnode).fc.freq = ((*tn).fc.freq as c_int + (*tm).fc.freq as c_int) as ush;\n        } // SAFETY: all three pointers are valid tree nodes as established above.\n\n        let dn = s_ref.depth[n as usize] as c_int;\n        let dm = s_ref.depth[m as usize] as c_int;\n        s_ref.depth[node as usize] = (if dn >= dm { dn } else { dm } + 1) as uch;\n\n        unsafe {\n            (*tm).dl.dad = node as ush;\n            (*tn).dl.dad = (*tm).dl.dad;\n        } // SAFETY: `tn` and `tm` are valid mutable tree nodes.\n\n        let new_node = node;\n        node += 1;\n        s_ref.heap[SMALLEST as usize] = new_node;\n        unsafe { pqdownheap(s, tree, SMALLEST) }; // SAFETY: heap/tree/state invariants are maintained exactly as in the original code.\n\n        if s_ref.heap_len < 2 {\n            break;\n        }\n    }\n\n    s_ref.heap_max -= 1;\n    s_ref.heap[s_ref.heap_max as usize] = s_ref.heap[SMALLEST as usize];\n    unsafe { gen_bitlen(s, desc) }; // SAFETY: tree construction is complete and matches original preconditions.\n    unsafe { gen_codes(tree, max_code, &raw mut s_ref.bl_count as *mut ushf) }; // SAFETY: `tree` and `bl_count` are valid and initialized as required by original code.\n}",
+            "start_byte": 96545
+          }
+        ],
+        "facts": {
+          "fn_name": "build_tree",
+          "target_span_hash": "eee58bd8222a03d68fdf2924358848333f3c889d1d8ed138100fd2ce326e9424"
+        },
+        "operation_id": "replace-475e36f6ab608613"
+      }
+    ],
+    "resolved_head": "2eaed4899f489bebfce5ff00b752ca5d5e999f0e"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_post_validation",
+  "touched_paths": [
+    "src/zlib/trees.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "added_bounds_check_in_loop",
+      "detail": "rewrite adds a bounds check inside a loop the original indexed unchecked (6 site(s)): s_ref.depth[node as usize], s_ref.depth[m as usize], s_ref.depth[n as usize], s_ref.heap[s_ref.heap_max as usize], s_ref.heap[s_ref.heap_len as usize], s_ref.depth[inserted as usize]",
+      "ok": false
+    }
+  ]
+}

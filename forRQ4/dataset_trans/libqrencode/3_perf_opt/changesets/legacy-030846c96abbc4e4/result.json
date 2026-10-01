@@ -1,0 +1,94 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "4e6562fc0a5bb4a0b7bc46b4ee7aeefb81992675",
+      "changeset_id": "legacy-030846c96abbc4e4",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-d0e94a156a896a0f",
+          "replacement_function_source": "// Applied rules: [III④, C3]\n// Skipped rules: [C3.S1: Would require changing `frame`/`runLength` parameters to references or slices and proving all callers; defer because the local-body rewrite can address the concrete hits without cross-function signature changes.]\nunsafe fn Mask_calcRunLengthH(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n    mut runLength: *mut c_int,\n) -> c_int {\n    // SAFETY: `width` is the caller-provided L1 length source for this region;\n    // the original function unconditionally dereferences `frame[0]`, so callers\n    // must provide a non-null `frame` valid for at least `width` elements here,\n    // and no other live references alias this reborrowed shared slice.\n    let frame = unsafe { core::slice::from_raw_parts(frame as *const c_uchar, width as usize) };\n    // SAFETY: `width` is the caller-provided L1 length source for this region;\n    // callers must provide a non-null `runLength` buffer valid for at least\n    // `width` elements for the writes performed here, and no other live\n    // references alias this reborrowed mutable slice.\n    let run_length = unsafe { core::slice::from_raw_parts_mut(runLength, width as usize) };\n\n    let mut head: c_int;\n    let mut prev: c_uchar;\n\n    let first = frame[0];\n    if first as c_int & 1 as c_int != 0 {\n        run_length[0] = -(1 as c_int);\n        head = 1 as c_int;\n    } else {\n        head = 0 as c_int;\n    }\n\n    run_length[head as usize] = 1 as c_int;\n    prev = first;\n\n    for &cur in frame[1..width as usize].iter() {\n        if (cur as c_int ^ prev as c_int) & 1 as c_int != 0 {\n            head += 1;\n            run_length[head as usize] = 1 as c_int;\n            prev = cur;\n        } else {\n            run_length[head as usize] += 1;\n        }\n    }\n\n    head + 1 as c_int\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "69377a956a0866acbbe07a816a3d8a475fb7c92ccf0fb56b7fd8eaf417ddeecc",
+            "file_hint": "src/mask.rs",
+            "qualified_name": "crate::Mask_calcRunLengthH",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "Mask_calcRunLengthH-59c46e87312d",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "Mask_calcRunLengthH",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "a38d93f87d0658705488019fc56ffb43aaca0469af77914e6d89eba0ce006c91",
+            "edit_id": "edit-replace-d0e94a156a896a0f",
+            "end_byte": 14365,
+            "operation_id": "replace-d0e94a156a896a0f",
+            "relative_path": "src/mask.rs",
+            "replacement_text": "// Applied rules: [III④, C3]\n// Skipped rules: [C3.S1: Would require changing `frame`/`runLength` parameters to references or slices and proving all callers; defer because the local-body rewrite can address the concrete hits without cross-function signature changes.]\nunsafe fn Mask_calcRunLengthH(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n    mut runLength: *mut c_int,\n) -> c_int {\n    // SAFETY: `width` is the caller-provided L1 length source for this region;\n    // the original function unconditionally dereferences `frame[0]`, so callers\n    // must provide a non-null `frame` valid for at least `width` elements here,\n    // and no other live references alias this reborrowed shared slice.\n    let frame = unsafe { core::slice::from_raw_parts(frame as *const c_uchar, width as usize) };\n    // SAFETY: `width` is the caller-provided L1 length source for this region;\n    // callers must provide a non-null `runLength` buffer valid for at least\n    // `width` elements for the writes performed here, and no other live\n    // references alias this reborrowed mutable slice.\n    let run_length = unsafe { core::slice::from_raw_parts_mut(runLength, width as usize) };\n\n    let mut head: c_int;\n    let mut prev: c_uchar;\n\n    let first = frame[0];\n    if first as c_int & 1 as c_int != 0 {\n        run_length[0] = -(1 as c_int);\n        head = 1 as c_int;\n    } else {\n        head = 0 as c_int;\n    }\n\n    run_length[head as usize] = 1 as c_int;\n    prev = first;\n\n    for &cur in frame[1..width as usize].iter() {\n        if (cur as c_int ^ prev as c_int) & 1 as c_int != 0 {\n            head += 1;\n            run_length[head as usize] = 1 as c_int;\n            prev = cur;\n        } else {\n            run_length[head as usize] += 1;\n        }\n    }\n\n    head + 1 as c_int\n}",
+            "start_byte": 13368
+          }
+        ],
+        "facts": {
+          "fn_name": "Mask_calcRunLengthH",
+          "target_span_hash": "69377a956a0866acbbe07a816a3d8a475fb7c92ccf0fb56b7fd8eaf417ddeecc"
+        },
+        "operation_id": "replace-d0e94a156a896a0f"
+      }
+    ],
+    "resolved_head": "4e6562fc0a5bb4a0b7bc46b4ee7aeefb81992675"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_post_validation",
+  "touched_paths": [
+    "src/mask.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "added_bounds_check_in_loop",
+      "detail": "rewrite adds a bounds check inside a loop the original indexed unchecked (1 site(s)): run_length[head as usize]",
+      "ok": false
+    }
+  ]
+}

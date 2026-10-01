@@ -1,0 +1,94 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "a7bf4c6a740c2c35f8593d469ec8c7ba04d3c9c4",
+      "changeset_id": "legacy-0294485d85d40288",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-3826864416c014f0",
+          "replacement_function_source": "// Applied rules: [C3]\n// Skipped rules: [III④: Only concrete hit [13] is a single raw-pointer dereference form inside the inner loop; converting just `e` to a slice would be a body-local view serving essentially one access pattern and would not address the repeated `hm_view.cell[i as usize]` reloads as effectively as C3 S2. Signature-lifted sliceification would require caller analysis not justified by the single hit.; III②: Hits [11,12] are `free` calls in a destructor, but the allocation sites are not in this function. Rule III② requires alloc/free pairing in the same function scope; ownership clearly crosses function boundaries via the hashmap structure, so RAII conversion is out of scope here.; II_vec: The reported vectorization failures [3,4,5,6,7,8,9,10] stem from a tiny destructor loop containing `free` libcalls and a data-dependent inner trip count from `c`; there is no profitable semantics-neutral vectorization rewrite here, and the libcall barrier remains unless ownership is redesigned beyond this function.]\nunsafe fn hm_destroy(mut hm: *mut hashmap_t) {\n    let hm_view: &hashmap_t = unsafe {\n        // SAFETY: `hm` is assumed by the caller to be a valid, properly aligned pointer\n        // to a live `hashmap_t` for the duration of this function.\n        &*hm\n    };\n    let mut i: size_t = 0;\n    let mut j: size_t = 0;\n    i = 0 as size_t;\n    while i < HASHMAP_CELLS as size_t {\n        let cell = &hm_view.cell[i as usize];\n        let cell_c = cell.c;\n        let cell_e = cell.e;\n        j = 0 as size_t;\n        while j < cell_c {\n            free(unsafe {\n                // SAFETY: `cell_e` is the same entry-array pointer originally stored in\n                // this cell, and `j < cell_c` matches the original unchecked offset walk.\n                (*cell_e.offset(j as isize)).k as *mut c_void\n            });\n            j = j.wrapping_add(1);\n        }\n        free(cell_e as *mut c_void);\n        i = i.wrapping_add(1);\n    }\n}",
+          "rule_id": "C3",
+          "target": {
+            "declaration_hash": "690d87514ae6174b542c4305979666a6f148cbbae87e3168fff630b9135c2a78",
+            "file_hint": "src/lil.rs",
+            "qualified_name": "crate::hm_destroy",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "hm_destroy-a2e8b8d09e82",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "hm_destroy",
+        "rule_id": "C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "de44c201311b07015187b4426545d70657c95394f41e971b870522176123bac5",
+            "edit_id": "edit-replace-3826864416c014f0",
+            "end_byte": 7025,
+            "operation_id": "replace-3826864416c014f0",
+            "relative_path": "src/lil.rs",
+            "replacement_text": "// Applied rules: [C3]\n// Skipped rules: [III④: Only concrete hit [13] is a single raw-pointer dereference form inside the inner loop; converting just `e` to a slice would be a body-local view serving essentially one access pattern and would not address the repeated `hm_view.cell[i as usize]` reloads as effectively as C3 S2. Signature-lifted sliceification would require caller analysis not justified by the single hit.; III②: Hits [11,12] are `free` calls in a destructor, but the allocation sites are not in this function. Rule III② requires alloc/free pairing in the same function scope; ownership clearly crosses function boundaries via the hashmap structure, so RAII conversion is out of scope here.; II_vec: The reported vectorization failures [3,4,5,6,7,8,9,10] stem from a tiny destructor loop containing `free` libcalls and a data-dependent inner trip count from `c`; there is no profitable semantics-neutral vectorization rewrite here, and the libcall barrier remains unless ownership is redesigned beyond this function.]\nunsafe fn hm_destroy(mut hm: *mut hashmap_t) {\n    let hm_view: &hashmap_t = unsafe {\n        // SAFETY: `hm` is assumed by the caller to be a valid, properly aligned pointer\n        // to a live `hashmap_t` for the duration of this function.\n        &*hm\n    };\n    let mut i: size_t = 0;\n    let mut j: size_t = 0;\n    i = 0 as size_t;\n    while i < HASHMAP_CELLS as size_t {\n        let cell = &hm_view.cell[i as usize];\n        let cell_c = cell.c;\n        let cell_e = cell.e;\n        j = 0 as size_t;\n        while j < cell_c {\n            free(unsafe {\n                // SAFETY: `cell_e` is the same entry-array pointer originally stored in\n                // this cell, and `j < cell_c` matches the original unchecked offset walk.\n                (*cell_e.offset(j as isize)).k as *mut c_void\n            });\n            j = j.wrapping_add(1);\n        }\n        free(cell_e as *mut c_void);\n        i = i.wrapping_add(1);\n    }\n}",
+            "start_byte": 6519
+          }
+        ],
+        "facts": {
+          "fn_name": "hm_destroy",
+          "target_span_hash": "690d87514ae6174b542c4305979666a6f148cbbae87e3168fff630b9135c2a78"
+        },
+        "operation_id": "replace-3826864416c014f0"
+      }
+    ],
+    "resolved_head": "a7bf4c6a740c2c35f8593d469ec8c7ba04d3c9c4"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_post_validation",
+  "touched_paths": [
+    "src/lil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "added_bounds_check_in_loop",
+      "detail": "rewrite adds a bounds check inside a loop the original indexed unchecked (1 site(s)): hm_view.cell[i as usize]",
+      "ok": false
+    }
+  ]
+}

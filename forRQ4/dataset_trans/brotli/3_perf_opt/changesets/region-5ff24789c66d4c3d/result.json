@@ -1,0 +1,166 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "7d12dc4ba696b77a95a018731305350efeb21217",
+      "changeset_id": "region-5ff24789c66d4c3d",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [
+            "3aa79cb7dcbfa2c4f0bac05394722d398bdaafabaeb91ec7245132d9385ce95b",
+            "0d9b1d98d33de8e5e53d9a6be6d9d63f55625d04bd7344a1b12f18a282e77e20",
+            "b248489ec81cbbedcdae3ad2116cb524f80c5afba320c888cda2d5849f75dc7c",
+            "2941acaf1cab505c9b50cf00b56706820272031f4af6417291e5652b25d4108c"
+          ],
+          "operation_id": "replace-region-6ff266517b403555",
+          "region": {
+            "anchor_hit_ids": [
+              "3aa79cb7dcbfa2c4f0bac05394722d398bdaafabaeb91ec7245132d9385ce95b",
+              "0d9b1d98d33de8e5e53d9a6be6d9d63f55625d04bd7344a1b12f18a282e77e20",
+              "b248489ec81cbbedcdae3ad2116cb524f80c5afba320c888cda2d5849f75dc7c",
+              "2941acaf1cab505c9b50cf00b56706820272031f4af6417291e5652b25d4108c"
+            ],
+            "anchor_lines": [
+              608,
+              616,
+              618,
+              622
+            ],
+            "end_byte": 21780,
+            "expected_region_hash": "bebd94d28cd4013fe815dfb70adc18ec2d021a10506adedd8a0d721b606255ca",
+            "parent_kind": "block",
+            "region_kind": "node_sequence",
+            "relative_path": "src/enc/block_splitter.rs",
+            "start_byte": 20949,
+            "target_function": {
+              "declaration_hash": "9e48f3d0c5c68ecb05a1529e547919d5cc62aab8d449f16f01f592dd917b8c78",
+              "file_hint": "src/enc/block_splitter.rs",
+              "qualified_name": "FindBlocksLiteral",
+              "symbol_kind": "function"
+            }
+          },
+          "replacement_region_source": "{\n        // SAFETY: `switch_signal` points to `length * bitmap_len` bytes from the caller,\n        // `length` is the explicit L1 length source and is not modified in this region,\n        // the pointer is assumed non-null by the function's unsafe contract, and no other\n        // reference to this backing memory is created live across this region.\n        let switch_signal_view = unsafe {\n            core::slice::from_raw_parts(\n                switch_signal,\n                length.wrapping_mul(bitmap_len) as usize,\n            )\n        };\n        // SAFETY: `block_id` points to `length` bytes from the caller, `length` is the\n        // explicit L1 length source and is stable here, the pointer is assumed non-null by\n        // the function's unsafe contract, and this is the only reference created to that\n        // backing memory across this region.\n        let block_id_view = unsafe { core::slice::from_raw_parts_mut(block_id, length as usize) };\n\n        while byte_ix > 0 as size_t {\n            let mask_0: uint8_t = ((1 as c_uint) << (cur_id as c_int & 7 as c_int)) as uint8_t;\n            byte_ix = byte_ix.wrapping_sub(1);\n            ix_0 = (ix_0 as c_ulong).wrapping_sub(bitmap_len as c_ulong) as size_t as size_t;\n            if switch_signal_view\n                [ix_0.wrapping_add((cur_id as c_int >> 3 as c_int) as size_t) as usize]\n                as c_int\n                & mask_0 as c_int\n                != 0\n            {\n                if cur_id as c_int != block_id_view[byte_ix as usize] as c_int {\n                    cur_id = block_id_view[byte_ix as usize];\n                    num_blocks = num_blocks.wrapping_add(1);\n                }\n            }\n            block_id_view[byte_ix as usize] = cur_id;\n        }\n    }\n    return num_blocks;",
+          "rule_id": "III④"
+        }
+      ],
+      "trigger": {
+        "candidate_id": "FindBlocksLiteral-region-c170afe8daffc06c",
+        "evidence_artifacts": [],
+        "hit_ids": [
+          "3aa79cb7dcbfa2c4f0bac05394722d398bdaafabaeb91ec7245132d9385ce95b",
+          "0d9b1d98d33de8e5e53d9a6be6d9d63f55625d04bd7344a1b12f18a282e77e20",
+          "b248489ec81cbbedcdae3ad2116cb524f80c5afba320c888cda2d5849f75dc7c",
+          "2941acaf1cab505c9b50cf00b56706820272031f4af6417291e5652b25d4108c"
+        ],
+        "hot_function": "FindBlocksLiteral",
+        "rule_id": "III④"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "60759ccf20605de97129298beb46710a01f2bbcbea2bc1d9bb63e9d67736b80d",
+            "edit_id": "edit-replace-region-6ff266517b403555",
+            "end_byte": 21780,
+            "operation_id": "replace-region-6ff266517b403555",
+            "relative_path": "src/enc/block_splitter.rs",
+            "replacement_text": "{\n        // SAFETY: `switch_signal` points to `length * bitmap_len` bytes from the caller,\n        // `length` is the explicit L1 length source and is not modified in this region,\n        // the pointer is assumed non-null by the function's unsafe contract, and no other\n        // reference to this backing memory is created live across this region.\n        let switch_signal_view = unsafe {\n            core::slice::from_raw_parts(\n                switch_signal,\n                length.wrapping_mul(bitmap_len) as usize,\n            )\n        };\n        // SAFETY: `block_id` points to `length` bytes from the caller, `length` is the\n        // explicit L1 length source and is stable here, the pointer is assumed non-null by\n        // the function's unsafe contract, and this is the only reference created to that\n        // backing memory across this region.\n        let block_id_view = unsafe { core::slice::from_raw_parts_mut(block_id, length as usize) };\n\n        while byte_ix > 0 as size_t {\n            let mask_0: uint8_t = ((1 as c_uint) << (cur_id as c_int & 7 as c_int)) as uint8_t;\n            byte_ix = byte_ix.wrapping_sub(1);\n            ix_0 = (ix_0 as c_ulong).wrapping_sub(bitmap_len as c_ulong) as size_t as size_t;\n            if switch_signal_view\n                [ix_0.wrapping_add((cur_id as c_int >> 3 as c_int) as size_t) as usize]\n                as c_int\n                & mask_0 as c_int\n                != 0\n            {\n                if cur_id as c_int != block_id_view[byte_ix as usize] as c_int {\n                    cur_id = block_id_view[byte_ix as usize];\n                    num_blocks = num_blocks.wrapping_add(1);\n                }\n            }\n            block_id_view[byte_ix as usize] = cur_id;\n        }\n    }\n    return num_blocks;",
+            "start_byte": 20949
+          }
+        ],
+        "facts": {
+          "declaration_span": [
+            16872,
+            21782
+          ],
+          "function_name": "FindBlocksLiteral",
+          "function_parent_fingerprint": [
+            {
+              "index": 0,
+              "type": "source_file"
+            },
+            {
+              "index": 89,
+              "type": "function_item"
+            }
+          ],
+          "function_span": [
+            16872,
+            21782
+          ],
+          "original_file_length": 130828,
+          "original_item_counts": {
+            "extern_crate_declaration": 0,
+            "foreign_mod_item": 0,
+            "function_item": 43,
+            "function_signature_item": 0,
+            "impl_item": 0,
+            "macro_definition": 0,
+            "mod_item": 0,
+            "trait_item": 0
+          },
+          "original_region_length": 831,
+          "original_region_macro_hashes": [],
+          "original_region_node_types": [
+            "expression_statement",
+            "expression_statement"
+          ],
+          "parent_kind": "block",
+          "prefix_sha256": "9b8063889a349738c9a2db39eda32e15bf5b5d16cd58313f759ec99ba1bef570",
+          "region_kind": "node_sequence",
+          "region_line_bounds": [
+            601,
+            624
+          ],
+          "suffix_sha256": "8276f1b769a34c1a23a74693b76f1643726b03c82aae15eda70ccaaac1012ccf"
+        },
+        "operation_id": "replace-region-6ff266517b403555"
+      }
+    ],
+    "resolved_head": "7d12dc4ba696b77a95a018731305350efeb21217"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_post_validation",
+  "touched_paths": [
+    "src/enc/block_splitter.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_region_shape",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "added_bounds_check_in_loop",
+      "detail": "rewrite adds a bounds check inside a loop the original indexed unchecked (1 site(s)): block_id_view[byte_ix as usize]",
+      "ok": false
+    }
+  ]
+}

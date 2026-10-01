@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.24457939868522752,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.4712243614812377,
+            "aggregate_ci_low_pct": -0.9603831588516927,
+            "aggregate_pct": -0.24457939868522752,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.4712,
+                "ci_low_pct": -0.9604,
+                "insns_delta_pct": 0.0811,
+                "mean_delta_pct": -0.2446,
+                "op": "regexp_pattern",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "per_op_uncertain"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "regexp_pattern"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "regexp_pattern"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "f9ecdde7271d90e0d2b152c070f156dd098e07f6",
+      "changeset_id": "legacy-73e93124248ff85e",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-f93ad438b3b5ce96",
+          "replacement_function_source": "// Applied rules: [C3, III④, C1]\n// Skipped rules: []\nunsafe fn xmlRegAtomAddRange(\n    mut ctxt: xmlRegParserCtxtPtr,\n    mut atom: xmlRegAtomPtr,\n    mut neg: c_int,\n    mut type_0: xmlRegAtomType,\n    mut start: c_int,\n    mut end: c_int,\n    mut blockName: *mut xmlChar,\n) -> xmlRegRangePtr {\n    let mut range: xmlRegRangePtr = ::core::ptr::null_mut::<xmlRegRange>();\n    if atom.is_null() {\n        (*ctxt).error = XML_REGEXP_COMPILE_ERROR as c_int;\n        xmlRegexpErrCompile(\n            ctxt,\n            b\"add range: atom is NULL\\0\" as *const u8 as *const c_char,\n        );\n        return ::core::ptr::null_mut::<xmlRegRange>();\n    }\n    if (*atom).type_0 as c_uint != XML_REGEXP_RANGES as c_int as c_uint {\n        (*ctxt).error = XML_REGEXP_COMPILE_ERROR as c_int;\n        xmlRegexpErrCompile(\n            ctxt,\n            b\"add range: atom is not ranges\\0\" as *const u8 as *const c_char,\n        );\n        return ::core::ptr::null_mut::<xmlRegRange>();\n    }\n\n    let mut max_ranges = (*atom).maxRanges;\n    let mut nb_ranges = (*atom).nbRanges;\n    let mut ranges = (*atom).ranges;\n\n    if max_ranges == 0 as c_int {\n        max_ranges = 4 as c_int;\n        let malloc_fn = unsafe {\n            // SAFETY: libxml2 allocator callback is required initialized when this code runs.\n            xmlMalloc.unwrap_unchecked()\n        };\n        ranges = malloc_fn(\n            (max_ranges as size_t)\n                .wrapping_mul(::core::mem::size_of::<xmlRegRangePtr>() as size_t),\n        ) as *mut xmlRegRangePtr;\n        if ranges.is_null() {\n            xmlRegexpErrMemory(ctxt, b\"adding ranges\\0\" as *const u8 as *const c_char);\n            (*atom).maxRanges = 0 as c_int;\n            return ::core::ptr::null_mut::<xmlRegRange>();\n        }\n        (*atom).maxRanges = max_ranges;\n        (*atom).ranges = ranges;\n    } else if nb_ranges >= max_ranges {\n        let mut tmp: *mut xmlRegRangePtr = ::core::ptr::null_mut::<xmlRegRangePtr>();\n        let old_max_ranges = max_ranges;\n        max_ranges *= 2 as c_int;\n        (*atom).maxRanges = max_ranges;\n        let realloc_fn = unsafe {\n            // SAFETY: libxml2 allocator callback is required initialized when this code runs.\n            xmlRealloc.unwrap_unchecked()\n        };\n        tmp = realloc_fn(\n            ranges as *mut c_void,\n            (max_ranges as size_t)\n                .wrapping_mul(::core::mem::size_of::<xmlRegRangePtr>() as size_t),\n        ) as *mut xmlRegRangePtr;\n        if tmp.is_null() {\n            xmlRegexpErrMemory(ctxt, b\"adding ranges\\0\" as *const u8 as *const c_char);\n            max_ranges = old_max_ranges;\n            (*atom).maxRanges = max_ranges;\n            return ::core::ptr::null_mut::<xmlRegRange>();\n        }\n        ranges = tmp;\n        (*atom).ranges = ranges;\n    }\n\n    range = xmlRegNewRange(ctxt, neg, type_0, start, end);\n    if range.is_null() {\n        return ::core::ptr::null_mut::<xmlRegRange>();\n    }\n    (*range).blockName = blockName;\n\n    let insert_idx = nb_ranges;\n    nb_ranges += 1;\n    (*atom).nbRanges = nb_ranges;\n\n    let ranges_slice = unsafe {\n        // SAFETY: `ranges` points to an allocation for `max_ranges` entries established\n        // by the successful malloc/realloc path above; `insert_idx < max_ranges` because\n        // append happens only after ensuring capacity (`nb_ranges < max_ranges` on entry\n        // to this store), and no aliasing mutable reference exists for this table here.\n        core::slice::from_raw_parts_mut(ranges, max_ranges as usize)\n    };\n    unsafe {\n        // SAFETY: `insert_idx` is the previous `nb_ranges`, proven in-bounds by the\n        // capacity check/grow path immediately above.\n        *ranges_slice.get_unchecked_mut(insert_idx as usize) = range;\n    }\n\n    return range;\n}",
+          "rule_id": "C3,III④,C1",
+          "target": {
+            "declaration_hash": "ca3e37e8a736f9b2df4bf04559c99eecabec6556c48e03123a28491e23bece87",
+            "file_hint": "src/xmlregexp.rs",
+            "qualified_name": "crate::xmlRegAtomAddRange",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "xmlRegAtomAddRange-6499318ffc50",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "xmlRegAtomAddRange",
+        "rule_id": "C3,III④,C1"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "c178aa5a97a53da935b11585b40187c07663c51dda0d16bba06ce87556cccc1d",
+            "edit_id": "edit-replace-f93ad438b3b5ce96",
+            "end_byte": 108877,
+            "operation_id": "replace-f93ad438b3b5ce96",
+            "relative_path": "src/xmlregexp.rs",
+            "replacement_text": "// Applied rules: [C3, III④, C1]\n// Skipped rules: []\nunsafe fn xmlRegAtomAddRange(\n    mut ctxt: xmlRegParserCtxtPtr,\n    mut atom: xmlRegAtomPtr,\n    mut neg: c_int,\n    mut type_0: xmlRegAtomType,\n    mut start: c_int,\n    mut end: c_int,\n    mut blockName: *mut xmlChar,\n) -> xmlRegRangePtr {\n    let mut range: xmlRegRangePtr = ::core::ptr::null_mut::<xmlRegRange>();\n    if atom.is_null() {\n        (*ctxt).error = XML_REGEXP_COMPILE_ERROR as c_int;\n        xmlRegexpErrCompile(\n            ctxt,\n            b\"add range: atom is NULL\\0\" as *const u8 as *const c_char,\n        );\n        return ::core::ptr::null_mut::<xmlRegRange>();\n    }\n    if (*atom).type_0 as c_uint != XML_REGEXP_RANGES as c_int as c_uint {\n        (*ctxt).error = XML_REGEXP_COMPILE_ERROR as c_int;\n        xmlRegexpErrCompile(\n            ctxt,\n            b\"add range: atom is not ranges\\0\" as *const u8 as *const c_char,\n        );\n        return ::core::ptr::null_mut::<xmlRegRange>();\n    }\n\n    let mut max_ranges = (*atom).maxRanges;\n    let mut nb_ranges = (*atom).nbRanges;\n    let mut ranges = (*atom).ranges;\n\n    if max_ranges == 0 as c_int {\n        max_ranges = 4 as c_int;\n        let malloc_fn = unsafe {\n            // SAFETY: libxml2 allocator callback is required initialized when this code runs.\n            xmlMalloc.unwrap_unchecked()\n        };\n        ranges = malloc_fn(\n            (max_ranges as size_t)\n                .wrapping_mul(::core::mem::size_of::<xmlRegRangePtr>() as size_t),\n        ) as *mut xmlRegRangePtr;\n        if ranges.is_null() {\n            xmlRegexpErrMemory(ctxt, b\"adding ranges\\0\" as *const u8 as *const c_char);\n            (*atom).maxRanges = 0 as c_int;\n            return ::core::ptr::null_mut::<xmlRegRange>();\n        }\n        (*atom).maxRanges = max_ranges;\n        (*atom).ranges = ranges;\n    } else if nb_ranges >= max_ranges {\n        let mut tmp: *mut xmlRegRangePtr = ::core::ptr::null_mut::<xmlRegRangePtr>();\n        let old_max_ranges = max_ranges;\n        max_ranges *= 2 as c_int;\n        (*atom).maxRanges = max_ranges;\n        let realloc_fn = unsafe {\n            // SAFETY: libxml2 allocator callback is required initialized when this code runs.\n            xmlRealloc.unwrap_unchecked()\n        };\n        tmp = realloc_fn(\n            ranges as *mut c_void,\n            (max_ranges as size_t)\n                .wrapping_mul(::core::mem::size_of::<xmlRegRangePtr>() as size_t),\n        ) as *mut xmlRegRangePtr;\n        if tmp.is_null() {\n            xmlRegexpErrMemory(ctxt, b\"adding ranges\\0\" as *const u8 as *const c_char);\n            max_ranges = old_max_ranges;\n            (*atom).maxRanges = max_ranges;\n            return ::core::ptr::null_mut::<xmlRegRange>();\n        }\n        ranges = tmp;\n        (*atom).ranges = ranges;\n    }\n\n    range = xmlRegNewRange(ctxt, neg, type_0, start, end);\n    if range.is_null() {\n        return ::core::ptr::null_mut::<xmlRegRange>();\n    }\n    (*range).blockName = blockName;\n\n    let insert_idx = nb_ranges;\n    nb_ranges += 1;\n    (*atom).nbRanges = nb_ranges;\n\n    let ranges_slice = unsafe {\n        // SAFETY: `ranges` points to an allocation for `max_ranges` entries established\n        // by the successful malloc/realloc path above; `insert_idx < max_ranges` because\n        // append happens only after ensuring capacity (`nb_ranges < max_ranges` on entry\n        // to this store), and no aliasing mutable reference exists for this table here.\n        core::slice::from_raw_parts_mut(ranges, max_ranges as usize)\n    };\n    unsafe {\n        // SAFETY: `insert_idx` is the previous `nb_ranges`, proven in-bounds by the\n        // capacity check/grow path immediately above.\n        *ranges_slice.get_unchecked_mut(insert_idx as usize) = range;\n    }\n\n    return range;\n}",
+            "start_byte": 106216
+          }
+        ],
+        "facts": {
+          "fn_name": "xmlRegAtomAddRange",
+          "target_span_hash": "ca3e37e8a736f9b2df4bf04559c99eecabec6556c48e03123a28491e23bece87"
+        },
+        "operation_id": "replace-f93ad438b3b5ce96"
+      }
+    ],
+    "resolved_head": "f9ecdde7271d90e0d2b152c070f156dd098e07f6"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/xmlregexp.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.7656905408931001,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.8222968284253563,
+            "aggregate_ci_low_pct": 0.7090842533608438,
+            "aggregate_pct": 0.7656905408931001,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.8223,
+                "ci_low_pct": 0.7091,
+                "insns_delta_pct": -0.0235,
+                "mean_delta_pct": 0.7657,
+                "op": "decode24_png",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "decode24_png"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "decode24_png"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "2babc0f37bd3177ba5d141a8ce155e88377e346d",
+      "changeset_id": "legacy-95791c62f3b2eeb4",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-0b88b644cde3d5fc",
+          "replacement_function_source": "// Applied rules: [C3, III④]\n// Skipped rules: []\nunsafe fn setBitOfReversedStream(\n    mut bitpointer: *mut size_t,\n    mut bitstream: *mut c_uchar,\n    mut bit: c_uchar,\n) {\n    let bitpointer_view: &mut size_t = unsafe {\n        // SAFETY: caller provides a valid, writable `bitpointer` for this function call.\n        &mut *bitpointer\n    };\n    let cur = *bitpointer_view;\n    let byte_index = (cur >> 3 as c_uint) as isize;\n    let bit_mask =\n        ((1 as c_uint) << (7 as size_t).wrapping_sub(cur & 7 as size_t)) as c_uchar;\n    let byte_view: &mut c_uchar = unsafe {\n        // SAFETY: caller guarantees `bitstream` points to writable storage covering the byte at `byte_index`.\n        &mut *bitstream.offset(byte_index)\n    };\n    if bit as c_int == 0 as c_int {\n        *byte_view = (*byte_view as c_int & !(bit_mask as c_int)) as c_uchar;\n    } else {\n        *byte_view = (*byte_view as c_uint | bit_mask as c_uint) as c_uchar;\n    }\n    *bitpointer_view = cur.wrapping_add(1);\n}",
+          "rule_id": "C3",
+          "target": {
+            "declaration_hash": "db52c956bbccf8ce3934f29721c60a493964ec865aa87d35c58fcc0cb2a5343a",
+            "file_hint": "src/lodepng.rs",
+            "qualified_name": "crate::setBitOfReversedStream",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "setBitOfReversedStream-49fe7e69085a",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "setBitOfReversedStream",
+        "rule_id": "C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "9ac945f84ec92c127494a55817cdf7a7ec295b9b0e8d0ea6e1393c3e8eddf877",
+            "edit_id": "edit-replace-0b88b644cde3d5fc",
+            "end_byte": 195759,
+            "operation_id": "replace-0b88b644cde3d5fc",
+            "relative_path": "src/lodepng.rs",
+            "replacement_text": "// Applied rules: [C3, III④]\n// Skipped rules: []\nunsafe fn setBitOfReversedStream(\n    mut bitpointer: *mut size_t,\n    mut bitstream: *mut c_uchar,\n    mut bit: c_uchar,\n) {\n    let bitpointer_view: &mut size_t = unsafe {\n        // SAFETY: caller provides a valid, writable `bitpointer` for this function call.\n        &mut *bitpointer\n    };\n    let cur = *bitpointer_view;\n    let byte_index = (cur >> 3 as c_uint) as isize;\n    let bit_mask =\n        ((1 as c_uint) << (7 as size_t).wrapping_sub(cur & 7 as size_t)) as c_uchar;\n    let byte_view: &mut c_uchar = unsafe {\n        // SAFETY: caller guarantees `bitstream` points to writable storage covering the byte at `byte_index`.\n        &mut *bitstream.offset(byte_index)\n    };\n    if bit as c_int == 0 as c_int {\n        *byte_view = (*byte_view as c_int & !(bit_mask as c_int)) as c_uchar;\n    } else {\n        *byte_view = (*byte_view as c_uint | bit_mask as c_uint) as c_uchar;\n    }\n    *bitpointer_view = cur.wrapping_add(1);\n}",
+            "start_byte": 194921
+          }
+        ],
+        "facts": {
+          "fn_name": "setBitOfReversedStream",
+          "target_span_hash": "db52c956bbccf8ce3934f29721c60a493964ec865aa87d35c58fcc0cb2a5343a"
+        },
+        "operation_id": "replace-0b88b644cde3d5fc"
+      }
+    ],
+    "resolved_head": "2babc0f37bd3177ba5d141a8ce155e88377e346d"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/lodepng.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

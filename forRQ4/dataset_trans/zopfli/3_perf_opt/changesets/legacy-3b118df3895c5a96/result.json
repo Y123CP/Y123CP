@@ -1,0 +1,94 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "4cefa87e052bbc687476d2a4caf4e223b0bf5e9a",
+      "changeset_id": "legacy-3b118df3895c5a96",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-3506dc7cf8a337e1",
+          "replacement_function_source": "// Applied rules: [III②, III④, C3]\n// Skipped rules: [C3.S1: Would require changing `counts: *mut size_t` to a reference/slice and therefore cross-function caller proof for a public function; body-local III④ + C3.S2 captures most of the payoff without signature churn.]\n#[inline]\npub unsafe fn OptimizeHuffmanForRle(\n    mut length: c_int,\n    mut counts: *mut size_t,\n) {\n    let mut i: c_int = 0;\n    let mut k: c_int = 0;\n    let mut stride: c_int = 0;\n    let mut symbol: size_t = 0;\n    let mut sum: size_t = 0;\n    let mut limit: size_t = 0;\n\n    while length >= 0 as c_int {\n        if length == 0 as c_int {\n            return;\n        }\n        // SAFETY: caller provides `counts` for at least the original `length` elements;\n        // this access uses index `length - 1`, which is in-bounds while `length > 0`.\n        let tail = unsafe { *counts.offset((length - 1 as c_int) as isize) };\n        if tail != 0 as size_t {\n            break;\n        }\n        length -= 1;\n    }\n\n    // SAFETY: after trimming, all later accesses to `counts` are guarded to only\n    // dereference indices in `0..length`. Caller guarantees `counts` points to a\n    // writable buffer of at least that many `size_t` elements, and no Rust references\n    // alias this memory for the duration of this function.\n    let counts = unsafe { core::slice::from_raw_parts_mut(counts, length as usize) };\n    let mut good_for_rle = vec![0 as c_int; length as usize];\n\n    symbol = counts[0];\n    stride = 0 as c_int;\n    i = 0 as c_int;\n    while i < length + 1 as c_int {\n        let count_i = if i != length {\n            counts[i as usize]\n        } else {\n            0 as size_t\n        };\n        if i == length || count_i != symbol {\n            if symbol == 0 as size_t && stride >= 5 as c_int\n                || symbol != 0 as size_t && stride >= 7 as c_int\n            {\n                k = 0 as c_int;\n                while k < stride {\n                    good_for_rle[(i - k - 1 as c_int) as usize] = 1 as c_int;\n                    k += 1;\n                }\n            }\n            stride = 1 as c_int;\n            if i != length {\n                symbol = count_i;\n            }\n        } else {\n            stride += 1;\n        }\n        i += 1;\n    }\n\n    stride = 0 as c_int;\n    limit = counts[0];\n    sum = 0 as size_t;\n    i = 0 as c_int;\n    while i < length + 1 as c_int {\n        let good_i = if i != length {\n            good_for_rle[i as usize]\n        } else {\n            0 as c_int\n        };\n        let count_i = if i != length {\n            counts[i as usize]\n        } else {\n            0 as size_t\n        };\n        if i == length || good_i != 0 || AbsDiff(count_i, limit) >= 4 as size_t {\n            if stride >= 4 as c_int\n                || stride >= 3 as c_int && sum == 0 as size_t\n            {\n                let mut count: c_int =\n                    sum.wrapping_add((stride / 2 as c_int) as size_t)\n                        .wrapping_div(stride as size_t) as c_int;\n                if count < 1 as c_int {\n                    count = 1 as c_int;\n                }\n                if sum == 0 as size_t {\n                    count = 0 as c_int;\n                }\n                k = 0 as c_int;\n                while k < stride {\n                    counts[(i - k - 1 as c_int) as usize] = count as size_t;\n                    k += 1;\n                }\n            }\n            stride = 0 as c_int;\n            sum = 0 as size_t;\n            if i < length - 3 as c_int {\n                let base = i as usize;\n                let c0 = counts[base];\n                let c1 = counts[base + 1];\n                let c2 = counts[base + 2];\n                let c3 = counts[base + 3];\n                limit = c0\n                    .wrapping_add(c1)\n                    .wrapping_add(c2)\n                    .wrapping_add(c3)\n                    .wrapping_add(2 as size_t)\n                    .wrapping_div(4 as size_t);\n            } else if i < length {\n                limit = count_i;\n            } else {\n                limit = 0 as size_t;\n            }\n        }\n        stride += 1;\n        if i != length {\n            sum = sum.wrapping_add(count_i);\n        }\n        i += 1;\n    }\n}",
+          "rule_id": "III②,III④,C3",
+          "target": {
+            "declaration_hash": "228601122ae2fa0b7c80e75917197adcc303bba135cd227d937dbba1edc1cb74",
+            "file_hint": "src/deflate.rs",
+            "qualified_name": "crate::OptimizeHuffmanForRle",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "OptimizeHuffmanForRle-b5a00a59a3a8",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "OptimizeHuffmanForRle",
+        "rule_id": "III②,III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "8c294bf0d33b82945477ab07a55596b98e053a39ba2e2c2140ea63be62793017",
+            "edit_id": "edit-replace-3506dc7cf8a337e1",
+            "end_byte": 35324,
+            "operation_id": "replace-3506dc7cf8a337e1",
+            "relative_path": "src/deflate.rs",
+            "replacement_text": "// Applied rules: [III②, III④, C3]\n// Skipped rules: [C3.S1: Would require changing `counts: *mut size_t` to a reference/slice and therefore cross-function caller proof for a public function; body-local III④ + C3.S2 captures most of the payoff without signature churn.]\n#[inline]\npub unsafe fn OptimizeHuffmanForRle(\n    mut length: c_int,\n    mut counts: *mut size_t,\n) {\n    let mut i: c_int = 0;\n    let mut k: c_int = 0;\n    let mut stride: c_int = 0;\n    let mut symbol: size_t = 0;\n    let mut sum: size_t = 0;\n    let mut limit: size_t = 0;\n\n    while length >= 0 as c_int {\n        if length == 0 as c_int {\n            return;\n        }\n        // SAFETY: caller provides `counts` for at least the original `length` elements;\n        // this access uses index `length - 1`, which is in-bounds while `length > 0`.\n        let tail = unsafe { *counts.offset((length - 1 as c_int) as isize) };\n        if tail != 0 as size_t {\n            break;\n        }\n        length -= 1;\n    }\n\n    // SAFETY: after trimming, all later accesses to `counts` are guarded to only\n    // dereference indices in `0..length`. Caller guarantees `counts` points to a\n    // writable buffer of at least that many `size_t` elements, and no Rust references\n    // alias this memory for the duration of this function.\n    let counts = unsafe { core::slice::from_raw_parts_mut(counts, length as usize) };\n    let mut good_for_rle = vec![0 as c_int; length as usize];\n\n    symbol = counts[0];\n    stride = 0 as c_int;\n    i = 0 as c_int;\n    while i < length + 1 as c_int {\n        let count_i = if i != length {\n            counts[i as usize]\n        } else {\n            0 as size_t\n        };\n        if i == length || count_i != symbol {\n            if symbol == 0 as size_t && stride >= 5 as c_int\n                || symbol != 0 as size_t && stride >= 7 as c_int\n            {\n                k = 0 as c_int;\n                while k < stride {\n                    good_for_rle[(i - k - 1 as c_int) as usize] = 1 as c_int;\n                    k += 1;\n                }\n            }\n            stride = 1 as c_int;\n            if i != length {\n                symbol = count_i;\n            }\n        } else {\n            stride += 1;\n        }\n        i += 1;\n    }\n\n    stride = 0 as c_int;\n    limit = counts[0];\n    sum = 0 as size_t;\n    i = 0 as c_int;\n    while i < length + 1 as c_int {\n        let good_i = if i != length {\n            good_for_rle[i as usize]\n        } else {\n            0 as c_int\n        };\n        let count_i = if i != length {\n            counts[i as usize]\n        } else {\n            0 as size_t\n        };\n        if i == length || good_i != 0 || AbsDiff(count_i, limit) >= 4 as size_t {\n            if stride >= 4 as c_int\n                || stride >= 3 as c_int && sum == 0 as size_t\n            {\n                let mut count: c_int =\n                    sum.wrapping_add((stride / 2 as c_int) as size_t)\n                        .wrapping_div(stride as size_t) as c_int;\n                if count < 1 as c_int {\n                    count = 1 as c_int;\n                }\n                if sum == 0 as size_t {\n                    count = 0 as c_int;\n                }\n                k = 0 as c_int;\n                while k < stride {\n                    counts[(i - k - 1 as c_int) as usize] = count as size_t;\n                    k += 1;\n                }\n            }\n            stride = 0 as c_int;\n            sum = 0 as size_t;\n            if i < length - 3 as c_int {\n                let base = i as usize;\n                let c0 = counts[base];\n                let c1 = counts[base + 1];\n                let c2 = counts[base + 2];\n                let c3 = counts[base + 3];\n                limit = c0\n                    .wrapping_add(c1)\n                    .wrapping_add(c2)\n                    .wrapping_add(c3)\n                    .wrapping_add(2 as size_t)\n                    .wrapping_div(4 as size_t);\n            } else if i < length {\n                limit = count_i;\n            } else {\n                limit = 0 as size_t;\n            }\n        }\n        stride += 1;\n        if i != length {\n            sum = sum.wrapping_add(count_i);\n        }\n        i += 1;\n    }\n}",
+            "start_byte": 31852
+          }
+        ],
+        "facts": {
+          "fn_name": "OptimizeHuffmanForRle",
+          "target_span_hash": "228601122ae2fa0b7c80e75917197adcc303bba135cd227d937dbba1edc1cb74"
+        },
+        "operation_id": "replace-3506dc7cf8a337e1"
+      }
+    ],
+    "resolved_head": "4cefa87e052bbc687476d2a4caf4e223b0bf5e9a"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_post_validation",
+  "touched_paths": [
+    "src/deflate.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "added_bounds_check_in_loop",
+      "detail": "rewrite adds a bounds check inside a loop the original indexed unchecked (4 site(s)): counts[(i - k - 1 as c_int) as usize], counts[i as usize], good_for_rle[i as usize], good_for_rle[(i - k - 1 as c_int) as usize]",
+      "ok": false
+    }
+  ]
+}

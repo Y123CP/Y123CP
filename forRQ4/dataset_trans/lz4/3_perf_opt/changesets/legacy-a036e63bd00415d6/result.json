@@ -1,0 +1,162 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.2800565002108083,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.3027525838388829,
+            "aggregate_ci_low_pct": 0.2573604165827337,
+            "aggregate_pct": 0.2800565002108083,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.0969,
+                "ci_low_pct": 0.0166,
+                "insns_delta_pct": -0.0971,
+                "mean_delta_pct": 0.0567,
+                "op": "frame_content_checksum",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.1161,
+                "ci_low_pct": 0.0549,
+                "insns_delta_pct": -0.0166,
+                "mean_delta_pct": 0.0855,
+                "op": "frame_hc_variants",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.7456,
+                "ci_low_pct": 0.6502,
+                "insns_delta_pct": -3.5248,
+                "mean_delta_pct": 0.6979,
+                "op": "xxhash_digest",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "frame_content_checksum",
+          "frame_hc_variants",
+          "xxhash_digest"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "xxhash_digest"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "8f5489a9bf026ddbb2b60c9c71dde7b8cff2d004",
+      "changeset_id": "legacy-a036e63bd00415d6",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-c1a6a01502c5438d",
+          "replacement_function_source": "// Applied rules: [III④, II_vec]\n// Skipped rules: []\n#[inline(always)]\nunsafe fn XXH32_update_endian(\n    mut state: *mut XXH32_state_t,\n    mut input: *const c_void,\n    mut len: size_t,\n    mut endian: XXH_endianness,\n) -> XXH_errorcode {\n    if input.is_null() {\n        return XXH_ERROR;\n    }\n\n    // SAFETY: `input` is explicitly checked non-null above; `len` is the stable L1\n    // length parameter for this region; this creates a read-only view only, and no\n    // Rust reference to the same input backing memory exists across this scope.\n    let mut remaining = unsafe { core::slice::from_raw_parts(input as *const BYTE, len as usize) };\n\n    (*state).total_len_32 = ((*state).total_len_32 as c_uint)\n        .wrapping_add(len as c_uint) as uint32_t\n        as uint32_t;\n    (*state).large_len |= ((len >= 16 as size_t) as c_int\n        | ((*state).total_len_32 >= 16 as uint32_t) as c_int)\n        as uint32_t;\n\n    if ((*state).memsize as size_t).wrapping_add(len) < 16 as size_t {\n        XXH_memcpy(\n            (&raw mut (*state).mem32 as *mut uint32_t as *mut BYTE)\n                .offset((*state).memsize as isize) as *mut c_void,\n            input,\n            len,\n        );\n        (*state).memsize = ((*state).memsize as c_uint)\n            .wrapping_add(len as c_uint) as uint32_t\n            as uint32_t;\n        return XXH_OK;\n    }\n\n    if (*state).memsize != 0 {\n        let fill = (16 as uint32_t).wrapping_sub((*state).memsize) as usize;\n        XXH_memcpy(\n            (&raw mut (*state).mem32 as *mut uint32_t as *mut BYTE)\n                .offset((*state).memsize as isize) as *mut c_void,\n            input,\n            fill as size_t,\n        );\n\n        let p32: *const U32 = &raw mut (*state).mem32 as *mut uint32_t;\n        (*state).v1 = XXH32_round(\n            (*state).v1 as U32,\n            XXH_readLE32(p32 as *const c_void, endian),\n        ) as uint32_t;\n        (*state).v2 = XXH32_round(\n            (*state).v2 as U32,\n            XXH_readLE32(p32.add(1) as *const c_void, endian),\n        ) as uint32_t;\n        (*state).v3 = XXH32_round(\n            (*state).v3 as U32,\n            XXH_readLE32(p32.add(2) as *const c_void, endian),\n        ) as uint32_t;\n        (*state).v4 = XXH32_round(\n            (*state).v4 as U32,\n            XXH_readLE32(p32.add(3) as *const c_void, endian),\n        ) as uint32_t;\n\n        remaining = &remaining[fill..];\n        (*state).memsize = 0 as uint32_t;\n    }\n\n    let mut chunks = remaining.chunks_exact(16);\n    let mut v1: U32 = (*state).v1 as U32;\n    let mut v2: U32 = (*state).v2 as U32;\n    let mut v3: U32 = (*state).v3 as U32;\n    let mut v4: U32 = (*state).v4 as U32;\n\n    for chunk in &mut chunks {\n        let base = chunk.as_ptr();\n        v1 = XXH32_round(v1, XXH_readLE32(base as *const c_void, endian));\n        v2 = XXH32_round(v2, XXH_readLE32(base.add(4) as *const c_void, endian));\n        v3 = XXH32_round(v3, XXH_readLE32(base.add(8) as *const c_void, endian));\n        v4 = XXH32_round(v4, XXH_readLE32(base.add(12) as *const c_void, endian));\n    }\n\n    if !remaining.is_empty() {\n        (*state).v1 = v1 as uint32_t;\n        (*state).v2 = v2 as uint32_t;\n        (*state).v3 = v3 as uint32_t;\n        (*state).v4 = v4 as uint32_t;\n    } else {\n        (*state).v1 = v1 as uint32_t;\n        (*state).v2 = v2 as uint32_t;\n        (*state).v3 = v3 as uint32_t;\n        (*state).v4 = v4 as uint32_t;\n    }\n\n    let tail = chunks.remainder();\n    if !tail.is_empty() {\n        XXH_memcpy(\n            &raw mut (*state).mem32 as *mut uint32_t as *mut c_void,\n            tail.as_ptr() as *const c_void,\n            tail.len() as size_t,\n        );\n        (*state).memsize = tail.len() as uint32_t;\n    }\n\n    return XXH_OK;\n}",
+          "rule_id": "III④",
+          "target": {
+            "declaration_hash": "55a15af5b70248092d673c101bbb7b121e74e45868e8cf598be312d1822ddf38",
+            "file_hint": "src/xxhash.rs",
+            "qualified_name": "crate::XXH32_update_endian",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "XXH32_update_endian-aba1aa9b3682",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "XXH32_update_endian",
+        "rule_id": "III④"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "4beab2617777cc6edf9b1e6d705b307ae841b75624a2e25c02452b430e5992c1",
+            "edit_id": "edit-replace-c1a6a01502c5438d",
+            "end_byte": 22310,
+            "operation_id": "replace-c1a6a01502c5438d",
+            "relative_path": "src/xxhash.rs",
+            "replacement_text": "// Applied rules: [III④, II_vec]\n// Skipped rules: []\n#[inline(always)]\nunsafe fn XXH32_update_endian(\n    mut state: *mut XXH32_state_t,\n    mut input: *const c_void,\n    mut len: size_t,\n    mut endian: XXH_endianness,\n) -> XXH_errorcode {\n    if input.is_null() {\n        return XXH_ERROR;\n    }\n\n    // SAFETY: `input` is explicitly checked non-null above; `len` is the stable L1\n    // length parameter for this region; this creates a read-only view only, and no\n    // Rust reference to the same input backing memory exists across this scope.\n    let mut remaining = unsafe { core::slice::from_raw_parts(input as *const BYTE, len as usize) };\n\n    (*state).total_len_32 = ((*state).total_len_32 as c_uint)\n        .wrapping_add(len as c_uint) as uint32_t\n        as uint32_t;\n    (*state).large_len |= ((len >= 16 as size_t) as c_int\n        | ((*state).total_len_32 >= 16 as uint32_t) as c_int)\n        as uint32_t;\n\n    if ((*state).memsize as size_t).wrapping_add(len) < 16 as size_t {\n        XXH_memcpy(\n            (&raw mut (*state).mem32 as *mut uint32_t as *mut BYTE)\n                .offset((*state).memsize as isize) as *mut c_void,\n            input,\n            len,\n        );\n        (*state).memsize = ((*state).memsize as c_uint)\n            .wrapping_add(len as c_uint) as uint32_t\n            as uint32_t;\n        return XXH_OK;\n    }\n\n    if (*state).memsize != 0 {\n        let fill = (16 as uint32_t).wrapping_sub((*state).memsize) as usize;\n        XXH_memcpy(\n            (&raw mut (*state).mem32 as *mut uint32_t as *mut BYTE)\n                .offset((*state).memsize as isize) as *mut c_void,\n            input,\n            fill as size_t,\n        );\n\n        let p32: *const U32 = &raw mut (*state).mem32 as *mut uint32_t;\n        (*state).v1 = XXH32_round(\n            (*state).v1 as U32,\n            XXH_readLE32(p32 as *const c_void, endian),\n        ) as uint32_t;\n        (*state).v2 = XXH32_round(\n            (*state).v2 as U32,\n            XXH_readLE32(p32.add(1) as *const c_void, endian),\n        ) as uint32_t;\n        (*state).v3 = XXH32_round(\n            (*state).v3 as U32,\n            XXH_readLE32(p32.add(2) as *const c_void, endian),\n        ) as uint32_t;\n        (*state).v4 = XXH32_round(\n            (*state).v4 as U32,\n            XXH_readLE32(p32.add(3) as *const c_void, endian),\n        ) as uint32_t;\n\n        remaining = &remaining[fill..];\n        (*state).memsize = 0 as uint32_t;\n    }\n\n    let mut chunks = remaining.chunks_exact(16);\n    let mut v1: U32 = (*state).v1 as U32;\n    let mut v2: U32 = (*state).v2 as U32;\n    let mut v3: U32 = (*state).v3 as U32;\n    let mut v4: U32 = (*state).v4 as U32;\n\n    for chunk in &mut chunks {\n        let base = chunk.as_ptr();\n        v1 = XXH32_round(v1, XXH_readLE32(base as *const c_void, endian));\n        v2 = XXH32_round(v2, XXH_readLE32(base.add(4) as *const c_void, endian));\n        v3 = XXH32_round(v3, XXH_readLE32(base.add(8) as *const c_void, endian));\n        v4 = XXH32_round(v4, XXH_readLE32(base.add(12) as *const c_void, endian));\n    }\n\n    if !remaining.is_empty() {\n        (*state).v1 = v1 as uint32_t;\n        (*state).v2 = v2 as uint32_t;\n        (*state).v3 = v3 as uint32_t;\n        (*state).v4 = v4 as uint32_t;\n    } else {\n        (*state).v1 = v1 as uint32_t;\n        (*state).v2 = v2 as uint32_t;\n        (*state).v3 = v3 as uint32_t;\n        (*state).v4 = v4 as uint32_t;\n    }\n\n    let tail = chunks.remainder();\n    if !tail.is_empty() {\n        XXH_memcpy(\n            &raw mut (*state).mem32 as *mut uint32_t as *mut c_void,\n            tail.as_ptr() as *const c_void,\n            tail.len() as size_t,\n        );\n        (*state).memsize = tail.len() as uint32_t;\n    }\n\n    return XXH_OK;\n}",
+            "start_byte": 18721
+          }
+        ],
+        "facts": {
+          "fn_name": "XXH32_update_endian",
+          "target_span_hash": "55a15af5b70248092d673c101bbb7b121e74e45868e8cf598be312d1822ddf38"
+        },
+        "operation_id": "replace-c1a6a01502c5438d"
+      }
+    ],
+    "resolved_head": "8f5489a9bf026ddbb2b60c9c71dde7b8cff2d004"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/xxhash.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

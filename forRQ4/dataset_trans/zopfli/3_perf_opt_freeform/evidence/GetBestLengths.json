@@ -1,0 +1,413 @@
+{
+  "hot_function": {
+    "symbol": "GetBestLengths",
+    "location": "src/squeeze.rs:299-433",
+    "workload": "zlib_compress",
+    "hot_region": "src/squeeze.rs:299-433",
+    "rust_source": "unsafe fn GetBestLengths(\n    mut s: *mut ZopfliBlockState,\n    mut in_0: *const c_uchar,\n    mut instart: size_t,\n    mut inend: size_t,\n    mut costmodel: Option<CostModelFun>,\n    mut costcontext: *mut c_void,\n    mut length_array: *mut c_ushort,\n    mut h: *mut ZopfliHash,\n    mut costs: *mut c_float,\n) -> c_double {\n    let mut blocksize: size_t = inend.wrapping_sub(instart);\n    let mut i: size_t = 0 as size_t;\n    let mut k: size_t = 0;\n    let mut kend: size_t = 0;\n    let mut leng: c_ushort = 0;\n    let mut dist: c_ushort = 0;\n    let mut sublen: [c_ushort; 259] = [0; 259];\n    let mut windowstart: size_t = if instart > ZOPFLI_WINDOW_SIZE as size_t {\n        instart.wrapping_sub(ZOPFLI_WINDOW_SIZE as size_t)\n    } else {\n        0 as size_t\n    };\n    let mut result: c_double = 0.;\n    let mut mincost: c_double = GetCostModelMinCost(costmodel, costcontext);\n    let mut mincostaddcostj: c_double = 0.;\n    if instart == inend {\n        return 0 as c_int as c_double;\n    }\n    ZopfliResetHash(ZOPFLI_WINDOW_SIZE as size_t, h);\n    ZopfliWarmupHash(in_0, windowstart, inend, h);\n    i = windowstart;\n    while i < instart {\n        ZopfliUpdateHash(in_0, i, inend, h);\n        i = i.wrapping_add(1);\n    }\n    i = 1 as size_t;\n    while i < blocksize.wrapping_add(1 as size_t) {\n        *costs.offset(i as isize) = ZOPFLI_LARGE_FLOAT as c_float;\n        i = i.wrapping_add(1);\n    }\n    *costs.offset(0 as c_int as isize) =\n        0 as c_int as c_float;\n    *length_array.offset(0 as c_int as isize) = 0 as c_ushort;\n    i = instart;\n    while i < inend {\n        let mut j: size_t = i.wrapping_sub(instart);\n        ZopfliUpdateHash(in_0, i, inend, h);\n        if *(*h)\n            .same\n            .offset((i & ZOPFLI_WINDOW_MASK as size_t) as isize) as c_int\n            > ZOPFLI_MAX_MATCH * 2 as c_int\n            && i > instart\n                .wrapping_add(ZOPFLI_MAX_MATCH as size_t)\n                .wrapping_add(1 as size_t)\n            && i.wrapping_add((ZOPFLI_MAX_MATCH * 2 as c_int) as size_t)\n                .wrapping_add(1 as size_t)\n                < inend\n            && *(*h).same.offset(\n                (i.wrapping_sub(ZOPFLI_MAX_MATCH as size_t) & ZOPFLI_WINDOW_MASK as size_t)\n                    as isize,\n            ) as c_int\n                > ZOPFLI_MAX_MATCH\n        {\n            let mut symbolcost: c_double = costmodel\n                .expect(\"non-null function pointer\")(\n                ZOPFLI_MAX_MATCH as c_uint,\n                1 as c_uint,\n                costcontext,\n            );\n            k = 0 as size_t;\n            while k < ZOPFLI_MAX_MATCH as size_t {\n                *costs.offset(j.wrapping_add(ZOPFLI_MAX_MATCH as size_t) as isize) =\n                    (*costs.offset(j as isize) as c_double + symbolcost)\n                        as c_float;\n                *length_array.offset(j.wrapping_add(ZOPFLI_MAX_MATCH as size_t) as isize) =\n                    ZOPFLI_MAX_MATCH as c_ushort;\n                i = i.wrapping_add(1);\n                j = j.wrapping_add(1);\n                ZopfliUpdateHash(in_0, i, inend, h);\n                k = k.wrapping_add(1);\n            }\n        }\n        ZopfliFindLongestMatch(\n            s,\n            h,\n            in_0,\n            i,\n            inend,\n            ZOPFLI_MAX_MATCH as size_t,\n            &raw mut sublen as *mut c_ushort,\n            &raw mut dist,\n            &raw mut leng,\n        );\n        if i.wrapping_add(1 as size_t) <= inend {\n            let mut newCost: c_double = costmodel.expect(\"non-null function pointer\")(\n                *in_0.offset(i as isize) as c_uint,\n                0 as c_uint,\n                costcontext,\n            ) + *costs.offset(j as isize)\n                as c_double;\n            if newCost\n                < *costs.offset(j.wrapping_add(1 as size_t) as isize) as c_double\n            {\n                *costs.offset(j.wrapping_add(1 as size_t) as isize) =\n                    newCost as c_float;\n                *length_array.offset(j.wrapping_add(1 as size_t) as isize) =\n                    1 as c_ushort;\n            }\n        }\n        kend = zopfli_min(leng as size_t, inend.wrapping_sub(i));\n        mincostaddcostj = mincost + *costs.offset(j as isize) as c_double;\n        k = 3 as size_t;\n        while k <= kend {\n            let mut newCost_0: c_double = 0.;\n            if !(*costs.offset(j.wrapping_add(k) as isize) as c_double\n                <= mincostaddcostj)\n            {\n                newCost_0 = costmodel.expect(\"non-null function pointer\")(\n                    k as c_uint,\n                    sublen[k as usize] as c_uint,\n                    costcontext,\n                ) + *costs.offset(j as isize) as c_double;\n                if newCost_0 < *costs.offset(j.wrapping_add(k) as isize) as c_double {\n                    *costs.offset(j.wrapping_add(k) as isize) = newCost_0 as c_float;\n                    *length_array.offset(j.wrapping_add(k) as isize) = k as c_ushort;\n                }\n            }\n            k = k.wrapping_add(1);\n        }\n        i = i.wrapping_add(1);\n    }\n    result = *costs.offset(blocksize as isize) as c_double;\n    return result;\n}",
+    "signature": "unsafe fn GetBestLengths(\n    mut s: *mut ZopfliBlockState,\n    mut in_0: *const c_uchar,\n    mut instart: size_t,\n    mut inend: size_t,\n    mut costmodel: Option<CostModelFun>,\n    mut costcontext: *mut c_void,\n    mut length_array: *mut c_ushort,\n    mut h: *mut ZopfliHash,\n    mut costs: *mut c_float,\n) -> c_double",
+    "profile": {
+      "self_time_ratio": 0.3244,
+      "call_count": null,
+      "retired_instructions": 66459036986,
+      "instructions_per_call": null,
+      "cpi": 0.436,
+      "tma": {
+        "scope": "process",
+        "retiring": 52.030361657131074,
+        "frontend_bound": 27.001610022671162,
+        "bad_speculation": 14.43425389076049,
+        "backend_bound": 6.533774429437278,
+        "memory_bound": 2.7080915461652655,
+        "core_bound": 3.8256828832720124,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0182
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C1": 2,
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 419,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14zopfli_cleaned3src7squeeze14GetBestLengths17hf4d717fded54bf09E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 323,
+        "message": "'_ZN14zopfli_cleaned3src7squeeze19GetCostModelMinCost17h212c0814b798a79bE' inlined into '_ZN14zopfli_cleaned3src7squeeze14GetBestLengths17hf4d717fded54bf09E' with (cost=-14855, threshold=250) at callsite _ZN14zopfli_cleaned3src7squeeze14GetBestLengths17hf4d717fded54bf09E:24:33;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 328,
+        "message": "'_ZN14zopfli_cleaned3src4hash15ZopfliResetHash17h2edc80d24bcb07ecE' inlined into '_ZN14zopfli_cleaned3src7squeeze14GetBestLengths17hf4d717fded54bf09E' with (cost=115, threshold=325) at callsite _ZN14zopfli_cleaned3src7squeeze14GetBestLengths17hf4d717fded54bf09E:29:5;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 332,
+        "message": "'_ZN14zopfli_cleaned3src4hash16ZopfliUpdateHash17hceddd5b4a4f6e43cE' not inlined into '_ZN14zopfli_cleaned3src7squeeze14GetBestLengths17hf4d717fded54bf09E' because too costly to inline (cost=360, threshold=325)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 346,
+        "message": "'_ZN14zopfli_cleaned3src4hash16ZopfliUpdateHash17hceddd5b4a4f6e43cE' not inlined into '_ZN14zopfli_cleaned3src7squeeze14GetBestLengths17hf4d717fded54bf09E' because too costly to inline (cost=360, threshold=325)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 382,
+        "message": "'_ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E' not inlined into '_ZN14zopfli_cleaned3src7squeeze14GetBestLengths17hf4d717fded54bf09E' because too costly to inline (cost=840, threshold=325)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 378,
+        "message": "'_ZN14zopfli_cleaned3src4hash16ZopfliUpdateHash17hceddd5b4a4f6e43cE' inlined into '_ZN14zopfli_cleaned3src7squeeze14GetBestLengths17hf4d717fded54bf09E' with (cost=360, threshold=525) at callsite _ZN14zopfli_cleaned3src7squeeze14GetBestLengths17hf4d717fded54bf09E:79:17;"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 421,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 347,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 409,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 331,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 414,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 344,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 347,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 347,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 395,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 398,
+        "message": "load of type float not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 401,
+        "message": "load of type float not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 409,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 410,
+        "message": "load of type float not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 421,
+        "message": "load of type float not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 422,
+        "message": "load of type float not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 431,
+        "message": "load of type float not eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 382,
+        "message": "'_ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E' not inlined into '_ZN14zopfli_cleaned3src7squeeze14LZ77OptimalRun17hba437df82ee1f757E' because too costly to inline (cost=840, threshold=325)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 346,
+        "message": "'_ZN14zopfli_cleaned3src4hash16ZopfliUpdateHash17hceddd5b4a4f6e43cE' not inlined into '_ZN14zopfli_cleaned3src7squeeze14LZ77OptimalRun17hba437df82ee1f757E' because too costly to inline (cost=360, threshold=325)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 332,
+        "message": "'_ZN14zopfli_cleaned3src4hash16ZopfliUpdateHash17hceddd5b4a4f6e43cE' not inlined into '_ZN14zopfli_cleaned3src7squeeze14LZ77OptimalRun17hba437df82ee1f757E' because too costly to inline (cost=360, threshold=325)"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 414,
+        "message": "1 virtual registers copies 3.013723e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 344,
+        "message": "16 reloads 4.873500e+01 total reloads cost 1 folded reloads 1.059457e+00 total folded reloads cost 15 virtual registers copies 6.033858e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 337,
+        "message": "BasicBlock: vector.body1434"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 337,
+        "message": "BasicBlock: bb13.i.i325"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 340,
+        "message": "BasicBlock: bb14.i.i197"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 344,
+        "message": "BasicBlock: bb15.loopexit.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 347,
+        "message": "BasicBlock: _ZN14zopfli_cleaned3src4hash16ZopfliUpdateHash17hceddd5b4a4f6e43cE.exit787"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 347,
+        "message": "BasicBlock: _ZN14zopfli_cleaned3src4hash16ZopfliUpdateHash17hceddd5b4a4f6e43cE.exit787"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 382,
+        "message": "BasicBlock: bb31.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 395,
+        "message": "BasicBlock: bb58.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 403,
+        "message": "BasicBlock: bb35.i.i263"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 409,
+        "message": "BasicBlock: bb39.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 423,
+        "message": "BasicBlock: bb46.i.i262"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 412,
+        "message": "BasicBlock: bb49.i.i258"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 414,
+        "message": "BasicBlock: bb41.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 419,
+        "message": "BasicBlock: bb44.i.i261"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 317,
+        "message": "BasicBlock: _ZN14zopfli_cleaned3src7squeeze19GetCostModelMinCost17h212c0814b798a79bE.exit.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 331,
+        "message": "BasicBlock: bb54.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 337,
+        "message": "BasicBlock: vector.body"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 336,
+        "message": "BasicBlock: middle.block"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 336,
+        "message": "BasicBlock: bb13.i.i.i.preheader1484"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 337,
+        "message": "BasicBlock: bb13.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 340,
+        "message": "BasicBlock: bb14.i.i4.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 344,
+        "message": "BasicBlock: bb15.loopexit.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 347,
+        "message": "BasicBlock: _ZN14zopfli_cleaned3src4hash16ZopfliUpdateHash17hceddd5b4a4f6e43cE.exit276.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 347,
+        "message": "BasicBlock: _ZN14zopfli_cleaned3src4hash16ZopfliUpdateHash17hceddd5b4a4f6e43cE.exit276.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 382,
+        "message": "BasicBlock: bb31.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 395,
+        "message": "BasicBlock: bb58.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 403,
+        "message": "BasicBlock: bb35.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 409,
+        "message": "BasicBlock: bb39.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 423,
+        "message": "BasicBlock: bb46.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 412,
+        "message": "BasicBlock: bb49.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 414,
+        "message": "BasicBlock: bb41.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 419,
+        "message": "BasicBlock: bb63.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 419,
+        "message": "BasicBlock: bb44.i.i.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

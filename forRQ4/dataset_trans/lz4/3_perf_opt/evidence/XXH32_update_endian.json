@@ -1,0 +1,584 @@
+{
+  "hot_function": {
+    "symbol": "XXH32_update_endian",
+    "location": "src/xxhash.rs:554-647",
+    "workload": "xxhash_digest",
+    "hot_region": "src/xxhash.rs:554-647",
+    "rust_source": "unsafe fn XXH32_update_endian(\n    mut state: *mut XXH32_state_t,\n    mut input: *const c_void,\n    mut len: size_t,\n    mut endian: XXH_endianness,\n) -> XXH_errorcode {\n    if input.is_null() {\n        return XXH_ERROR;\n    }\n    let mut p: *const BYTE = input as *const BYTE;\n    let bEnd: *const BYTE = p.offset(len as isize);\n    (*state).total_len_32 = ((*state).total_len_32 as c_uint)\n        .wrapping_add(len as c_uint) as uint32_t\n        as uint32_t;\n    (*state).large_len |= ((len >= 16 as size_t) as c_int\n        | ((*state).total_len_32 >= 16 as uint32_t) as c_int)\n        as uint32_t;\n    if ((*state).memsize as size_t).wrapping_add(len) < 16 as size_t {\n        XXH_memcpy(\n            (&raw mut (*state).mem32 as *mut uint32_t as *mut BYTE)\n                .offset((*state).memsize as isize) as *mut c_void,\n            input,\n            len,\n        );\n        (*state).memsize = ((*state).memsize as c_uint)\n            .wrapping_add(len as c_uint) as uint32_t\n            as uint32_t;\n        return XXH_OK;\n    }\n    if (*state).memsize != 0 {\n        XXH_memcpy(\n            (&raw mut (*state).mem32 as *mut uint32_t as *mut BYTE)\n                .offset((*state).memsize as isize) as *mut c_void,\n            input,\n            (16 as uint32_t).wrapping_sub((*state).memsize) as size_t,\n        );\n        let mut p32: *const U32 = &raw mut (*state).mem32 as *mut uint32_t;\n        (*state).v1 = XXH32_round(\n            (*state).v1 as U32,\n            XXH_readLE32(p32 as *const c_void, endian),\n        ) as uint32_t;\n        p32 = p32.offset(1);\n        (*state).v2 = XXH32_round(\n            (*state).v2 as U32,\n            XXH_readLE32(p32 as *const c_void, endian),\n        ) as uint32_t;\n        p32 = p32.offset(1);\n        (*state).v3 = XXH32_round(\n            (*state).v3 as U32,\n            XXH_readLE32(p32 as *const c_void, endian),\n        ) as uint32_t;\n        p32 = p32.offset(1);\n        (*state).v4 = XXH32_round(\n            (*state).v4 as U32,\n            XXH_readLE32(p32 as *const c_void, endian),\n        ) as uint32_t;\n        p = p.offset((16 as uint32_t).wrapping_sub((*state).memsize) as isize);\n        (*state).memsize = 0 as uint32_t;\n    }\n    if p <= bEnd.offset(-(16 as c_int as isize)) {\n        let limit: *const BYTE = bEnd.offset(-(16 as c_int as isize));\n        let mut v1: U32 = (*state).v1 as U32;\n        let mut v2: U32 = (*state).v2 as U32;\n        let mut v3: U32 = (*state).v3 as U32;\n        let mut v4: U32 = (*state).v4 as U32;\n        loop {\n            v1 = XXH32_round(v1, XXH_readLE32(p as *const c_void, endian));\n            p = p.offset(4 as c_int as isize);\n            v2 = XXH32_round(v2, XXH_readLE32(p as *const c_void, endian));\n            p = p.offset(4 as c_int as isize);\n            v3 = XXH32_round(v3, XXH_readLE32(p as *const c_void, endian));\n            p = p.offset(4 as c_int as isize);\n            v4 = XXH32_round(v4, XXH_readLE32(p as *const c_void, endian));\n            p = p.offset(4 as c_int as isize);\n            if !(p <= limit) {\n                break;\n            }\n        }\n        (*state).v1 = v1 as uint32_t;\n        (*state).v2 = v2 as uint32_t;\n        (*state).v3 = v3 as uint32_t;\n        (*state).v4 = v4 as uint32_t;\n    }\n    if p < bEnd {\n        XXH_memcpy(\n            &raw mut (*state).mem32 as *mut uint32_t as *mut c_void,\n            p as *const c_void,\n            bEnd.offset_from(p) as c_long as size_t,\n        );\n        (*state).memsize =\n            bEnd.offset_from(p) as c_long as c_uint as uint32_t;\n    }\n    return XXH_OK;\n}",
+    "signature": "unsafe fn XXH32_update_endian(\n    mut state: *mut XXH32_state_t,\n    mut input: *const c_void,\n    mut len: size_t,\n    mut endian: XXH_endianness,\n) -> XXH_errorcode",
+    "profile": {
+      "self_time_ratio": 0.2033,
+      "call_count": null,
+      "retired_instructions": 507148184,
+      "instructions_per_call": null,
+      "cpi": 2.19,
+      "tma": {
+        "scope": "process",
+        "retiring": 30.33514840001406,
+        "frontend_bound": 0.06011720454688246,
+        "bad_speculation": 0.02631849542826513,
+        "backend_bound": 69.57841590001078,
+        "memory_bound": 58.507415417645134,
+        "core_bound": 11.07100048236565,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0002
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "memory_bound",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_vec": {
+        "CantComputeNumberOfIterations": 2
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 572,
+        "message": "'_ZN11lz4_cleaned3src6xxhash10XXH_memcpy17h37329e81d2f15c14E' inlined into '_ZN11lz4_cleaned3src6xxhash19XXH32_update_endian17h639611b636dc5027E' with (cost=-40, threshold=375) at callsite _ZN11lz4_cleaned3src6xxhash19XXH32_update_endian17h639611b636dc5027E:18:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 584,
+        "message": "'_ZN11lz4_cleaned3src6xxhash10XXH_memcpy17h37329e81d2f15c14E' inlined into '_ZN11lz4_cleaned3src6xxhash19XXH32_update_endian17h639611b636dc5027E' with (cost=-40, threshold=375) at callsite _ZN11lz4_cleaned3src6xxhash19XXH32_update_endian17h639611b636dc5027E:30:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 638,
+        "message": "'_ZN11lz4_cleaned3src6xxhash10XXH_memcpy17h37329e81d2f15c14E' inlined into '_ZN11lz4_cleaned3src6xxhash19XXH32_update_endian17h639611b636dc5027E' with (cost=-40, threshold=375) at callsite _ZN11lz4_cleaned3src6xxhash19XXH32_update_endian17h639611b636dc5027E:84:9;"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 592,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 597,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 602,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 607,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 610,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 578,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 565,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 568,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 568,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 571,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 571,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 585,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 592,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 592,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 597,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 597,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 602,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 602,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 607,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 607,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 610,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 615,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 615,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 616,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 616,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 617,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 617,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 618,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 618,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 639,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 573,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 578,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 565,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 568,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 571,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 615,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 616,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 617,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 618,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 572,
+        "message": "_ZN11lz4_cleaned3src6xxhash10XXH_memcpy17h37329e81d2f15c14E will not be inlined into _ZN11lz4_cleaned3src6xxhash19XXH32_update_endian17h639611b636dc5027E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 584,
+        "message": "_ZN11lz4_cleaned3src6xxhash10XXH_memcpy17h37329e81d2f15c14E will not be inlined into _ZN11lz4_cleaned3src6xxhash19XXH32_update_endian17h639611b636dc5027E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 638,
+        "message": "_ZN11lz4_cleaned3src6xxhash10XXH_memcpy17h37329e81d2f15c14E will not be inlined into _ZN11lz4_cleaned3src6xxhash19XXH32_update_endian17h639611b636dc5027E because its definition is unavailable"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 619,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 572,
+        "message": "_ZN11lz4_cleaned3src6xxhash10XXH_memcpy17h37329e81d2f15c14E will not be inlined into _ZN11lz4_harness16op_xxhash_digest17h9330eec1616d768dE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 584,
+        "message": "_ZN11lz4_cleaned3src6xxhash10XXH_memcpy17h37329e81d2f15c14E will not be inlined into _ZN11lz4_harness16op_xxhash_digest17h9330eec1616d768dE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 638,
+        "message": "_ZN11lz4_cleaned3src6xxhash10XXH_memcpy17h37329e81d2f15c14E will not be inlined into _ZN11lz4_harness16op_xxhash_digest17h9330eec1616d768dE because its definition is unavailable"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 568,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 568,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 568,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 571,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 615,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 616,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 617,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 618,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 571,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 613,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 619,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 619,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 619,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 619,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 619,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 619,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 619,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 619,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 619,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 619,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 628,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 628,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 560,
+        "message": "BasicBlock: bb325"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 560,
+        "message": "BasicBlock: bb350"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 615,
+        "message": "BasicBlock: bb10.i539"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 632,
+        "message": "BasicBlock: bb13.i569"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 637,
+        "message": "BasicBlock: bb15.i570"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 615,
+        "message": "BasicBlock: bb10.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 632,
+        "message": "BasicBlock: bb13.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 637,
+        "message": "BasicBlock: bb15.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 615,
+        "message": "BasicBlock: bb10.i325"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 632,
+        "message": "BasicBlock: bb13.i355"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 637,
+        "message": "BasicBlock: bb15.i356"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 615,
+        "message": "BasicBlock: bb10.i446"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 632,
+        "message": "BasicBlock: bb13.i476"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 637,
+        "message": "BasicBlock: bb15.i477"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 583,
+        "message": "BasicBlock: bb5.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 615,
+        "message": "BasicBlock: bb10.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 639,
+        "message": "BasicBlock: bb16.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 632,
+        "message": "BasicBlock: bb13.i61"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

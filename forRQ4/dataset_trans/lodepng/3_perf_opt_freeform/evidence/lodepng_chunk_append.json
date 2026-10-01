@@ -1,0 +1,280 @@
+{
+  "hot_function": {
+    "symbol": "lodepng_chunk_append",
+    "location": "src/lodepng.rs:6154-6197",
+    "workload": "chunk_ops",
+    "hot_region": "src/lodepng.rs:6154-6197",
+    "rust_source": "pub unsafe fn lodepng_chunk_append(\n    mut out: *mut *mut c_uchar,\n    mut outsize: *mut size_t,\n    mut chunk: *const c_uchar,\n) -> c_uint {\n    let mut i: c_uint = 0;\n    let mut total_chunk_length: size_t = 0;\n    let mut new_length: size_t = 0;\n    let mut chunk_start: *mut c_uchar =\n        ::core::ptr::null_mut::<c_uchar>();\n    let mut new_buffer: *mut c_uchar = ::core::ptr::null_mut::<c_uchar>();\n    if lodepng_chunk_type_name_valid(chunk) == 0 {\n        return 121 as c_uint;\n    }\n    if lodepng_chunk_reserved(chunk) != 0 {\n        return 122 as c_uint;\n    }\n    if lodepng_addofl(\n        lodepng_chunk_length(chunk) as size_t,\n        12 as size_t,\n        &raw mut total_chunk_length,\n    ) != 0\n    {\n        return 77 as c_uint;\n    }\n    if lodepng_addofl(*outsize, total_chunk_length, &raw mut new_length) != 0 {\n        return 77 as c_uint;\n    }\n    new_buffer =\n        lodepng_realloc(*out as *mut c_void, new_length) as *mut c_uchar;\n    if new_buffer.is_null() {\n        return 83 as c_uint;\n    }\n    *out = new_buffer;\n    *outsize = new_length;\n    chunk_start = (*out).offset(new_length.wrapping_sub(total_chunk_length) as isize)\n        as *mut c_uchar;\n    i = 0 as c_uint;\n    while i as size_t != total_chunk_length {\n        *chunk_start.offset(i as isize) = *chunk.offset(i as isize);\n        i = i.wrapping_add(1);\n    }\n    return 0 as c_uint;\n}",
+    "signature": "pub unsafe fn lodepng_chunk_append(\n    mut out: *mut *mut c_uchar,\n    mut outsize: *mut size_t,\n    mut chunk: *const c_uchar,\n) -> c_uint",
+    "profile": {
+      "self_time_ratio": 0.0412,
+      "call_count": null,
+      "retired_instructions": 485395290,
+      "instructions_per_call": null,
+      "cpi": 0.485,
+      "tma": {
+        "scope": "process",
+        "retiring": 69.04966367137209,
+        "frontend_bound": 3.321682514020624,
+        "bad_speculation": 0.008587172481351876,
+        "backend_bound": 27.620066642125938,
+        "memory_bound": 27.206061205011938,
+        "core_bound": 0.4140054371139988,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 6165,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng29lodepng_chunk_type_name_valid17hd2c167ba76a6f0cfE' inlined into '_ZN15lodepng_cleaned3src7lodepng20lodepng_chunk_append17hcb07a803096bf6e4E' with (cost=65, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng20lodepng_chunk_append17hcb07a803096bf6e4E:11:8;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 6183,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng15lodepng_realloc17hd0d035143880fb3dE' inlined into '_ZN15lodepng_cleaned3src7lodepng20lodepng_chunk_append17hcb07a803096bf6e4E' with (cost=0, threshold=375) at callsite _ZN15lodepng_cleaned3src7lodepng20lodepng_chunk_append17hcb07a803096bf6e4E:29:9;"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 6189,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 6193,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 6179,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 6183,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 6183,
+        "message": "_ZN15lodepng_cleaned3src7lodepng15lodepng_realloc17hd0d035143880fb3dE will not be inlined into _ZN15lodepng_cleaned3src7lodepng20lodepng_chunk_append17hcb07a803096bf6e4E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 6165,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng29lodepng_chunk_type_name_valid17hd2c167ba76a6f0cfE' inlined into '_ZN15lodepng_cleaned3src7lodepng20lodepng_chunk_append17hcb07a803096bf6e4E' with (cost=-14935, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng20lodepng_chunk_append17hcb07a803096bf6e4E:11:8;"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6154,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN15lodepng_cleaned3src7lodepng20lodepng_chunk_append17hcb07a803096bf6e4E: MI Instruction count changed from 0 to 152; Delta: 152"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6154,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN15lodepng_cleaned3src7lodepng20lodepng_chunk_append17hcb07a803096bf6e4E: MI Instruction count changed from 152 to 148; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6154,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN15lodepng_cleaned3src7lodepng20lodepng_chunk_append17hcb07a803096bf6e4E: MI Instruction count changed from 148 to 179; Delta: 31"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6154,
+        "message": "Two-Address instruction pass: Function: _ZN15lodepng_cleaned3src7lodepng20lodepng_chunk_append17hcb07a803096bf6e4E: MI Instruction count changed from 179 to 204; Delta: 25"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6154,
+        "message": "Register Coalescer: Function: _ZN15lodepng_cleaned3src7lodepng20lodepng_chunk_append17hcb07a803096bf6e4E: MI Instruction count changed from 204 to 137; Delta: -67"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 6154,
+        "message": "5 spills 7.810712e-02 total spills cost 5 reloads 3.659304e-02 total reloads cost 1 folded reloads 9.756237e-03 total folded reloads cost 12 virtual registers copies 3.307851e+00 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6154,
+        "message": "Greedy Register Allocator: Function: _ZN15lodepng_cleaned3src7lodepng20lodepng_chunk_append17hcb07a803096bf6e4E: MI Instruction count changed from 137 to 147; Delta: 10"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6154,
+        "message": "Virtual Register Rewriter: Function: _ZN15lodepng_cleaned3src7lodepng20lodepng_chunk_append17hcb07a803096bf6e4E: MI Instruction count changed from 147 to 144; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6154,
+        "message": "Shrink Wrapping analysis: Function: _ZN15lodepng_cleaned3src7lodepng20lodepng_chunk_append17hcb07a803096bf6e4E: MI Instruction count changed from 144 to 145; Delta: 1"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 6154,
+        "message": "88 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6154,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN15lodepng_cleaned3src7lodepng20lodepng_chunk_append17hcb07a803096bf6e4E: MI Instruction count changed from 145 to 183; Delta: 38"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6154,
+        "message": "Control Flow Optimizer: Function: _ZN15lodepng_cleaned3src7lodepng20lodepng_chunk_append17hcb07a803096bf6e4E: MI Instruction count changed from 183 to 168; Delta: -15"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6154,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN15lodepng_cleaned3src7lodepng20lodepng_chunk_append17hcb07a803096bf6e4E: MI Instruction count changed from 168 to 169; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6154,
+        "message": "X86 LEA Fixup: Function: _ZN15lodepng_cleaned3src7lodepng20lodepng_chunk_append17hcb07a803096bf6e4E: MI Instruction count changed from 169 to 171; Delta: 2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6187,
+        "message": "BasicBlock: iter.check"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6192,
+        "message": "BasicBlock: vector.memcheck"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6192,
+        "message": "BasicBlock: vector.ph"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6193,
+        "message": "BasicBlock: vector.body"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6192,
+        "message": "BasicBlock: vec.epilog.iter.check"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6193,
+        "message": "BasicBlock: vec.epilog.vector.body"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6192,
+        "message": "BasicBlock: bb14.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6193,
+        "message": "BasicBlock: bb14"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6197,
+        "message": "BasicBlock: bb16"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6154,
+        "message": "145 instructions in function"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6168,
+        "message": "BasicBlock: bb3.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6192,
+        "message": "BasicBlock: vector.ph"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6192,
+        "message": "BasicBlock: middle.block"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6192,
+        "message": "BasicBlock: bb14.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6193,
+        "message": "BasicBlock: bb14.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6192,
+        "message": "BasicBlock: vector.main.loop.iter.check"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6192,
+        "message": "BasicBlock: vector.ph"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

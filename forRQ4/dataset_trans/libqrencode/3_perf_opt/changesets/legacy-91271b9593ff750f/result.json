@@ -1,0 +1,196 @@
+{
+  "applied_rules": [
+    "III④,C10,C3"
+  ],
+  "commit_sha": "4e6562f",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -8.985104030814496,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -8.798831860490704,
+            "aggregate_ci_low_pct": -9.171376201138287,
+            "aggregate_pct": -8.985104030814496,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -0.0628,
+                "ci_low_pct": -0.2454,
+                "insns_delta_pct": -0.1014,
+                "mean_delta_pct": -0.1541,
+                "op": "encode_data_and_input",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -17.4486,
+                "ci_low_pct": -18.1836,
+                "insns_delta_pct": -26.0536,
+                "mean_delta_pct": -17.8161,
+                "op": "spec_mask_ecc",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -8.980244214879173,
+            "aggregate_ci_low_pct": -9.519026528172647,
+            "aggregate_pct": -9.24963537152591,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -0.1037,
+                "ci_low_pct": -0.3107,
+                "insns_delta_pct": -0.1425,
+                "mean_delta_pct": -0.2072,
+                "op": "encode_data_and_input",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.0829,
+                "ci_low_pct": -0.2372,
+                "insns_delta_pct": -0.136,
+                "mean_delta_pct": -0.16,
+                "op": "encode_string_api",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -26.5839,
+                "ci_low_pct": -28.1795,
+                "insns_delta_pct": -32.34,
+                "mean_delta_pct": -27.3817,
+                "op": "spec_mask_ecc",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_data_and_input",
+          "spec_mask_ecc"
+        ],
+        "reason": "accepted",
+        "triggering_op": "encode_data_and_input"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "1b06c96d97f82082560c5b2e167f80dcc79ffc81",
+      "changeset_id": "legacy-91271b9593ff750f",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-481a5a89eef10711",
+          "replacement_function_source": "// Applied rules: [III④, C10, C3]\n// Skipped rules: [III②: Hit [4] is a `malloc` whose pointer escapes by being returned to the caller; alloc/free are not paired in this function, so RAII container rewrite is out of scope.]\n#[inline]\npub unsafe fn BitStream_toByte(\n    mut bstream: *mut BitStream,\n) -> *mut c_uchar {\n    let bstream_view: &BitStream = unsafe { &*bstream };\n    let size: size_t = bstream_view.length;\n    if size == 0 as size_t {\n        return ::core::ptr::null_mut::<c_uchar>();\n    }\n\n    let out_len = size.wrapping_add(7 as size_t).wrapping_div(8 as size_t);\n    let data = malloc(out_len) as *mut c_uchar;\n    if data.is_null() {\n        return ::core::ptr::null_mut::<c_uchar>();\n    }\n\n    let bytes: size_t = size.wrapping_div(8 as size_t);\n    let oddbits: size_t = size & 7 as size_t;\n\n    // SAFETY: `bstream_view.data` is read for exactly `size` bytes, where `size`\n    // comes from the stable `BitStream.length` field and is not modified here;\n    // the caller of this unsafe function guarantees `data` is non-null and valid\n    // for `size` bytes, and this shared slice does not alias the unique mutable\n    // output slice created below.\n    let src = unsafe { ::core::slice::from_raw_parts(bstream_view.data as *const c_uchar, size) };\n    // SAFETY: `data` was just allocated by `malloc(out_len)` and checked non-null;\n    // `out_len` is the exact output buffer length used by this function, and no\n    // other reference to that allocation is created while this mutable slice lives.\n    let dst = unsafe { ::core::slice::from_raw_parts_mut(data, out_len) };\n\n    for (out, chunk) in dst[..bytes]\n        .iter_mut()\n        .zip(src[..bytes.wrapping_mul(8 as size_t)].chunks_exact(8))\n    {\n        let word = u64::from_be_bytes([\n            chunk[0], chunk[1], chunk[2], chunk[3], chunk[4], chunk[5], chunk[6], chunk[7],\n        ]);\n        const GATHER: u64 =\n            u64::from_le_bytes([0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01]);\n        *out = (word.wrapping_mul(GATHER) >> 56) as c_uchar;\n    }\n\n    if oddbits > 0 as size_t {\n        let mut v: c_uchar = 0;\n        let tail = &src[bytes.wrapping_mul(8 as size_t)..bytes.wrapping_mul(8 as size_t).wrapping_add(oddbits)];\n        for &bit in tail.iter() {\n            v = ((v as c_int) << 1 as c_int) as c_uchar;\n            v = (v as c_int | bit as c_int) as c_uchar;\n        }\n        dst[bytes] = ((v as c_int) << (8 as size_t).wrapping_sub(oddbits)) as c_uchar;\n    }\n\n    data\n}",
+          "rule_id": "III④,C10,C3",
+          "target": {
+            "declaration_hash": "4c381a97b241c67ba4cbe793a3439877e105dcf68072db5d9d284185431f6a83",
+            "file_hint": "src/bitstream.rs",
+            "qualified_name": "crate::BitStream_toByte",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "BitStream_toByte-2021c98f82a9",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "BitStream_toByte",
+        "rule_id": "III④,C10,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "61084738ecde4e616519ee0f0624de5001d051d94ee6672cc37883b0a77f0758",
+            "edit_id": "edit-replace-481a5a89eef10711",
+            "end_byte": 7200,
+            "operation_id": "replace-481a5a89eef10711",
+            "relative_path": "src/bitstream.rs",
+            "replacement_text": "// Applied rules: [III④, C10, C3]\n// Skipped rules: [III②: Hit [4] is a `malloc` whose pointer escapes by being returned to the caller; alloc/free are not paired in this function, so RAII container rewrite is out of scope.]\n#[inline]\npub unsafe fn BitStream_toByte(\n    mut bstream: *mut BitStream,\n) -> *mut c_uchar {\n    let bstream_view: &BitStream = unsafe { &*bstream };\n    let size: size_t = bstream_view.length;\n    if size == 0 as size_t {\n        return ::core::ptr::null_mut::<c_uchar>();\n    }\n\n    let out_len = size.wrapping_add(7 as size_t).wrapping_div(8 as size_t);\n    let data = malloc(out_len) as *mut c_uchar;\n    if data.is_null() {\n        return ::core::ptr::null_mut::<c_uchar>();\n    }\n\n    let bytes: size_t = size.wrapping_div(8 as size_t);\n    let oddbits: size_t = size & 7 as size_t;\n\n    // SAFETY: `bstream_view.data` is read for exactly `size` bytes, where `size`\n    // comes from the stable `BitStream.length` field and is not modified here;\n    // the caller of this unsafe function guarantees `data` is non-null and valid\n    // for `size` bytes, and this shared slice does not alias the unique mutable\n    // output slice created below.\n    let src = unsafe { ::core::slice::from_raw_parts(bstream_view.data as *const c_uchar, size) };\n    // SAFETY: `data` was just allocated by `malloc(out_len)` and checked non-null;\n    // `out_len` is the exact output buffer length used by this function, and no\n    // other reference to that allocation is created while this mutable slice lives.\n    let dst = unsafe { ::core::slice::from_raw_parts_mut(data, out_len) };\n\n    for (out, chunk) in dst[..bytes]\n        .iter_mut()\n        .zip(src[..bytes.wrapping_mul(8 as size_t)].chunks_exact(8))\n    {\n        let word = u64::from_be_bytes([\n            chunk[0], chunk[1], chunk[2], chunk[3], chunk[4], chunk[5], chunk[6], chunk[7],\n        ]);\n        const GATHER: u64 =\n            u64::from_le_bytes([0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01]);\n        *out = (word.wrapping_mul(GATHER) >> 56) as c_uchar;\n    }\n\n    if oddbits > 0 as size_t {\n        let mut v: c_uchar = 0;\n        let tail = &src[bytes.wrapping_mul(8 as size_t)..bytes.wrapping_mul(8 as size_t).wrapping_add(oddbits)];\n        for &bit in tail.iter() {\n            v = ((v as c_int) << 1 as c_int) as c_uchar;\n            v = (v as c_int | bit as c_int) as c_uchar;\n        }\n        dst[bytes] = ((v as c_int) << (8 as size_t).wrapping_sub(oddbits)) as c_uchar;\n    }\n\n    data\n}",
+            "start_byte": 5496
+          }
+        ],
+        "facts": {
+          "fn_name": "BitStream_toByte",
+          "target_span_hash": "4c381a97b241c67ba4cbe793a3439877e105dcf68072db5d9d284185431f6a83"
+        },
+        "operation_id": "replace-481a5a89eef10711"
+      }
+    ],
+    "resolved_head": "1b06c96d97f82082560c5b2e167f80dcc79ffc81"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/bitstream.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

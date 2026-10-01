@@ -1,0 +1,558 @@
+{
+  "hot_function": {
+    "symbol": "lil_free",
+    "location": "src/lil.rs:3047-3074",
+    "workload": "native_call_state",
+    "hot_region": "src/lil.rs:3047-3074",
+    "rust_source": "pub fn lil_free(mut lil: lil_t) { unsafe {\n    let mut i: size_t = 0;\n    if lil.is_null() {\n        return;\n    }\n    free((*lil).err_msg as *mut c_void);\n    lil_free_value((*lil).empty);\n    while !(*lil).env.is_null() {\n        let mut next: lil_env_t = (*(*lil).env).parent as lil_env_t;\n        lil_free_env((*lil).env);\n        (*lil).env = next;\n    }\n    i = 0 as size_t;\n    while i < (*lil).cmds {\n        if !(**(*lil).cmd.offset(i as isize)).argnames.is_null() {\n            lil_free_list((**(*lil).cmd.offset(i as isize)).argnames);\n        }\n        lil_free_value((**(*lil).cmd.offset(i as isize)).code);\n        free((**(*lil).cmd.offset(i as isize)).name as *mut c_void);\n        free(*(*lil).cmd.offset(i as isize) as *mut c_void);\n        i = i.wrapping_add(1);\n    }\n    hm_destroy(&raw mut (*lil).cmdmap);\n    free((*lil).cmd as *mut c_void);\n    free((*lil).dollarprefix as *mut c_void);\n    free((*lil).catcher as *mut c_void);\n    free(lil as *mut c_void);\n} }",
+    "signature": "pub fn lil_free(mut lil: lil_t)",
+    "profile": {
+      "self_time_ratio": 0.0769,
+      "call_count": null,
+      "retired_instructions": 1483883082,
+      "instructions_per_call": null,
+      "cpi": 0.297,
+      "tma": {
+        "scope": "process",
+        "retiring": 66.57331331758371,
+        "frontend_bound": 25.817192368998093,
+        "bad_speculation": 2.0830001048419065,
+        "backend_bound": 5.52649420857629,
+        "memory_bound": 3.576071499093823,
+        "core_bound": 1.9504227094824669,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0015
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_vec": {
+        "NonReductionValueUsedOutsideLoop": 2,
+        "CantComputeNumberOfIterations": 2
+      },
+      "II_inl": {
+        "TooCostly": 1
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3052,
+        "message": "free will not be inlined into _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3070,
+        "message": "free will not be inlined into _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3071,
+        "message": "free will not be inlined into _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3072,
+        "message": "free will not be inlined into _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3073,
+        "message": "free will not be inlined into _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3065,
+        "message": "free will not be inlined into _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3066,
+        "message": "free will not be inlined into _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3056,
+        "message": "'_ZN11lil_cleaned3src3lil12lil_free_env17h8fdc15b850898d34E' not inlined into '_ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE' because too costly to inline (cost=555, threshold=325)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 3069,
+        "message": "'_ZN11lil_cleaned3src3lil10hm_destroy17hec5a14f6559df768E' inlined into '_ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE' with (cost=110, threshold=250) at callsite _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE:22:5;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 3062,
+        "message": "'_ZN11lil_cleaned3src3lil13lil_free_list17h3727d938efb561ccE' inlined into '_ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE' with (cost=170, threshold=325) at callsite _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE:15:13;"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3054,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3054,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3060,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3060,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3061,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3061,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3064,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3065,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3066,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 3054,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 3060,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3053,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3054,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3055,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3060,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3061,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3064,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 3064,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 3064,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3065,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 3065,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 3065,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3065,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3066,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3066,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3070,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3071,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3072,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3064,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3056,
+        "message": "'_ZN11lil_cleaned3src3lil12lil_free_env17h8fdc15b850898d34E' not inlined into '_ZN11lil_cleaned3src3lil12fnc_jaileval17h701a8a8564093330E' because too costly to inline (cost=555, threshold=325)"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3052,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3069,
+        "message": "_ZN11lil_cleaned3src3lil10hm_destroy17hec5a14f6559df768E will not be inlined into _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3056,
+        "message": "'_ZN11lil_cleaned3src3lil12lil_free_env17h8fdc15b850898d34E' not inlined into '_ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE' because too costly to inline (cost=445, threshold=325)"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 3054,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 3054,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 3054,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 3054,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 3054,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 3054,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3060,
+        "message": "1 reloads 3.970588e+00 total reloads cost 3 virtual registers copies 5.772059e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3054,
+        "message": "1 virtual registers copies 6.367647e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3054,
+        "message": "BasicBlock: bb4.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3055,
+        "message": "BasicBlock: bb6.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3060,
+        "message": "BasicBlock: bb8.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3065,
+        "message": "BasicBlock: bb27.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3061,
+        "message": "BasicBlock: bb9.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3064,
+        "message": "BasicBlock: bb13.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3069,
+        "message": "BasicBlock: bb16.i"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3047,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE: MI Instruction count changed from 0 to 179; Delta: 179"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3047,
+        "message": "Early Tail Duplication: Function: _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE: MI Instruction count changed from 179 to 178; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3047,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE: MI Instruction count changed from 178 to 174; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3047,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE: MI Instruction count changed from 174 to 173; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3047,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE: MI Instruction count changed from 173 to 193; Delta: 20"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3047,
+        "message": "Two-Address instruction pass: Function: _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE: MI Instruction count changed from 193 to 199; Delta: 6"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3047,
+        "message": "Register Coalescer: Function: _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE: MI Instruction count changed from 199 to 164; Delta: -35"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3060,
+        "message": "3 virtual registers copies 1.150000e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3054,
+        "message": "1 virtual registers copies 1.266667e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3047,
+        "message": "1 spills 6.190476e-01 total spills cost 1 reloads 6.190476e-01 total reloads cost 10 virtual registers copies 1.511905e+02 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3047,
+        "message": "Greedy Register Allocator: Function: _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE: MI Instruction count changed from 164 to 170; Delta: 6"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3047,
+        "message": "Virtual Register Rewriter: Function: _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE: MI Instruction count changed from 170 to 156; Delta: -14"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3047,
+        "message": "Machine Copy Propagation Pass: Function: _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE: MI Instruction count changed from 156 to 155; Delta: -1"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 3047,
+        "message": "56 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3047,
+        "message": "Control Flow Optimizer: Function: _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE: MI Instruction count changed from 155 to 140; Delta: -15"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3047,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE: MI Instruction count changed from 140 to 145; Delta: 5"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3047,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN11lil_cleaned3src3lil8lil_free17he67e32dbaa9556eeE: MI Instruction count changed from 145 to 151; Delta: 6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3049,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3054,
+        "message": "BasicBlock: bb4.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3055,
+        "message": "BasicBlock: bb6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3060,
+        "message": "BasicBlock: bb8.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3065,
+        "message": "BasicBlock: bb27"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3061,
+        "message": "BasicBlock: bb9"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3064,
+        "message": "BasicBlock: bb13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3074,
+        "message": "BasicBlock: bb22"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3047,
+        "message": "125 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

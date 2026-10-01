@@ -1,0 +1,472 @@
+{
+  "hot_function": {
+    "symbol": "UTF8Toisolat1",
+    "location": "src/encoding.rs:1424-1510",
+    "workload": "encoding_suite",
+    "hot_region": "src/encoding.rs:1424-1510",
+    "rust_source": "pub unsafe extern \"C\" fn UTF8Toisolat1(\n    mut out: *mut c_uchar,\n    mut outlen: *mut c_int,\n    mut in_0: *const c_uchar,\n    mut inlen: *mut c_int,\n) -> c_int {\n    let mut processed: *const c_uchar = in_0;\n    let mut outend: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut outstart: *const c_uchar = out;\n    let mut instart: *const c_uchar = in_0;\n    let mut inend: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut c: c_uint = 0;\n    let mut d: c_uint = 0;\n    let mut trailing: c_int = 0;\n    if out.is_null() || outlen.is_null() || inlen.is_null() {\n        return XML_ENC_ERR_INTERNAL as c_int;\n    }\n    if in_0.is_null() {\n        *outlen = 0 as c_int;\n        *inlen = 0 as c_int;\n        return 0 as c_int;\n    }\n    inend = in_0.offset(*inlen as isize);\n    outend = out.offset(*outlen as isize);\n    while in_0 < inend {\n        let fresh25 = in_0;\n        in_0 = in_0.offset(1);\n        d = *fresh25 as c_uint;\n        if d < 0x80 as c_uint {\n            c = d;\n            trailing = 0 as c_int;\n        } else if d < 0xc0 as c_uint {\n            *outlen = out.offset_from(outstart) as c_long as c_int;\n            *inlen = processed.offset_from(instart) as c_long as c_int;\n            return XML_ENC_ERR_INPUT as c_int;\n        } else if d < 0xe0 as c_uint {\n            c = d & 0x1f as c_uint;\n            trailing = 1 as c_int;\n        } else if d < 0xf0 as c_uint {\n            c = d & 0xf as c_uint;\n            trailing = 2 as c_int;\n        } else if d < 0xf8 as c_uint {\n            c = d & 0x7 as c_uint;\n            trailing = 3 as c_int;\n        } else {\n            *outlen = out.offset_from(outstart) as c_long as c_int;\n            *inlen = processed.offset_from(instart) as c_long as c_int;\n            return XML_ENC_ERR_INPUT as c_int;\n        }\n        if (inend.offset_from(in_0) as c_long) < trailing as c_long {\n            break;\n        }\n        while trailing != 0 {\n            if in_0 >= inend {\n                break;\n            }\n            let fresh26 = in_0;\n            in_0 = in_0.offset(1);\n            d = *fresh26 as c_uint;\n            if d & 0xc0 as c_uint != 0x80 as c_uint {\n                *outlen = out.offset_from(outstart) as c_long as c_int;\n                *inlen =\n                    processed.offset_from(instart) as c_long as c_int;\n                return XML_ENC_ERR_INPUT as c_int;\n            }\n            c <<= 6 as c_int;\n            c |= d & 0x3f as c_uint;\n            trailing -= 1;\n        }\n        if c <= 0xff as c_uint {\n            if out >= outend as *mut c_uchar {\n                break;\n            }\n            let fresh27 = out;\n            out = out.offset(1);\n            *fresh27 = c as c_uchar;\n            processed = in_0;\n        } else {\n            *outlen = out.offset_from(outstart) as c_long as c_int;\n            *inlen = processed.offset_from(instart) as c_long as c_int;\n            return XML_ENC_ERR_INPUT as c_int;\n        }\n    }\n    *outlen = out.offset_from(outstart) as c_long as c_int;\n    *inlen = processed.offset_from(instart) as c_long as c_int;\n    return *outlen;\n}",
+    "signature": "pub unsafe extern \"C\" fn UTF8Toisolat1(\n    mut out: *mut c_uchar,\n    mut outlen: *mut c_int,\n    mut in_0: *const c_uchar,\n    mut inlen: *mut c_int,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.0514,
+      "call_count": null,
+      "retired_instructions": 2477243653,
+      "instructions_per_call": null,
+      "cpi": 0.123,
+      "tma": {
+        "scope": "process",
+        "retiring": 59.627736868330466,
+        "frontend_bound": 16.252911157825643,
+        "bad_speculation": 5.937724413123774,
+        "backend_bound": 18.18162756072011,
+        "memory_bound": 3.288391212992691,
+        "core_bound": 14.89323634772742,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.003
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1451,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1509,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1424,
+        "message": "X86 DAG->DAG Instruction Selection: Function: UTF8Toisolat1: MI Instruction count changed from 0 to 171; Delta: 171"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1424,
+        "message": "Eliminate PHI nodes for register allocation: Function: UTF8Toisolat1: MI Instruction count changed from 171 to 214; Delta: 43"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1424,
+        "message": "Two-Address instruction pass: Function: UTF8Toisolat1: MI Instruction count changed from 214 to 238; Delta: 24"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1424,
+        "message": "Register Coalescer: Function: UTF8Toisolat1: MI Instruction count changed from 238 to 140; Delta: -98"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1483,
+        "message": "3 virtual registers copies 1.315026e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1448,
+        "message": "9 virtual registers copies 1.489683e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1424,
+        "message": "15 virtual registers copies 1.555189e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1424,
+        "message": "Virtual Register Rewriter: Function: UTF8Toisolat1: MI Instruction count changed from 140 to 135; Delta: -5"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1424,
+        "message": "Shrink Wrapping analysis: Function: UTF8Toisolat1: MI Instruction count changed from 135 to 136; Delta: 1"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 1424,
+        "message": "40 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1424,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: UTF8Toisolat1: MI Instruction count changed from 136 to 166; Delta: 30"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1424,
+        "message": "Control Flow Optimizer: Function: UTF8Toisolat1: MI Instruction count changed from 166 to 129; Delta: -37"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1424,
+        "message": "Branch Probability Basic Block Placement: Function: UTF8Toisolat1: MI Instruction count changed from 129 to 127; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1424,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: UTF8Toisolat1: MI Instruction count changed from 127 to 139; Delta: 12"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1438,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1441,
+        "message": "BasicBlock: bb6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1446,
+        "message": "BasicBlock: bb8"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1451,
+        "message": "BasicBlock: bb10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1455,
+        "message": "BasicBlock: bb12"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1459,
+        "message": "BasicBlock: bb14"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1460,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1462,
+        "message": "BasicBlock: bb16"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1463,
+        "message": "BasicBlock: bb17"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1465,
+        "message": "BasicBlock: bb18"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1466,
+        "message": "BasicBlock: bb19"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1452,
+        "message": "BasicBlock: bb26.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1476,
+        "message": "BasicBlock: bb26.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1483,
+        "message": "BasicBlock: bb29.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1482,
+        "message": "BasicBlock: bb29"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1476,
+        "message": "BasicBlock: bb31"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1493,
+        "message": "BasicBlock: bb33"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1494,
+        "message": "BasicBlock: bb34"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1499,
+        "message": "BasicBlock: bb36"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1442,
+        "message": "BasicBlock: bb7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1510,
+        "message": "BasicBlock: bb42"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1424,
+        "message": "107 instructions in function"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1483,
+        "message": "3 virtual registers copies 8.412456e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1452,
+        "message": "5 reloads 7.047669e+01 total reloads cost 9 virtual registers copies 9.530428e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1451,
+        "message": "BasicBlock: bb10.i38"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1455,
+        "message": "BasicBlock: bb12.i53"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1459,
+        "message": "BasicBlock: bb14.i54"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1460,
+        "message": "BasicBlock: bb15.i64"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1462,
+        "message": "BasicBlock: bb16.i56"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1463,
+        "message": "BasicBlock: bb17.i62"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1465,
+        "message": "BasicBlock: bb18.i58"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1466,
+        "message": "BasicBlock: bb19.i61"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1452,
+        "message": "BasicBlock: bb26.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1483,
+        "message": "BasicBlock: bb29.i46.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1482,
+        "message": "BasicBlock: bb29.i46"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1476,
+        "message": "BasicBlock: bb31.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1493,
+        "message": "BasicBlock: bb33.i51"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1494,
+        "message": "BasicBlock: bb34.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1499,
+        "message": "BasicBlock: bb36.i43"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1483,
+        "message": "3 virtual registers copies 4.198638e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1448,
+        "message": "9 virtual registers copies 4.756615e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1451,
+        "message": "BasicBlock: bb10.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1455,
+        "message": "BasicBlock: bb12.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1459,
+        "message": "BasicBlock: bb14.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1460,
+        "message": "BasicBlock: bb15.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1462,
+        "message": "BasicBlock: bb16.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1463,
+        "message": "BasicBlock: bb17.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1465,
+        "message": "BasicBlock: bb18.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1466,
+        "message": "BasicBlock: bb19.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1476,
+        "message": "BasicBlock: bb26.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1483,
+        "message": "BasicBlock: bb29.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1482,
+        "message": "BasicBlock: bb29.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1493,
+        "message": "BasicBlock: bb33.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1494,
+        "message": "BasicBlock: bb34.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1499,
+        "message": "BasicBlock: bb36.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

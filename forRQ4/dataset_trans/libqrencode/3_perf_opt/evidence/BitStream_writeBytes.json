@@ -1,0 +1,106 @@
+{
+  "hot_function": {
+    "symbol": "BitStream_writeBytes",
+    "location": "src/bitstream.rs:60-87",
+    "workload": "spec_mask_ecc",
+    "hot_region": "src/bitstream.rs:60-87",
+    "rust_source": "unsafe fn BitStream_writeBytes(\n    mut dest: *mut c_uchar,\n    mut size: size_t,\n    mut data: *mut c_uchar,\n) {\n    let data_view: &[c_uchar] = unsafe { core::slice::from_raw_parts(data, (size) as usize) };\n    let mut mask: c_uchar = 0;\n    let mut i: size_t = 0;\n    let mut j: size_t = 0;\n    let mut p: *mut c_uchar = ::core::ptr::null_mut::<c_uchar>();\n    p = dest;\n    i = 0 as size_t;\n    while i < size {\n        mask = 0x80 as c_uchar;\n        j = 0 as size_t;\n        while j < 8 as size_t {\n            if data_view[(i) as usize] as c_int & mask as c_int != 0 {\n                *p = 1 as c_uchar;\n            } else {\n                *p = 0 as c_uchar;\n            }\n            p = p.offset(1);\n            mask = (mask as c_int >> 1 as c_int) as c_uchar;\n            j = j.wrapping_add(1);\n        }\n        i = i.wrapping_add(1);\n    }\n}",
+    "signature": "unsafe fn BitStream_writeBytes(\n    mut dest: *mut c_uchar,\n    mut size: size_t,\n    mut data: *mut c_uchar,\n)",
+    "profile": {
+      "self_time_ratio": 0.538,
+      "call_count": null,
+      "retired_instructions": 8373207316,
+      "instructions_per_call": null,
+      "cpi": 0.374,
+      "tma": {
+        "scope": "process",
+        "retiring": 63.78066482361953,
+        "frontend_bound": 5.65860086881439,
+        "bad_speculation": 2.012316268973908,
+        "backend_bound": 28.54841803859217,
+        "memory_bound": 16.96637937533647,
+        "core_bound": 11.582038663255702,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0007
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 76,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 76,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 75,
+        "message": "completely unrolled loop with 8 iterations"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 76,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 76,
+        "message": "BasicBlock: bb7.i.i279"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 76,
+        "message": "BasicBlock: bb3.preheader.i.i.i"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 72,
+        "message": "7 virtual registers copies 5.280032e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 72,
+        "message": "7 virtual registers copies 3.300020e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 76,
+        "message": "BasicBlock: bb3.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 76,
+        "message": "BasicBlock: bb3.preheader.i187"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

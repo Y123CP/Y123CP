@@ -1,0 +1,1597 @@
+================================================================================
+TIMESTAMP : 2026-09-07 08:37:47
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : aptx_prediction_filtering
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/libopenaptx/3_perf_opt_freeform/crate/src/openaptx.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 2151
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/openaptx.rs
+symbol: aptx_prediction_filtering
+signature: unsafe fn aptx_prediction_filtering(
+    mut prediction: *mut aptx_prediction,
+    mut reconstructed_difference: int32_t,
+    mut order: c_int,
+)
+location: 2361..2412  (attrs included)
+
+```rust
+unsafe fn aptx_prediction_filtering(
+    mut prediction: *mut aptx_prediction,
+    mut reconstructed_difference: int32_t,
+    mut order: c_int,
+) {
+    let mut reconstructed_sample: int32_t = 0;
+    let mut predictor: int32_t = 0;
+    let mut srd0: int32_t = 0;
+    let mut srd: int32_t = 0;
+    let mut reconstructed_differences: *mut int32_t = ::core::ptr::null_mut::<int32_t>();
+    let mut predicted_difference: int64_t = 0 as int64_t;
+    let mut i: c_int = 0;
+    reconstructed_sample = clip_intp2(
+        reconstructed_difference + (*prediction).predicted_sample,
+        23 as c_uint,
+    );
+    predictor = clip_intp2(
+        ((*prediction).s_weight[0 as c_int as usize] as int64_t
+            * (*prediction).previous_reconstructed_sample as int64_t
+            + (*prediction).s_weight[1 as c_int as usize] as int64_t
+                * reconstructed_sample as int64_t
+            >> 22 as c_int) as int32_t,
+        23 as c_uint,
+    );
+    (*prediction).previous_reconstructed_sample = reconstructed_sample;
+    reconstructed_differences =
+        aptx_reconstructed_differences_update(prediction, reconstructed_difference, order);
+    srd0 = ((reconstructed_difference > 0 as int32_t) as c_int
+        - (reconstructed_difference < 0 as int32_t) as c_int) as int32_t
+        * ((1 as c_int as int32_t) << 23 as c_int);
+    i = 0 as c_int;
+    while i < order {
+        srd = *reconstructed_differences.offset((-i - 1 as c_int) as isize)
+            >> 31 as c_int
+            | 1 as int32_t;
+        (*prediction).d_weight[i as usize] -= rshift32(
+            (*prediction).d_weight[i as usize] - srd * srd0,
+            8 as c_uint,
+        );
+        predicted_difference += *reconstructed_differences.offset(-i as isize) as int64_t
+            * (*prediction).d_weight[i as usize] as int64_t;
+        i += 1;
+    }
+    (*prediction).predicted_difference = clip_intp2(
+        (predicted_difference >> 22 as c_int) as int32_t,
+        23 as c_uint,
+    );
+    (*prediction).predicted_sample = clip_intp2(
+        predictor + (*prediction).predicted_difference,
+        23 as c_uint,
+    );
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct aptx_prediction {
+    pub prev_sign: [int32_t; 2],
+    pub s_weight: [int32_t; 2],
+    pub d_weight: [int32_t; 24],
+    pub pos: int32_t,
+    pub reconstructed_differences: [int32_t; 48],
+    pub previous_reconstructed_sample: int32_t,
+    pub predicted_difference: int32_t,
+    pub predicted_sample: int32_t,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+unsafe fn aptx_prediction_filtering(
+    mut prediction: *mut aptx_prediction,
+    mut reconstructed_difference: int32_t,
+    mut order: c_int,
+) {
+    let pred = prediction;
+    let pred_ref = unsafe { &mut *pred }; // SAFETY: caller guarantees `prediction` is a valid, unique pointer for mutation during this function.
+
+    let reconstructed_sample = clip_intp2(
+        reconstructed_difference + pred_ref.predicted_sample,
+        23 as c_uint,
+    );
+
+    let predictor = clip_intp2(
+        ((pred_ref.s_weight[0] as int64_t * pred_ref.previous_reconstructed_sample as int64_t
+            + pred_ref.s_weight[1] as int64_t * reconstructed_sample as int64_t)
+            >> 22) as int32_t,
+        23 as c_uint,
+    );
+
+    pred_ref.previous_reconstructed_sample = reconstructed_sample;
+
+    let reconstructed_differences =
+        aptx_reconstructed_differences_update(pred, reconstructed_difference, order);
+
+    let srd0 = ((reconstructed_difference > 0) as c_int - (reconstructed_difference < 0) as c_int)
+        as int32_t
+        * ((1 as int32_t) << 23);
+
+    let mut predicted_difference: int64_t = 0;
+    let mut i: c_int = 0;
+
+    while i < order {
+        let idx = i as usize;
+        let rd_prev = unsafe { *reconstructed_differences.offset((-i - 1) as isize) }; // SAFETY: `aptx_reconstructed_differences_update` returns a pointer into a buffer with at least `order + 1` accessible prior elements, matching the original code's indexing.
+        let srd = (rd_prev >> 31) | 1;
+        let dw = pred_ref.d_weight[idx];
+        let new_dw = dw - rshift32(dw - srd * srd0, 8 as c_uint);
+        pred_ref.d_weight[idx] = new_dw;
+
+        let rd_cur = unsafe { *reconstructed_differences.offset(-(i as isize)) }; // SAFETY: same bounds reasoning as above; the original code accesses element `-i` for all `i < order`.
+        predicted_difference += rd_cur as int64_t * new_dw as int64_t;
+
+        i += 1;
+    }
+
+    pred_ref.predicted_difference = clip_intp2((predicted_difference >> 22) as int32_t, 23 as c_uint);
+    pred_ref.predicted_sample =
+        clip_intp2(predictor + pred_ref.predicted_difference, 23 as c_uint);
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-07 08:41:15
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : aptx_qmf_convolution
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/libopenaptx/3_perf_opt_freeform/crate/src/openaptx.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 1505
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/openaptx.rs
+symbol: aptx_qmf_convolution
+signature: #[inline]
+unsafe fn aptx_qmf_convolution(
+    mut signal: *const aptx_filter_signal,
+    mut coeffs: *const int32_t,
+    mut shift: c_uint,
+) -> int32_t
+location: 1984..2001  (attrs included)
+
+```rust
+#[inline]
+unsafe fn aptx_qmf_convolution(
+    mut signal: *const aptx_filter_signal,
+    mut coeffs: *const int32_t,
+    mut shift: c_uint,
+) -> int32_t {
+    let signal_view: &aptx_filter_signal = unsafe { &*signal };
+    let mut sig: *const int32_t = (&raw const signal_view.buffer as *const int32_t)
+        .offset(signal_view.pos as isize) as *const int32_t;
+    let mut e: int64_t = 0 as int64_t;
+    let mut i: c_uint = 0;
+    i = 0 as c_uint;
+    while i < FILTER_TAPS as c_uint {
+        e += *sig.offset(i as isize) as int64_t * *coeffs.offset(i as isize) as int64_t;
+        i = i.wrapping_add(1);
+    }
+    return rshift64_clip24(e, shift);
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct aptx_filter_signal {
+    pub buffer: [int32_t; 32],
+    pub pos: uint8_t,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+unsafe fn aptx_qmf_convolution(
+    mut signal: *const aptx_filter_signal,
+    mut coeffs: *const int32_t,
+    mut shift: c_uint,
+) -> int32_t {
+    let signal_view: &aptx_filter_signal = unsafe { &*signal }; // SAFETY: caller provides a valid pointer to aptx_filter_signal, matching the original function's contract.
+    let sig = unsafe {
+        (&raw const signal_view.buffer as *const int32_t).add(signal_view.pos as usize)
+    }; // SAFETY: original code performs the same pointer derivation; pos is assumed valid by the caller/original contract.
+
+    let mut e: int64_t = 0;
+
+    let mut i = 0usize;
+    while i + 4 <= FILTER_TAPS as usize {
+        e += unsafe { *sig.add(i) as int64_t * *coeffs.add(i) as int64_t }; // SAFETY: i < FILTER_TAPS, matching original indexed access preconditions.
+        e += unsafe { *sig.add(i + 1) as int64_t * *coeffs.add(i + 1) as int64_t }; // SAFETY: i + 1 < FILTER_TAPS in this unrolled block.
+        e += unsafe { *sig.add(i + 2) as int64_t * *coeffs.add(i + 2) as int64_t }; // SAFETY: i + 2 < FILTER_TAPS in this unrolled block.
+        e += unsafe { *sig.add(i + 3) as int64_t * *coeffs.add(i + 3) as int64_t }; // SAFETY: i + 3 < FILTER_TAPS in this unrolled block.
+        i += 4;
+    }
+    while i < FILTER_TAPS as usize {
+        e += unsafe { *sig.add(i) as int64_t * *coeffs.add(i) as int64_t }; // SAFETY: i < FILTER_TAPS, matching original indexed access preconditions.
+        i += 1;
+    }
+
+    rshift64_clip24(e, shift)
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-07 08:47:53
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : rshift32
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/libopenaptx/3_perf_opt_freeform/crate/src/openaptx.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 374
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/openaptx.rs
+symbol: rshift32
+signature: #[inline]
+fn rshift32(mut value: int32_t, mut shift: c_uint) -> int32_t
+location: 1833..1841  (attrs included)
+
+```rust
+#[inline]
+fn rshift32(mut value: int32_t, mut shift: c_uint) -> int32_t { {
+    let rounding: int32_t =
+        (1 as c_int as int32_t) << shift.wrapping_sub(1 as c_uint);
+    let mask: int32_t = ((1 as c_int as int32_t)
+        << shift.wrapping_add(1 as c_uint))
+        - 1 as int32_t;
+    return (value + rounding >> shift) - (value & mask == rounding) as c_int;
+} }
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+fn rshift32(mut value: int32_t, mut shift: c_uint) -> int32_t {
+    let rounding: int32_t = (1 as int32_t) << shift.wrapping_sub(1 as c_uint);
+    let shifted = value.wrapping_add(rounding) >> shift;
+    let tie = ((value
+        & (((1 as int32_t) << shift.wrapping_add(1 as c_uint)) - 1 as int32_t))
+        == rounding) as c_int;
+    shifted - tie
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-07 08:54:32
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : aptx_bin_search
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/libopenaptx/3_perf_opt_freeform/crate/src/openaptx.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 750
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/openaptx.rs
+symbol: aptx_bin_search
+signature: #[inline]
+unsafe fn aptx_bin_search(
+    mut value: int32_t,
+    mut factor: int32_t,
+    mut intervals: *const int32_t,
+    mut nb_intervals: c_int,
+) -> int32_t
+location: 2157..2176  (attrs included)
+
+```rust
+#[inline]
+unsafe fn aptx_bin_search(
+    mut value: int32_t,
+    mut factor: int32_t,
+    mut intervals: *const int32_t,
+    mut nb_intervals: c_int,
+) -> int32_t {
+    let mut idx: int32_t = 0 as int32_t;
+    let mut i: c_int = 0;
+    i = nb_intervals >> 1 as c_int;
+    while i > 0 as c_int {
+        if factor as int64_t * *intervals.offset((idx + i as int32_t) as isize) as int64_t
+            <= (value as int64_t) << 24 as c_int
+        {
+            idx = (idx as c_int + i) as int32_t;
+        }
+        i >>= 1 as c_int;
+    }
+    return idx;
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+unsafe fn aptx_bin_search(
+    mut value: int32_t,
+    mut factor: int32_t,
+    mut intervals: *const int32_t,
+    mut nb_intervals: c_int,
+) -> int32_t {
+    let target = (value as int64_t) << 24;
+    let factor64 = factor as int64_t;
+    let mut idx: int32_t = 0;
+    let mut i: c_int = nb_intervals >> 1;
+
+    while i > 0 {
+        let probe = idx + i as int32_t;
+        let interval = unsafe { // SAFETY: caller upholds that `intervals` points to a valid table indexed as in the original function; `probe` matches the original computed offset.
+            *intervals.offset(probe as isize)
+        } as int64_t;
+        if factor64 * interval <= target {
+            idx = probe;
+        }
+        i >>= 1;
+    }
+
+    idx
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-07 08:59:31
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : rshift64
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/libopenaptx/3_perf_opt_freeform/crate/src/openaptx.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 292
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/openaptx.rs
+symbol: rshift64
+signature: #[inline]
+fn rshift64(mut value: int64_t, mut shift: c_uint) -> int64_t
+location: 1849..1858  (attrs included)
+
+```rust
+#[inline]
+fn rshift64(mut value: int64_t, mut shift: c_uint) -> int64_t { {
+    let rounding: int64_t =
+        (1 as c_int as int64_t) << shift.wrapping_sub(1 as c_uint);
+    let mask: int64_t = ((1 as c_int as int64_t)
+        << shift.wrapping_add(1 as c_uint))
+        - 1 as int64_t;
+    return (value + rounding >> shift)
+        - (value & mask == rounding) as c_int as int64_t;
+} }
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+fn rshift64(mut value: int64_t, mut shift: c_uint) -> int64_t {
+    let rounding: int64_t = 1i64 << shift.wrapping_sub(1);
+    let shifted = (value + rounding) >> shift;
+    let tie = ((value & ((rounding << 2) - 1)) == rounding) as c_int as int64_t;
+    shifted - tie
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-07 09:06:08
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : clip_intp2
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/libopenaptx/3_perf_opt_freeform/crate/src/openaptx.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 219
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/openaptx.rs
+symbol: clip_intp2
+signature: #[inline]
+fn clip_intp2(mut a: int32_t, mut p: c_uint) -> int32_t
+location: 104..114  (attrs included)
+
+```rust
+#[inline]
+fn clip_intp2(mut a: int32_t, mut p: c_uint) -> int32_t { {
+    if (a as uint32_t).wrapping_add((1 as c_int as uint32_t) << p)
+        & !((2 as c_int as uint32_t) << p).wrapping_sub(1 as uint32_t)
+        != 0
+    {
+        return a >> 31 as c_int ^ ((1 as int32_t) << p) - 1 as int32_t;
+    } else {
+        return a;
+    };
+} }
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+fn clip_intp2(mut a: int32_t, mut p: c_uint) -> int32_t {
+    let limit = (1u32 << p) as int32_t;
+    if a < -limit || a > limit - 1 {
+        (a >> 31) ^ (limit - 1)
+    } else {
+        a
+    }
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-07 09:12:52
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : aptx_quantize_difference
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/libopenaptx/3_perf_opt_freeform/crate/src/openaptx.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 3044
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/openaptx.rs
+symbol: aptx_quantize_difference
+signature: unsafe fn aptx_quantize_difference(
+    mut quantize: *mut aptx_quantize,
+    mut sample_difference: int32_t,
+    mut dither: int32_t,
+    mut quantization_factor: int32_t,
+    mut tables: *const aptx_tables,
+)
+location: 2177..2250  (attrs included)
+
+```rust
+unsafe fn aptx_quantize_difference(
+    mut quantize: *mut aptx_quantize,
+    mut sample_difference: int32_t,
+    mut dither: int32_t,
+    mut quantization_factor: int32_t,
+    mut tables: *const aptx_tables,
+) {
+    let quantize_view: &mut aptx_quantize = unsafe { &mut *quantize };
+    let mut intervals: *const int32_t = (*tables).quantize_intervals;
+    let mut quantized_sample: int32_t = 0;
+    let mut dithered_sample: int32_t = 0;
+    let mut parity_change: int32_t = 0;
+    let mut d: int32_t = 0;
+    let mut mean: int32_t = 0;
+    let mut interval: int32_t = 0;
+    let mut inv: int32_t = 0;
+    let mut sample_difference_abs: int32_t = 0;
+    let mut error: int64_t = 0;
+    sample_difference_abs = sample_difference;
+    if sample_difference_abs < 0 as int32_t {
+        sample_difference_abs = -sample_difference_abs;
+    }
+    if sample_difference_abs
+        > ((1 as c_int as int32_t) << 23 as c_int) - 1 as int32_t
+    {
+        sample_difference_abs =
+            ((1 as c_int as int32_t) << 23 as c_int) - 1 as int32_t;
+    }
+    quantized_sample = aptx_bin_search(
+        sample_difference_abs >> 4 as c_int,
+        quantization_factor,
+        intervals,
+        (*tables).tables_size,
+    );
+    d = rshift32_clip24(
+        (dither as int64_t * dither as int64_t >> 32 as c_int) as int32_t,
+        7 as c_uint,
+    ) - ((1 as c_int as int32_t) << 23 as c_int);
+    d = rshift64(
+        d as int64_t
+            * *(*tables)
+                .quantize_dither_factors
+                .offset(quantized_sample as isize) as int64_t,
+        23 as c_uint,
+    ) as int32_t;
+    intervals = intervals.offset(quantized_sample as isize);
+    mean = (*intervals.offset(1 as c_int as isize)
+        + *intervals.offset(0 as c_int as isize))
+        / 2 as int32_t;
+    interval = (*intervals.offset(1 as c_int as isize)
+        - *intervals.offset(0 as c_int as isize))
+        * (-((sample_difference < 0 as int32_t) as c_int) | 1 as int32_t);
+    dithered_sample = rshift64_clip24(
+        dither as int64_t * interval as int64_t
+            + ((clip_intp2(mean + d, 23 as c_uint) as int64_t)
+                << 32 as c_int),
+        32 as c_uint,
+    );
+    error = ((sample_difference_abs as int64_t) << 20 as c_int)
+        - dithered_sample as int64_t * quantization_factor as int64_t;
+    quantize_view.error = rshift64(error, 23 as c_uint) as int32_t;
+    if quantize_view.error < 0 as int32_t {
+        quantize_view.error = -quantize_view.error;
+    }
+    parity_change = quantized_sample;
+    if error < 0 as int64_t {
+        quantized_sample -= 1;
+    } else {
+        parity_change -= 1;
+    }
+    inv = -((sample_difference < 0 as int32_t) as c_int) as int32_t;
+    quantize_view.quantized_sample = quantized_sample ^ inv;
+    quantize_view.quantized_sample_parity_change = parity_change ^ inv;
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct aptx_quantize {
+    pub quantized_sample: int32_t,
+    pub quantized_sample_parity_change: int32_t,
+    pub error: int32_t,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct aptx_tables {
+    pub quantize_intervals: *const int32_t,
+    pub invert_quantize_dither_factors: *const int32_t,
+    pub quantize_dither_factors: *const int32_t,
+    pub quantize_factor_select_offset: *const int16_t,
+    pub tables_size: c_int,
+    pub factor_max: int32_t,
+    pub prediction_order: c_int,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+unsafe fn aptx_quantize_difference(
+    mut quantize: *mut aptx_quantize,
+    mut sample_difference: int32_t,
+    mut dither: int32_t,
+    mut quantization_factor: int32_t,
+    mut tables: *const aptx_tables,
+) {
+    let quantize_view: &mut aptx_quantize = unsafe { // SAFETY: caller provides a valid, unique mutable pointer to aptx_quantize for the duration of this function.
+        &mut *quantize
+    };
+    let tables_ref: &aptx_tables = unsafe { // SAFETY: caller provides a valid pointer to aptx_tables for the duration of this function.
+        &*tables
+    };
+
+    let mut sample_difference_abs = sample_difference;
+    if sample_difference_abs < 0 {
+        sample_difference_abs = -sample_difference_abs;
+    }
+    const CLIP23: int32_t = ((1 as c_int as int32_t) << 23) - 1;
+    if sample_difference_abs > CLIP23 {
+        sample_difference_abs = CLIP23;
+    }
+
+    let intervals_base = tables_ref.quantize_intervals;
+    let mut quantized_sample = aptx_bin_search(
+        sample_difference_abs >> 4,
+        quantization_factor,
+        intervals_base,
+        tables_ref.tables_size,
+    );
+
+    let mut d = rshift32_clip24(
+        (dither as int64_t * dither as int64_t >> 32) as int32_t,
+        7 as c_uint,
+    ) - ((1 as c_int as int32_t) << 23);
+
+    let qdf = unsafe { // SAFETY: quantized_sample is produced by aptx_bin_search for these tables and is used as an in-bounds index exactly as in the original code.
+        *tables_ref.quantize_dither_factors.offset(quantized_sample as isize)
+    };
+    d = rshift64(d as int64_t * qdf as int64_t, 23 as c_uint) as int32_t;
+
+    let intervals = unsafe { // SAFETY: quantized_sample is the same index used by the original code to offset into quantize_intervals.
+        intervals_base.offset(quantized_sample as isize)
+    };
+    let i0 = unsafe { // SAFETY: original code reads intervals[0] and intervals[1]; same preconditions apply here.
+        *intervals
+    };
+    let i1 = unsafe { // SAFETY: original code reads intervals[0] and intervals[1]; same preconditions apply here.
+        *intervals.offset(1)
+    };
+
+    let mean = (i1 + i0) / 2;
+    let sign = (-((sample_difference < 0) as c_int) | 1) as int32_t;
+    let interval = (i1 - i0) * sign;
+
+    let dithered_sample = rshift64_clip24(
+        dither as int64_t * interval as int64_t
+            + ((clip_intp2(mean + d, 23 as c_uint) as int64_t) << 32),
+        32 as c_uint,
+    );
+
+    let error = ((sample_difference_abs as int64_t) << 20)
+        - dithered_sample as int64_t * quantization_factor as int64_t;
+
+    let mut err32 = rshift64(error, 23 as c_uint) as int32_t;
+    if err32 < 0 {
+        err32 = -err32;
+    }
+    quantize_view.error = err32;
+
+    let mut parity_change = quantized_sample;
+    if error < 0 {
+        quantized_sample -= 1;
+    } else {
+        parity_change -= 1;
+    }
+
+    let inv = -((sample_difference < 0) as c_int) as int32_t;
+    quantize_view.quantized_sample = quantized_sample ^ inv;
+    quantize_view.quantized_sample_parity_change = parity_change ^ inv;
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-07 09:17:53
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : aptx_qmf_polyphase_analysis
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/libopenaptx/3_perf_opt_freeform/crate/src/openaptx.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 1668
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/openaptx.rs
+symbol: aptx_qmf_polyphase_analysis
+signature: #[inline]
+unsafe fn aptx_qmf_polyphase_analysis(
+    mut signal: *mut aptx_filter_signal,
+    mut coeffs: *const [int32_t; 16],
+    mut shift: c_uint,
+    mut samples: *const int32_t,
+    mut low_subband_output: *mut int32_t,
+    mut high_subband_output: *mut int32_t,
+)
+location: 2002..2037  (attrs included)
+
+```rust
+#[inline]
+unsafe fn aptx_qmf_polyphase_analysis(
+    mut signal: *mut aptx_filter_signal,
+    mut coeffs: *const [int32_t; 16],
+    mut shift: c_uint,
+    mut samples: *const int32_t,
+    mut low_subband_output: *mut int32_t,
+    mut high_subband_output: *mut int32_t,
+) {
+    let mut subbands: [int32_t; 2] = [0; 2];
+    let mut i: c_uint = 0;
+    i = 0 as c_uint;
+    while i < NB_FILTERS as c_uint {
+        aptx_qmf_filter_signal_push(
+            signal.offset(i as isize) as *mut aptx_filter_signal,
+            *samples.offset(
+                ((NB_FILTERS - 1 as c_int) as c_uint).wrapping_sub(i)
+                    as isize,
+            ),
+        );
+        subbands[i as usize] = aptx_qmf_convolution(
+            signal.offset(i as isize) as *mut aptx_filter_signal,
+            &raw const *coeffs.offset(i as isize) as *const int32_t,
+            shift,
+        );
+        i = i.wrapping_add(1);
+    }
+    *low_subband_output = clip_intp2(
+        subbands[0 as c_int as usize] + subbands[1 as c_int as usize],
+        23 as c_uint,
+    );
+    *high_subband_output = clip_intp2(
+        subbands[0 as c_int as usize] - subbands[1 as c_int as usize],
+        23 as c_uint,
+    );
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct aptx_filter_signal {
+    pub buffer: [int32_t; 32],
+    pub pos: uint8_t,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+unsafe fn aptx_qmf_polyphase_analysis(
+    mut signal: *mut aptx_filter_signal,
+    mut coeffs: *const [int32_t; 16],
+    mut shift: c_uint,
+    mut samples: *const int32_t,
+    mut low_subband_output: *mut int32_t,
+    mut high_subband_output: *mut int32_t,
+) {
+    let s0 = signal;
+    // SAFETY: `signal` points to an array of at least `NB_FILTERS` elements; this function only accesses element 1 when `NB_FILTERS == 2` as in the original code.
+    let s1 = unsafe { signal.add(1) };
+
+    let c0 = coeffs;
+    // SAFETY: `coeffs` points to an array of at least `NB_FILTERS` coefficient blocks; this function only accesses element 1 when `NB_FILTERS == 2` as in the original code.
+    let c1 = unsafe { coeffs.add(1) };
+
+    // SAFETY: `samples` points to at least `NB_FILTERS` input samples; indices 1 and 0 match the original loop for `NB_FILTERS == 2`.
+    let sample1 = unsafe { *samples.add(1) };
+    // SAFETY: `samples` points to at least `NB_FILTERS` input samples; index 0 is in-bounds as in the original code.
+    let sample0 = unsafe { *samples.add(0) };
+
+    aptx_qmf_filter_signal_push(s0, sample1);
+    let sub0 = aptx_qmf_convolution(
+        s0,
+        &raw const *c0 as *const int32_t,
+        shift,
+    );
+
+    aptx_qmf_filter_signal_push(s1, sample0);
+    let sub1 = aptx_qmf_convolution(
+        s1,
+        &raw const *c1 as *const int32_t,
+        shift,
+    );
+
+    // SAFETY: output pointers are valid for writes exactly as required by the original function.
+    unsafe {
+        *low_subband_output = clip_intp2(sub0 + sub1, 23 as c_uint);
+        *high_subband_output = clip_intp2(sub0 - sub1, 23 as c_uint);
+    }
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-07 09:22:55
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : aptx_invert_quantization
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/libopenaptx/3_perf_opt_freeform/crate/src/openaptx.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 2328
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/openaptx.rs
+symbol: aptx_invert_quantization
+signature: unsafe fn aptx_invert_quantization(
+    mut invert_quantize: *mut aptx_invert_quantize,
+    mut quantized_sample: int32_t,
+    mut dither: int32_t,
+    mut tables: *const aptx_tables,
+)
+location: 2310..2351  (attrs included)
+
+```rust
+unsafe fn aptx_invert_quantization(
+    mut invert_quantize: *mut aptx_invert_quantize,
+    mut quantized_sample: int32_t,
+    mut dither: int32_t,
+    mut tables: *const aptx_tables,
+) {
+    let invert_quantize_view: &mut aptx_invert_quantize = unsafe { &mut *invert_quantize };
+    let mut qr: int32_t = 0;
+    let mut idx: int32_t = 0;
+    let mut shift: int32_t = 0;
+    let mut factor_select: int32_t = 0;
+    idx = (quantized_sample ^ -((quantized_sample < 0 as int32_t) as c_int))
+        + 1 as int32_t;
+    qr = *(*tables).quantize_intervals.offset(idx as isize) / 2 as int32_t;
+    if quantized_sample < 0 as int32_t {
+        qr = -qr;
+    }
+    qr = rshift64_clip24(
+        qr as int64_t * ((1 as c_int as int64_t) << 32 as c_int)
+            + dither as int64_t
+                * *(*tables)
+                    .invert_quantize_dither_factors
+                    .offset(idx as isize) as int64_t,
+        32 as c_uint,
+    );
+    invert_quantize_view.reconstructed_difference =
+        (invert_quantize_view.quantization_factor as int64_t * qr as int64_t
+            >> 19 as c_int) as int32_t;
+    factor_select = 32620 as int32_t * invert_quantize_view.factor_select;
+    factor_select = rshift32(
+        factor_select
+            + *(*tables).quantize_factor_select_offset.offset(idx as isize) as int32_t
+                * ((1 as int32_t) << 15 as c_int),
+        15 as c_uint,
+    );
+    invert_quantize_view.factor_select = clip(factor_select, 0 as int32_t, (*tables).factor_max);
+    idx = (invert_quantize_view.factor_select & 0xff as int32_t) >> 3 as c_int;
+    shift = (*tables).factor_max - invert_quantize_view.factor_select >> 8 as c_int;
+    invert_quantize_view.quantization_factor =
+        ((quantization_factors[idx as usize] as c_int) << 11 as c_int
+            >> shift) as int32_t;
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct aptx_invert_quantize {
+    pub quantization_factor: int32_t,
+    pub factor_select: int32_t,
+    pub reconstructed_difference: int32_t,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct aptx_tables {
+    pub quantize_intervals: *const int32_t,
+    pub invert_quantize_dither_factors: *const int32_t,
+    pub quantize_dither_factors: *const int32_t,
+    pub quantize_factor_select_offset: *const int16_t,
+    pub tables_size: c_int,
+    pub factor_max: int32_t,
+    pub prediction_order: c_int,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+unsafe fn aptx_invert_quantization(
+    mut invert_quantize: *mut aptx_invert_quantize,
+    mut quantized_sample: int32_t,
+    mut dither: int32_t,
+    mut tables: *const aptx_tables,
+) {
+    // SAFETY: caller provides a valid, uniquely borrowed pointer for mutation for the duration of this function.
+    let invert_quantize_view = unsafe { &mut *invert_quantize };
+    // SAFETY: caller provides a valid pointer to aptx_tables for the duration of this function.
+    let tables_ref = unsafe { &*tables };
+
+    let sign_mask = -((quantized_sample < 0 as int32_t) as c_int);
+    let mut idx = (quantized_sample ^ sign_mask) + 1 as int32_t;
+
+    // SAFETY: idx is computed exactly as in the original code and must be in-bounds per caller/data invariants.
+    let interval = unsafe { *tables_ref.quantize_intervals.offset(idx as isize) };
+    let mut qr = interval / 2 as int32_t;
+    if quantized_sample < 0 as int32_t {
+        qr = -qr;
+    }
+
+    // SAFETY: idx is computed exactly as in the original code and must be in-bounds per caller/data invariants.
+    let dither_factor =
+        unsafe { *tables_ref.invert_quantize_dither_factors.offset(idx as isize) } as int64_t;
+
+    qr = rshift64_clip24(
+        qr as int64_t * (1i64 << 32)
+            + dither as int64_t * dither_factor,
+        32 as c_uint,
+    );
+
+    let qf = invert_quantize_view.quantization_factor;
+    invert_quantize_view.reconstructed_difference =
+        ((qf as int64_t * qr as int64_t) >> 19) as int32_t;
+
+    let factor_select_base = 32620 as int32_t * invert_quantize_view.factor_select;
+    // SAFETY: idx is computed exactly as in the original code and must be in-bounds per caller/data invariants.
+    let factor_offset =
+        unsafe { *tables_ref.quantize_factor_select_offset.offset(idx as isize) as int32_t };
+
+    let factor_select = rshift32(
+        factor_select_base + factor_offset * (1 as int32_t << 15),
+        15 as c_uint,
+    );
+    let factor_select = clip(factor_select, 0 as int32_t, tables_ref.factor_max);
+    invert_quantize_view.factor_select = factor_select;
+
+    idx = (factor_select & 0xff as int32_t) >> 3;
+    let shift = (tables_ref.factor_max - factor_select) >> 8;
+
+    invert_quantize_view.quantization_factor =
+        ((quantization_factors[idx as usize] as c_int) << 11 >> shift) as int32_t;
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-07 09:23:16
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : aptx_process_subband
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/libopenaptx/3_perf_opt_freeform/crate/src/openaptx.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 2208
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/openaptx.rs
+symbol: aptx_process_subband
+signature: unsafe fn aptx_process_subband(
+    mut invert_quantize: *mut aptx_invert_quantize,
+    mut prediction: *mut aptx_prediction,
+    mut quantized_sample: int32_t,
+    mut dither: int32_t,
+    mut tables: *const aptx_tables,
+)
+location: 2417..2479  (attrs included)
+
+```rust
+unsafe fn aptx_process_subband(
+    mut invert_quantize: *mut aptx_invert_quantize,
+    mut prediction: *mut aptx_prediction,
+    mut quantized_sample: int32_t,
+    mut dither: int32_t,
+    mut tables: *const aptx_tables,
+) {
+    let tables_view: &aptx_tables = unsafe { &*tables };
+    let mut sign: int32_t = 0;
+    let mut same_sign: [int32_t; 2] = [0; 2];
+    let mut weight: [int32_t; 2] = [0; 2];
+    let mut sw1: int32_t = 0;
+    let mut range: int32_t = 0;
+    aptx_invert_quantization(invert_quantize, quantized_sample, dither, tables);
+    sign = (((*invert_quantize).reconstructed_difference > -(*prediction).predicted_difference)
+        as c_int
+        - ((*invert_quantize).reconstructed_difference < -(*prediction).predicted_difference)
+            as c_int) as int32_t;
+    same_sign[0 as c_int as usize] =
+        sign * (*prediction).prev_sign[0 as c_int as usize];
+    same_sign[1 as c_int as usize] =
+        sign * (*prediction).prev_sign[1 as c_int as usize];
+    (*prediction).prev_sign[0 as c_int as usize] =
+        (*prediction).prev_sign[1 as c_int as usize];
+    (*prediction).prev_sign[1 as c_int as usize] = sign | 1 as int32_t;
+    range = 0x100000 as c_int as int32_t;
+    sw1 = rshift32(
+        -same_sign[1 as c_int as usize]
+            * (*prediction).s_weight[1 as c_int as usize],
+        1 as c_uint,
+    );
+    sw1 = (clip(sw1, -range, range) & !(0xf as int32_t)) * 16 as int32_t;
+    range = 0x300000 as c_int as int32_t;
+    weight[0 as c_int as usize] = 254 as int32_t
+        * (*prediction).s_weight[0 as c_int as usize]
+        + 0x800000 as int32_t * same_sign[0 as c_int as usize]
+        + sw1;
+    (*prediction).s_weight[0 as c_int as usize] = clip(
+        rshift32(
+            weight[0 as c_int as usize],
+            8 as c_uint,
+        ),
+        -range,
+        range,
+    );
+    range = 0x3c0000 as int32_t - (*prediction).s_weight[0 as c_int as usize];
+    weight[1 as c_int as usize] = 255 as int32_t
+        * (*prediction).s_weight[1 as c_int as usize]
+        + 0xc00000 as int32_t * same_sign[1 as c_int as usize];
+    (*prediction).s_weight[1 as c_int as usize] = clip(
+        rshift32(
+            weight[1 as c_int as usize],
+            8 as c_uint,
+        ),
+        -range,
+        range,
+    );
+    aptx_prediction_filtering(
+        prediction,
+        (*invert_quantize).reconstructed_difference,
+        tables_view.prediction_order,
+    );
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct aptx_prediction {
+    pub prev_sign: [int32_t; 2],
+    pub s_weight: [int32_t; 2],
+    pub d_weight: [int32_t; 24],
+    pub pos: int32_t,
+    pub reconstructed_differences: [int32_t; 48],
+    pub previous_reconstructed_sample: int32_t,
+    pub predicted_difference: int32_t,
+    pub predicted_sample: int32_t,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct aptx_invert_quantize {
+    pub quantization_factor: int32_t,
+    pub factor_select: int32_t,
+    pub reconstructed_difference: int32_t,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct aptx_tables {
+    pub quantize_intervals: *const int32_t,
+    pub invert_quantize_dither_factors: *const int32_t,
+    pub quantize_dither_factors: *const int32_t,
+    pub quantize_factor_select_offset: *const int16_t,
+    pub tables_size: c_int,
+    pub factor_max: int32_t,
+    pub prediction_order: c_int,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+unsafe fn aptx_process_subband(
+    mut invert_quantize: *mut aptx_invert_quantize,
+    mut prediction: *mut aptx_prediction,
+    mut quantized_sample: int32_t,
+    mut dither: int32_t,
+    mut tables: *const aptx_tables,
+) {
+    aptx_invert_quantization(invert_quantize, quantized_sample, dither, tables);
+
+    let pred = unsafe { &mut *prediction }; // SAFETY: caller provides a valid mutable pointer to aptx_prediction for the duration of this function.
+    let iq = unsafe { &*invert_quantize }; // SAFETY: caller provides a valid pointer to aptx_invert_quantize; aptx_invert_quantization has initialized/updated its fields before this read.
+    let tables_view = unsafe { &*tables }; // SAFETY: caller provides a valid pointer to aptx_tables for the duration of this function.
+
+    let reconstructed_difference = iq.reconstructed_difference;
+    let predicted_difference = pred.predicted_difference;
+
+    let sign =
+        ((reconstructed_difference > -predicted_difference) as c_int
+            - (reconstructed_difference < -predicted_difference) as c_int) as int32_t;
+
+    let prev_sign0 = pred.prev_sign[0];
+    let prev_sign1 = pred.prev_sign[1];
+    let same_sign0 = sign * prev_sign0;
+    let same_sign1 = sign * prev_sign1;
+
+    pred.prev_sign[0] = prev_sign1;
+    pred.prev_sign[1] = sign | 1 as int32_t;
+
+    let s_weight1 = pred.s_weight[1];
+    let mut sw1 = rshift32(-same_sign1 * s_weight1, 1 as c_uint);
+    sw1 = (clip(sw1, -(0x100000 as int32_t), 0x100000 as int32_t) & !(0xf as int32_t))
+        * 16 as int32_t;
+
+    let s_weight0 = pred.s_weight[0];
+    let weight0 =
+        254 as int32_t * s_weight0 + 0x800000 as int32_t * same_sign0 + sw1;
+    pred.s_weight[0] = clip(
+        rshift32(weight0, 8 as c_uint),
+        -(0x300000 as int32_t),
+        0x300000 as int32_t,
+    );
+
+    let range1 = 0x3c0000 as int32_t - pred.s_weight[0];
+    let weight1 =
+        255 as int32_t * s_weight1 + 0xc00000 as int32_t * same_sign1;
+    pred.s_weight[1] = clip(
+        rshift32(weight1, 8 as c_uint),
+        -range1,
+        range1,
+    );
+
+    aptx_prediction_filtering(
+        prediction,
+        reconstructed_difference,
+        tables_view.prediction_order,
+    );
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-07 09:29:53
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : aptx_reconstructed_differences_update
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/libopenaptx/3_perf_opt_freeform/crate/src/openaptx.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 1254
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/openaptx.rs
+symbol: aptx_reconstructed_differences_update
+signature: unsafe fn aptx_reconstructed_differences_update(
+    mut prediction: *mut aptx_prediction,
+    mut reconstructed_difference: int32_t,
+    mut order: c_int,
+) -> *mut int32_t
+location: 2352..2366  (attrs included)
+
+```rust
+unsafe fn aptx_reconstructed_differences_update(
+    mut prediction: *mut aptx_prediction,
+    mut reconstructed_difference: int32_t,
+    mut order: c_int,
+) -> *mut int32_t {
+    let prediction_view: &mut aptx_prediction = unsafe { &mut *prediction };
+    let mut rd1: *mut int32_t = &raw mut prediction_view.reconstructed_differences as *mut int32_t;
+    let mut rd2: *mut int32_t = rd1.offset(order as isize);
+    let mut p: c_int = prediction_view.pos as c_int;
+    *rd1.offset(p as isize) = *rd2.offset(p as isize);
+    p = (p + 1 as c_int) % order;
+    prediction_view.pos = p as int32_t;
+    *rd2.offset(p as isize) = reconstructed_difference;
+    return rd2.offset(p as isize) as *mut int32_t;
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct aptx_prediction {
+    pub prev_sign: [int32_t; 2],
+    pub s_weight: [int32_t; 2],
+    pub d_weight: [int32_t; 24],
+    pub pos: int32_t,
+    pub reconstructed_differences: [int32_t; 48],
+    pub previous_reconstructed_sample: int32_t,
+    pub predicted_difference: int32_t,
+    pub predicted_sample: int32_t,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+unsafe fn aptx_reconstructed_differences_update(
+    mut prediction: *mut aptx_prediction,
+    mut reconstructed_difference: int32_t,
+    mut order: c_int,
+) -> *mut int32_t {
+    let prediction_view: &mut aptx_prediction = unsafe { &mut *prediction }; // SAFETY: caller provides a valid, uniquely mutable pointer to aptx_prediction for the duration of this function.
+
+    let base = prediction_view.reconstructed_differences.as_mut_ptr();
+    let p = prediction_view.pos as c_int;
+
+    unsafe {
+        // SAFETY: `base` points to the 48-element `reconstructed_differences` array; callers/original code require `order` and `pos` to be in-range for these accesses.
+        *base.add(p as usize) = *base.add((order + p) as usize);
+    }
+
+    let new_p = if p + 1 == order { 0 } else { p + 1 };
+    prediction_view.pos = new_p as int32_t;
+
+    let out = unsafe {
+        // SAFETY: same bounds preconditions as above; `order + new_p` indexes the second half/window exactly as in the original code.
+        base.add((order + new_p) as usize)
+    };
+    unsafe {
+        // SAFETY: `out` was derived from the valid `base` pointer with the same in-bounds preconditions as the original code.
+        *out = reconstructed_difference;
+    }
+    out
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-07 09:36:29
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : clip
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/libopenaptx/3_perf_opt_freeform/crate/src/openaptx.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 124
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/openaptx.rs
+symbol: clip
+signature: #[inline]
+fn clip(mut a: int32_t, mut amin: int32_t, mut amax: int32_t) -> int32_t
+location: 115..124  (attrs included)
+
+```rust
+#[inline]
+fn clip(mut a: int32_t, mut amin: int32_t, mut amax: int32_t) -> int32_t { {
+    if a < amin {
+        return amin;
+    } else if a > amax {
+        return amax;
+    } else {
+        return a;
+    };
+} }
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+fn clip(mut a: int32_t, mut amin: int32_t, mut amax: int32_t) -> int32_t {
+    a.max(amin).min(amax)
+}
+```
+================================================================================
+

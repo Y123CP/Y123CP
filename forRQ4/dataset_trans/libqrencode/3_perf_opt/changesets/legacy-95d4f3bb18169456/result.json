@@ -1,0 +1,94 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "4e6562fc0a5bb4a0b7bc46b4ee7aeefb81992675",
+      "changeset_id": "legacy-95d4f3bb18169456",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-a33cfaff2b5aad05",
+          "replacement_function_source": "// Applied rules: [III④, C3]\n// Skipped rules: []\nunsafe fn Mask_calcRunLengthV(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n    mut runLength: *mut c_int,\n) -> c_int {\n    let mut head: c_int = 0;\n    let mut prev: c_uchar = 0;\n    let width_usize = width as usize;\n    let run_len_usize = width_usize.wrapping_add(1);\n\n    // SAFETY: `width` is the caller-provided logical extent for this scan; this\n    // function already unconditionally reads `frame[0]`, so callers must provide\n    // a non-null `frame` pointing to at least the strided positions used here,\n    // including indices `i * width` for `0 <= i < width`. No other reference is\n    // created to this memory in this region.\n    let frame = unsafe { core::slice::from_raw_parts(frame as *const c_uchar, width_usize * width_usize) };\n    // SAFETY: the output uses at most `width + 1` entries (optional leading -1\n    // plus one run per scanned row). Callers must provide non-null writable\n    // storage for that many `c_int`s, and no other reference aliases it here.\n    let run_length = unsafe { core::slice::from_raw_parts_mut(runLength, run_len_usize) };\n\n    if frame[0] as c_int & 1 as c_int != 0 {\n        run_length[0] = -(1 as c_int);\n        head = 1 as c_int;\n    } else {\n        head = 0 as c_int;\n    }\n    run_length[head as usize] = 1 as c_int;\n    prev = frame[0];\n\n    let mut i: c_int = 1 as c_int;\n    while i < width {\n        let pixel = frame[(i * width) as usize];\n        if (pixel as c_int ^ prev as c_int) & 1 as c_int != 0 {\n            head += 1;\n            run_length[head as usize] = 1 as c_int;\n            prev = pixel;\n        } else {\n            run_length[head as usize] += 1;\n        }\n        i += 1;\n    }\n    return head + 1 as c_int;\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "2f249d0c1073a9430e88dd5920b231fb6f957589e0a4a5ca08e4cff9bf847576",
+            "file_hint": "src/mask.rs",
+            "qualified_name": "crate::Mask_calcRunLengthV",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "Mask_calcRunLengthV-ad7a155b1e09",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "Mask_calcRunLengthV",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "a38d93f87d0658705488019fc56ffb43aaca0469af77914e6d89eba0ce006c91",
+            "edit_id": "edit-replace-a33cfaff2b5aad05",
+            "end_byte": 15383,
+            "operation_id": "replace-a33cfaff2b5aad05",
+            "relative_path": "src/mask.rs",
+            "replacement_text": "// Applied rules: [III④, C3]\n// Skipped rules: []\nunsafe fn Mask_calcRunLengthV(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n    mut runLength: *mut c_int,\n) -> c_int {\n    let mut head: c_int = 0;\n    let mut prev: c_uchar = 0;\n    let width_usize = width as usize;\n    let run_len_usize = width_usize.wrapping_add(1);\n\n    // SAFETY: `width` is the caller-provided logical extent for this scan; this\n    // function already unconditionally reads `frame[0]`, so callers must provide\n    // a non-null `frame` pointing to at least the strided positions used here,\n    // including indices `i * width` for `0 <= i < width`. No other reference is\n    // created to this memory in this region.\n    let frame = unsafe { core::slice::from_raw_parts(frame as *const c_uchar, width_usize * width_usize) };\n    // SAFETY: the output uses at most `width + 1` entries (optional leading -1\n    // plus one run per scanned row). Callers must provide non-null writable\n    // storage for that many `c_int`s, and no other reference aliases it here.\n    let run_length = unsafe { core::slice::from_raw_parts_mut(runLength, run_len_usize) };\n\n    if frame[0] as c_int & 1 as c_int != 0 {\n        run_length[0] = -(1 as c_int);\n        head = 1 as c_int;\n    } else {\n        head = 0 as c_int;\n    }\n    run_length[head as usize] = 1 as c_int;\n    prev = frame[0];\n\n    let mut i: c_int = 1 as c_int;\n    while i < width {\n        let pixel = frame[(i * width) as usize];\n        if (pixel as c_int ^ prev as c_int) & 1 as c_int != 0 {\n            head += 1;\n            run_length[head as usize] = 1 as c_int;\n            prev = pixel;\n        } else {\n            run_length[head as usize] += 1;\n        }\n        i += 1;\n    }\n    return head + 1 as c_int;\n}",
+            "start_byte": 14366
+          }
+        ],
+        "facts": {
+          "fn_name": "Mask_calcRunLengthV",
+          "target_span_hash": "2f249d0c1073a9430e88dd5920b231fb6f957589e0a4a5ca08e4cff9bf847576"
+        },
+        "operation_id": "replace-a33cfaff2b5aad05"
+      }
+    ],
+    "resolved_head": "4e6562fc0a5bb4a0b7bc46b4ee7aeefb81992675"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_post_validation",
+  "touched_paths": [
+    "src/mask.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "added_bounds_check_in_loop",
+      "detail": "rewrite adds a bounds check inside a loop the original indexed unchecked (2 site(s)): run_length[head as usize], frame[(i * width) as usize]",
+      "ok": false
+    }
+  ]
+}

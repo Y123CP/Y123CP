@@ -1,0 +1,94 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "af5e78c7dec8fd9a231c6af098b5792145b3bd4b",
+      "changeset_id": "legacy-3b51ca12991ea905",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-630d7cee6e904512",
+          "replacement_function_source": "#[inline(always)]\nunsafe fn tdefl_find_match(\n    mut d: *mut tdefl_compressor,\n    mut lookahead_pos: mz_uint,\n    mut max_dist: mz_uint,\n    mut max_match_len: mz_uint,\n    mut pMatch_dist: *mut mz_uint,\n    mut pMatch_len: *mut mz_uint,\n) {\n    let pos: mz_uint = lookahead_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n    let mut match_len: mz_uint = *pMatch_len;\n    if max_match_len <= match_len {\n        return;\n    }\n\n    let dict = &(*d).m_dict;\n    let next = &(*d).m_next;\n\n    let mut probe_pos: mz_uint = pos;\n    let mut dist: mz_uint;\n    let mut num_probes_left: mz_uint =\n        (*d).m_max_probes[(match_len >= 32 as mz_uint) as c_int as usize];\n\n    let s = dict.as_ptr().wrapping_add(pos as usize);\n    let mut c0: mz_uint8 = dict[pos.wrapping_add(match_len) as usize];\n    let mut c1: mz_uint8 = dict[pos.wrapping_add(match_len).wrapping_sub(1 as mz_uint) as usize];\n\n    loop {\n        let found_probe = loop {\n            num_probes_left = num_probes_left.wrapping_sub(1);\n            if num_probes_left == 0 {\n                return;\n            }\n            let mut next_probe_pos = next[probe_pos as usize] as mz_uint;\n            if next_probe_pos == 0 {\n                return;\n            }\n            dist = lookahead_pos.wrapping_sub(next_probe_pos) as mz_uint16 as mz_uint;\n            if dist > max_dist {\n                return;\n            }\n            probe_pos = next_probe_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n            let probe_idx = probe_pos.wrapping_add(match_len) as usize;\n            if dict[probe_idx] == c0 && dict[probe_idx - 1] == c1 {\n                break true;\n            }\n\n            num_probes_left = num_probes_left.wrapping_sub(1);\n            if num_probes_left == 0 {\n                return;\n            }\n            next_probe_pos = next[probe_pos as usize] as mz_uint;\n            if next_probe_pos == 0 {\n                return;\n            }\n            dist = lookahead_pos.wrapping_sub(next_probe_pos) as mz_uint16 as mz_uint;\n            if dist > max_dist {\n                return;\n            }\n            probe_pos = next_probe_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n            let probe_idx = probe_pos.wrapping_add(match_len) as usize;\n            if dict[probe_idx] == c0 && dict[probe_idx - 1] == c1 {\n                break true;\n            }\n\n            num_probes_left = num_probes_left.wrapping_sub(1);\n            if num_probes_left == 0 {\n                return;\n            }\n            next_probe_pos = next[probe_pos as usize] as mz_uint;\n            if next_probe_pos == 0 {\n                return;\n            }\n            dist = lookahead_pos.wrapping_sub(next_probe_pos) as mz_uint16 as mz_uint;\n            if dist > max_dist {\n                return;\n            }\n            probe_pos = next_probe_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n            let probe_idx = probe_pos.wrapping_add(match_len) as usize;\n            if dict[probe_idx] == c0 && dict[probe_idx - 1] == c1 {\n                break true;\n            }\n        };\n\n        if !found_probe {\n            return;\n        }\n\n        let q = dict.as_ptr().wrapping_add(probe_pos as usize);\n        let mut probe_len: mz_uint = 0;\n\n        while probe_len < max_match_len {\n            // SAFETY: `s` points into `m_dict` at `pos`, `q` points into `m_dict` at `probe_pos`,\n            // and the original function relies on accesses up to `max_match_len` within `m_dict`.\n            let a = unsafe { *s.add(probe_len as usize) };\n            // SAFETY: Same preconditions as above; `q.add(probe_len)` stays within the same valid range.\n            let b = unsafe { *q.add(probe_len as usize) };\n            if a != b {\n                break;\n            }\n            probe_len = probe_len.wrapping_add(1);\n        }\n\n        if probe_len > match_len {\n            *pMatch_dist = dist;\n            match_len = probe_len;\n            *pMatch_len = match_len;\n            if match_len == max_match_len {\n                return;\n            }\n            c0 = dict[pos.wrapping_add(match_len) as usize];\n            c1 = dict[pos.wrapping_add(match_len).wrapping_sub(1 as mz_uint) as usize];\n        }\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "d4df3cf2d67c45736231036140201f40456e5b6771220527b6dab15d8da5d6e0",
+            "file_hint": "src/miniz_tdef.rs",
+            "qualified_name": "crate::tdefl_find_match",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "tdefl_find_match-c954c932cfb7",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "tdefl_find_match",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "70e40899ac75ab6e03ce1c3f9e039bdb366d69cec5aa8e1f75ea20847fdd7943",
+            "edit_id": "edit-replace-630d7cee6e904512",
+            "end_byte": 123604,
+            "operation_id": "replace-630d7cee6e904512",
+            "relative_path": "src/miniz_tdef.rs",
+            "replacement_text": "#[inline(always)]\nunsafe fn tdefl_find_match(\n    mut d: *mut tdefl_compressor,\n    mut lookahead_pos: mz_uint,\n    mut max_dist: mz_uint,\n    mut max_match_len: mz_uint,\n    mut pMatch_dist: *mut mz_uint,\n    mut pMatch_len: *mut mz_uint,\n) {\n    let pos: mz_uint = lookahead_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n    let mut match_len: mz_uint = *pMatch_len;\n    if max_match_len <= match_len {\n        return;\n    }\n\n    let dict = &(*d).m_dict;\n    let next = &(*d).m_next;\n\n    let mut probe_pos: mz_uint = pos;\n    let mut dist: mz_uint;\n    let mut num_probes_left: mz_uint =\n        (*d).m_max_probes[(match_len >= 32 as mz_uint) as c_int as usize];\n\n    let s = dict.as_ptr().wrapping_add(pos as usize);\n    let mut c0: mz_uint8 = dict[pos.wrapping_add(match_len) as usize];\n    let mut c1: mz_uint8 = dict[pos.wrapping_add(match_len).wrapping_sub(1 as mz_uint) as usize];\n\n    loop {\n        let found_probe = loop {\n            num_probes_left = num_probes_left.wrapping_sub(1);\n            if num_probes_left == 0 {\n                return;\n            }\n            let mut next_probe_pos = next[probe_pos as usize] as mz_uint;\n            if next_probe_pos == 0 {\n                return;\n            }\n            dist = lookahead_pos.wrapping_sub(next_probe_pos) as mz_uint16 as mz_uint;\n            if dist > max_dist {\n                return;\n            }\n            probe_pos = next_probe_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n            let probe_idx = probe_pos.wrapping_add(match_len) as usize;\n            if dict[probe_idx] == c0 && dict[probe_idx - 1] == c1 {\n                break true;\n            }\n\n            num_probes_left = num_probes_left.wrapping_sub(1);\n            if num_probes_left == 0 {\n                return;\n            }\n            next_probe_pos = next[probe_pos as usize] as mz_uint;\n            if next_probe_pos == 0 {\n                return;\n            }\n            dist = lookahead_pos.wrapping_sub(next_probe_pos) as mz_uint16 as mz_uint;\n            if dist > max_dist {\n                return;\n            }\n            probe_pos = next_probe_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n            let probe_idx = probe_pos.wrapping_add(match_len) as usize;\n            if dict[probe_idx] == c0 && dict[probe_idx - 1] == c1 {\n                break true;\n            }\n\n            num_probes_left = num_probes_left.wrapping_sub(1);\n            if num_probes_left == 0 {\n                return;\n            }\n            next_probe_pos = next[probe_pos as usize] as mz_uint;\n            if next_probe_pos == 0 {\n                return;\n            }\n            dist = lookahead_pos.wrapping_sub(next_probe_pos) as mz_uint16 as mz_uint;\n            if dist > max_dist {\n                return;\n            }\n            probe_pos = next_probe_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n            let probe_idx = probe_pos.wrapping_add(match_len) as usize;\n            if dict[probe_idx] == c0 && dict[probe_idx - 1] == c1 {\n                break true;\n            }\n        };\n\n        if !found_probe {\n            return;\n        }\n\n        let q = dict.as_ptr().wrapping_add(probe_pos as usize);\n        let mut probe_len: mz_uint = 0;\n\n        while probe_len < max_match_len {\n            // SAFETY: `s` points into `m_dict` at `pos`, `q` points into `m_dict` at `probe_pos`,\n            // and the original function relies on accesses up to `max_match_len` within `m_dict`.\n            let a = unsafe { *s.add(probe_len as usize) };\n            // SAFETY: Same preconditions as above; `q.add(probe_len)` stays within the same valid range.\n            let b = unsafe { *q.add(probe_len as usize) };\n            if a != b {\n                break;\n            }\n            probe_len = probe_len.wrapping_add(1);\n        }\n\n        if probe_len > match_len {\n            *pMatch_dist = dist;\n            match_len = probe_len;\n            *pMatch_len = match_len;\n            if match_len == max_match_len {\n                return;\n            }\n            c0 = dict[pos.wrapping_add(match_len) as usize];\n            c1 = dict[pos.wrapping_add(match_len).wrapping_sub(1 as mz_uint) as usize];\n        }\n    }\n}",
+            "start_byte": 119232
+          }
+        ],
+        "facts": {
+          "fn_name": "tdefl_find_match",
+          "target_span_hash": "d4df3cf2d67c45736231036140201f40456e5b6771220527b6dab15d8da5d6e0"
+        },
+        "operation_id": "replace-630d7cee6e904512"
+      }
+    ],
+    "resolved_head": "af5e78c7dec8fd9a231c6af098b5792145b3bd4b"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_post_validation",
+  "touched_paths": [
+    "src/miniz_tdef.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "added_bounds_check_in_loop",
+      "detail": "rewrite adds a bounds check inside a loop the original indexed unchecked (3 site(s)): dict[pos.wrapping_add(match_len).wrapping_sub(1 as mz_uint) , dict[pos.wrapping_add(match_len) as usize], next[probe_pos as usize]",
+      "ok": false
+    }
+  ]
+}

@@ -1,0 +1,143 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 17.85146777489924,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 18.847966568316235,
+            "aggregate_ci_low_pct": 16.854968981482248,
+            "aggregate_pct": 17.85146777489924,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 18.848,
+                "ci_low_pct": 16.855,
+                "insns_delta_pct": 14.909,
+                "mean_delta_pct": 17.8515,
+                "op": "parse_url_and_meta",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "execute_auto_stream",
+          "execute_request_stream",
+          "parse_url_and_meta",
+          "pause_resume_request"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "parse_url_and_meta"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "ea065eb773d961084663f0c9b53f8e1e615328b9",
+      "changeset_id": "legacy-f525b70557fa2535",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-d2dee57b487162d0",
+          "replacement_function_source": "fn parse_url_char(mut s: state, ch: c_char) -> state { unsafe {\n    let chi = ch as c_int;\n    let chu = ch as c_uchar as c_uint;\n\n    if chi == ' ' as i32 || chi == '\\r' as i32 || chi == '\\n' as i32 || chi == '\\t' as i32 || chi == '\\u{c}' as i32 {\n        return s_dead;\n    }\n\n    let lower = ((chi | 0x20) as c_uchar) as c_int;\n    let is_alpha = lower >= 'a' as i32 && lower <= 'z' as i32;\n    let is_normal = (normal_url_char[(chu >> 3) as usize] as c_uint & ((1 as c_uint) << (chu & 7))) != 0;\n\n    match s as c_uint {\n        20 => {\n            if chi == '/' as i32 || chi == '*' as i32 {\n                return s_req_path;\n            }\n            if is_alpha {\n                return s_req_schema;\n            }\n            s_dead\n        }\n        21 => {\n            if is_alpha {\n                return s;\n            }\n            if chi == ':' as i32 {\n                return s_req_schema_slash;\n            }\n            s_dead\n        }\n        22 => {\n            if chi == '/' as i32 {\n                return s_req_schema_slash_slash;\n            }\n            s_dead\n        }\n        23 => {\n            if chi == '/' as i32 {\n                return s_req_server_start;\n            }\n            s_dead\n        }\n        24 | 25 => {\n            if chi == '/' as i32 {\n                return s_req_path;\n            }\n            if chi == '?' as i32 {\n                return s_req_query_string_start;\n            }\n            if chi == '@' as i32 {\n                return s_req_server_with_at;\n            }\n            if is_alpha\n                || (chi >= '0' as i32 && chi <= '9' as i32)\n                || chi == '-' as i32\n                || chi == '_' as i32\n                || chi == '.' as i32\n                || chi == '!' as i32\n                || chi == '~' as i32\n                || chi == '*' as i32\n                || chi == '\\'' as i32\n                || chi == '(' as i32\n                || chi == ')' as i32\n                || chi == '%' as i32\n                || chi == ';' as i32\n                || chi == ':' as i32\n                || chi == '&' as i32\n                || chi == '=' as i32\n                || chi == '+' as i32\n                || chi == '$' as i32\n                || chi == ',' as i32\n                || chi == '[' as i32\n                || chi == ']' as i32\n            {\n                return s_req_server;\n            }\n            s_dead\n        }\n        26 => {\n            if chi == '@' as i32 {\n                return s_dead;\n            }\n            if chi == '/' as i32 {\n                return s_req_path;\n            }\n            if chi == '?' as i32 {\n                return s_req_query_string_start;\n            }\n            if chi == '@' as i32 {\n                return s_req_server_with_at;\n            }\n            if is_alpha\n                || (chi >= '0' as i32 && chi <= '9' as i32)\n                || chi == '-' as i32\n                || chi == '_' as i32\n                || chi == '.' as i32\n                || chi == '!' as i32\n                || chi == '~' as i32\n                || chi == '*' as i32\n                || chi == '\\'' as i32\n                || chi == '(' as i32\n                || chi == ')' as i32\n                || chi == '%' as i32\n                || chi == ';' as i32\n                || chi == ':' as i32\n                || chi == '&' as i32\n                || chi == '=' as i32\n                || chi == '+' as i32\n                || chi == '$' as i32\n                || chi == ',' as i32\n                || chi == '[' as i32\n                || chi == ']' as i32\n            {\n                return s_req_server;\n            }\n            s_dead\n        }\n        27 => {\n            if is_normal {\n                return s;\n            }\n            if chi == '?' as i32 {\n                return s_req_query_string_start;\n            }\n            if chi == '#' as i32 {\n                return s_req_fragment_start;\n            }\n            s_dead\n        }\n        28 | 29 => {\n            if is_normal || chi == '?' as i32 {\n                return s_req_query_string;\n            }\n            if chi == '#' as i32 {\n                return s_req_fragment_start;\n            }\n            s_dead\n        }\n        30 => {\n            if is_normal || chi == '?' as i32 {\n                return s_req_fragment;\n            }\n            if chi == '#' as i32 {\n                return s;\n            }\n            s_dead\n        }\n        31 => {\n            if is_normal || chi == '?' as i32 || chi == '#' as i32 {\n                return s;\n            }\n            s_dead\n        }\n        _ => s_dead,\n    }\n} }",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "b9503b08ff3a1681087f253b29ca30ea33c15fe0f9f67d1b23a28c2e0d98f7cd",
+            "file_hint": "src/http_parser.rs",
+            "qualified_name": "crate::parse_url_char",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "parse_url_char-075e5be68c03",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "parse_url_char",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "df8ba5a05fc69a74cb6361d6ab7950d8ffdbf0e6222c7b5725f13c032520b918",
+            "edit_id": "edit-replace-d2dee57b487162d0",
+            "end_byte": 42420,
+            "operation_id": "replace-d2dee57b487162d0",
+            "relative_path": "src/http_parser.rs",
+            "replacement_text": "fn parse_url_char(mut s: state, ch: c_char) -> state { unsafe {\n    let chi = ch as c_int;\n    let chu = ch as c_uchar as c_uint;\n\n    if chi == ' ' as i32 || chi == '\\r' as i32 || chi == '\\n' as i32 || chi == '\\t' as i32 || chi == '\\u{c}' as i32 {\n        return s_dead;\n    }\n\n    let lower = ((chi | 0x20) as c_uchar) as c_int;\n    let is_alpha = lower >= 'a' as i32 && lower <= 'z' as i32;\n    let is_normal = (normal_url_char[(chu >> 3) as usize] as c_uint & ((1 as c_uint) << (chu & 7))) != 0;\n\n    match s as c_uint {\n        20 => {\n            if chi == '/' as i32 || chi == '*' as i32 {\n                return s_req_path;\n            }\n            if is_alpha {\n                return s_req_schema;\n            }\n            s_dead\n        }\n        21 => {\n            if is_alpha {\n                return s;\n            }\n            if chi == ':' as i32 {\n                return s_req_schema_slash;\n            }\n            s_dead\n        }\n        22 => {\n            if chi == '/' as i32 {\n                return s_req_schema_slash_slash;\n            }\n            s_dead\n        }\n        23 => {\n            if chi == '/' as i32 {\n                return s_req_server_start;\n            }\n            s_dead\n        }\n        24 | 25 => {\n            if chi == '/' as i32 {\n                return s_req_path;\n            }\n            if chi == '?' as i32 {\n                return s_req_query_string_start;\n            }\n            if chi == '@' as i32 {\n                return s_req_server_with_at;\n            }\n            if is_alpha\n                || (chi >= '0' as i32 && chi <= '9' as i32)\n                || chi == '-' as i32\n                || chi == '_' as i32\n                || chi == '.' as i32\n                || chi == '!' as i32\n                || chi == '~' as i32\n                || chi == '*' as i32\n                || chi == '\\'' as i32\n                || chi == '(' as i32\n                || chi == ')' as i32\n                || chi == '%' as i32\n                || chi == ';' as i32\n                || chi == ':' as i32\n                || chi == '&' as i32\n                || chi == '=' as i32\n                || chi == '+' as i32\n                || chi == '$' as i32\n                || chi == ',' as i32\n                || chi == '[' as i32\n                || chi == ']' as i32\n            {\n                return s_req_server;\n            }\n            s_dead\n        }\n        26 => {\n            if chi == '@' as i32 {\n                return s_dead;\n            }\n            if chi == '/' as i32 {\n                return s_req_path;\n            }\n            if chi == '?' as i32 {\n                return s_req_query_string_start;\n            }\n            if chi == '@' as i32 {\n                return s_req_server_with_at;\n            }\n            if is_alpha\n                || (chi >= '0' as i32 && chi <= '9' as i32)\n                || chi == '-' as i32\n                || chi == '_' as i32\n                || chi == '.' as i32\n                || chi == '!' as i32\n                || chi == '~' as i32\n                || chi == '*' as i32\n                || chi == '\\'' as i32\n                || chi == '(' as i32\n                || chi == ')' as i32\n                || chi == '%' as i32\n                || chi == ';' as i32\n                || chi == ':' as i32\n                || chi == '&' as i32\n                || chi == '=' as i32\n                || chi == '+' as i32\n                || chi == '$' as i32\n                || chi == ',' as i32\n                || chi == '[' as i32\n                || chi == ']' as i32\n            {\n                return s_req_server;\n            }\n            s_dead\n        }\n        27 => {\n            if is_normal {\n                return s;\n            }\n            if chi == '?' as i32 {\n                return s_req_query_string_start;\n            }\n            if chi == '#' as i32 {\n                return s_req_fragment_start;\n            }\n            s_dead\n        }\n        28 | 29 => {\n            if is_normal || chi == '?' as i32 {\n                return s_req_query_string;\n            }\n            if chi == '#' as i32 {\n                return s_req_fragment_start;\n            }\n            s_dead\n        }\n        30 => {\n            if is_normal || chi == '?' as i32 {\n                return s_req_fragment;\n            }\n            if chi == '#' as i32 {\n                return s;\n            }\n            s_dead\n        }\n        31 => {\n            if is_normal || chi == '?' as i32 || chi == '#' as i32 {\n                return s;\n            }\n            s_dead\n        }\n        _ => s_dead,\n    }\n} }",
+            "start_byte": 36520
+          }
+        ],
+        "facts": {
+          "fn_name": "parse_url_char",
+          "target_span_hash": "b9503b08ff3a1681087f253b29ca30ea33c15fe0f9f67d1b23a28c2e0d98f7cd"
+        },
+        "operation_id": "replace-d2dee57b487162d0"
+      }
+    ],
+    "resolved_head": "ea065eb773d961084663f0c9b53f8e1e615328b9"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/http_parser.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

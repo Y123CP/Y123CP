@@ -1,0 +1,173 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.7690109321735853,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.8785379175674096,
+            "aggregate_ci_low_pct": 0.659483946779761,
+            "aggregate_pct": 0.7690109321735853,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 1.1492,
+                "ci_low_pct": 0.7109,
+                "insns_delta_pct": 0.3798,
+                "mean_delta_pct": 0.93,
+                "op": "decode_std",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              },
+              {
+                "ci_high_pct": 1.0983,
+                "ci_low_pct": 0.528,
+                "insns_delta_pct": 0.3961,
+                "mean_delta_pct": 0.8131,
+                "op": "decode_sync_hd",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              },
+              {
+                "ci_high_pct": 0.7971,
+                "ci_low_pct": 0.4804,
+                "insns_delta_pct": 0.3642,
+                "mean_delta_pct": 0.6388,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.9789,
+                "ci_low_pct": 0.4093,
+                "insns_delta_pct": 0.251,
+                "mean_delta_pct": 0.6941,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "decode_std",
+          "decode_sync_hd",
+          "encode_hd_reset",
+          "encode_std"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "decode_std"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "d7120e40e30b59fde26e3d01c8b6e0a8c81ace78",
+      "changeset_id": "legacy-a8d2f6c8e7e036d9",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-3f7a5a32b80401c2",
+          "replacement_function_source": "// Applied rules: [III④, C3]\n// Skipped rules: []\nunsafe fn aptx_invert_quantization(\n    mut invert_quantize: *mut aptx_invert_quantize,\n    mut quantized_sample: int32_t,\n    mut dither: int32_t,\n    mut tables: *const aptx_tables,\n) {\n    let invert_quantize_view: &mut aptx_invert_quantize = unsafe { &mut *invert_quantize };\n    let tables_view: &aptx_tables = unsafe { &*tables };\n    let tables_size = tables_view.tables_size as usize;\n    let quantize_intervals = unsafe {\n        // SAFETY: `tables_view.quantize_intervals` comes from the caller-provided\n        // `tables` and `tables_size` is the associated stable table length for this\n        // function's region; the pointer is assumed non-null and read-only here, and\n        // no mutable reference to the same backing memory is created.\n        core::slice::from_raw_parts(tables_view.quantize_intervals, tables_size)\n    };\n    let invert_quantize_dither_factors = unsafe {\n        // SAFETY: `tables_view.invert_quantize_dither_factors` is a caller-provided\n        // read-only table with the same stable `tables_size`; the pointer is assumed\n        // non-null and no mutable alias to this backing memory is created here.\n        core::slice::from_raw_parts(tables_view.invert_quantize_dither_factors, tables_size)\n    };\n    let quantize_factor_select_offset = unsafe {\n        // SAFETY: `tables_view.quantize_factor_select_offset` is a caller-provided\n        // read-only table with the same stable `tables_size`; the pointer is assumed\n        // non-null and no mutable alias to this backing memory is created here.\n        core::slice::from_raw_parts(tables_view.quantize_factor_select_offset, tables_size)\n    };\n\n    let mut qr: int32_t = 0;\n    let mut idx: int32_t = 0;\n    let mut shift: int32_t = 0;\n    let mut factor_select: int32_t = 0;\n\n    idx = (quantized_sample ^ -((quantized_sample < 0 as int32_t) as c_int)) + 1 as int32_t;\n    qr = unsafe {\n        // SAFETY: `idx` is used exactly as in the original unchecked pointer-offset code;\n        // the caller/table invariants that made that access valid also justify this\n        // unchecked indexed read, avoiding a new runtime bounds check.\n        *quantize_intervals.get_unchecked(idx as usize)\n    } / 2 as int32_t;\n    if quantized_sample < 0 as int32_t {\n        qr = -qr;\n    }\n    qr = rshift64_clip24(\n        qr as int64_t * ((1 as c_int as int64_t) << 32 as c_int)\n            + dither as int64_t\n                * unsafe {\n                    // SAFETY: same table/index validity invariant as the original raw\n                    // pointer dereference; this preserves unchecked access semantics.\n                    *invert_quantize_dither_factors.get_unchecked(idx as usize) as int64_t\n                },\n        32 as c_uint,\n    );\n\n    let quantization_factor = invert_quantize_view.quantization_factor;\n    let factor_select_prev = invert_quantize_view.factor_select;\n    let factor_max = tables_view.factor_max;\n\n    invert_quantize_view.reconstructed_difference =\n        (quantization_factor as int64_t * qr as int64_t >> 19 as c_int) as int32_t;\n\n    factor_select = 32620 as int32_t * factor_select_prev;\n    factor_select = rshift32(\n        factor_select\n            + unsafe {\n                // SAFETY: same table/index validity invariant as the original raw\n                // pointer dereference; unchecked indexing avoids adding a bounds check.\n                *quantize_factor_select_offset.get_unchecked(idx as usize) as int32_t\n            } * ((1 as int32_t) << 15 as c_int),\n        15 as c_uint,\n    );\n    invert_quantize_view.factor_select = clip(factor_select, 0 as int32_t, factor_max);\n    idx = (invert_quantize_view.factor_select & 0xff as int32_t) >> 3 as c_int;\n    shift = factor_max - invert_quantize_view.factor_select >> 8 as c_int;\n    invert_quantize_view.quantization_factor =\n        ((quantization_factors[idx as usize] as c_int) << 11 as c_int >> shift) as int32_t;\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "95349f7b6608b570cc044d0f261e5aa6c5cb32ff4b982347a0f4ce94cc8ea0e6",
+            "file_hint": "src/openaptx.rs",
+            "qualified_name": "crate::aptx_invert_quantization",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "aptx_invert_quantization-9e43072cc5d2",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "aptx_invert_quantization",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "21b65bbbab1b1f87c4ad4f89b01fc8b0b881f3d93fac4b803a0b4f108cd7339d",
+            "edit_id": "edit-replace-3f7a5a32b80401c2",
+            "end_byte": 60252,
+            "operation_id": "replace-3f7a5a32b80401c2",
+            "relative_path": "src/openaptx.rs",
+            "replacement_text": "// Applied rules: [III④, C3]\n// Skipped rules: []\nunsafe fn aptx_invert_quantization(\n    mut invert_quantize: *mut aptx_invert_quantize,\n    mut quantized_sample: int32_t,\n    mut dither: int32_t,\n    mut tables: *const aptx_tables,\n) {\n    let invert_quantize_view: &mut aptx_invert_quantize = unsafe { &mut *invert_quantize };\n    let tables_view: &aptx_tables = unsafe { &*tables };\n    let tables_size = tables_view.tables_size as usize;\n    let quantize_intervals = unsafe {\n        // SAFETY: `tables_view.quantize_intervals` comes from the caller-provided\n        // `tables` and `tables_size` is the associated stable table length for this\n        // function's region; the pointer is assumed non-null and read-only here, and\n        // no mutable reference to the same backing memory is created.\n        core::slice::from_raw_parts(tables_view.quantize_intervals, tables_size)\n    };\n    let invert_quantize_dither_factors = unsafe {\n        // SAFETY: `tables_view.invert_quantize_dither_factors` is a caller-provided\n        // read-only table with the same stable `tables_size`; the pointer is assumed\n        // non-null and no mutable alias to this backing memory is created here.\n        core::slice::from_raw_parts(tables_view.invert_quantize_dither_factors, tables_size)\n    };\n    let quantize_factor_select_offset = unsafe {\n        // SAFETY: `tables_view.quantize_factor_select_offset` is a caller-provided\n        // read-only table with the same stable `tables_size`; the pointer is assumed\n        // non-null and no mutable alias to this backing memory is created here.\n        core::slice::from_raw_parts(tables_view.quantize_factor_select_offset, tables_size)\n    };\n\n    let mut qr: int32_t = 0;\n    let mut idx: int32_t = 0;\n    let mut shift: int32_t = 0;\n    let mut factor_select: int32_t = 0;\n\n    idx = (quantized_sample ^ -((quantized_sample < 0 as int32_t) as c_int)) + 1 as int32_t;\n    qr = unsafe {\n        // SAFETY: `idx` is used exactly as in the original unchecked pointer-offset code;\n        // the caller/table invariants that made that access valid also justify this\n        // unchecked indexed read, avoiding a new runtime bounds check.\n        *quantize_intervals.get_unchecked(idx as usize)\n    } / 2 as int32_t;\n    if quantized_sample < 0 as int32_t {\n        qr = -qr;\n    }\n    qr = rshift64_clip24(\n        qr as int64_t * ((1 as c_int as int64_t) << 32 as c_int)\n            + dither as int64_t\n                * unsafe {\n                    // SAFETY: same table/index validity invariant as the original raw\n                    // pointer dereference; this preserves unchecked access semantics.\n                    *invert_quantize_dither_factors.get_unchecked(idx as usize) as int64_t\n                },\n        32 as c_uint,\n    );\n\n    let quantization_factor = invert_quantize_view.quantization_factor;\n    let factor_select_prev = invert_quantize_view.factor_select;\n    let factor_max = tables_view.factor_max;\n\n    invert_quantize_view.reconstructed_difference =\n        (quantization_factor as int64_t * qr as int64_t >> 19 as c_int) as int32_t;\n\n    factor_select = 32620 as int32_t * factor_select_prev;\n    factor_select = rshift32(\n        factor_select\n            + unsafe {\n                // SAFETY: same table/index validity invariant as the original raw\n                // pointer dereference; unchecked indexing avoids adding a bounds check.\n                *quantize_factor_select_offset.get_unchecked(idx as usize) as int32_t\n            } * ((1 as int32_t) << 15 as c_int),\n        15 as c_uint,\n    );\n    invert_quantize_view.factor_select = clip(factor_select, 0 as int32_t, factor_max);\n    idx = (invert_quantize_view.factor_select & 0xff as int32_t) >> 3 as c_int;\n    shift = factor_max - invert_quantize_view.factor_select >> 8 as c_int;\n    invert_quantize_view.quantization_factor =\n        ((quantization_factors[idx as usize] as c_int) << 11 as c_int >> shift) as int32_t;\n}",
+            "start_byte": 58434
+          }
+        ],
+        "facts": {
+          "fn_name": "aptx_invert_quantization",
+          "target_span_hash": "95349f7b6608b570cc044d0f261e5aa6c5cb32ff4b982347a0f4ce94cc8ea0e6"
+        },
+        "operation_id": "replace-3f7a5a32b80401c2"
+      }
+    ],
+    "resolved_head": "d7120e40e30b59fde26e3d01c8b6e0a8c81ace78"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/openaptx.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

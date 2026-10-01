@@ -1,0 +1,92 @@
+# =============================================================================
+# Empirical-study measurement manifest — binn  (LIBRARY project, serialization)
+# =============================================================================
+# C vs c2rust_raw(0_raw). binn = binary structured serialization.
+#   C  side : binn_roundtrip.c + binn.c   (single-shot clang-17 LTO, -DBINN_NO_COMPRESS)
+#   raw side: workloads/harness/binn_roundtrip_raw (main.rs) → path-dep 0_raw (binn_raw)
+# Both build a binn LIST of M=100000 sequential int32 values, serialize it, loop
+# N=600 times, and emit the serialized bytes of the final build → identical stdout.
+# Equivalence VERIFIED 2026-07-01: both = 368681 B, sha feda6beba4e8007f.
+#
+# ★ HARNESS REWRITE (2026-07-01, PREFLIGHT ③): the ORIGINAL C driver and Rust
+# harness did DIFFERENT operations (C built+serialized a new object; Rust
+# opened+counted an existing .binn), so stdout never matched (oracle was
+# PLACEHOLDER). Both rewritten to the SAME deterministic WRITE workload. binn's
+# set_* helpers are inline macros (not exported by c2rust), so both call the base
+# binn_list_add with BINN_INT32 (0x61) directly. Input ignored (self-contained).
+#
+# NOTE: this is binn's WRITE path (build + serialize). Expect some memcpy/alloc
+# component (serialization copies) — report self_time_own alongside the gap.
+# =============================================================================
+
+[study]
+project      = "binn"
+binary       = "binn_roundtrip"
+compare      = ["c", "c2rust_raw"]
+report_mode  = "per_input"
+
+[builds.c]
+kind        = "c_reference"
+compiler    = "clang-17"
+source_dir  = "empirical_study/binn/c_ref"     # self-contained (copied from dataset_source/binn/src)
+build_cmd   = "bash empirical_study/binn/c_ref/build.sh"
+binary_path = "empirical_study/binn/bin/binn_cref17"
+
+[builds.c2rust_raw]
+kind        = "cargo_harness"
+crate_dir   = "empirical_study/binn/rust_harness"          # self-contained; path-dep -> ../rust_raw (0_raw snapshot)
+build_cmd   = "( cd empirical_study/binn/rust_harness && cargo build --release )"
+flags       = "opt-level=3, lto=fat, codegen-units=1, target-cpu=native (harness Cargo.toml + .cargo/config)"
+binary_path = "empirical_study/binn/rust_harness/target/release/binn_roundtrip"
+
+[measure]
+warmup_runs    = 5
+measure_runs   = 30
+metric         = "median"
+outlier_rule   = "drop >1.5*IQR"
+required_cv    = 0.03
+min_runtime_ms = 100
+timeout_s      = 300
+pin_cpu        = 16
+order          = ["c", "c2rust_raw"]
+paired         = true
+freq_pin       = true
+
+[profile]
+call_graph_mode = "dwarf"
+frequency       = 99
+
+# OPERATION 1 — ENCODE: build+serialize (100k-int list × 600 iters, ~1.4s). Input ignored.
+[[operations]]
+name = "build_serialize_100k"
+args = ["$INPUT"]
+
+  [[operations.inputs]]
+  name = "list100k"
+  path = "empirical_study/binn/inputs/medium.binn"
+  size = "100k int32 list x 600 iters"
+  character = "structured write path (binn_list_add + serialize)"
+  stdout_sha256 = "feda6beba4e8007f3ee4e2fd1c268be28e86a79cb2cb66b4e5de69bf74d992db"
+
+# OPERATION 2 — DECODE: build once, iterate+sum via binn_iter/binn_list_next
+# (100k-int list × 1000 iters, ~1s). args=["decode"] selects the read path; input
+# ignored (self-contained). Adds binn's READ hot path (was encode-only → 13% cov).
+[[operations]]
+name = "iterate_decode_100k"
+args = ["decode"]
+
+  [[operations.inputs]]
+  name = "decode100k"
+  path = "empirical_study/binn/inputs/medium.binn"
+  size = "100k int32 list x 1000 iters (read)"
+  character = "read path (binn_iter_init / binn_list_next / GetValue / AdvanceDataPos)"
+  stdout_sha256 = "eb9fb83e18e729d2952cdb99dac3a0f917988a0d5b526c5df512a8f434949870"
+
+[oracle]
+exit_code = 0
+correctness_manifests = []
+
+[gates]
+coverage_line_min = 50
+coverage_fn_min   = 60
+self_time_own_min = 70   # WRITE path may have memcpy/alloc — verify + report

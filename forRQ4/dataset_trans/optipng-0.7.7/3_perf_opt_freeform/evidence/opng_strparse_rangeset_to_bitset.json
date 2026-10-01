@@ -1,0 +1,340 @@
+{
+  "hot_function": {
+    "symbol": "opng_strparse_rangeset_to_bitset",
+    "location": "src/optipng/bitset.rs:88-212",
+    "workload": "bitset_and_ratio",
+    "hot_region": "src/optipng/bitset.rs:88-212",
+    "rust_source": "pub unsafe extern \"C\" fn opng_strparse_rangeset_to_bitset(\n    mut out_set: *mut opng_bitset_t,\n    mut rangeset_str: *const c_char,\n    mut mask_set: opng_bitset_t,\n) -> c_int {\n    let mut result: opng_bitset_t = 0;\n    let mut ptr: *const c_char = ::core::ptr::null::<c_char>();\n    let mut state: c_int = 0;\n    let mut num: c_int = 0;\n    let mut num1: c_int = 0;\n    let mut num2: c_int = 0;\n    let mut err_invalid: c_int = 0;\n    let mut err_range: c_int = 0;\n    result = OPNG_BITSET_EMPTY as opng_bitset_t;\n    ptr = rangeset_str;\n    state = 0 as c_int;\n    err_range = 0 as c_int;\n    err_invalid = err_range;\n    num2 = -(1 as c_int);\n    num1 = num2;\n    let mut current_block_37: u64;\n    loop {\n        while isspace(*ptr as c_int) != 0 {\n            ptr = ptr.offset(1);\n        }\n        match state {\n            0 => {\n                current_block_37 = 6958789677802808342;\n            }\n            2 => {\n                current_block_37 = 6958789677802808342;\n            }\n            1 => {\n                if *ptr as c_int == '-' as i32 {\n                    ptr = ptr.offset(1);\n                    num2 = OPNG_BITSET_ELT_MAX as c_int;\n                    state += 1;\n                    continue;\n                } else {\n                    current_block_37 = 15345278821338558188;\n                }\n            }\n            _ => {\n                current_block_37 = 15345278821338558188;\n            }\n        }\n        match current_block_37 {\n            6958789677802808342 => {\n                if *ptr as c_int >= '0' as i32\n                    && *ptr as c_int <= '9' as i32\n                {\n                    num = 0 as c_int;\n                    loop {\n                        num = 10 as c_int * num\n                            + (*ptr as c_int - '0' as i32);\n                        if num > OPNG_BITSET_ELT_MAX as c_int {\n                            num = OPNG_BITSET_ELT_MAX as c_int;\n                            err_range = 1 as c_int;\n                        }\n                        ptr = ptr.offset(1);\n                        if !(*ptr as c_int >= '0' as i32\n                            && *ptr as c_int <= '9' as i32)\n                        {\n                            break;\n                        }\n                    }\n                    if !(mask_set as c_uint & (1 as c_uint) << num\n                        != 0 as c_uint)\n                    {\n                        err_range = 1 as c_int;\n                    }\n                    if state == 0 as c_int {\n                        num1 = num;\n                    }\n                    num2 = num;\n                    state += 1;\n                    continue;\n                }\n            }\n            _ => {}\n        }\n        if state > 0 as c_int {\n            if num1 <= num2 {\n                result |= if num1 <= num2 {\n                    ((1 as c_uint) << num2 - num1 << 1 as c_int)\n                        .wrapping_sub(1 as c_uint)\n                        << num1\n                } else {\n                    0 as c_uint\n                };\n                result &= mask_set as c_uint;\n            } else {\n                err_range = 1 as c_int;\n            }\n            state = 0 as c_int;\n        }\n        if *ptr as c_int == ',' as i32 || *ptr as c_int == ';' as i32 {\n            ptr = ptr.offset(1);\n        } else {\n            if !(*ptr as c_int == '-' as i32) {\n                break;\n            }\n            err_invalid = 1 as c_int;\n            break;\n        }\n    }\n    while isspace(*ptr as c_int) != 0 {\n        ptr = ptr.offset(1);\n    }\n    if *ptr as c_int != '\\0' as i32 {\n        err_invalid = 1 as c_int;\n    }\n    if err_invalid != 0 {\n        *__errno_location() = EINVAL;\n        *out_set = OPNG_BITSET_EMPTY as opng_bitset_t;\n        return -(1 as c_int);\n    } else if err_range != 0 {\n        *__errno_location() = ERANGE;\n        *out_set = OPNG_BITSET_FULL as opng_bitset_t;\n        return -(1 as c_int);\n    } else {\n        *out_set = result;\n        return 0 as c_int;\n    };\n}",
+    "signature": "pub unsafe extern \"C\" fn opng_strparse_rangeset_to_bitset(\n    mut out_set: *mut opng_bitset_t,\n    mut rangeset_str: *const c_char,\n    mut mask_set: opng_bitset_t,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.9995,
+      "call_count": null,
+      "retired_instructions": 18993873435,
+      "instructions_per_call": null,
+      "cpi": 0.309,
+      "tma": {
+        "scope": "process",
+        "retiring": 77.50086149471034,
+        "frontend_bound": 17.373719538250548,
+        "bad_speculation": 4.251061127749228,
+        "backend_bound": 0.8743578392898819,
+        "memory_bound": 0.36546106812464063,
+        "core_bound": 0.5088967711652412,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0047
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 110,
+        "message": "isspace will not be inlined into opng_strparse_rangeset_to_bitset because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 194,
+        "message": "isspace will not be inlined into opng_strparse_rangeset_to_bitset because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 201,
+        "message": "__errno_location will not be inlined into opng_strparse_rangeset_to_bitset because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 205,
+        "message": "__errno_location will not be inlined into opng_strparse_rangeset_to_bitset because its definition is unavailable"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 172,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 110,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 109,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 194,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 110,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 121,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 136,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 142,
+        "message": "load of type i8 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 148,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 184,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 194,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 197,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 88,
+        "message": "X86 DAG->DAG Instruction Selection: Function: opng_strparse_rangeset_to_bitset: MI Instruction count changed from 0 to 165; Delta: 165"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 88,
+        "message": "Early Machine Loop Invariant Code Motion: Function: opng_strparse_rangeset_to_bitset: MI Instruction count changed from 165 to 166; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 88,
+        "message": "Machine Common Subexpression Elimination: Function: opng_strparse_rangeset_to_bitset: MI Instruction count changed from 166 to 163; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 88,
+        "message": "Machine code sinking: Function: opng_strparse_rangeset_to_bitset: MI Instruction count changed from 163 to 164; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 88,
+        "message": "Peephole Optimizations: Function: opng_strparse_rangeset_to_bitset: MI Instruction count changed from 164 to 162; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 88,
+        "message": "Process Implicit Definitions: Function: opng_strparse_rangeset_to_bitset: MI Instruction count changed from 162 to 159; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 88,
+        "message": "Eliminate PHI nodes for register allocation: Function: opng_strparse_rangeset_to_bitset: MI Instruction count changed from 159 to 222; Delta: 63"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 88,
+        "message": "Two-Address instruction pass: Function: opng_strparse_rangeset_to_bitset: MI Instruction count changed from 222 to 245; Delta: 23"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 88,
+        "message": "Register Coalescer: Function: opng_strparse_rangeset_to_bitset: MI Instruction count changed from 245 to 133; Delta: -112"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 110,
+        "message": "1 virtual registers copies 9.054357e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 110,
+        "message": "2 virtual registers copies 9.337286e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 110,
+        "message": "1 spills 8.095239e+00 total spills cost 1 reloads 8.095239e+00 total reloads cost 2 folded reloads 1.619048e+01 total folded reloads cost 4 virtual registers copies 9.386500e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 109,
+        "message": "2 spills 9.619048e+00 total spills cost 2 reloads 8.595239e+00 total reloads cost 2 folded reloads 1.619048e+01 total folded reloads cost 6 virtual registers copies 9.389548e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 88,
+        "message": "4 spills 1.161905e+01 total spills cost 1 folded spills 1.000000e+00 total folded spills cost 4 reloads 9.785715e+00 total reloads cost 2 folded reloads 1.619048e+01 total folded reloads cost 7 virtual registers copies 9.390548e+03 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 88,
+        "message": "Greedy Register Allocator: Function: opng_strparse_rangeset_to_bitset: MI Instruction count changed from 133 to 138; Delta: 5"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 88,
+        "message": "Virtual Register Rewriter: Function: opng_strparse_rangeset_to_bitset: MI Instruction count changed from 138 to 132; Delta: -6"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 88,
+        "message": "72 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 88,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: opng_strparse_rangeset_to_bitset: MI Instruction count changed from 132 to 160; Delta: 28"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 88,
+        "message": "Control Flow Optimizer: Function: opng_strparse_rangeset_to_bitset: MI Instruction count changed from 160 to 147; Delta: -13"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 88,
+        "message": "Branch Probability Basic Block Placement: Function: opng_strparse_rangeset_to_bitset: MI Instruction count changed from 147 to 155; Delta: 8"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 88,
+        "message": "X86 LEA Fixup: Function: opng_strparse_rangeset_to_bitset: MI Instruction count changed from 155 to 156; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 113,
+        "message": "BasicBlock: bb4"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 136,
+        "message": "BasicBlock: bb12"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 169,
+        "message": "BasicBlock: bb33"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 184,
+        "message": "BasicBlock: bb42"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 172,
+        "message": "BasicBlock: bb38"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 141,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 184,
+        "message": "BasicBlock: bb42"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 194,
+        "message": "BasicBlock: bb49.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 194,
+        "message": "BasicBlock: bb49"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 197,
+        "message": "BasicBlock: bb52"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 204,
+        "message": "BasicBlock: bb58"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 88,
+        "message": "134 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

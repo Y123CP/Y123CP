@@ -1,0 +1,94 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "f9ecdde7271d90e0d2b152c070f156dd098e07f6",
+      "changeset_id": "legacy-405fd8e748b1c763",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-04e8c7ceb876bd98",
+          "replacement_function_source": "// Applied rules: [C3.S2]\n// Skipped rules: [C3.S1: Would require changing `htmlParseHTMLName` from raw-pointer ABI to references/slices, affecting callers and likely conflicting with parser/FFI-style interfaces; the concrete hits are address-chain reloads that can be handled by S2 locally.; II_inl: The only concrete hit is `xmlNextChar` marked TooCostly [0]. This callee is external to the target function body and likely non-trivial parser machinery; forcing inline risks code-size growth in a hot parser path. Apply C3 first because shrinking redundant loads in the caller may make the remaining call acceptable; no safe concrete inlining plan is justified from the evidence alone.]\nfn htmlParseHTMLName(mut ctxt: htmlParserCtxtPtr) -> *const xmlChar { unsafe {\n    let mut ret: *const xmlChar = ::core::ptr::null::<xmlChar>();\n    let mut i: c_int = 0 as c_int;\n    let mut loc: [xmlChar; 100] = [0; 100];\n    let mut cur: *const xmlChar = (*(*ctxt).input).cur;\n    let mut c: c_int = *cur as c_int;\n    if !(0x41 as c_int <= c && c <= 0x5a as c_int\n        || 0x61 as c_int <= c && c <= 0x7a as c_int)\n        && c != '_' as i32\n        && c != ':' as i32\n        && c != '.' as i32\n    {\n        return ::core::ptr::null::<xmlChar>();\n    }\n    while i < HTML_PARSER_BUFFER_SIZE\n        && (0x41 as c_int <= c && c <= 0x5a as c_int\n            || 0x61 as c_int <= c && c <= 0x7a as c_int\n            || 0x30 as c_int <= c && c <= 0x39 as c_int\n            || c == ':' as i32\n            || c == '-' as i32\n            || c == '_' as i32\n            || c == '.' as i32)\n    {\n        if c >= 'A' as i32 && c <= 'Z' as i32 {\n            loc[i as usize] = (c + 0x20 as c_int) as xmlChar;\n        } else {\n            loc[i as usize] = *cur;\n        }\n        i += 1;\n        xmlNextChar(ctxt as xmlParserCtxtPtr);\n        cur = (*(*ctxt).input).cur;\n        c = *cur as c_int;\n    }\n    ret = xmlDictLookup((*ctxt).dict, &raw mut loc as *mut xmlChar, i);\n    if ret.is_null() {\n        htmlErrMemory(\n            ctxt as xmlParserCtxtPtr,\n            ::core::ptr::null::<c_char>(),\n        );\n    }\n    return ret;\n} }",
+          "rule_id": "C3.S2",
+          "target": {
+            "declaration_hash": "5f048e0c2b9609751ebcfabc8fda27a5a75fd09801a6d6aede6bf4d5357f7a54",
+            "file_hint": "src/HTMLparser.rs",
+            "qualified_name": "crate::htmlParseHTMLName",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "htmlParseHTMLName-b6d76d8e38b9",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "htmlParseHTMLName",
+        "rule_id": "C3.S2"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "f312022b3eb45b31c6747ba1c4afe15e5f132cd88748db9539beaca4daa2d666",
+            "edit_id": "edit-replace-04e8c7ceb876bd98",
+            "end_byte": 368343,
+            "operation_id": "replace-04e8c7ceb876bd98",
+            "relative_path": "src/HTMLparser.rs",
+            "replacement_text": "// Applied rules: [C3.S2]\n// Skipped rules: [C3.S1: Would require changing `htmlParseHTMLName` from raw-pointer ABI to references/slices, affecting callers and likely conflicting with parser/FFI-style interfaces; the concrete hits are address-chain reloads that can be handled by S2 locally.; II_inl: The only concrete hit is `xmlNextChar` marked TooCostly [0]. This callee is external to the target function body and likely non-trivial parser machinery; forcing inline risks code-size growth in a hot parser path. Apply C3 first because shrinking redundant loads in the caller may make the remaining call acceptable; no safe concrete inlining plan is justified from the evidence alone.]\nfn htmlParseHTMLName(mut ctxt: htmlParserCtxtPtr) -> *const xmlChar { unsafe {\n    let mut ret: *const xmlChar = ::core::ptr::null::<xmlChar>();\n    let mut i: c_int = 0 as c_int;\n    let mut loc: [xmlChar; 100] = [0; 100];\n    let mut cur: *const xmlChar = (*(*ctxt).input).cur;\n    let mut c: c_int = *cur as c_int;\n    if !(0x41 as c_int <= c && c <= 0x5a as c_int\n        || 0x61 as c_int <= c && c <= 0x7a as c_int)\n        && c != '_' as i32\n        && c != ':' as i32\n        && c != '.' as i32\n    {\n        return ::core::ptr::null::<xmlChar>();\n    }\n    while i < HTML_PARSER_BUFFER_SIZE\n        && (0x41 as c_int <= c && c <= 0x5a as c_int\n            || 0x61 as c_int <= c && c <= 0x7a as c_int\n            || 0x30 as c_int <= c && c <= 0x39 as c_int\n            || c == ':' as i32\n            || c == '-' as i32\n            || c == '_' as i32\n            || c == '.' as i32)\n    {\n        if c >= 'A' as i32 && c <= 'Z' as i32 {\n            loc[i as usize] = (c + 0x20 as c_int) as xmlChar;\n        } else {\n            loc[i as usize] = *cur;\n        }\n        i += 1;\n        xmlNextChar(ctxt as xmlParserCtxtPtr);\n        cur = (*(*ctxt).input).cur;\n        c = *cur as c_int;\n    }\n    ret = xmlDictLookup((*ctxt).dict, &raw mut loc as *mut xmlChar, i);\n    if ret.is_null() {\n        htmlErrMemory(\n            ctxt as xmlParserCtxtPtr,\n            ::core::ptr::null::<c_char>(),\n        );\n    }\n    return ret;\n} }",
+            "start_byte": 366368
+          }
+        ],
+        "facts": {
+          "fn_name": "htmlParseHTMLName",
+          "target_span_hash": "5f048e0c2b9609751ebcfabc8fda27a5a75fd09801a6d6aede6bf4d5357f7a54"
+        },
+        "operation_id": "replace-04e8c7ceb876bd98"
+      }
+    ],
+    "resolved_head": "f9ecdde7271d90e0d2b152c070f156dd098e07f6"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_post_validation",
+  "touched_paths": [
+    "src/HTMLparser.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "added_bounds_check_in_loop",
+      "detail": "rewrite adds a bounds check inside a loop the original indexed unchecked (1 site(s)): loc[i as usize]",
+      "ok": false
+    }
+  ]
+}

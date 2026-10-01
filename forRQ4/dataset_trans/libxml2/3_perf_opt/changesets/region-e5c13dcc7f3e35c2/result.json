@@ -1,0 +1,227 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.289806173826943,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.4671904060123514,
+            "aggregate_ci_low_pct": 0.11242194164153466,
+            "aggregate_pct": 0.289806173826943,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.5053,
+                "ci_low_pct": -0.209,
+                "insns_delta_pct": -0.0091,
+                "mean_delta_pct": 0.1481,
+                "op": "entities_tree_valid",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.9911,
+                "ci_low_pct": 0.3002,
+                "insns_delta_pct": -0.0379,
+                "mean_delta_pct": 0.6456,
+                "op": "html_push_parse",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.2941,
+                "ci_low_pct": -0.1427,
+                "insns_delta_pct": -0.0104,
+                "mean_delta_pct": 0.0757,
+                "op": "writer_save",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "entities_tree_valid",
+          "html_push_parse",
+          "writer_save"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "html_push_parse"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "f9ecdde7271d90e0d2b152c070f156dd098e07f6",
+      "changeset_id": "region-e5c13dcc7f3e35c2",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [
+            "ea44daef2ecb03682037965b4010222d05cbb494c8e6b9477a2e4b3096a965a9"
+          ],
+          "operation_id": "replace-region-9c98baece0063422",
+          "region": {
+            "anchor_hit_ids": [
+              "ea44daef2ecb03682037965b4010222d05cbb494c8e6b9477a2e4b3096a965a9"
+            ],
+            "anchor_lines": [
+              10063
+            ],
+            "end_byte": 410580,
+            "expected_region_hash": "66347d76a072b652442cee1871a70af3c5644ca3326283a1a99bd0229f62539d",
+            "parent_kind": "block",
+            "region_kind": "node_sequence",
+            "relative_path": "src/HTMLparser.rs",
+            "start_byte": 408298,
+            "target_function": {
+              "declaration_hash": "66ee7da37cb11e6b260813f9e418627cbf10d2e9454ac49736716f6dc6ef9650",
+              "file_hint": "src/HTMLparser.rs",
+              "qualified_name": "htmlParseCharDataInternal",
+              "symbol_kind": "function"
+            }
+          },
+          "replacement_region_source": "let input = (*ctxt).input;\nlet mut input_cur = (*input).cur;\nif *input_cur as c_int == '\\n' as i32 {\n    (*input).line += 1;\n    (*input).col = 1 as c_int;\n} else {\n    (*input).col += 1;\n}\n(*ctxt).token = 0 as c_int;\ninput_cur = input_cur.offset(l as isize);\n(*input).cur = input_cur;\nif nbchar >= HTML_PARSER_BIG_BUFFER_SIZE {\n    // SAFETY: nbchar is used as a write position into `buf`, whose capacity is 1006;\n    // this flush path is reached only after appends bounded by that fixed buffer size,\n    // and the original code writes the terminating 0 at this exact index.\n    unsafe { *buf.get_unchecked_mut(nbchar as usize) = 0 as xmlChar; }\n    let sax = (*ctxt).sax;\n    if !sax.is_null() && (*ctxt).disableSAX == 0 {\n        if areBlanks(ctxt, &raw mut buf as *mut xmlChar, nbchar) != 0 {\n            if (*ctxt).keepBlanks != 0 {\n                let characters = (*sax).characters;\n                if characters.is_some() {\n                    characters.expect(\"non-null function pointer\")(\n                        (*ctxt).userData,\n                        &raw mut buf as *mut xmlChar,\n                        nbchar,\n                    );\n                }\n            } else {\n                let ignorable_whitespace = (*sax).ignorableWhitespace;\n                if ignorable_whitespace.is_some() {\n                    ignorable_whitespace.expect(\"non-null function pointer\")(\n                        (*ctxt).userData,\n                        &raw mut buf as *mut xmlChar,\n                        nbchar,\n                    );\n                }\n            }\n        } else {\n            htmlCheckParagraph(ctxt);\n            let characters = (*sax).characters;\n            if characters.is_some() {\n                characters.expect(\"non-null function pointer\")(\n                    (*ctxt).userData,\n                    &raw mut buf as *mut xmlChar,\n                    nbchar,\n                );\n            }\n        }\n    }\n    nbchar = 0 as c_int;\n    let base = (*input).base;\n    let end = (*input).end;\n    if input_cur.offset_from(base) as c_long > (2 as c_int * INPUT_CHUNK) as c_long\n        && (end.offset_from(input_cur) as c_long) < (2 as c_int * INPUT_CHUNK) as c_long\n    {\n        xmlParserShrink(ctxt as xmlParserCtxtPtr);\n    }\n}\ncur = htmlCurrentChar(ctxt as xmlParserCtxtPtr, &raw mut l);",
+          "rule_id": "C3"
+        }
+      ],
+      "trigger": {
+        "candidate_id": "htmlParseCharDataInternal-region-f9aad147c38b4ab5",
+        "evidence_artifacts": [],
+        "hit_ids": [
+          "ea44daef2ecb03682037965b4010222d05cbb494c8e6b9477a2e4b3096a965a9"
+        ],
+        "hot_function": "htmlParseCharDataInternal",
+        "rule_id": "C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "f312022b3eb45b31c6747ba1c4afe15e5f132cd88748db9539beaca4daa2d666",
+            "edit_id": "edit-replace-region-9c98baece0063422",
+            "end_byte": 410580,
+            "operation_id": "replace-region-9c98baece0063422",
+            "relative_path": "src/HTMLparser.rs",
+            "replacement_text": "let input = (*ctxt).input;\nlet mut input_cur = (*input).cur;\nif *input_cur as c_int == '\\n' as i32 {\n    (*input).line += 1;\n    (*input).col = 1 as c_int;\n} else {\n    (*input).col += 1;\n}\n(*ctxt).token = 0 as c_int;\ninput_cur = input_cur.offset(l as isize);\n(*input).cur = input_cur;\nif nbchar >= HTML_PARSER_BIG_BUFFER_SIZE {\n    // SAFETY: nbchar is used as a write position into `buf`, whose capacity is 1006;\n    // this flush path is reached only after appends bounded by that fixed buffer size,\n    // and the original code writes the terminating 0 at this exact index.\n    unsafe { *buf.get_unchecked_mut(nbchar as usize) = 0 as xmlChar; }\n    let sax = (*ctxt).sax;\n    if !sax.is_null() && (*ctxt).disableSAX == 0 {\n        if areBlanks(ctxt, &raw mut buf as *mut xmlChar, nbchar) != 0 {\n            if (*ctxt).keepBlanks != 0 {\n                let characters = (*sax).characters;\n                if characters.is_some() {\n                    characters.expect(\"non-null function pointer\")(\n                        (*ctxt).userData,\n                        &raw mut buf as *mut xmlChar,\n                        nbchar,\n                    );\n                }\n            } else {\n                let ignorable_whitespace = (*sax).ignorableWhitespace;\n                if ignorable_whitespace.is_some() {\n                    ignorable_whitespace.expect(\"non-null function pointer\")(\n                        (*ctxt).userData,\n                        &raw mut buf as *mut xmlChar,\n                        nbchar,\n                    );\n                }\n            }\n        } else {\n            htmlCheckParagraph(ctxt);\n            let characters = (*sax).characters;\n            if characters.is_some() {\n                characters.expect(\"non-null function pointer\")(\n                    (*ctxt).userData,\n                    &raw mut buf as *mut xmlChar,\n                    nbchar,\n                );\n            }\n        }\n    }\n    nbchar = 0 as c_int;\n    let base = (*input).base;\n    let end = (*input).end;\n    if input_cur.offset_from(base) as c_long > (2 as c_int * INPUT_CHUNK) as c_long\n        && (end.offset_from(input_cur) as c_long) < (2 as c_int * INPUT_CHUNK) as c_long\n    {\n        xmlParserShrink(ctxt as xmlParserCtxtPtr);\n    }\n}\ncur = htmlCurrentChar(ctxt as xmlParserCtxtPtr, &raw mut l);",
+            "start_byte": 408298
+          }
+        ],
+        "facts": {
+          "declaration_span": [
+            406650,
+            412163
+          ],
+          "function_name": "htmlParseCharDataInternal",
+          "function_parent_fingerprint": [
+            {
+              "index": 0,
+              "type": "source_file"
+            },
+            {
+              "index": 1144,
+              "type": "function_item"
+            }
+          ],
+          "function_span": [
+            406650,
+            412163
+          ],
+          "original_file_length": 670156,
+          "original_item_counts": {
+            "extern_crate_declaration": 0,
+            "foreign_mod_item": 1,
+            "function_item": 98,
+            "function_signature_item": 36,
+            "impl_item": 0,
+            "macro_definition": 0,
+            "mod_item": 0,
+            "trait_item": 0
+          },
+          "original_region_length": 2282,
+          "original_region_macro_hashes": [],
+          "original_region_node_types": [
+            "let_declaration",
+            "let_declaration",
+            "expression_statement",
+            "expression_statement",
+            "expression_statement",
+            "expression_statement",
+            "expression_statement"
+          ],
+          "parent_kind": "block",
+          "prefix_sha256": "af6592e628b580f3bc7005a2d8f05aa4c5706bdd71333d27cb817933e84401db",
+          "region_kind": "node_sequence",
+          "region_line_bounds": [
+            10033,
+            10090
+          ],
+          "suffix_sha256": "56950747192d6f9c7f52dff054629cc06bb03e5a95c1ab172a6a03eee585e141"
+        },
+        "operation_id": "replace-region-9c98baece0063422"
+      }
+    ],
+    "resolved_head": "f9ecdde7271d90e0d2b152c070f156dd098e07f6"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/HTMLparser.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_region_shape",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_region_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

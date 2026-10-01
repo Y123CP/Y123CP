@@ -1,0 +1,520 @@
+{
+  "hot_function": {
+    "symbol": "getPixelColorRGBA8",
+    "location": "src/lodepng.rs:7424-7599",
+    "workload": "color_convert",
+    "hot_region": "src/lodepng.rs:7424-7599",
+    "rust_source": "unsafe fn getPixelColorRGBA8(\n    mut r: *mut c_uchar,\n    mut g: *mut c_uchar,\n    mut b: *mut c_uchar,\n    mut a: *mut c_uchar,\n    mut in_0: *const c_uchar,\n    mut i: size_t,\n    mut mode: *const LodePNGColorMode,\n) {\n    let r_view: &mut c_uchar = unsafe { &mut *r };\n    if (*mode).colortype as c_uint\n        == LCT_GREY as c_int as c_uint\n    {\n        if (*mode).bitdepth == 8 as c_uint {\n            *b = *in_0.offset(i as isize);\n            *g = *b;\n            *r_view = *g;\n            if (*mode).key_defined != 0 && *r_view as c_uint == (*mode).key_r {\n                *a = 0 as c_uchar;\n            } else {\n                *a = 255 as c_uchar;\n            }\n        } else if (*mode).bitdepth == 16 as c_uint {\n            *b = *in_0.offset(i.wrapping_mul(2 as size_t).wrapping_add(0 as size_t) as isize);\n            *g = *b;\n            *r_view = *g;\n            if (*mode).key_defined != 0\n                && (256 as c_uint)\n                    .wrapping_mul(\n                        *in_0.offset(i.wrapping_mul(2 as size_t).wrapping_add(0 as size_t) as isize)\n                            as c_uint,\n                    )\n                    .wrapping_add(\n                        *in_0.offset(i.wrapping_mul(2 as size_t).wrapping_add(1 as size_t) as isize)\n                            as c_uint,\n                    )\n                    == (*mode).key_r\n            {\n                *a = 0 as c_uchar;\n            } else {\n                *a = 255 as c_uchar;\n            }\n        } else {\n            let mut highest: c_uint = ((1 as c_uint) << (*mode).bitdepth)\n                .wrapping_sub(1 as c_uint);\n            let mut j: size_t = i.wrapping_mul((*mode).bitdepth as size_t);\n            let mut value: c_uint =\n                readBitsFromReversedStream(&raw mut j, in_0, (*mode).bitdepth as size_t);\n            *b = value\n                .wrapping_mul(255 as c_uint)\n                .wrapping_div(highest) as c_uchar;\n            *g = *b;\n            *r_view = *g;\n            if (*mode).key_defined != 0 && value == (*mode).key_r {\n                *a = 0 as c_uchar;\n            } else {\n                *a = 255 as c_uchar;\n            }\n        }\n    } else if (*mode).colortype as c_uint\n        == LCT_RGB as c_int as c_uint\n    {\n        if (*mode).bitdepth == 8 as c_uint {\n            *r_view = *in_0.offset(i.wrapping_mul(3 as size_t).wrapping_add(0 as size_t) as isize);\n            *g = *in_0.offset(i.wrapping_mul(3 as size_t).wrapping_add(1 as size_t) as isize);\n            *b = *in_0.offset(i.wrapping_mul(3 as size_t).wrapping_add(2 as size_t) as isize);\n            if (*mode).key_defined != 0\n                && *r_view as c_uint == (*mode).key_r\n                && *g as c_uint == (*mode).key_g\n                && *b as c_uint == (*mode).key_b\n            {\n                *a = 0 as c_uchar;\n            } else {\n                *a = 255 as c_uchar;\n            }\n        } else {\n            *r_view = *in_0.offset(i.wrapping_mul(6 as size_t).wrapping_add(0 as size_t) as isize);\n            *g = *in_0.offset(i.wrapping_mul(6 as size_t).wrapping_add(2 as size_t) as isize);\n            *b = *in_0.offset(i.wrapping_mul(6 as size_t).wrapping_add(4 as size_t) as isize);\n            if (*mode).key_defined != 0\n                && (256 as c_uint)\n                    .wrapping_mul(\n                        *in_0.offset(i.wrapping_mul(6 as size_t).wrapping_add(0 as size_t) as isize)\n                            as c_uint,\n                    )\n                    .wrapping_add(\n                        *in_0.offset(i.wrapping_mul(6 as size_t).wrapping_add(1 as size_t) as isize)\n                            as c_uint,\n                    )\n                    == (*mode).key_r\n                && (256 as c_uint)\n                    .wrapping_mul(\n                        *in_0.offset(i.wrapping_mul(6 as size_t).wrapping_add(2 as size_t) as isize)\n                            as c_uint,\n                    )\n                    .wrapping_add(\n                        *in_0.offset(i.wrapping_mul(6 as size_t).wrapping_add(3 as size_t) as isize)\n                            as c_uint,\n                    )\n                    == (*mode).key_g\n                && (256 as c_uint)\n                    .wrapping_mul(\n                        *in_0.offset(i.wrapping_mul(6 as size_t).wrapping_add(4 as size_t) as isize)\n                            as c_uint,\n                    )\n                    .wrapping_add(\n                        *in_0.offset(i.wrapping_mul(6 as size_t).wrapping_add(5 as size_t) as isize)\n                            as c_uint,\n                    )\n                    == (*mode).key_b\n            {\n                *a = 0 as c_uchar;\n            } else {\n                *a = 255 as c_uchar;\n            }\n        }\n    } else if (*mode).colortype as c_uint\n        == LCT_PALETTE as c_int as c_uint\n    {\n        let mut index: c_uint = 0;\n        if (*mode).bitdepth == 8 as c_uint {\n            index = *in_0.offset(i as isize) as c_uint;\n        } else {\n            let mut j_0: size_t = i.wrapping_mul((*mode).bitdepth as size_t);\n            index = readBitsFromReversedStream(&raw mut j_0, in_0, (*mode).bitdepth as size_t);\n        }\n        *r_view = *(*mode).palette.offset(\n            index\n                .wrapping_mul(4 as c_uint)\n                .wrapping_add(0 as c_uint) as isize,\n        );\n        *g = *(*mode).palette.offset(\n            index\n                .wrapping_mul(4 as c_uint)\n                .wrapping_add(1 as c_uint) as isize,\n        );\n        *b = *(*mode).palette.offset(\n            index\n                .wrapping_mul(4 as c_uint)\n                .wrapping_add(2 as c_uint) as isize,\n        );\n        *a = *(*mode).palette.offset(\n            index\n                .wrapping_mul(4 as c_uint)\n                .wrapping_add(3 as c_uint) as isize,\n        );\n    } else if (*mode).colortype as c_uint\n        == LCT_GREY_ALPHA as c_int as c_uint\n    {\n        if (*mode).bitdepth == 8 as c_uint {\n            *b = *in_0.offset(i.wrapping_mul(2 as size_t).wrapping_add(0 as size_t) as isize);\n            *g = *b;\n            *r_view = *g;\n            *a = *in_0.offset(i.wrapping_mul(2 as size_t).wrapping_add(1 as size_t) as isize);\n        } else {\n            *b = *in_0.offset(i.wrapping_mul(4 as size_t).wrapping_add(0 as size_t) as isize);\n            *g = *b;\n            *r_view = *g;\n            *a = *in_0.offset(i.wrapping_mul(4 as size_t).wrapping_add(2 as size_t) as isize);\n        }\n    } else if (*mode).colortype as c_uint\n        == LCT_RGBA as c_int as c_uint\n    {\n        if (*mode).bitdepth == 8 as c_uint {\n            *r_view = *in_0.offset(i.wrapping_mul(4 as size_t).wrapping_add(0 as size_t) as isize);\n            *g = *in_0.offset(i.wrapping_mul(4 as size_t).wrapping_add(1 as size_t) as isize);\n            *b = *in_0.offset(i.wrapping_mul(4 as size_t).wrapping_add(2 as size_t) as isize);\n            *a = *in_0.offset(i.wrapping_mul(4 as size_t).wrapping_add(3 as size_t) as isize);\n        } else {\n            *r_view = *in_0.offset(i.wrapping_mul(8 as size_t).wrapping_add(0 as size_t) as isize);\n            *g = *in_0.offset(i.wrapping_mul(8 as size_t).wrapping_add(2 as size_t) as isize);\n            *b = *in_0.offset(i.wrapping_mul(8 as size_t).wrapping_add(4 as size_t) as isize);\n            *a = *in_0.offset(i.wrapping_mul(8 as size_t).wrapping_add(6 as size_t) as isize);\n        }\n    }\n}",
+    "signature": "unsafe fn getPixelColorRGBA8(\n    mut r: *mut c_uchar,\n    mut g: *mut c_uchar,\n    mut b: *mut c_uchar,\n    mut a: *mut c_uchar,\n    mut in_0: *const c_uchar,\n    mut i: size_t,\n    mut mode: *const LodePNGColorMode,\n)",
+    "profile": {
+      "self_time_ratio": 0.3171,
+      "call_count": null,
+      "retired_instructions": 7068750353,
+      "instructions_per_call": null,
+      "cpi": 0.273,
+      "tma": {
+        "scope": "process",
+        "retiring": 83.2335873096292,
+        "frontend_bound": 7.418840427145197,
+        "bad_speculation": 0.10279047718839651,
+        "backend_bound": 9.244781786037205,
+        "memory_bound": 6.098685402379559,
+        "core_bound": 3.146096383657646,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 7471,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng26readBitsFromReversedStream17h36b7d46b0d38ad23E' inlined into '_ZN15lodepng_cleaned3src7lodepng18getPixelColorRGBA817h749aa197a27c62b9E' with (cost=30, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng18getPixelColorRGBA817h749aa197a27c62b9E:47:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 7548,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng26readBitsFromReversedStream17h36b7d46b0d38ad23E' inlined into '_ZN15lodepng_cleaned3src7lodepng18getPixelColorRGBA817h749aa197a27c62b9E' with (cost=30, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng18getPixelColorRGBA817h749aa197a27c62b9E:124:21;"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7594,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7595,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7596,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7589,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7590,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7591,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7582,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7577,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7555,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7555,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7560,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7560,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7565,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7565,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7501,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7502,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7503,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7506,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7513,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7516,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7520,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7523,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7526,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7530,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7533,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7488,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7489,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7490,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7491,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7491,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7492,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7492,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7493,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7450,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7453,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7460,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7441,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7441,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7477,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7477,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7424,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorRGBA817h749aa197a27c62b9E: MI Instruction count changed from 0 to 350; Delta: 350"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7424,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorRGBA817h749aa197a27c62b9E: MI Instruction count changed from 350 to 346; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7424,
+        "message": "Peephole Optimizations: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorRGBA817h749aa197a27c62b9E: MI Instruction count changed from 346 to 339; Delta: -7"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7424,
+        "message": "X86 Fixup SetCC: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorRGBA817h749aa197a27c62b9E: MI Instruction count changed from 339 to 343; Delta: 4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7424,
+        "message": "Process Implicit Definitions: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorRGBA817h749aa197a27c62b9E: MI Instruction count changed from 343 to 337; Delta: -6"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7424,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorRGBA817h749aa197a27c62b9E: MI Instruction count changed from 337 to 386; Delta: 49"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7424,
+        "message": "Two-Address instruction pass: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorRGBA817h749aa197a27c62b9E: MI Instruction count changed from 386 to 456; Delta: 70"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7424,
+        "message": "Register Coalescer: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorRGBA817h749aa197a27c62b9E: MI Instruction count changed from 456 to 307; Delta: -149"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 7424,
+        "message": "16 virtual registers copies 5.824651e+00 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7424,
+        "message": "Virtual Register Rewriter: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorRGBA817h749aa197a27c62b9E: MI Instruction count changed from 307 to 297; Delta: -10"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 7424,
+        "message": "40 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7424,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorRGBA817h749aa197a27c62b9E: MI Instruction count changed from 297 to 320; Delta: 23"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7424,
+        "message": "Control Flow Optimizer: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorRGBA817h749aa197a27c62b9E: MI Instruction count changed from 320 to 294; Delta: -26"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7424,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorRGBA817h749aa197a27c62b9E: MI Instruction count changed from 294 to 290; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7424,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorRGBA817h749aa197a27c62b9E: MI Instruction count changed from 290 to 291; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7437,
+        "message": "BasicBlock: bb1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7437,
+        "message": "BasicBlock: bb1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7438,
+        "message": "BasicBlock: bb2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7441,
+        "message": "BasicBlock: bb3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7486,
+        "message": "BasicBlock: bb26"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7491,
+        "message": "BasicBlock: bb28"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7492,
+        "message": "BasicBlock: bb29"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7493,
+        "message": "BasicBlock: bb30"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7544,
+        "message": "BasicBlock: bb50"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7545,
+        "message": "BasicBlock: bb51"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7573,
+        "message": "BasicBlock: bb56"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7574,
+        "message": "BasicBlock: bb57"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7587,
+        "message": "BasicBlock: bb60"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7588,
+        "message": "BasicBlock: bb61"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7506,
+        "message": "BasicBlock: bb39"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7579,
+        "message": "BasicBlock: bb58"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7593,
+        "message": "BasicBlock: bb62"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7447,
+        "message": "BasicBlock: bb10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7477,
+        "message": "BasicBlock: bb19"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7550,
+        "message": "BasicBlock: bb54"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7599,
+        "message": "BasicBlock: bb64"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7424,
+        "message": "273 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "hot_function": {
+    "symbol": "Mask_calcN2",
+    "location": "src/mask.rs:434-474",
+    "workload": "encode_string_api",
+    "hot_region": "src/mask.rs:434-474",
+    "rust_source": "unsafe fn Mask_calcN2(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n) -> c_int {\n    let mut x: c_int = 0;\n    let mut y: c_int = 0;\n    let mut p: *mut c_uchar = ::core::ptr::null_mut::<c_uchar>();\n    let mut b22: c_uchar = 0;\n    let mut w22: c_uchar = 0;\n    let mut demerit: c_int = 0 as c_int;\n    p = frame\n        .offset(width as isize)\n        .offset(1 as c_int as isize);\n    y = 1 as c_int;\n    while y < width {\n        x = 1 as c_int;\n        while x < width {\n            b22 = (*p.offset(0 as c_int as isize) as c_int\n                & *p.offset(-(1 as c_int) as isize) as c_int\n                & *p.offset(-width as isize) as c_int\n                & *p.offset((-width - 1 as c_int) as isize) as c_int)\n                as c_uchar;\n            w22 = (*p.offset(0 as c_int as isize) as c_int\n                | *p.offset(-(1 as c_int) as isize) as c_int\n                | *p.offset(-width as isize) as c_int\n                | *p.offset((-width - 1 as c_int) as isize) as c_int)\n                as c_uchar;\n            if (b22 as c_int | w22 as c_int ^ 1 as c_int)\n                & 1 as c_int\n                != 0\n            {\n                demerit += N2;\n            }\n            p = p.offset(1);\n            x += 1;\n        }\n        p = p.offset(1);\n        y += 1;\n    }\n    return demerit;\n}",
+    "signature": "unsafe fn Mask_calcN2(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.0826,
+      "call_count": null,
+      "retired_instructions": 2588503008,
+      "instructions_per_call": null,
+      "cpi": 0.183,
+      "tma": {
+        "scope": "process",
+        "retiring": 38.110322116588414,
+        "frontend_bound": 14.935132557090517,
+        "bad_speculation": 38.15578163362414,
+        "backend_bound": 8.798763692696937,
+        "memory_bound": 2.521473728289139,
+        "core_bound": 6.277289964407798,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.1043
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "bad_speculation",
+    "class_i_hits": {},
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 453,
+        "message": "hoisting sub"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 453,
+        "message": "hoisting sext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 454,
+        "message": "hoisting xor"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 454,
+        "message": "hoisting sext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 450,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 452,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 450,
+        "message": "4 virtual registers copies 2.047938e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 448,
+        "message": "2 spills 3.196875e+01 total spills cost 3 reloads 4.795312e+01 total reloads cost 6 virtual registers copies 2.079906e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 448,
+        "message": "BasicBlock: bb8.lr.ph"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

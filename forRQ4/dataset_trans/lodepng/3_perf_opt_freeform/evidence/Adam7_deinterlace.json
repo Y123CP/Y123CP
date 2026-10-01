@@ -1,0 +1,490 @@
+{
+  "hot_function": {
+    "symbol": "Adam7_deinterlace",
+    "location": "src/lodepng.rs:9912-10013",
+    "workload": "decode24_png",
+    "hot_region": "src/lodepng.rs:9912-10013",
+    "rust_source": "unsafe fn Adam7_deinterlace(\n    mut out: *mut c_uchar,\n    mut in_0: *const c_uchar,\n    mut w: c_uint,\n    mut h: c_uint,\n    mut bpp: c_uint,\n) {\n    let mut passw: [c_uint; 7] = [0; 7];\n    let mut passh: [c_uint; 7] = [0; 7];\n    let mut filter_passstart: [size_t; 8] = [0; 8];\n    let mut padded_passstart: [size_t; 8] = [0; 8];\n    let mut passstart: [size_t; 8] = [0; 8];\n    let mut i: c_uint = 0;\n    Adam7_getpassvalues(\n        &raw mut passw as *mut c_uint,\n        &raw mut passh as *mut c_uint,\n        &raw mut filter_passstart as *mut size_t,\n        &raw mut padded_passstart as *mut size_t,\n        &raw mut passstart as *mut size_t,\n        w,\n        h,\n        bpp,\n    );\n    if bpp >= 8 as c_uint {\n        i = 0 as c_uint;\n        while i != 7 as c_uint {\n            let mut x: c_uint = 0;\n            let mut y: c_uint = 0;\n            let mut b: c_uint = 0;\n            let mut bytewidth: size_t = bpp.wrapping_div(8 as c_uint) as size_t;\n            y = 0 as c_uint;\n            while y < passh[i as usize] {\n                x = 0 as c_uint;\n                while x < passw[i as usize] {\n                    let mut pixelinstart: size_t = passstart[i as usize].wrapping_add(\n                        (y.wrapping_mul(passw[i as usize]).wrapping_add(x) as size_t)\n                            .wrapping_mul(bytewidth),\n                    );\n                    let mut pixeloutstart: size_t = (ADAM7_IY[i as usize] as size_t)\n                        .wrapping_add((y as size_t).wrapping_mul(ADAM7_DY[i as usize] as size_t))\n                        .wrapping_mul(w as size_t)\n                        .wrapping_add(ADAM7_IX[i as usize] as size_t)\n                        .wrapping_add((x as size_t).wrapping_mul(ADAM7_DX[i as usize] as size_t))\n                        .wrapping_mul(bytewidth);\n                    b = 0 as c_uint;\n                    while (b as size_t) < bytewidth {\n                        *out.offset(pixeloutstart.wrapping_add(b as size_t) as isize) =\n                            *in_0.offset(pixelinstart.wrapping_add(b as size_t) as isize);\n                        b = b.wrapping_add(1);\n                    }\n                    x = x.wrapping_add(1);\n                }\n                y = y.wrapping_add(1);\n            }\n            i = i.wrapping_add(1);\n        }\n    } else {\n        i = 0 as c_uint;\n        while i != 7 as c_uint {\n            let mut x_0: c_uint = 0;\n            let mut y_0: c_uint = 0;\n            let mut b_0: c_uint = 0;\n            let mut ilinebits: c_uint = bpp.wrapping_mul(passw[i as usize]);\n            let mut olinebits: c_uint = bpp.wrapping_mul(w);\n            let mut obp: size_t = 0;\n            let mut ibp: size_t = 0;\n            y_0 = 0 as c_uint;\n            while y_0 < passh[i as usize] {\n                x_0 = 0 as c_uint;\n                while x_0 < passw[i as usize] {\n                    ibp = (8 as size_t)\n                        .wrapping_mul(passstart[i as usize])\n                        .wrapping_add(\n                            y_0.wrapping_mul(ilinebits)\n                                .wrapping_add(x_0.wrapping_mul(bpp))\n                                as size_t,\n                        );\n                    obp = (ADAM7_IY[i as usize] as size_t)\n                        .wrapping_add((y_0 as size_t).wrapping_mul(ADAM7_DY[i as usize] as size_t))\n                        .wrapping_mul(olinebits as size_t)\n                        .wrapping_add(\n                            (ADAM7_IX[i as usize] as size_t)\n                                .wrapping_add(\n                                    (x_0 as size_t).wrapping_mul(ADAM7_DX[i as usize] as size_t),\n                                )\n                                .wrapping_mul(bpp as size_t),\n                        );\n                    b_0 = 0 as c_uint;\n                    while b_0 < bpp {\n                        let mut bit: c_uchar =\n                            readBitFromReversedStream(&raw mut ibp, in_0);\n                        setBitOfReversedStream(&raw mut obp, out, bit);\n                        b_0 = b_0.wrapping_add(1);\n                    }\n                    x_0 = x_0.wrapping_add(1);\n                }\n                y_0 = y_0.wrapping_add(1);\n            }\n            i = i.wrapping_add(1);\n        }\n    };\n}",
+    "signature": "unsafe fn Adam7_deinterlace(\n    mut out: *mut c_uchar,\n    mut in_0: *const c_uchar,\n    mut w: c_uint,\n    mut h: c_uint,\n    mut bpp: c_uint,\n)",
+    "profile": {
+      "self_time_ratio": 0.1376,
+      "call_count": null,
+      "retired_instructions": 1682169150,
+      "instructions_per_call": null,
+      "cpi": 0.478,
+      "tma": {
+        "scope": "process",
+        "retiring": 73.05023858833995,
+        "frontend_bound": 8.351538437492318,
+        "bad_speculation": 1.2801040055295476,
+        "backend_bound": 17.318118968638178,
+        "memory_bound": 14.350734783863505,
+        "core_bound": 2.9673841847746734,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0021
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 9974,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN15lodepng_cleaned3src7lodepng17Adam7_deinterlace17h66889c4f5efd3ebeE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 9943,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN15lodepng_cleaned3src7lodepng17Adam7_deinterlace17h66889c4f5efd3ebeE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 9925,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng19Adam7_getpassvalues17hbfe70b34af5b403aE' not inlined into '_ZN15lodepng_cleaned3src7lodepng17Adam7_deinterlace17h66889c4f5efd3ebeE' because too costly to inline (cost=875, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 10003,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng22setBitOfReversedStream17h74b463af49f08d9bE' inlined into '_ZN15lodepng_cleaned3src7lodepng17Adam7_deinterlace17h66889c4f5efd3ebeE' with (cost=15, threshold=787) at callsite _ZN15lodepng_cleaned3src7lodepng17Adam7_deinterlace17h66889c4f5efd3ebeE:91:25;"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9983,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9983,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9990,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9989,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9989,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9989,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9990,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9990,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9990,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9991,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9993,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9993,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9993,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9995,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9995,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9995,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9997,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 10000,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9979,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9979,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9981,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9945,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9945,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9946,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9946,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9951,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9951,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9951,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9951,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9950,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9950,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9950,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9952,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9953,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9953,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9953,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9954,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9954,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9954,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9957,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9943,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9943,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9943,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9943,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9945,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9941,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 9979,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 9981,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 9974,
+        "message": "completely unrolled loop with 7 iterations"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 9943,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 9945,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9974,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9981,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9957,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9945,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 9925,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng19Adam7_getpassvalues17hbfe70b34af5b403aE' not inlined into '_ZN15lodepng_cleaned3src7lodepng20postProcessScanlines17h02dee66c4ac35a6dE' because too costly to inline (cost=875, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 9925,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng19Adam7_getpassvalues17hbfe70b34af5b403aE' not inlined into '_ZN15lodepng_cleaned3src7lodepng13decodeGeneric17h2688e482b81e2b23E' because too costly to inline (cost=875, threshold=45)"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 9945,
+        "message": "1 folded spills 2.947871e-06 total folded spills cost 7 reloads 1.097247e-05 total reloads cost 10 folded reloads 2.847114e-05 total folded reloads cost 5 virtual registers copies 5.249456e-06 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 9943,
+        "message": "5 spills 4.606049e-07 total spills cost 3 folded spills 3.132113e-06 total folded spills cost 15 reloads 1.170944e-05 total reloads cost 14 folded reloads 2.883962e-05 total folded reloads cost 7 virtual registers copies 5.433697e-06 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 9943,
+        "message": "18 spills 5.087381e-07 total spills cost 3 folded spills 3.132113e-06 total folded spills cost 22 reloads 1.174030e-05 total reloads cost 18 folded reloads 2.885114e-05 total folded reloads cost 9 virtual registers copies 5.448437e-06 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 10000,
+        "message": "1 reloads 1.207448e-04 total reloads cost 6 virtual registers copies 7.244687e-04 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 9981,
+        "message": "1 spills 3.773275e-06 total spills cost 6 reloads 1.396111e-04 total reloads cost 6 folded reloads 2.263965e-05 total folded reloads cost 9 virtual registers copies 7.357885e-04 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 9979,
+        "message": "5 spills 4.244934e-06 total spills cost 8 reloads 1.398470e-04 total reloads cost 11 folded reloads 2.322922e-05 total folded reloads cost 12 virtual registers copies 7.361423e-04 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 10000,
+        "message": "14 spills 4.287309e-06 total spills cost 12 reloads 1.398709e-04 total reloads cost 11 folded reloads 2.322922e-05 total folded reloads cost 14 virtual registers copies 7.361571e-04 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9919,
+        "message": "BasicBlock: bb29.i442.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9959,
+        "message": "BasicBlock: bb18.us.us.us.us.us.i.i.i.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9957,
+        "message": "BasicBlock: bb18.us.us.us.us.us.i.i.i.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9959,
+        "message": "BasicBlock: bb18.us.us.us.us.us.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9959,
+        "message": "BasicBlock: vector.body54"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9959,
+        "message": "BasicBlock: vec.epilog.vector.body70"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

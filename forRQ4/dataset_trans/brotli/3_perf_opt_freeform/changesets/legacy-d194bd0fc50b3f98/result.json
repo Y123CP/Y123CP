@@ -1,0 +1,143 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 42.950140598214524,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 42.982772202024975,
+            "aggregate_ci_low_pct": 42.91750899440407,
+            "aggregate_pct": 42.950140598214524,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 42.9828,
+                "ci_low_pct": 42.9175,
+                "insns_delta_pct": 7.7287,
+                "mean_delta_pct": 42.9501,
+                "op": "api_sweep",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "api_sweep",
+          "encode_buffer",
+          "shared_dict_roundtrip",
+          "stream_roundtrip"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "api_sweep"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be",
+      "changeset_id": "legacy-d194bd0fc50b3f98",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-d8ccc3d71d8e4152",
+          "replacement_function_source": "unsafe fn BrotliParseAsUTF8(\n    mut symbol: *mut c_int,\n    mut input: *const uint8_t,\n    mut size: size_t,\n) -> size_t {\n    let b0 = {\n        // SAFETY: The original function unconditionally reads input[0], so callers must provide at least one readable byte.\n        *input as c_int\n    };\n\n    if b0 & 0x80 == 0 {\n        *symbol = b0;\n        if b0 > 0 {\n            return 1 as size_t;\n        }\n    }\n\n    if size > 1 as size_t {\n        let b1 = {\n            // SAFETY: This branch is only taken when size > 1, matching the original bounds check before reading input[1].\n            *input.add(1) as c_int\n        };\n        if b0 & 0xe0 == 0xc0 && b1 & 0xc0 == 0x80 {\n            let s = ((b0 & 0x1f) << 6) | (b1 & 0x3f);\n            *symbol = s;\n            if s > 0x7f {\n                return 2 as size_t;\n            }\n        }\n\n        if size > 2 as size_t {\n            let b2 = {\n                // SAFETY: This branch is only taken when size > 2, matching the original bounds check before reading input[2].\n                *input.add(2) as c_int\n            };\n            if b0 & 0xf0 == 0xe0 && b1 & 0xc0 == 0x80 && b2 & 0xc0 == 0x80 {\n                let s = ((b0 & 0xf) << 12) | ((b1 & 0x3f) << 6) | (b2 & 0x3f);\n                *symbol = s;\n                if s > 0x7ff {\n                    return 3 as size_t;\n                }\n            }\n\n            if size > 3 as size_t {\n                let b3 = {\n                    // SAFETY: This branch is only taken when size > 3, matching the original bounds check before reading input[3].\n                    *input.add(3) as c_int\n                };\n                if b0 & 0xf8 == 0xf0\n                    && b1 & 0xc0 == 0x80\n                    && b2 & 0xc0 == 0x80\n                    && b3 & 0xc0 == 0x80\n                {\n                    let s = ((b0 & 0x7) << 18)\n                        | ((b1 & 0x3f) << 12)\n                        | ((b2 & 0x3f) << 6)\n                        | (b3 & 0x3f);\n                    *symbol = s;\n                    if s > 0xffff && s <= 0x10ffff {\n                        return 4 as size_t;\n                    }\n                }\n            }\n        }\n    }\n\n    *symbol = 0x110000 | b0;\n    1 as size_t\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "f9d5f548379c64497ec1933809699d6834ebc2dc32560e8d87b6dddf72de8c10",
+            "file_hint": "src/enc/utf8_util.rs",
+            "qualified_name": "crate::BrotliParseAsUTF8",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "BrotliParseAsUTF8-8bbbd52e41fc",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "BrotliParseAsUTF8",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "f32331b7cdc7e66aa5c8de8ee9d077e77eccdc247626ea63a97f2eb65d293115",
+            "edit_id": "edit-replace-d8ccc3d71d8e4152",
+            "end_byte": 2956,
+            "operation_id": "replace-d8ccc3d71d8e4152",
+            "relative_path": "src/enc/utf8_util.rs",
+            "replacement_text": "unsafe fn BrotliParseAsUTF8(\n    mut symbol: *mut c_int,\n    mut input: *const uint8_t,\n    mut size: size_t,\n) -> size_t {\n    let b0 = {\n        // SAFETY: The original function unconditionally reads input[0], so callers must provide at least one readable byte.\n        *input as c_int\n    };\n\n    if b0 & 0x80 == 0 {\n        *symbol = b0;\n        if b0 > 0 {\n            return 1 as size_t;\n        }\n    }\n\n    if size > 1 as size_t {\n        let b1 = {\n            // SAFETY: This branch is only taken when size > 1, matching the original bounds check before reading input[1].\n            *input.add(1) as c_int\n        };\n        if b0 & 0xe0 == 0xc0 && b1 & 0xc0 == 0x80 {\n            let s = ((b0 & 0x1f) << 6) | (b1 & 0x3f);\n            *symbol = s;\n            if s > 0x7f {\n                return 2 as size_t;\n            }\n        }\n\n        if size > 2 as size_t {\n            let b2 = {\n                // SAFETY: This branch is only taken when size > 2, matching the original bounds check before reading input[2].\n                *input.add(2) as c_int\n            };\n            if b0 & 0xf0 == 0xe0 && b1 & 0xc0 == 0x80 && b2 & 0xc0 == 0x80 {\n                let s = ((b0 & 0xf) << 12) | ((b1 & 0x3f) << 6) | (b2 & 0x3f);\n                *symbol = s;\n                if s > 0x7ff {\n                    return 3 as size_t;\n                }\n            }\n\n            if size > 3 as size_t {\n                let b3 = {\n                    // SAFETY: This branch is only taken when size > 3, matching the original bounds check before reading input[3].\n                    *input.add(3) as c_int\n                };\n                if b0 & 0xf8 == 0xf0\n                    && b1 & 0xc0 == 0x80\n                    && b2 & 0xc0 == 0x80\n                    && b3 & 0xc0 == 0x80\n                {\n                    let s = ((b0 & 0x7) << 18)\n                        | ((b1 & 0x3f) << 12)\n                        | ((b2 & 0x3f) << 6)\n                        | (b3 & 0x3f);\n                    *symbol = s;\n                    if s > 0xffff && s <= 0x10ffff {\n                        return 4 as size_t;\n                    }\n                }\n            }\n        }\n    }\n\n    *symbol = 0x110000 | b0;\n    1 as size_t\n}",
+            "start_byte": 84
+          }
+        ],
+        "facts": {
+          "fn_name": "BrotliParseAsUTF8",
+          "target_span_hash": "f9d5f548379c64497ec1933809699d6834ebc2dc32560e8d87b6dddf72de8c10"
+        },
+        "operation_id": "replace-d8ccc3d71d8e4152"
+      }
+    ],
+    "resolved_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/enc/utf8_util.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

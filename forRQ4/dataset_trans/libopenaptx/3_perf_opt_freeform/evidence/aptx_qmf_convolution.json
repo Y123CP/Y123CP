@@ -1,0 +1,76 @@
+{
+  "hot_function": {
+    "symbol": "aptx_qmf_convolution",
+    "location": "src/openaptx.rs:1985-2001",
+    "workload": "decode_sync_hd",
+    "hot_region": "src/openaptx.rs:1985-2001",
+    "rust_source": "unsafe fn aptx_qmf_convolution(\n    mut signal: *const aptx_filter_signal,\n    mut coeffs: *const int32_t,\n    mut shift: c_uint,\n) -> int32_t {\n    let signal_view: &aptx_filter_signal = unsafe { &*signal };\n    let mut sig: *const int32_t = (&raw const signal_view.buffer as *const int32_t)\n        .offset(signal_view.pos as isize) as *const int32_t;\n    let mut e: int64_t = 0 as int64_t;\n    let mut i: c_uint = 0;\n    i = 0 as c_uint;\n    while i < FILTER_TAPS as c_uint {\n        e += *sig.offset(i as isize) as int64_t * *coeffs.offset(i as isize) as int64_t;\n        i = i.wrapping_add(1);\n    }\n    return rshift64_clip24(e, shift);\n}",
+    "signature": "unsafe fn aptx_qmf_convolution(\n    mut signal: *const aptx_filter_signal,\n    mut coeffs: *const int32_t,\n    mut shift: c_uint,\n) -> int32_t",
+    "profile": {
+      "self_time_ratio": 0.233,
+      "call_count": null,
+      "retired_instructions": 3057260924,
+      "instructions_per_call": null,
+      "cpi": 0.451,
+      "tma": {
+        "scope": "process",
+        "retiring": 79.355310935314,
+        "frontend_bound": 1.93801240861373,
+        "bad_speculation": 0.5323774366310581,
+        "backend_bound": 18.174299219441217,
+        "memory_bound": 12.611300497790246,
+        "core_bound": 5.5629987216509695,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0009
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2000,
+        "message": "'_ZN19libopenaptx_cleaned3src8openaptx15rshift64_clip2417hb05534bc633e1877E' inlined into '_ZN19libopenaptx_cleaned3src8openaptx20aptx_qmf_convolution17h2ec76060177a7538E' with (cost=40, threshold=487) at callsite _ZN19libopenaptx_cleaned3src8openaptx20aptx_qmf_convolution17h2ec76060177a7538E:15:12;"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 1996,
+        "message": "completely unrolled loop with 16 iterations"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1997,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1997,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1997,
+        "message": "BasicBlock: _ZN19libopenaptx_cleaned3src8openaptx27aptx_qmf_filter_signal_push17h3844cf3464dc7d53E.exit.1"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

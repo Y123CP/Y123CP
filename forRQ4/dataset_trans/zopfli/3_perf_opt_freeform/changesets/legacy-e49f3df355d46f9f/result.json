@@ -1,0 +1,227 @@
+{
+  "applied_rules": [
+    "freeform"
+  ],
+  "commit_sha": "c9ba14c",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -1.0073677531309029,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -0.9578722215919453,
+            "aggregate_ci_low_pct": -1.0568632846698605,
+            "aggregate_pct": -1.0073677531309029,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.4738,
+                "ci_low_pct": 0.2375,
+                "insns_delta_pct": 2.8391,
+                "mean_delta_pct": 0.3557,
+                "op": "lz77_blocksplit_analysis",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.5355,
+                "ci_low_pct": -1.7032,
+                "insns_delta_pct": -0.2912,
+                "mean_delta_pct": -1.6194,
+                "op": "raw_deflate",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.686,
+                "ci_low_pct": -1.8309,
+                "insns_delta_pct": -0.316,
+                "mean_delta_pct": -1.7584,
+                "op": "zlib_compress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.05404714289734386,
+            "aggregate_ci_low_pct": -0.5007662128132269,
+            "aggregate_pct": -0.22335953495794147,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 2.6527,
+                "ci_low_pct": 0.7671,
+                "insns_delta_pct": -0.008,
+                "mean_delta_pct": 1.7099,
+                "op": "cache_roundtrip",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              },
+              {
+                "ci_high_pct": 0.6364,
+                "ci_low_pct": 0.3131,
+                "insns_delta_pct": 2.9109,
+                "mean_delta_pct": 0.4747,
+                "op": "lz77_blocksplit_analysis",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.6199,
+                "ci_low_pct": -1.8244,
+                "insns_delta_pct": -0.3236,
+                "mean_delta_pct": -1.7221,
+                "op": "raw_deflate",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 1.2575,
+                "ci_low_pct": -1.0205,
+                "insns_delta_pct": -0.0105,
+                "mean_delta_pct": 0.1185,
+                "op": "tree_codegen",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              },
+              {
+                "ci_high_pct": -1.6043,
+                "ci_low_pct": -1.7912,
+                "insns_delta_pct": -0.2997,
+                "mean_delta_pct": -1.6978,
+                "op": "zlib_compress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "lz77_blocksplit_analysis",
+          "raw_deflate",
+          "zlib_compress"
+        ],
+        "reason": "accepted",
+        "triggering_op": "lz77_blocksplit_analysis"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "c81322ddb3440f301987676c5f2278ce6fac44d5",
+      "changeset_id": "legacy-e49f3df355d46f9f",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-fb179ae00488cbed",
+          "replacement_function_source": "#[inline]\npub unsafe fn ZopfliFindLongestMatch(\n    mut s: *mut ZopfliBlockState,\n    mut h: *const ZopfliHash,\n    mut array: *const c_uchar,\n    mut pos: size_t,\n    mut size: size_t,\n    mut limit: size_t,\n    mut sublen: *mut c_ushort,\n    mut distance: *mut c_ushort,\n    mut length: *mut c_ushort,\n) {\n    let h_view: &ZopfliHash = unsafe { &*h }; // SAFETY: caller guarantees `h` points to a valid `ZopfliHash` for the duration of this call.\n\n    let hpos: c_ushort = (pos & ZOPFLI_WINDOW_MASK as size_t) as c_ushort;\n    let mut p: c_ushort;\n    let mut pp: c_ushort;\n    let mut bestdist: c_ushort = 0;\n    let mut bestlength: c_ushort = 1;\n    let mut chain_counter: c_int = ZOPFLI_MAX_CHAIN_HITS;\n\n    let mut hhead: *mut c_int = h_view.head;\n    let mut hprev: *mut c_ushort = h_view.prev;\n    let mut hval: c_int = h_view.val;\n\n    if TryGetFromLongestMatchCache(s, pos, &raw mut limit, sublen, distance, length) != 0 {\n        return;\n    }\n    if size.wrapping_sub(pos) < ZOPFLI_MIN_MATCH as size_t {\n        unsafe {\n            // SAFETY: caller provides valid output pointers.\n            *length = 0;\n            *distance = 0;\n        }\n        return;\n    }\n    if pos.wrapping_add(limit) > size {\n        limit = size.wrapping_sub(pos);\n    }\n\n    let base = unsafe { array.add(pos) }; // SAFETY: `pos < size` here because `size - pos >= ZOPFLI_MIN_MATCH`.\n    let arrayend = unsafe { base.add(limit) }; // SAFETY: `limit <= size - pos`, so this stays within/one-past the input buffer.\n    let arrayend_safe = unsafe { arrayend.offset(-8) }; // SAFETY: original code relies on `GetMatch`'s contract and valid caller inputs; preserved exactly.\n\n    pp = unsafe { *hhead.add(hval as usize) as c_ushort }; // SAFETY: hash tables are valid and indexed exactly as in the original.\n    p = unsafe { *hprev.add(pp as usize) }; // SAFETY: hash tables are valid and indexed exactly as in the original.\n    let mut dist: c_uint = if (p as c_int) < pp as c_int {\n        (pp as c_int - p as c_int) as c_uint\n    } else {\n        (ZOPFLI_WINDOW_SIZE - p as c_int + pp as c_int) as c_uint\n    };\n\n    let same_arr = h_view.same;\n    let head2 = h_view.head2;\n    let prev2 = h_view.prev2;\n    let hashval2 = h_view.hashval2;\n    let val2 = h_view.val2;\n\n    while dist < ZOPFLI_WINDOW_SIZE as c_uint {\n        let mut currentlength: c_ushort = 0;\n\n        if dist != 0 {\n            let scan0 = base;\n            let match0 = unsafe { array.add(pos.wrapping_sub(dist as size_t)) }; // SAFETY: `dist > 0` and chain guarantees a previous window position exactly as in the original.\n\n            let best_idx = bestlength as usize;\n            let can_try = pos.wrapping_add(bestlength as size_t) >= size\n                || unsafe { *scan0.add(best_idx) == *match0.add(best_idx) }; // SAFETY: guarded exactly as in the original logic.\n\n            if can_try {\n                let mut scan = scan0;\n                let mut match_0 = match0;\n\n                let same0 = unsafe { *same_arr.add((pos & ZOPFLI_WINDOW_MASK as size_t) as usize) }; // SAFETY: ring-buffer index is masked into range.\n                if same0 > 2 && unsafe { *scan == *match_0 } {\n                    let same1 = unsafe {\n                        *same_arr.add(\n                            (pos.wrapping_sub(dist as size_t) & ZOPFLI_WINDOW_MASK as size_t)\n                                as usize,\n                        )\n                    }; // SAFETY: ring-buffer index is masked into range.\n                    let mut same = if same0 < same1 { same0 } else { same1 };\n                    if same as size_t > limit {\n                        same = limit as c_ushort;\n                    }\n                    scan = unsafe { scan.add(same as usize) }; // SAFETY: `same <= limit`, so still within current match range.\n                    match_0 = unsafe { match_0.add(same as usize) }; // SAFETY: mirrors original pointer advance for the candidate match.\n                }\n\n                scan = GetMatch(scan, match_0, arrayend, arrayend_safe);\n                currentlength = unsafe { scan.offset_from(base) as c_ushort }; // SAFETY: both pointers derive from the same allocation.\n            }\n\n            if currentlength > bestlength {\n                if !sublen.is_null() {\n                    let mut j = bestlength.wrapping_add(1);\n                    while j <= currentlength {\n                        unsafe {\n                            // SAFETY: caller provides a valid `sublen` buffer large enough for all written lengths, same as original.\n                            *sublen.add(j as usize) = dist as c_ushort;\n                        }\n                        j = j.wrapping_add(1);\n                    }\n                }\n                bestdist = dist as c_ushort;\n                bestlength = currentlength;\n                if currentlength as size_t >= limit {\n                    break;\n                }\n            }\n        }\n\n        if hhead != head2\n            && bestlength as c_int >= unsafe { *same_arr.add(hpos as usize) as c_int } // SAFETY: `hpos` is masked into the ring-buffer range.\n            && val2 == unsafe { *hashval2.add(p as usize) }\n        {\n            // SAFETY: `p` is a valid hash chain index, same as original.\n            hhead = head2;\n            hprev = prev2;\n            hval = val2;\n            let _ = hval;\n        }\n\n        pp = p;\n        p = unsafe { *hprev.add(p as usize) }; // SAFETY: hash chain index is valid by construction, same as original.\n        if p == pp {\n            break;\n        }\n\n        dist = dist.wrapping_add(if (p as c_int) < pp as c_int {\n            (pp as c_int - p as c_int) as c_uint\n        } else {\n            (ZOPFLI_WINDOW_SIZE - p as c_int + pp as c_int) as c_uint\n        });\n\n        chain_counter -= 1;\n        if chain_counter <= 0 {\n            break;\n        }\n    }\n\n    StoreInLongestMatchCache(s, pos, limit, sublen, bestdist, bestlength);\n    unsafe {\n        // SAFETY: caller provides valid output pointers.\n        *distance = bestdist;\n        *length = bestlength;\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "584996fcaac572bc732d33e8566210b0c11cfedda5d2ceab15af3331e89abc3e",
+            "file_hint": "src/lz77.rs",
+            "qualified_name": "crate::ZopfliFindLongestMatch",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "ZopfliFindLongestMatch-f1fdf007fff2",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "ZopfliFindLongestMatch",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "7790e0be7420157b0199719bfb0015afa00854e7542fb888eb1dedb24f631752",
+            "edit_id": "edit-replace-fb179ae00488cbed",
+            "end_byte": 31055,
+            "operation_id": "replace-fb179ae00488cbed",
+            "relative_path": "src/lz77.rs",
+            "replacement_text": "#[inline]\npub unsafe fn ZopfliFindLongestMatch(\n    mut s: *mut ZopfliBlockState,\n    mut h: *const ZopfliHash,\n    mut array: *const c_uchar,\n    mut pos: size_t,\n    mut size: size_t,\n    mut limit: size_t,\n    mut sublen: *mut c_ushort,\n    mut distance: *mut c_ushort,\n    mut length: *mut c_ushort,\n) {\n    let h_view: &ZopfliHash = unsafe { &*h }; // SAFETY: caller guarantees `h` points to a valid `ZopfliHash` for the duration of this call.\n\n    let hpos: c_ushort = (pos & ZOPFLI_WINDOW_MASK as size_t) as c_ushort;\n    let mut p: c_ushort;\n    let mut pp: c_ushort;\n    let mut bestdist: c_ushort = 0;\n    let mut bestlength: c_ushort = 1;\n    let mut chain_counter: c_int = ZOPFLI_MAX_CHAIN_HITS;\n\n    let mut hhead: *mut c_int = h_view.head;\n    let mut hprev: *mut c_ushort = h_view.prev;\n    let mut hval: c_int = h_view.val;\n\n    if TryGetFromLongestMatchCache(s, pos, &raw mut limit, sublen, distance, length) != 0 {\n        return;\n    }\n    if size.wrapping_sub(pos) < ZOPFLI_MIN_MATCH as size_t {\n        unsafe {\n            // SAFETY: caller provides valid output pointers.\n            *length = 0;\n            *distance = 0;\n        }\n        return;\n    }\n    if pos.wrapping_add(limit) > size {\n        limit = size.wrapping_sub(pos);\n    }\n\n    let base = unsafe { array.add(pos) }; // SAFETY: `pos < size` here because `size - pos >= ZOPFLI_MIN_MATCH`.\n    let arrayend = unsafe { base.add(limit) }; // SAFETY: `limit <= size - pos`, so this stays within/one-past the input buffer.\n    let arrayend_safe = unsafe { arrayend.offset(-8) }; // SAFETY: original code relies on `GetMatch`'s contract and valid caller inputs; preserved exactly.\n\n    pp = unsafe { *hhead.add(hval as usize) as c_ushort }; // SAFETY: hash tables are valid and indexed exactly as in the original.\n    p = unsafe { *hprev.add(pp as usize) }; // SAFETY: hash tables are valid and indexed exactly as in the original.\n    let mut dist: c_uint = if (p as c_int) < pp as c_int {\n        (pp as c_int - p as c_int) as c_uint\n    } else {\n        (ZOPFLI_WINDOW_SIZE - p as c_int + pp as c_int) as c_uint\n    };\n\n    let same_arr = h_view.same;\n    let head2 = h_view.head2;\n    let prev2 = h_view.prev2;\n    let hashval2 = h_view.hashval2;\n    let val2 = h_view.val2;\n\n    while dist < ZOPFLI_WINDOW_SIZE as c_uint {\n        let mut currentlength: c_ushort = 0;\n\n        if dist != 0 {\n            let scan0 = base;\n            let match0 = unsafe { array.add(pos.wrapping_sub(dist as size_t)) }; // SAFETY: `dist > 0` and chain guarantees a previous window position exactly as in the original.\n\n            let best_idx = bestlength as usize;\n            let can_try = pos.wrapping_add(bestlength as size_t) >= size\n                || unsafe { *scan0.add(best_idx) == *match0.add(best_idx) }; // SAFETY: guarded exactly as in the original logic.\n\n            if can_try {\n                let mut scan = scan0;\n                let mut match_0 = match0;\n\n                let same0 = unsafe { *same_arr.add((pos & ZOPFLI_WINDOW_MASK as size_t) as usize) }; // SAFETY: ring-buffer index is masked into range.\n                if same0 > 2 && unsafe { *scan == *match_0 } {\n                    let same1 = unsafe {\n                        *same_arr.add(\n                            (pos.wrapping_sub(dist as size_t) & ZOPFLI_WINDOW_MASK as size_t)\n                                as usize,\n                        )\n                    }; // SAFETY: ring-buffer index is masked into range.\n                    let mut same = if same0 < same1 { same0 } else { same1 };\n                    if same as size_t > limit {\n                        same = limit as c_ushort;\n                    }\n                    scan = unsafe { scan.add(same as usize) }; // SAFETY: `same <= limit`, so still within current match range.\n                    match_0 = unsafe { match_0.add(same as usize) }; // SAFETY: mirrors original pointer advance for the candidate match.\n                }\n\n                scan = GetMatch(scan, match_0, arrayend, arrayend_safe);\n                currentlength = unsafe { scan.offset_from(base) as c_ushort }; // SAFETY: both pointers derive from the same allocation.\n            }\n\n            if currentlength > bestlength {\n                if !sublen.is_null() {\n                    let mut j = bestlength.wrapping_add(1);\n                    while j <= currentlength {\n                        unsafe {\n                            // SAFETY: caller provides a valid `sublen` buffer large enough for all written lengths, same as original.\n                            *sublen.add(j as usize) = dist as c_ushort;\n                        }\n                        j = j.wrapping_add(1);\n                    }\n                }\n                bestdist = dist as c_ushort;\n                bestlength = currentlength;\n                if currentlength as size_t >= limit {\n                    break;\n                }\n            }\n        }\n\n        if hhead != head2\n            && bestlength as c_int >= unsafe { *same_arr.add(hpos as usize) as c_int } // SAFETY: `hpos` is masked into the ring-buffer range.\n            && val2 == unsafe { *hashval2.add(p as usize) }\n        {\n            // SAFETY: `p` is a valid hash chain index, same as original.\n            hhead = head2;\n            hprev = prev2;\n            hval = val2;\n            let _ = hval;\n        }\n\n        pp = p;\n        p = unsafe { *hprev.add(p as usize) }; // SAFETY: hash chain index is valid by construction, same as original.\n        if p == pp {\n            break;\n        }\n\n        dist = dist.wrapping_add(if (p as c_int) < pp as c_int {\n            (pp as c_int - p as c_int) as c_uint\n        } else {\n            (ZOPFLI_WINDOW_SIZE - p as c_int + pp as c_int) as c_uint\n        });\n\n        chain_counter -= 1;\n        if chain_counter <= 0 {\n            break;\n        }\n    }\n\n    StoreInLongestMatchCache(s, pos, limit, sublen, bestdist, bestlength);\n    unsafe {\n        // SAFETY: caller provides valid output pointers.\n        *distance = bestdist;\n        *length = bestlength;\n    }\n}",
+            "start_byte": 25693
+          }
+        ],
+        "facts": {
+          "fn_name": "ZopfliFindLongestMatch",
+          "target_span_hash": "584996fcaac572bc732d33e8566210b0c11cfedda5d2ceab15af3331e89abc3e"
+        },
+        "operation_id": "replace-fb179ae00488cbed"
+      }
+    ],
+    "resolved_head": "c81322ddb3440f301987676c5f2278ce6fac44d5"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/lz77.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

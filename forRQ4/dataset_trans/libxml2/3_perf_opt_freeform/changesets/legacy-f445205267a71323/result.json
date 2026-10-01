@@ -1,0 +1,173 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.43346195702843254,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.5961884917739567,
+            "aggregate_ci_low_pct": 0.27073542228290837,
+            "aggregate_pct": 0.43346195702843254,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.8017,
+                "ci_low_pct": 0.2609,
+                "insns_delta_pct": 0.0639,
+                "mean_delta_pct": 0.5313,
+                "op": "entities_tree_valid",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "per_op_uncertain"
+              },
+              {
+                "ci_high_pct": 0.9004,
+                "ci_low_pct": 0.2608,
+                "insns_delta_pct": 0.0646,
+                "mean_delta_pct": 0.5806,
+                "op": "html_push_parse",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "per_op_uncertain"
+              },
+              {
+                "ci_high_pct": 1.0323,
+                "ci_low_pct": 0.0775,
+                "insns_delta_pct": 0.0939,
+                "mean_delta_pct": 0.5549,
+                "op": "schema_suite",
+                "samples": 40,
+                "state": "active",
+                "stop_reason": "per_op_uncertain"
+              },
+              {
+                "ci_high_pct": 0.2618,
+                "ci_low_pct": -0.1278,
+                "insns_delta_pct": -0.06,
+                "mean_delta_pct": 0.067,
+                "op": "writer_save",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "entities_tree_valid",
+          "html_push_parse",
+          "schema_suite",
+          "writer_save"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "html_push_parse"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "f1d53863c45f020b281e3642782a483224dcc17f",
+      "changeset_id": "legacy-f445205267a71323",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-5b806bd19034fae1",
+          "replacement_function_source": "unsafe fn xmlParserPrintFileContextInternal(\n    mut input: xmlParserInputPtr,\n    mut channel: xmlGenericErrorFunc,\n    mut data: *mut c_void,\n) {\n    let mut content: [xmlChar; 81] = [0; 81];\n\n    if input.is_null() {\n        return;\n    }\n\n    let input_ref = unsafe { &*input }; // SAFETY: `input` was checked non-null and is only read.\n    let mut cur = input_ref.cur;\n    if cur.is_null() {\n        return;\n    }\n    let base = input_ref.base;\n    let end = input_ref.end;\n\n    while cur > base {\n        let ch = unsafe { *cur as c_int }; // SAFETY: `cur > base` and original code dereferences `cur` under the same conditions.\n        if ch != '\\n' as c_int && ch != '\\r' as c_int {\n            break;\n        }\n        cur = unsafe { cur.offset(-1) }; // SAFETY: guarded by `cur > base`.\n    }\n\n    let mut n: c_uint = 0;\n    const CONTENT_LEN: usize = 81;\n    const CONTENT_MAX: c_uint = 80;\n\n    while n < CONTENT_MAX && cur > base {\n        let ch = unsafe { *cur as c_int }; // SAFETY: `cur > base` and original code dereferences `cur` under the same conditions.\n        if ch == '\\n' as c_int || ch == '\\r' as c_int {\n            break;\n        }\n        cur = unsafe { cur.offset(-1) }; // SAFETY: guarded by `cur > base`.\n        n = n.wrapping_add(1);\n    }\n\n    if n > 0 {\n        let ch = unsafe { *cur as c_int }; // SAFETY: same pointer validity assumptions as original code.\n        if ch == '\\n' as c_int || ch == '\\r' as c_int {\n            cur = unsafe { cur.offset(1) }; // SAFETY: moving forward after reading current position, matching original behavior.\n        } else {\n            while cur < input_ref.cur {\n                let chb = unsafe { *cur as c_int }; // SAFETY: `cur < input_ref.cur` within the same input buffer as in original code.\n                if (chb & 0xc0) != 0x80 {\n                    break;\n                }\n                cur = unsafe { cur.offset(1) }; // SAFETY: guarded by `cur < input_ref.cur`.\n            }\n        }\n    } else {\n        while cur < input_ref.cur {\n            let chb = unsafe { *cur as c_int }; // SAFETY: `cur < input_ref.cur` within the same input buffer as in original code.\n            if (chb & 0xc0) != 0x80 {\n                break;\n            }\n            cur = unsafe { cur.offset(1) }; // SAFETY: guarded by `cur < input_ref.cur`.\n        }\n    }\n\n    let col = unsafe { input_ref.cur.offset_from(cur) as c_long as c_uint }; // SAFETY: both pointers are within the same allocation as in original code.\n    let start = cur;\n    n = 0;\n\n    loop {\n        let ch = unsafe { *cur as c_int }; // SAFETY: original code dereferences `cur` while scanning the same buffer.\n        if ch == 0 || ch == '\\n' as c_int || ch == '\\r' as c_int {\n            break;\n        }\n\n        let mut len = unsafe { end.offset_from(cur) as c_long as c_int }; // SAFETY: both pointers are within the same allocation as in original code.\n        let c = unsafe { xmlGetUTF8Char(cur as *const c_uchar, &raw mut len) }; // SAFETY: `cur` points into the input buffer and `len` bounds available bytes, matching original call.\n        if c < 0 || n.wrapping_add(len as c_uint) > CONTENT_MAX {\n            break;\n        }\n        cur = unsafe { cur.offset(len as isize) }; // SAFETY: `len` was produced for this position by `xmlGetUTF8Char`, matching original behavior.\n        n = n.wrapping_add(len as c_uint);\n    }\n\n    unsafe {\n        memcpy(\n            content.as_mut_ptr() as *mut c_void,\n            start as *const c_void,\n            n as size_t,\n        );\n    } // SAFETY: `content` has at least `n <= 80` bytes, and `start..start+n` was validated by the scan above as in original code.\n    content[n as usize] = 0;\n\n    channel.expect(\"non-null function pointer\")(\n        data,\n        b\"%s\\n\\0\" as *const u8 as *const c_char,\n        content.as_mut_ptr(),\n    );\n\n    let mut i: c_uint = 0;\n    let mut ctnt = content.as_mut_ptr();\n    while i < col && i < (CONTENT_LEN as c_uint).wrapping_sub(2) {\n        let ch = unsafe { *ctnt as c_int }; // SAFETY: `ctnt` stays within `content` bounds due to loop limit.\n        if ch == 0 {\n            break;\n        }\n        if ch != '\\t' as c_int {\n            unsafe {\n                *ctnt = ' ' as i32 as xmlChar;\n            } // SAFETY: `ctnt` points within `content` bounds due to loop limit.\n        }\n        ctnt = unsafe { ctnt.offset(1) }; // SAFETY: bounded by the loop limit to remain within `content`.\n        i = i.wrapping_add(1);\n    }\n\n    unsafe {\n        *ctnt = '^' as i32 as xmlChar;\n        *ctnt.offset(1) = 0;\n    } // SAFETY: loop ensures `ctnt` is at most `content[79]`, so writing caret and trailing NUL fits in `content`.\n\n    channel.expect(\"non-null function pointer\")(\n        data,\n        b\"%s\\n\\0\" as *const u8 as *const c_char,\n        content.as_mut_ptr(),\n    );\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "97eff07d7dde016eb33e06adfee270e0e19ccab8e9491d530ddfcc76d8cd4e15",
+            "file_hint": "src/error.rs",
+            "qualified_name": "crate::xmlParserPrintFileContextInternal",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "xmlParserPrintFileContextInternal-98d4b6b510de",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "xmlParserPrintFileContextInternal",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "eaf2493c78974a54d0ab22e8d5151c06bc68cdcf0ebb20cd9683234a79124f22",
+            "edit_id": "edit-replace-5b806bd19034fae1",
+            "end_byte": 71325,
+            "operation_id": "replace-5b806bd19034fae1",
+            "relative_path": "src/error.rs",
+            "replacement_text": "unsafe fn xmlParserPrintFileContextInternal(\n    mut input: xmlParserInputPtr,\n    mut channel: xmlGenericErrorFunc,\n    mut data: *mut c_void,\n) {\n    let mut content: [xmlChar; 81] = [0; 81];\n\n    if input.is_null() {\n        return;\n    }\n\n    let input_ref = unsafe { &*input }; // SAFETY: `input` was checked non-null and is only read.\n    let mut cur = input_ref.cur;\n    if cur.is_null() {\n        return;\n    }\n    let base = input_ref.base;\n    let end = input_ref.end;\n\n    while cur > base {\n        let ch = unsafe { *cur as c_int }; // SAFETY: `cur > base` and original code dereferences `cur` under the same conditions.\n        if ch != '\\n' as c_int && ch != '\\r' as c_int {\n            break;\n        }\n        cur = unsafe { cur.offset(-1) }; // SAFETY: guarded by `cur > base`.\n    }\n\n    let mut n: c_uint = 0;\n    const CONTENT_LEN: usize = 81;\n    const CONTENT_MAX: c_uint = 80;\n\n    while n < CONTENT_MAX && cur > base {\n        let ch = unsafe { *cur as c_int }; // SAFETY: `cur > base` and original code dereferences `cur` under the same conditions.\n        if ch == '\\n' as c_int || ch == '\\r' as c_int {\n            break;\n        }\n        cur = unsafe { cur.offset(-1) }; // SAFETY: guarded by `cur > base`.\n        n = n.wrapping_add(1);\n    }\n\n    if n > 0 {\n        let ch = unsafe { *cur as c_int }; // SAFETY: same pointer validity assumptions as original code.\n        if ch == '\\n' as c_int || ch == '\\r' as c_int {\n            cur = unsafe { cur.offset(1) }; // SAFETY: moving forward after reading current position, matching original behavior.\n        } else {\n            while cur < input_ref.cur {\n                let chb = unsafe { *cur as c_int }; // SAFETY: `cur < input_ref.cur` within the same input buffer as in original code.\n                if (chb & 0xc0) != 0x80 {\n                    break;\n                }\n                cur = unsafe { cur.offset(1) }; // SAFETY: guarded by `cur < input_ref.cur`.\n            }\n        }\n    } else {\n        while cur < input_ref.cur {\n            let chb = unsafe { *cur as c_int }; // SAFETY: `cur < input_ref.cur` within the same input buffer as in original code.\n            if (chb & 0xc0) != 0x80 {\n                break;\n            }\n            cur = unsafe { cur.offset(1) }; // SAFETY: guarded by `cur < input_ref.cur`.\n        }\n    }\n\n    let col = unsafe { input_ref.cur.offset_from(cur) as c_long as c_uint }; // SAFETY: both pointers are within the same allocation as in original code.\n    let start = cur;\n    n = 0;\n\n    loop {\n        let ch = unsafe { *cur as c_int }; // SAFETY: original code dereferences `cur` while scanning the same buffer.\n        if ch == 0 || ch == '\\n' as c_int || ch == '\\r' as c_int {\n            break;\n        }\n\n        let mut len = unsafe { end.offset_from(cur) as c_long as c_int }; // SAFETY: both pointers are within the same allocation as in original code.\n        let c = unsafe { xmlGetUTF8Char(cur as *const c_uchar, &raw mut len) }; // SAFETY: `cur` points into the input buffer and `len` bounds available bytes, matching original call.\n        if c < 0 || n.wrapping_add(len as c_uint) > CONTENT_MAX {\n            break;\n        }\n        cur = unsafe { cur.offset(len as isize) }; // SAFETY: `len` was produced for this position by `xmlGetUTF8Char`, matching original behavior.\n        n = n.wrapping_add(len as c_uint);\n    }\n\n    unsafe {\n        memcpy(\n            content.as_mut_ptr() as *mut c_void,\n            start as *const c_void,\n            n as size_t,\n        );\n    } // SAFETY: `content` has at least `n <= 80` bytes, and `start..start+n` was validated by the scan above as in original code.\n    content[n as usize] = 0;\n\n    channel.expect(\"non-null function pointer\")(\n        data,\n        b\"%s\\n\\0\" as *const u8 as *const c_char,\n        content.as_mut_ptr(),\n    );\n\n    let mut i: c_uint = 0;\n    let mut ctnt = content.as_mut_ptr();\n    while i < col && i < (CONTENT_LEN as c_uint).wrapping_sub(2) {\n        let ch = unsafe { *ctnt as c_int }; // SAFETY: `ctnt` stays within `content` bounds due to loop limit.\n        if ch == 0 {\n            break;\n        }\n        if ch != '\\t' as c_int {\n            unsafe {\n                *ctnt = ' ' as i32 as xmlChar;\n            } // SAFETY: `ctnt` points within `content` bounds due to loop limit.\n        }\n        ctnt = unsafe { ctnt.offset(1) }; // SAFETY: bounded by the loop limit to remain within `content`.\n        i = i.wrapping_add(1);\n    }\n\n    unsafe {\n        *ctnt = '^' as i32 as xmlChar;\n        *ctnt.offset(1) = 0;\n    } // SAFETY: loop ensures `ctnt` is at most `content[79]`, so writing caret and trailing NUL fits in `content`.\n\n    channel.expect(\"non-null function pointer\")(\n        data,\n        b\"%s\\n\\0\" as *const u8 as *const c_char,\n        content.as_mut_ptr(),\n    );\n}",
+            "start_byte": 68163
+          }
+        ],
+        "facts": {
+          "fn_name": "xmlParserPrintFileContextInternal",
+          "target_span_hash": "97eff07d7dde016eb33e06adfee270e0e19ccab8e9491d530ddfcc76d8cd4e15"
+        },
+        "operation_id": "replace-5b806bd19034fae1"
+      }
+    ],
+    "resolved_head": "f1d53863c45f020b281e3642782a483224dcc17f"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/error.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

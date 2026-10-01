@@ -1,0 +1,212 @@
+{
+  "hot_function": {
+    "symbol": "adler32_z",
+    "location": "src/zlib/adler32.rs:8-273",
+    "workload": "zlib_compress_uncompress",
+    "hot_region": "src/zlib/adler32.rs:8-273",
+    "rust_source": "pub unsafe fn adler32_z(\n    mut adler: uLong,\n    mut buf: *const Bytef,\n    mut len: z_size_t,\n) -> uLong {\n    let mut sum2: c_ulong = 0;\n    let mut n: c_uint = 0;\n    sum2 =\n        adler as c_ulong >> 16 as c_int & 0xffff as c_ulong;\n    adler &= 0xffff as c_ulong;\n    if len == 1 as z_size_t {\n        adler = (adler as c_ulong)\n            .wrapping_add(*buf.offset(0 as c_int as isize) as c_ulong)\n            as uLong as uLong;\n        if adler >= BASE as c_ulong {\n            adler = (adler as c_ulong).wrapping_sub(BASE as c_ulong)\n                as uLong as uLong;\n        }\n        sum2 = sum2.wrapping_add(adler as c_ulong);\n        if sum2 >= BASE as c_ulong {\n            sum2 = sum2.wrapping_sub(BASE as c_ulong);\n        }\n        return adler | (sum2 as uLong) << 16 as c_int;\n    }\n    if buf.is_null() {\n        return 1 as uLong;\n    }\n    if len < 16 as z_size_t {\n        loop {\n            let fresh0 = len;\n            len = len.wrapping_sub(1);\n            if !(fresh0 != 0) {\n                break;\n            }\n            let fresh1 = buf;\n            buf = buf.offset(1);\n            adler = (adler as c_ulong).wrapping_add(*fresh1 as c_ulong)\n                as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n        }\n        if adler >= BASE as c_ulong {\n            adler = (adler as c_ulong).wrapping_sub(BASE as c_ulong)\n                as uLong as uLong;\n        }\n        sum2 = sum2.wrapping_rem(BASE as c_ulong);\n        return adler | (sum2 as uLong) << 16 as c_int;\n    }\n    while len >= NMAX as z_size_t {\n        len = (len as c_ulong).wrapping_sub(NMAX as c_ulong) as z_size_t\n            as z_size_t;\n        n = (NMAX / 16 as c_int) as c_uint;\n        loop {\n            adler = (adler as c_ulong)\n                .wrapping_add(*buf.offset(0 as c_int as isize) as c_ulong)\n                as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(\n                *buf.offset((0 as c_int + 1 as c_int) as isize)\n                    as c_ulong,\n            ) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(\n                *buf.offset((0 as c_int + 2 as c_int) as isize)\n                    as c_ulong,\n            ) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(*buf.offset(\n                (0 as c_int + 2 as c_int + 1 as c_int)\n                    as isize,\n            )\n                as c_ulong) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(\n                *buf.offset((0 as c_int + 4 as c_int) as isize)\n                    as c_ulong,\n            ) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(*buf.offset(\n                (0 as c_int + 4 as c_int + 1 as c_int)\n                    as isize,\n            )\n                as c_ulong) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(*buf.offset(\n                (0 as c_int + 4 as c_int + 2 as c_int)\n                    as isize,\n            )\n                as c_ulong) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(*buf.offset(\n                (0 as c_int\n                    + 4 as c_int\n                    + 2 as c_int\n                    + 1 as c_int) as isize,\n            )\n                as c_ulong) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong)\n                .wrapping_add(*buf.offset(8 as c_int as isize) as c_ulong)\n                as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(\n                *buf.offset((8 as c_int + 1 as c_int) as isize)\n                    as c_ulong,\n            ) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(\n                *buf.offset((8 as c_int + 2 as c_int) as isize)\n                    as c_ulong,\n            ) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(*buf.offset(\n                (8 as c_int + 2 as c_int + 1 as c_int)\n                    as isize,\n            )\n                as c_ulong) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(\n                *buf.offset((8 as c_int + 4 as c_int) as isize)\n                    as c_ulong,\n            ) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(*buf.offset(\n                (8 as c_int + 4 as c_int + 1 as c_int)\n                    as isize,\n            )\n                as c_ulong) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(*buf.offset(\n                (8 as c_int + 4 as c_int + 2 as c_int)\n                    as isize,\n            )\n                as c_ulong) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(*buf.offset(\n                (8 as c_int\n                    + 4 as c_int\n                    + 2 as c_int\n                    + 1 as c_int) as isize,\n            )\n                as c_ulong) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            buf = buf.offset(16 as c_int as isize);\n            n = n.wrapping_sub(1);\n            if !(n != 0) {\n                break;\n            }\n        }\n        adler = (adler as c_ulong).wrapping_rem(BASE as c_ulong) as uLong\n            as uLong;\n        sum2 = sum2.wrapping_rem(BASE as c_ulong);\n    }\n    if len != 0 {\n        while len >= 16 as z_size_t {\n            len = (len as c_ulong).wrapping_sub(16 as c_ulong) as z_size_t\n                as z_size_t;\n            adler = (adler as c_ulong)\n                .wrapping_add(*buf.offset(0 as c_int as isize) as c_ulong)\n                as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(\n                *buf.offset((0 as c_int + 1 as c_int) as isize)\n                    as c_ulong,\n            ) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(\n                *buf.offset((0 as c_int + 2 as c_int) as isize)\n                    as c_ulong,\n            ) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(*buf.offset(\n                (0 as c_int + 2 as c_int + 1 as c_int)\n                    as isize,\n            )\n                as c_ulong) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(\n                *buf.offset((0 as c_int + 4 as c_int) as isize)\n                    as c_ulong,\n            ) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(*buf.offset(\n                (0 as c_int + 4 as c_int + 1 as c_int)\n                    as isize,\n            )\n                as c_ulong) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(*buf.offset(\n                (0 as c_int + 4 as c_int + 2 as c_int)\n                    as isize,\n            )\n                as c_ulong) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(*buf.offset(\n                (0 as c_int\n                    + 4 as c_int\n                    + 2 as c_int\n                    + 1 as c_int) as isize,\n            )\n                as c_ulong) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong)\n                .wrapping_add(*buf.offset(8 as c_int as isize) as c_ulong)\n                as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(\n                *buf.offset((8 as c_int + 1 as c_int) as isize)\n                    as c_ulong,\n            ) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(\n                *buf.offset((8 as c_int + 2 as c_int) as isize)\n                    as c_ulong,\n            ) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(*buf.offset(\n                (8 as c_int + 2 as c_int + 1 as c_int)\n                    as isize,\n            )\n                as c_ulong) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(\n                *buf.offset((8 as c_int + 4 as c_int) as isize)\n                    as c_ulong,\n            ) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(*buf.offset(\n                (8 as c_int + 4 as c_int + 1 as c_int)\n                    as isize,\n            )\n                as c_ulong) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(*buf.offset(\n                (8 as c_int + 4 as c_int + 2 as c_int)\n                    as isize,\n            )\n                as c_ulong) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            adler = (adler as c_ulong).wrapping_add(*buf.offset(\n                (8 as c_int\n                    + 4 as c_int\n                    + 2 as c_int\n                    + 1 as c_int) as isize,\n            )\n                as c_ulong) as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n            buf = buf.offset(16 as c_int as isize);\n        }\n        loop {\n            let fresh2 = len;\n            len = len.wrapping_sub(1);\n            if !(fresh2 != 0) {\n                break;\n            }\n            let fresh3 = buf;\n            buf = buf.offset(1);\n            adler = (adler as c_ulong).wrapping_add(*fresh3 as c_ulong)\n                as uLong as uLong;\n            sum2 = sum2.wrapping_add(adler as c_ulong);\n        }\n        adler = (adler as c_ulong).wrapping_rem(BASE as c_ulong) as uLong\n            as uLong;\n        sum2 = sum2.wrapping_rem(BASE as c_ulong);\n    }\n    return adler | (sum2 as uLong) << 16 as c_int;\n}",
+    "signature": "pub unsafe fn adler32_z(\n    mut adler: uLong,\n    mut buf: *const Bytef,\n    mut len: z_size_t,\n) -> uLong",
+    "profile": {
+      "self_time_ratio": 0.1103,
+      "call_count": null,
+      "retired_instructions": 1464462563,
+      "instructions_per_call": null,
+      "cpi": 0.42,
+      "tma": {
+        "scope": "process",
+        "retiring": 53.58850008025352,
+        "frontend_bound": 13.520583841196244,
+        "bad_speculation": 10.463016375955196,
+        "backend_bound": 22.427899702595045,
+        "memory_bound": 15.525788088974377,
+        "core_bound": 6.902111613620669,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0163
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {},
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 59,
+        "message": "4 virtual registers copies 9.992674e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 20,
+        "message": "BasicBlock: bb1.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 32,
+        "message": "BasicBlock: bb8.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 39,
+        "message": "BasicBlock: bb13.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 39,
+        "message": "BasicBlock: bb14.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 44,
+        "message": "BasicBlock: bb14.i.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 39,
+        "message": "BasicBlock: bb14.i.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 39,
+        "message": "BasicBlock: bb14.i.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 44,
+        "message": "BasicBlock: bb14.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 55,
+        "message": "BasicBlock: bb19.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 61,
+        "message": "BasicBlock: bb21.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 160,
+        "message": "BasicBlock: bb24.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 161,
+        "message": "BasicBlock: bb27.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 259,
+        "message": "BasicBlock: bb30.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 259,
+        "message": "BasicBlock: bb31.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 264,
+        "message": "BasicBlock: bb31.i.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 259,
+        "message": "BasicBlock: bb31.i.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 259,
+        "message": "BasicBlock: bb31.i.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 264,
+        "message": "BasicBlock: bb31.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 272,
+        "message": "BasicBlock: bb33.i"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 59,
+        "message": "4 virtual registers copies 1.600000e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 20,
+        "message": "BasicBlock: bb1.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 35,
+        "message": "BasicBlock: bb8.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 39,
+        "message": "BasicBlock: bb14.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 272,
+        "message": "BasicBlock: bb33.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 39,
+        "message": "BasicBlock: bb14.i.preheader.new"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 39,
+        "message": "BasicBlock: bb15.i.unr-lcssa"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 44,
+        "message": "BasicBlock: bb14.i.epil"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

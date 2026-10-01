@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 3.7521100577566573,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 3.986212970989021,
+            "aggregate_ci_low_pct": 3.5180071445242938,
+            "aggregate_pct": 3.7521100577566573,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 3.9862,
+                "ci_low_pct": 3.518,
+                "insns_delta_pct": 1.4584,
+                "mean_delta_pct": 3.7521,
+                "op": "html_entity_encode",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "html_entity_encode"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "html_entity_encode"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "c7d5204f0617a9d611dc447e58bcc30ca3b41157",
+      "changeset_id": "legacy-4669abc4fadb187e",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-8665b42985c12a12",
+          "replacement_function_source": "// Applied rules: [III④, III③, C3]\n// Skipped rules: [III③: Hit [2] (`snprintf`) is abstained: format-string semantics are beyond raw memory movement/string-length replacement, and the rule explicitly warns not to rewrite `snprintf` as if it were a plain memory op.; C3.S1: Signature lift to references/slices would break the `pub unsafe extern \"C\"` ABI; use in-body hoisting/reborrowing only.]\n#[no_mangle]\npub unsafe extern \"C\" fn UTF8ToHtml(\n    mut out: *mut c_uchar,\n    mut outlen: *mut c_int,\n    mut in_0: *const c_uchar,\n    mut inlen: *mut c_int,\n) -> c_int {\n    if out.is_null() || outlen.is_null() || inlen.is_null() {\n        return -(1 as c_int);\n    }\n    if in_0.is_null() {\n        // SAFETY: `outlen` and `inlen` were checked non-null above.\n        unsafe {\n            *outlen = 0 as c_int;\n            *inlen = 0 as c_int;\n        }\n        return 0 as c_int;\n    }\n\n    // SAFETY: `in_0` is non-null after the guard above; the caller provides\n    // `*inlen` readable input bytes for this extern-C API; this shared slice\n    // does not alias any mutable reference created here.\n    let input = unsafe { core::slice::from_raw_parts(in_0, *inlen as usize) };\n    // SAFETY: `out` is non-null after the guard above; the caller provides\n    // `*outlen` writable output bytes for this extern-C API; this mutable slice\n    // is the only `&mut` view created for that region in this function.\n    let output = unsafe { core::slice::from_raw_parts_mut(out, *outlen as usize) };\n\n    let input_len = input.len();\n    let output_len = output.len();\n\n    let mut processed_idx: usize = 0;\n    let mut in_idx: usize = 0;\n    let mut out_idx: usize = 0;\n\n    while in_idx < input_len {\n        let d0 = input[in_idx] as c_uint;\n        in_idx += 1;\n\n        let mut c: c_uint;\n        let mut trailing: c_int;\n\n        if d0 < 0x80 as c_uint {\n            c = d0;\n            trailing = 0 as c_int;\n        } else if d0 < 0xc0 as c_uint {\n            // SAFETY: `outlen` and `inlen` were checked non-null above.\n            unsafe {\n                *outlen = out_idx as c_int;\n                *inlen = processed_idx as c_int;\n            }\n            return -(2 as c_int);\n        } else if d0 < 0xe0 as c_uint {\n            c = d0 & 0x1f as c_uint;\n            trailing = 1 as c_int;\n        } else if d0 < 0xf0 as c_uint {\n            c = d0 & 0xf as c_uint;\n            trailing = 2 as c_int;\n        } else if d0 < 0xf8 as c_uint {\n            c = d0 & 0x7 as c_uint;\n            trailing = 3 as c_int;\n        } else {\n            // SAFETY: `outlen` and `inlen` were checked non-null above.\n            unsafe {\n                *outlen = out_idx as c_int;\n                *inlen = processed_idx as c_int;\n            }\n            return -(2 as c_int);\n        }\n\n        if input_len.wrapping_sub(in_idx) < trailing as usize {\n            break;\n        }\n\n        while trailing != 0 {\n            if in_idx >= input_len {\n                break;\n            }\n            let d = input[in_idx] as c_uint;\n            in_idx += 1;\n            if d & 0xc0 as c_uint != 0x80 as c_uint {\n                break;\n            }\n            c <<= 6 as c_int;\n            c |= d & 0x3f as c_uint;\n            trailing -= 1;\n        }\n\n        if c < 0x80 as c_uint {\n            if out_idx + 1 >= output_len {\n                break;\n            }\n            output[out_idx] = c as c_uchar;\n            out_idx += 1;\n        } else {\n            let mut len: c_int;\n            let ent = htmlEntityValueLookup(c);\n            let cp: *const c_char;\n            let mut nbuf: [c_char; 16] = [0; 16];\n\n            if ent.is_null() {\n                snprintf(\n                    nbuf.as_mut_ptr(),\n                    ::core::mem::size_of::<[c_char; 16]>() as size_t,\n                    b\"#%u\\0\" as *const u8 as *const c_char,\n                    c,\n                );\n                cp = nbuf.as_ptr();\n                let mut n = 0usize;\n                while n < nbuf.len() && nbuf[n] != 0 {\n                    n += 1;\n                }\n                len = n as c_int;\n            } else {\n                cp = (*ent).name;\n                let mut n = 0usize;\n                loop {\n                    // SAFETY: `ent.name` is a valid NUL-terminated C string per\n                    // libxml2 entity table invariant; we scan bytewise without\n                    // constructing a `CStr`, avoiding an extra abstraction in this hot path.\n                    let b = unsafe { *cp.add(n) };\n                    if b == 0 {\n                        break;\n                    }\n                    n += 1;\n                }\n                len = n as c_int;\n            }\n\n            if out_idx + 2 + len as usize >= output_len {\n                break;\n            }\n\n            output[out_idx] = '&' as i32 as c_uchar;\n            out_idx += 1;\n\n            // SAFETY: `cp` points to at least `len` initialized bytes by construction\n            // above; `output[out_idx..out_idx+len]` is in-bounds due to the capacity\n            // check just above; the regions do not overlap because `cp` is either an\n            // entity-name C string or the local `nbuf`, never inside `output`.\n            unsafe {\n                core::ptr::copy_nonoverlapping(\n                    cp as *const c_uchar,\n                    output.as_mut_ptr().add(out_idx),\n                    len as usize,\n                );\n            }\n            out_idx += len as usize;\n\n            output[out_idx] = ';' as i32 as c_uchar;\n            out_idx += 1;\n        }\n\n        processed_idx = in_idx;\n    }\n\n    // SAFETY: `outlen` and `inlen` were checked non-null above.\n    unsafe {\n        *outlen = out_idx as c_int;\n        *inlen = processed_idx as c_int;\n    }\n    return 0 as c_int;\n}",
+          "rule_id": "III④,III③,C3",
+          "target": {
+            "declaration_hash": "0a5e3ba039fe0cac3871e784c2034f00aeb83d422d0d6350485c2501d8d4ab28",
+            "file_hint": "src/HTMLparser.rs",
+            "qualified_name": "crate::UTF8ToHtml",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "UTF8ToHtml-0b7e7284135f",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "UTF8ToHtml",
+        "rule_id": "III④,III③,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "9e161772c33d3f138d59e2fb7b9f71e9fa0055b99d84f4a79c58c177412f0de5",
+            "edit_id": "edit-replace-8665b42985c12a12",
+            "end_byte": 350724,
+            "operation_id": "replace-8665b42985c12a12",
+            "relative_path": "src/HTMLparser.rs",
+            "replacement_text": "// Applied rules: [III④, III③, C3]\n// Skipped rules: [III③: Hit [2] (`snprintf`) is abstained: format-string semantics are beyond raw memory movement/string-length replacement, and the rule explicitly warns not to rewrite `snprintf` as if it were a plain memory op.; C3.S1: Signature lift to references/slices would break the `pub unsafe extern \"C\"` ABI; use in-body hoisting/reborrowing only.]\n#[no_mangle]\npub unsafe extern \"C\" fn UTF8ToHtml(\n    mut out: *mut c_uchar,\n    mut outlen: *mut c_int,\n    mut in_0: *const c_uchar,\n    mut inlen: *mut c_int,\n) -> c_int {\n    if out.is_null() || outlen.is_null() || inlen.is_null() {\n        return -(1 as c_int);\n    }\n    if in_0.is_null() {\n        // SAFETY: `outlen` and `inlen` were checked non-null above.\n        unsafe {\n            *outlen = 0 as c_int;\n            *inlen = 0 as c_int;\n        }\n        return 0 as c_int;\n    }\n\n    // SAFETY: `in_0` is non-null after the guard above; the caller provides\n    // `*inlen` readable input bytes for this extern-C API; this shared slice\n    // does not alias any mutable reference created here.\n    let input = unsafe { core::slice::from_raw_parts(in_0, *inlen as usize) };\n    // SAFETY: `out` is non-null after the guard above; the caller provides\n    // `*outlen` writable output bytes for this extern-C API; this mutable slice\n    // is the only `&mut` view created for that region in this function.\n    let output = unsafe { core::slice::from_raw_parts_mut(out, *outlen as usize) };\n\n    let input_len = input.len();\n    let output_len = output.len();\n\n    let mut processed_idx: usize = 0;\n    let mut in_idx: usize = 0;\n    let mut out_idx: usize = 0;\n\n    while in_idx < input_len {\n        let d0 = input[in_idx] as c_uint;\n        in_idx += 1;\n\n        let mut c: c_uint;\n        let mut trailing: c_int;\n\n        if d0 < 0x80 as c_uint {\n            c = d0;\n            trailing = 0 as c_int;\n        } else if d0 < 0xc0 as c_uint {\n            // SAFETY: `outlen` and `inlen` were checked non-null above.\n            unsafe {\n                *outlen = out_idx as c_int;\n                *inlen = processed_idx as c_int;\n            }\n            return -(2 as c_int);\n        } else if d0 < 0xe0 as c_uint {\n            c = d0 & 0x1f as c_uint;\n            trailing = 1 as c_int;\n        } else if d0 < 0xf0 as c_uint {\n            c = d0 & 0xf as c_uint;\n            trailing = 2 as c_int;\n        } else if d0 < 0xf8 as c_uint {\n            c = d0 & 0x7 as c_uint;\n            trailing = 3 as c_int;\n        } else {\n            // SAFETY: `outlen` and `inlen` were checked non-null above.\n            unsafe {\n                *outlen = out_idx as c_int;\n                *inlen = processed_idx as c_int;\n            }\n            return -(2 as c_int);\n        }\n\n        if input_len.wrapping_sub(in_idx) < trailing as usize {\n            break;\n        }\n\n        while trailing != 0 {\n            if in_idx >= input_len {\n                break;\n            }\n            let d = input[in_idx] as c_uint;\n            in_idx += 1;\n            if d & 0xc0 as c_uint != 0x80 as c_uint {\n                break;\n            }\n            c <<= 6 as c_int;\n            c |= d & 0x3f as c_uint;\n            trailing -= 1;\n        }\n\n        if c < 0x80 as c_uint {\n            if out_idx + 1 >= output_len {\n                break;\n            }\n            output[out_idx] = c as c_uchar;\n            out_idx += 1;\n        } else {\n            let mut len: c_int;\n            let ent = htmlEntityValueLookup(c);\n            let cp: *const c_char;\n            let mut nbuf: [c_char; 16] = [0; 16];\n\n            if ent.is_null() {\n                snprintf(\n                    nbuf.as_mut_ptr(),\n                    ::core::mem::size_of::<[c_char; 16]>() as size_t,\n                    b\"#%u\\0\" as *const u8 as *const c_char,\n                    c,\n                );\n                cp = nbuf.as_ptr();\n                let mut n = 0usize;\n                while n < nbuf.len() && nbuf[n] != 0 {\n                    n += 1;\n                }\n                len = n as c_int;\n            } else {\n                cp = (*ent).name;\n                let mut n = 0usize;\n                loop {\n                    // SAFETY: `ent.name` is a valid NUL-terminated C string per\n                    // libxml2 entity table invariant; we scan bytewise without\n                    // constructing a `CStr`, avoiding an extra abstraction in this hot path.\n                    let b = unsafe { *cp.add(n) };\n                    if b == 0 {\n                        break;\n                    }\n                    n += 1;\n                }\n                len = n as c_int;\n            }\n\n            if out_idx + 2 + len as usize >= output_len {\n                break;\n            }\n\n            output[out_idx] = '&' as i32 as c_uchar;\n            out_idx += 1;\n\n            // SAFETY: `cp` points to at least `len` initialized bytes by construction\n            // above; `output[out_idx..out_idx+len]` is in-bounds due to the capacity\n            // check just above; the regions do not overlap because `cp` is either an\n            // entity-name C string or the local `nbuf`, never inside `output`.\n            unsafe {\n                core::ptr::copy_nonoverlapping(\n                    cp as *const c_uchar,\n                    output.as_mut_ptr().add(out_idx),\n                    len as usize,\n                );\n            }\n            out_idx += len as usize;\n\n            output[out_idx] = ';' as i32 as c_uchar;\n            out_idx += 1;\n        }\n\n        processed_idx = in_idx;\n    }\n\n    // SAFETY: `outlen` and `inlen` were checked non-null above.\n    unsafe {\n        *outlen = out_idx as c_int;\n        *inlen = processed_idx as c_int;\n    }\n    return 0 as c_int;\n}",
+            "start_byte": 346683
+          }
+        ],
+        "facts": {
+          "fn_name": "UTF8ToHtml",
+          "target_span_hash": "0a5e3ba039fe0cac3871e784c2034f00aeb83d422d0d6350485c2501d8d4ab28"
+        },
+        "operation_id": "replace-8665b42985c12a12"
+      }
+    ],
+    "resolved_head": "c7d5204f0617a9d611dc447e58bcc30ca3b41157"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/HTMLparser.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

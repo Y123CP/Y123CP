@@ -1,0 +1,152 @@
+{
+  "hot_function": {
+    "symbol": "aptx_qmf_polyphase_analysis",
+    "location": "src/openaptx.rs:2003-2037",
+    "workload": "encode_std",
+    "hot_region": "src/openaptx.rs:2003-2037",
+    "rust_source": "unsafe fn aptx_qmf_polyphase_analysis(\n    mut signal: *mut aptx_filter_signal,\n    mut coeffs: *const [int32_t; 16],\n    mut shift: c_uint,\n    mut samples: *const int32_t,\n    mut low_subband_output: *mut int32_t,\n    mut high_subband_output: *mut int32_t,\n) {\n    let mut subbands: [int32_t; 2] = [0; 2];\n    let mut i: c_uint = 0;\n    i = 0 as c_uint;\n    while i < NB_FILTERS as c_uint {\n        aptx_qmf_filter_signal_push(\n            signal.offset(i as isize) as *mut aptx_filter_signal,\n            *samples.offset(\n                ((NB_FILTERS - 1 as c_int) as c_uint).wrapping_sub(i)\n                    as isize,\n            ),\n        );\n        subbands[i as usize] = aptx_qmf_convolution(\n            signal.offset(i as isize) as *mut aptx_filter_signal,\n            &raw const *coeffs.offset(i as isize) as *const int32_t,\n            shift,\n        );\n        i = i.wrapping_add(1);\n    }\n    *low_subband_output = clip_intp2(\n        subbands[0 as c_int as usize] + subbands[1 as c_int as usize],\n        23 as c_uint,\n    );\n    *high_subband_output = clip_intp2(\n        subbands[0 as c_int as usize] - subbands[1 as c_int as usize],\n        23 as c_uint,\n    );\n}",
+    "signature": "unsafe fn aptx_qmf_polyphase_analysis(\n    mut signal: *mut aptx_filter_signal,\n    mut coeffs: *const [int32_t; 16],\n    mut shift: c_uint,\n    mut samples: *const int32_t,\n    mut low_subband_output: *mut int32_t,\n    mut high_subband_output: *mut int32_t,\n)",
+    "profile": {
+      "self_time_ratio": 0.0567,
+      "call_count": null,
+      "retired_instructions": 1071489859,
+      "instructions_per_call": null,
+      "cpi": 0.307,
+      "tma": {
+        "scope": "process",
+        "retiring": 71.57335185501893,
+        "frontend_bound": 3.1566783152734836,
+        "bad_speculation": 8.898236627963296,
+        "backend_bound": 16.371733201744295,
+        "memory_bound": 5.449082190113503,
+        "core_bound": 10.92265101163079,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0228
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {},
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2015,
+        "message": "'_ZN19libopenaptx_cleaned3src8openaptx27aptx_qmf_filter_signal_push17h3844cf3464dc7d53E' inlined into '_ZN19libopenaptx_cleaned3src8openaptx27aptx_qmf_polyphase_analysis17hf178db10f4566977E' with (cost=115, threshold=325) at callsite _ZN19libopenaptx_cleaned3src8openaptx27aptx_qmf_polyphase_analysis17hf178db10f4566977E:12:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2022,
+        "message": "'_ZN19libopenaptx_cleaned3src8openaptx20aptx_qmf_convolution17h2ec76060177a7538E' inlined into '_ZN19libopenaptx_cleaned3src8openaptx27aptx_qmf_polyphase_analysis17hf178db10f4566977E' with (cost=315, threshold=487) at callsite _ZN19libopenaptx_cleaned3src8openaptx27aptx_qmf_polyphase_analysis17hf178db10f4566977E:19:32;"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 2014,
+        "message": "completely unrolled loop with 2 iterations"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2003,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN19libopenaptx_cleaned3src8openaptx27aptx_qmf_polyphase_analysis17hf178db10f4566977E: MI Instruction count changed from 0 to 230; Delta: 230"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2003,
+        "message": "X86 Fixup SetCC: Function: _ZN19libopenaptx_cleaned3src8openaptx27aptx_qmf_polyphase_analysis17hf178db10f4566977E: MI Instruction count changed from 230 to 232; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2003,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN19libopenaptx_cleaned3src8openaptx27aptx_qmf_polyphase_analysis17hf178db10f4566977E: MI Instruction count changed from 232 to 236; Delta: 4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2003,
+        "message": "Two-Address instruction pass: Function: _ZN19libopenaptx_cleaned3src8openaptx27aptx_qmf_polyphase_analysis17hf178db10f4566977E: MI Instruction count changed from 236 to 321; Delta: 85"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2003,
+        "message": "Register Coalescer: Function: _ZN19libopenaptx_cleaned3src8openaptx27aptx_qmf_polyphase_analysis17hf178db10f4566977E: MI Instruction count changed from 321 to 216; Delta: -105"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2003,
+        "message": "26 spills 2.596108e+01 total spills cost 11 reloads 9.981039e+00 total reloads cost 16 folded reloads 1.596806e+01 total folded reloads cost 3 virtual registers copies 1.000499e+00 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2003,
+        "message": "Greedy Register Allocator: Function: _ZN19libopenaptx_cleaned3src8openaptx27aptx_qmf_polyphase_analysis17hf178db10f4566977E: MI Instruction count changed from 216 to 254; Delta: 38"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2003,
+        "message": "Virtual Register Rewriter: Function: _ZN19libopenaptx_cleaned3src8openaptx27aptx_qmf_polyphase_analysis17hf178db10f4566977E: MI Instruction count changed from 254 to 247; Delta: -7"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 2003,
+        "message": "248 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2003,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN19libopenaptx_cleaned3src8openaptx27aptx_qmf_polyphase_analysis17hf178db10f4566977E: MI Instruction count changed from 247 to 277; Delta: 30"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2003,
+        "message": "Control Flow Optimizer: Function: _ZN19libopenaptx_cleaned3src8openaptx27aptx_qmf_polyphase_analysis17hf178db10f4566977E: MI Instruction count changed from 277 to 271; Delta: -6"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2003,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN19libopenaptx_cleaned3src8openaptx27aptx_qmf_polyphase_analysis17hf178db10f4566977E: MI Instruction count changed from 271 to 272; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2003,
+        "message": "X86 LEA Fixup: Function: _ZN19libopenaptx_cleaned3src8openaptx27aptx_qmf_polyphase_analysis17hf178db10f4566977E: MI Instruction count changed from 272 to 274; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2003,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN19libopenaptx_cleaned3src8openaptx27aptx_qmf_polyphase_analysis17hf178db10f4566977E: MI Instruction count changed from 274 to 275; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2003,
+        "message": "254 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

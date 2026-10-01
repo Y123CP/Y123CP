@@ -1,0 +1,236 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.18711966041728587,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.29765773836185305,
+            "aggregate_ci_low_pct": 0.07658158247271867,
+            "aggregate_pct": 0.18711966041728587,
+            "checkpoint": 20,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.5453,
+                "ci_low_pct": -0.1391,
+                "insns_delta_pct": 0.0056,
+                "mean_delta_pct": 0.2031,
+                "op": "cache_roundtrip",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.12,
+                "ci_low_pct": -0.1463,
+                "insns_delta_pct": -0.0337,
+                "mean_delta_pct": -0.0131,
+                "op": "lz77_blocksplit_analysis",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.415,
+                "ci_low_pct": 0.251,
+                "insns_delta_pct": -0.017,
+                "mean_delta_pct": 0.333,
+                "op": "raw_deflate",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.6034,
+                "ci_low_pct": -0.2379,
+                "insns_delta_pct": 0.2837,
+                "mean_delta_pct": 0.1827,
+                "op": "tree_codegen",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "per_op_uncertain"
+              },
+              {
+                "ci_high_pct": 0.3502,
+                "ci_low_pct": 0.1096,
+                "insns_delta_pct": -0.0137,
+                "mean_delta_pct": 0.2299,
+                "op": "zlib_compress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.2630618389688569,
+            "aggregate_ci_low_pct": -0.0860857718773738,
+            "aggregate_pct": 0.08848803354574154,
+            "checkpoint": 20,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.1001,
+                "ci_low_pct": -0.3712,
+                "insns_delta_pct": -0.0052,
+                "mean_delta_pct": -0.1356,
+                "op": "lz77_blocksplit_analysis",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.3754,
+                "ci_low_pct": 0.1892,
+                "insns_delta_pct": -0.0169,
+                "mean_delta_pct": 0.2823,
+                "op": "raw_deflate",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.6599,
+                "ci_low_pct": -0.6583,
+                "insns_delta_pct": 0.2718,
+                "mean_delta_pct": 0.0008,
+                "op": "tree_codegen",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.261,
+                "ci_low_pct": 0.152,
+                "insns_delta_pct": -0.0311,
+                "mean_delta_pct": 0.2065,
+                "op": "zlib_compress",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "lz77_blocksplit_analysis",
+          "raw_deflate",
+          "tree_codegen",
+          "zlib_compress"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "raw_deflate"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "c81322ddb3440f301987676c5f2278ce6fac44d5",
+      "changeset_id": "legacy-b17e2063b0b81a84",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-8b1ce8bd6c2538ae",
+          "replacement_function_source": "#[inline]\npub unsafe fn ZopfliLengthLimitedCodeLengths(\n    mut frequencies: *const size_t,\n    mut n: c_int,\n    mut maxbits: c_int,\n    mut bitlengths: *mut c_uint,\n) -> c_int {\n    // SAFETY: caller provides `frequencies` valid for `n` elements per original function contract.\n    let frequencies_view: &[size_t] =\n        unsafe { core::slice::from_raw_parts(frequencies, n as usize) };\n\n    let mut pool = NodePool {\n        next: ::core::ptr::null_mut::<Node>(),\n    };\n    let mut numsymbols: c_int = 0;\n    let mut numBoundaryPMRuns: c_int;\n    let mut nodes: *mut Node;\n    let mut lists: *mut [*mut Node; 2];\n\n    let leaves_size =\n        (n as size_t).wrapping_mul(::core::mem::size_of::<Node>() as size_t);\n    let leaves: *mut Node = malloc(leaves_size) as *mut Node;\n\n    let n_usize = n as usize;\n    let mut i = 0usize;\n    while i < n_usize {\n        // SAFETY: `bitlengths` is valid for `n` elements per original function contract, and `i < n`.\n        unsafe { *bitlengths.add(i) = 0 as c_uint };\n        i += 1;\n    }\n\n    i = 0;\n    while i < n_usize {\n        let freq = frequencies_view[i];\n        if freq != 0 {\n            // SAFETY: `leaves` points to allocation for `n` Nodes, and `numsymbols <= i < n`.\n            unsafe {\n                let leaf = leaves.add(numsymbols as usize);\n                (*leaf).weight = freq;\n                (*leaf).count = i as c_int;\n            }\n            numsymbols += 1;\n        }\n        i += 1;\n    }\n\n    if (1 as c_int) << maxbits < numsymbols {\n        free(leaves as *mut c_void);\n        return 1 as c_int;\n    }\n    if numsymbols == 0 {\n        free(leaves as *mut c_void);\n        return 0 as c_int;\n    }\n    if numsymbols == 1 {\n        // SAFETY: `numsymbols == 1` means first leaf exists; stored count is original symbol index in range.\n        unsafe {\n            *bitlengths.add((*leaves).count as usize) = 1 as c_uint;\n        }\n        free(leaves as *mut c_void);\n        return 0 as c_int;\n    }\n    if numsymbols == 2 {\n        // SAFETY: `numsymbols == 2` means first two leaves exist; counts are valid original symbol indices.\n        unsafe {\n            let c0 = (*leaves).count as usize;\n            let c1 = (*leaves.add(1)).count as usize;\n            *bitlengths.add(c0) = (*bitlengths.add(c0)).wrapping_add(1);\n            *bitlengths.add(c1) = (*bitlengths.add(c1)).wrapping_add(1);\n        }\n        free(leaves as *mut c_void);\n        return 0 as c_int;\n    }\n\n    let limit = (1 as c_int as size_t)\n        << (::core::mem::size_of::<size_t>() as usize)\n            .wrapping_mul(CHAR_BIT as usize)\n            .wrapping_sub(9usize);\n\n    i = 0;\n    let numsymbols_usize = numsymbols as usize;\n    while i < numsymbols_usize {\n        // SAFETY: `i < numsymbols <= n`, so this leaf is within allocation.\n        unsafe {\n            let leaf = leaves.add(i);\n            let weight = (*leaf).weight;\n            if weight >= limit {\n                free(leaves as *mut c_void);\n                return 1 as c_int;\n            }\n            (*leaf).weight = (weight << 9) | ((*leaf).count as size_t);\n        }\n        i += 1;\n    }\n\n    qsort(\n        leaves as *mut c_void,\n        numsymbols as size_t,\n        ::core::mem::size_of::<Node>() as size_t,\n        Some(\n            LeafComparator\n                as unsafe extern \"C\" fn(*const c_void, *const c_void) -> c_int,\n        ),\n    );\n\n    i = 0;\n    while i < numsymbols_usize {\n        // SAFETY: `i < numsymbols <= n`, so this leaf is within allocation.\n        unsafe {\n            (*leaves.add(i)).weight >>= 9;\n        }\n        i += 1;\n    }\n\n    if numsymbols - 1 < maxbits {\n        maxbits = numsymbols - 1;\n    }\n\n    let nodes_len = (maxbits * 2 * numsymbols) as size_t;\n    nodes = malloc(\n        nodes_len.wrapping_mul(::core::mem::size_of::<Node>() as size_t),\n    ) as *mut Node;\n    pool.next = nodes;\n\n    lists = malloc(\n        (maxbits as size_t)\n            .wrapping_mul(::core::mem::size_of::<[*mut Node; 2]>() as size_t),\n    ) as *mut [*mut Node; 2];\n\n    InitLists(&raw mut pool, leaves, maxbits, lists);\n\n    numBoundaryPMRuns = 2 * numsymbols - 4;\n    let last = maxbits - 1;\n    let mut run = 0;\n    while run < (numBoundaryPMRuns - 1) as usize {\n        BoundaryPM(lists, leaves, numsymbols, &raw mut pool, last);\n        run += 1;\n    }\n\n    BoundaryPMFinal(lists, leaves, numsymbols, &raw mut pool, last);\n\n    ExtractBitLengths(\n        // SAFETY: `last` is in-bounds for `lists` allocation and list slot [1] exists by type.\n        unsafe { (*lists.add(last as usize))[1] },\n        leaves,\n        bitlengths,\n    );\n\n    free(lists as *mut c_void);\n    free(leaves as *mut c_void);\n    free(nodes as *mut c_void);\n    0 as c_int\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "f47f47a68832dd1987f470ae16ec974325c7616d3447db3d6b41b2330b74aed6",
+            "file_hint": "src/katajainen.rs",
+            "qualified_name": "crate::ZopfliLengthLimitedCodeLengths",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "ZopfliLengthLimitedCodeLengths-b50cdcf6fb49",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "ZopfliLengthLimitedCodeLengths",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "2ee3550a6c151f8b974dc0610ece2bdf904464347231f455c2902bb405f21a69",
+            "edit_id": "edit-replace-8b1ce8bd6c2538ae",
+            "end_byte": 10811,
+            "operation_id": "replace-8b1ce8bd6c2538ae",
+            "relative_path": "src/katajainen.rs",
+            "replacement_text": "#[inline]\npub unsafe fn ZopfliLengthLimitedCodeLengths(\n    mut frequencies: *const size_t,\n    mut n: c_int,\n    mut maxbits: c_int,\n    mut bitlengths: *mut c_uint,\n) -> c_int {\n    // SAFETY: caller provides `frequencies` valid for `n` elements per original function contract.\n    let frequencies_view: &[size_t] =\n        unsafe { core::slice::from_raw_parts(frequencies, n as usize) };\n\n    let mut pool = NodePool {\n        next: ::core::ptr::null_mut::<Node>(),\n    };\n    let mut numsymbols: c_int = 0;\n    let mut numBoundaryPMRuns: c_int;\n    let mut nodes: *mut Node;\n    let mut lists: *mut [*mut Node; 2];\n\n    let leaves_size =\n        (n as size_t).wrapping_mul(::core::mem::size_of::<Node>() as size_t);\n    let leaves: *mut Node = malloc(leaves_size) as *mut Node;\n\n    let n_usize = n as usize;\n    let mut i = 0usize;\n    while i < n_usize {\n        // SAFETY: `bitlengths` is valid for `n` elements per original function contract, and `i < n`.\n        unsafe { *bitlengths.add(i) = 0 as c_uint };\n        i += 1;\n    }\n\n    i = 0;\n    while i < n_usize {\n        let freq = frequencies_view[i];\n        if freq != 0 {\n            // SAFETY: `leaves` points to allocation for `n` Nodes, and `numsymbols <= i < n`.\n            unsafe {\n                let leaf = leaves.add(numsymbols as usize);\n                (*leaf).weight = freq;\n                (*leaf).count = i as c_int;\n            }\n            numsymbols += 1;\n        }\n        i += 1;\n    }\n\n    if (1 as c_int) << maxbits < numsymbols {\n        free(leaves as *mut c_void);\n        return 1 as c_int;\n    }\n    if numsymbols == 0 {\n        free(leaves as *mut c_void);\n        return 0 as c_int;\n    }\n    if numsymbols == 1 {\n        // SAFETY: `numsymbols == 1` means first leaf exists; stored count is original symbol index in range.\n        unsafe {\n            *bitlengths.add((*leaves).count as usize) = 1 as c_uint;\n        }\n        free(leaves as *mut c_void);\n        return 0 as c_int;\n    }\n    if numsymbols == 2 {\n        // SAFETY: `numsymbols == 2` means first two leaves exist; counts are valid original symbol indices.\n        unsafe {\n            let c0 = (*leaves).count as usize;\n            let c1 = (*leaves.add(1)).count as usize;\n            *bitlengths.add(c0) = (*bitlengths.add(c0)).wrapping_add(1);\n            *bitlengths.add(c1) = (*bitlengths.add(c1)).wrapping_add(1);\n        }\n        free(leaves as *mut c_void);\n        return 0 as c_int;\n    }\n\n    let limit = (1 as c_int as size_t)\n        << (::core::mem::size_of::<size_t>() as usize)\n            .wrapping_mul(CHAR_BIT as usize)\n            .wrapping_sub(9usize);\n\n    i = 0;\n    let numsymbols_usize = numsymbols as usize;\n    while i < numsymbols_usize {\n        // SAFETY: `i < numsymbols <= n`, so this leaf is within allocation.\n        unsafe {\n            let leaf = leaves.add(i);\n            let weight = (*leaf).weight;\n            if weight >= limit {\n                free(leaves as *mut c_void);\n                return 1 as c_int;\n            }\n            (*leaf).weight = (weight << 9) | ((*leaf).count as size_t);\n        }\n        i += 1;\n    }\n\n    qsort(\n        leaves as *mut c_void,\n        numsymbols as size_t,\n        ::core::mem::size_of::<Node>() as size_t,\n        Some(\n            LeafComparator\n                as unsafe extern \"C\" fn(*const c_void, *const c_void) -> c_int,\n        ),\n    );\n\n    i = 0;\n    while i < numsymbols_usize {\n        // SAFETY: `i < numsymbols <= n`, so this leaf is within allocation.\n        unsafe {\n            (*leaves.add(i)).weight >>= 9;\n        }\n        i += 1;\n    }\n\n    if numsymbols - 1 < maxbits {\n        maxbits = numsymbols - 1;\n    }\n\n    let nodes_len = (maxbits * 2 * numsymbols) as size_t;\n    nodes = malloc(\n        nodes_len.wrapping_mul(::core::mem::size_of::<Node>() as size_t),\n    ) as *mut Node;\n    pool.next = nodes;\n\n    lists = malloc(\n        (maxbits as size_t)\n            .wrapping_mul(::core::mem::size_of::<[*mut Node; 2]>() as size_t),\n    ) as *mut [*mut Node; 2];\n\n    InitLists(&raw mut pool, leaves, maxbits, lists);\n\n    numBoundaryPMRuns = 2 * numsymbols - 4;\n    let last = maxbits - 1;\n    let mut run = 0;\n    while run < (numBoundaryPMRuns - 1) as usize {\n        BoundaryPM(lists, leaves, numsymbols, &raw mut pool, last);\n        run += 1;\n    }\n\n    BoundaryPMFinal(lists, leaves, numsymbols, &raw mut pool, last);\n\n    ExtractBitLengths(\n        // SAFETY: `last` is in-bounds for `lists` allocation and list slot [1] exists by type.\n        unsafe { (*lists.add(last as usize))[1] },\n        leaves,\n        bitlengths,\n    );\n\n    free(lists as *mut c_void);\n    free(leaves as *mut c_void);\n    free(nodes as *mut c_void);\n    0 as c_int\n}",
+            "start_byte": 6549
+          }
+        ],
+        "facts": {
+          "fn_name": "ZopfliLengthLimitedCodeLengths",
+          "target_span_hash": "f47f47a68832dd1987f470ae16ec974325c7616d3447db3d6b41b2330b74aed6"
+        },
+        "operation_id": "replace-8b1ce8bd6c2538ae"
+      }
+    ],
+    "resolved_head": "c81322ddb3440f301987676c5f2278ce6fac44d5"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/katajainen.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

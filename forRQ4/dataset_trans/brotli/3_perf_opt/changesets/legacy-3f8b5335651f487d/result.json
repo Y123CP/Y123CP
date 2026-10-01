@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.8024489071187512,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 1.17084695328401,
+            "aggregate_ci_low_pct": 0.4340508609534924,
+            "aggregate_pct": 0.8024489071187512,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 1.1708,
+                "ci_low_pct": 0.4341,
+                "insns_delta_pct": -0.3959,
+                "mean_delta_pct": 0.8024,
+                "op": "decode_buffer",
+                "samples": 40,
+                "state": "active",
+                "stop_reason": "per_op_uncertain"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "decode_buffer"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "decode_buffer"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "7d12dc4ba696b77a95a018731305350efeb21217",
+      "changeset_id": "legacy-3f8b5335651f487d",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-0450edcd22ede4f9",
+          "replacement_function_source": "// Applied rules: [III④, C3, C1]\n// Skipped rules: []\n#[inline(always)]\nunsafe fn ReadCommandInternal(\n    mut safe: c_int,\n    mut s: *mut BrotliDecoderStateInternal,\n    mut br: *mut BrotliBitReader,\n    mut insert_length: *mut c_int,\n) -> c_int {\n    let mut cmd_code: uint64_t = 0;\n    let mut insert_len_extra: uint64_t = 0 as uint64_t;\n    let mut copy_length: uint64_t = 0;\n    let mut v: CmdLutElement = CmdLutElement {\n        insert_len_extra_bits: 0,\n        copy_len_extra_bits: 0,\n        distance_code: 0,\n        context: 0,\n        insert_len_offset: 0,\n        copy_len_offset: 0,\n    };\n    let mut memento: BrotliBitReaderState = BrotliBitReaderState {\n        val_: 0,\n        bit_pos_: 0,\n        next_in: ::core::ptr::null::<uint8_t>(),\n        avail_in: 0,\n    };\n\n    let htree_command = (*s).htree_command;\n    if safe == 0 {\n        cmd_code = ReadSymbol(htree_command, br);\n    } else {\n        BrotliBitReaderSaveState(br, &raw mut memento);\n        if SafeReadSymbol(htree_command, br, &raw mut cmd_code) == 0 {\n            return BROTLI_FALSE;\n        }\n    }\n\n    // SAFETY: `cmd_code` comes from the command Huffman alphabet decoder, whose\n    // contract guarantees a valid command code index into `kCmdLut`.\n    v = unsafe { *kCmdLut.get_unchecked(cmd_code as usize) };\n\n    let distance_code = v.distance_code as c_int;\n    let distance_context = v.context as c_int;\n    (*s).distance_code = distance_code;\n    (*s).distance_context = distance_context;\n\n    let dist_context_map_slice = (*s).dist_context_map_slice;\n    // SAFETY: `dist_context_map_slice` points to the decoder state's distance\n    // context map, and `distance_context` is the command LUT-provided context\n    // used to index that map. This is a single proven unchecked access, with no\n    // new runtime check added.\n    let dist_htree_index = unsafe { *dist_context_map_slice.offset(distance_context as isize) };\n    (*s).dist_htree_index = dist_htree_index;\n\n    *insert_length = v.insert_len_offset as c_int;\n    if safe == 0 {\n        if (v.insert_len_extra_bits as c_int != 0 as c_int) as c_int as c_long != 0 {\n            insert_len_extra = BrotliReadBits24(br, v.insert_len_extra_bits as uint64_t);\n        }\n        copy_length = BrotliReadBits24(br, v.copy_len_extra_bits as uint64_t);\n    } else if SafeReadBits(\n        br,\n        v.insert_len_extra_bits as uint64_t,\n        &raw mut insert_len_extra,\n    ) == 0\n        || SafeReadBits(br, v.copy_len_extra_bits as uint64_t, &raw mut copy_length) == 0\n    {\n        BrotliBitReaderRestoreState(br, &raw mut memento);\n        return BROTLI_FALSE;\n    }\n\n    let copy_len_offset = v.copy_len_offset as c_int;\n    (*s).copy_length = copy_length as c_int + copy_len_offset;\n\n    let block_length = &raw mut (*s).block_length;\n    // SAFETY: index 1 is a fixed in-bounds slot of the decoder state's\n    // `block_length` array; this removes the source-level bounds check only.\n    unsafe {\n        (*block_length)[1usize] = (*block_length)[1usize].wrapping_sub(1);\n    }\n\n    *insert_length += insert_len_extra as c_int;\n    return BROTLI_TRUE;\n}",
+          "rule_id": "III④,C3,C1",
+          "target": {
+            "declaration_hash": "9f3d571240ebfe26472153c351fd76f376c72ec04605c5cf38cf220c79d70265",
+            "file_hint": "src/dec/decode.rs",
+            "qualified_name": "crate::ReadCommandInternal",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "ReadCommandInternal-73f555248797",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "ReadCommandInternal",
+        "rule_id": "III④,C3,C1"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "aee77e87e2e6f1c149a8349188e90cdae73bfd9937bc4df5920c257285915d53",
+            "edit_id": "edit-replace-0450edcd22ede4f9",
+            "end_byte": 109786,
+            "operation_id": "replace-0450edcd22ede4f9",
+            "relative_path": "src/dec/decode.rs",
+            "replacement_text": "// Applied rules: [III④, C3, C1]\n// Skipped rules: []\n#[inline(always)]\nunsafe fn ReadCommandInternal(\n    mut safe: c_int,\n    mut s: *mut BrotliDecoderStateInternal,\n    mut br: *mut BrotliBitReader,\n    mut insert_length: *mut c_int,\n) -> c_int {\n    let mut cmd_code: uint64_t = 0;\n    let mut insert_len_extra: uint64_t = 0 as uint64_t;\n    let mut copy_length: uint64_t = 0;\n    let mut v: CmdLutElement = CmdLutElement {\n        insert_len_extra_bits: 0,\n        copy_len_extra_bits: 0,\n        distance_code: 0,\n        context: 0,\n        insert_len_offset: 0,\n        copy_len_offset: 0,\n    };\n    let mut memento: BrotliBitReaderState = BrotliBitReaderState {\n        val_: 0,\n        bit_pos_: 0,\n        next_in: ::core::ptr::null::<uint8_t>(),\n        avail_in: 0,\n    };\n\n    let htree_command = (*s).htree_command;\n    if safe == 0 {\n        cmd_code = ReadSymbol(htree_command, br);\n    } else {\n        BrotliBitReaderSaveState(br, &raw mut memento);\n        if SafeReadSymbol(htree_command, br, &raw mut cmd_code) == 0 {\n            return BROTLI_FALSE;\n        }\n    }\n\n    // SAFETY: `cmd_code` comes from the command Huffman alphabet decoder, whose\n    // contract guarantees a valid command code index into `kCmdLut`.\n    v = unsafe { *kCmdLut.get_unchecked(cmd_code as usize) };\n\n    let distance_code = v.distance_code as c_int;\n    let distance_context = v.context as c_int;\n    (*s).distance_code = distance_code;\n    (*s).distance_context = distance_context;\n\n    let dist_context_map_slice = (*s).dist_context_map_slice;\n    // SAFETY: `dist_context_map_slice` points to the decoder state's distance\n    // context map, and `distance_context` is the command LUT-provided context\n    // used to index that map. This is a single proven unchecked access, with no\n    // new runtime check added.\n    let dist_htree_index = unsafe { *dist_context_map_slice.offset(distance_context as isize) };\n    (*s).dist_htree_index = dist_htree_index;\n\n    *insert_length = v.insert_len_offset as c_int;\n    if safe == 0 {\n        if (v.insert_len_extra_bits as c_int != 0 as c_int) as c_int as c_long != 0 {\n            insert_len_extra = BrotliReadBits24(br, v.insert_len_extra_bits as uint64_t);\n        }\n        copy_length = BrotliReadBits24(br, v.copy_len_extra_bits as uint64_t);\n    } else if SafeReadBits(\n        br,\n        v.insert_len_extra_bits as uint64_t,\n        &raw mut insert_len_extra,\n    ) == 0\n        || SafeReadBits(br, v.copy_len_extra_bits as uint64_t, &raw mut copy_length) == 0\n    {\n        BrotliBitReaderRestoreState(br, &raw mut memento);\n        return BROTLI_FALSE;\n    }\n\n    let copy_len_offset = v.copy_len_offset as c_int;\n    (*s).copy_length = copy_length as c_int + copy_len_offset;\n\n    let block_length = &raw mut (*s).block_length;\n    // SAFETY: index 1 is a fixed in-bounds slot of the decoder state's\n    // `block_length` array; this removes the source-level bounds check only.\n    unsafe {\n        (*block_length)[1usize] = (*block_length)[1usize].wrapping_sub(1);\n    }\n\n    *insert_length += insert_len_extra as c_int;\n    return BROTLI_TRUE;\n}",
+            "start_byte": 107590
+          }
+        ],
+        "facts": {
+          "fn_name": "ReadCommandInternal",
+          "target_span_hash": "9f3d571240ebfe26472153c351fd76f376c72ec04605c5cf38cf220c79d70265"
+        },
+        "operation_id": "replace-0450edcd22ede4f9"
+      }
+    ],
+    "resolved_head": "7d12dc4ba696b77a95a018731305350efeb21217"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/dec/decode.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

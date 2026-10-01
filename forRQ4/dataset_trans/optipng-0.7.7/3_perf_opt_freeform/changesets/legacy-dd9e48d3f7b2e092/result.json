@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 4.198762983723424,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 5.54231174500655,
+            "aggregate_ci_low_pct": 2.8552142224402974,
+            "aggregate_pct": 4.198762983723424,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 5.5423,
+                "ci_low_pct": 2.8552,
+                "insns_delta_pct": 4.659,
+                "mean_delta_pct": 4.1988,
+                "op": "png_write_read_roundtrip",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "png_write_read_roundtrip"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "png_write_read_roundtrip"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "5a37a4b1ab464f92ead6ffe81f6bd88220b44dec",
+      "changeset_id": "legacy-dd9e48d3f7b2e092",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-6c41d9266a76772e",
+          "replacement_function_source": "unsafe fn opng_insert_palette_entry(\n    mut palette: png_colorp,\n    mut num_palette: *mut c_int,\n    mut trans_alpha: png_bytep,\n    mut num_trans: *mut c_int,\n    mut max_tuples: c_int,\n    mut red: c_uint,\n    mut green: c_uint,\n    mut blue: c_uint,\n    mut alpha: c_uint,\n    mut index: *mut c_int,\n) -> c_int {\n    let mut low: c_int;\n    let mut high: c_int;\n    let mut mid: c_int;\n    let mut cmp: c_int;\n    let mut i: c_int;\n\n    let np = *num_palette;\n    let nt = *num_trans;\n\n    '_c2rust_label: {\n        if np >= 0 as c_int && np <= max_tuples {\n        } else {\n            __assert_fail(\n                b\"*num_palette >= 0 && *num_palette <= max_tuples\\0\" as *const u8\n                    as *const c_char,\n                b\"opngreduc.c\\0\" as *const u8 as *const c_char,\n                109 as c_uint,\n                b\"int opng_insert_palette_entry(png_colorp, int *, png_bytep, int *, int, unsigned int, unsigned int, unsigned int, unsigned int, int *)\\0\"\n                    as *const u8 as *const c_char,\n            );\n        }\n    };\n    '_c2rust_label_0: {\n        if nt >= 0 as c_int && nt <= np {\n        } else {\n            __assert_fail(\n                b\"*num_trans >= 0 && *num_trans <= *num_palette\\0\" as *const u8\n                    as *const c_char,\n                b\"opngreduc.c\\0\" as *const u8 as *const c_char,\n                110 as c_uint,\n                b\"int opng_insert_palette_entry(png_colorp, int *, png_bytep, int *, int, unsigned int, unsigned int, unsigned int, unsigned int, int *)\\0\"\n                    as *const u8 as *const c_char,\n            );\n        }\n    };\n\n    let red_i = red as c_int;\n    let green_i = green as c_int;\n    let blue_i = blue as c_int;\n    let alpha_i = alpha as c_int;\n\n    if alpha < 255 as c_uint {\n        low = 0 as c_int;\n        high = nt - 1 as c_int;\n        while low <= high {\n            mid = low + ((high - low) >> 1);\n            // SAFETY: `mid` is kept within [0, nt-1], and `nt <= np`; callers provide valid arrays for existing palette/transparency entries.\n            let a = *trans_alpha.offset(mid as isize) as c_int;\n            cmp = alpha_i - a;\n            if cmp == 0 {\n                // SAFETY: `mid < np` by construction and `palette` points to at least `np` initialized entries.\n                let p = &*palette.offset(mid as isize);\n                cmp = red_i - p.red as c_int;\n                if cmp == 0 {\n                    cmp = green_i - p.green as c_int;\n                    if cmp == 0 {\n                        cmp = blue_i - p.blue as c_int;\n                    }\n                }\n            }\n            if cmp < 0 as c_int {\n                high = mid - 1 as c_int;\n            } else if cmp > 0 as c_int {\n                low = mid + 1 as c_int;\n            } else {\n                *index = mid;\n                return 0 as c_int;\n            }\n        }\n    } else {\n        low = nt;\n        high = np - 1 as c_int;\n        while low <= high {\n            mid = low + ((high - low) >> 1);\n            // SAFETY: `mid` is kept within [nt, np-1], and `palette` points to at least `np` initialized entries.\n            let p = &*palette.offset(mid as isize);\n            cmp = red_i - p.red as c_int;\n            if cmp == 0 {\n                cmp = green_i - p.green as c_int;\n                if cmp == 0 {\n                    cmp = blue_i - p.blue as c_int;\n                }\n            }\n            if cmp < 0 as c_int {\n                high = mid - 1 as c_int;\n            } else if cmp > 0 as c_int {\n                low = mid + 1 as c_int;\n            } else {\n                *index = mid;\n                return 0 as c_int;\n            }\n        }\n    }\n\n    if alpha > 255 as c_uint {\n        i = 0 as c_int;\n        while i < nt {\n            // SAFETY: `i < nt <= np`; `palette` points to at least `np` initialized entries.\n            let p = &*palette.offset(i as isize);\n            cmp = red_i - p.red as c_int;\n            if cmp == 0 {\n                cmp = green_i - p.green as c_int;\n                if cmp == 0 {\n                    cmp = blue_i - p.blue as c_int;\n                }\n            }\n            if cmp == 0 as c_int {\n                *index = i;\n                return 0 as c_int;\n            }\n            i += 1;\n        }\n    }\n\n    if np >= max_tuples {\n        *index = -(1 as c_int);\n        *num_trans = *index;\n        *num_palette = *num_trans;\n        return -(1 as c_int);\n    }\n\n    '_c2rust_label_1: {\n        if low >= 0 as c_int && low <= np {\n        } else {\n            __assert_fail(\n                b\"low >= 0 && low <= *num_palette\\0\" as *const u8\n                    as *const c_char,\n                b\"opngreduc.c\\0\" as *const u8 as *const c_char,\n                179 as c_uint,\n                b\"int opng_insert_palette_entry(png_colorp, int *, png_bytep, int *, int, unsigned int, unsigned int, unsigned int, unsigned int, int *)\\0\"\n                    as *const u8 as *const c_char,\n            );\n        }\n    };\n\n    if np > low {\n        let count = (np - low) as usize;\n        // SAFETY: Source and destination ranges are within the allocated palette buffer and may overlap; `ptr::copy` performs memmove semantics.\n        std::ptr::copy(\n            palette.offset(low as isize),\n            palette.offset((low + 1 as c_int) as isize),\n            count,\n        );\n    }\n\n    // SAFETY: `low <= np < max_tuples`, so writing the new entry at `low` is within the destination palette buffer.\n    let dst = palette.offset(low as isize);\n    (*dst).red = red as png_byte;\n    (*dst).green = green as png_byte;\n    (*dst).blue = blue as png_byte;\n    *num_palette = np + 1 as c_int;\n\n    if alpha < 255 as c_uint {\n        '_c2rust_label_2: {\n            if low <= nt {\n            } else {\n                __assert_fail(\n                    b\"low <= *num_trans\\0\" as *const u8 as *const c_char,\n                    b\"opngreduc.c\\0\" as *const u8 as *const c_char,\n                    188 as c_uint,\n                    b\"int opng_insert_palette_entry(png_colorp, int *, png_bytep, int *, int, unsigned int, unsigned int, unsigned int, unsigned int, int *)\\0\"\n                        as *const u8 as *const c_char,\n                );\n            }\n        };\n        if nt > low {\n            let count = (nt - low) as usize;\n            // SAFETY: Source and destination ranges are within the allocated trans_alpha buffer and may overlap; `ptr::copy` performs memmove semantics.\n            std::ptr::copy(\n                trans_alpha.offset(low as isize),\n                trans_alpha.offset((low + 1 as c_int) as isize),\n                count,\n            );\n        }\n        // SAFETY: `low <= nt` and caller provides capacity for inserting one transparency entry.\n        *trans_alpha.offset(low as isize) = alpha as png_byte;\n        *num_trans = nt + 1 as c_int;\n    }\n\n    *index = low;\n    1 as c_int\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "37146ff8131de3237970ceb7b79c08891450082031390a397ee4a1be5628f7f0",
+            "file_hint": "src/opngreduc/opngreduc.rs",
+            "qualified_name": "crate::opng_insert_palette_entry",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "opng_insert_palette_entry-c778255c8df0",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "opng_insert_palette_entry",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "3085a77ac55fe7e1f7c6d657619b4bc2719f2a5a72a2daf11a5fcb631929d16a",
+            "edit_id": "edit-replace-6c41d9266a76772e",
+            "end_byte": 11297,
+            "operation_id": "replace-6c41d9266a76772e",
+            "relative_path": "src/opngreduc/opngreduc.rs",
+            "replacement_text": "unsafe fn opng_insert_palette_entry(\n    mut palette: png_colorp,\n    mut num_palette: *mut c_int,\n    mut trans_alpha: png_bytep,\n    mut num_trans: *mut c_int,\n    mut max_tuples: c_int,\n    mut red: c_uint,\n    mut green: c_uint,\n    mut blue: c_uint,\n    mut alpha: c_uint,\n    mut index: *mut c_int,\n) -> c_int {\n    let mut low: c_int;\n    let mut high: c_int;\n    let mut mid: c_int;\n    let mut cmp: c_int;\n    let mut i: c_int;\n\n    let np = *num_palette;\n    let nt = *num_trans;\n\n    '_c2rust_label: {\n        if np >= 0 as c_int && np <= max_tuples {\n        } else {\n            __assert_fail(\n                b\"*num_palette >= 0 && *num_palette <= max_tuples\\0\" as *const u8\n                    as *const c_char,\n                b\"opngreduc.c\\0\" as *const u8 as *const c_char,\n                109 as c_uint,\n                b\"int opng_insert_palette_entry(png_colorp, int *, png_bytep, int *, int, unsigned int, unsigned int, unsigned int, unsigned int, int *)\\0\"\n                    as *const u8 as *const c_char,\n            );\n        }\n    };\n    '_c2rust_label_0: {\n        if nt >= 0 as c_int && nt <= np {\n        } else {\n            __assert_fail(\n                b\"*num_trans >= 0 && *num_trans <= *num_palette\\0\" as *const u8\n                    as *const c_char,\n                b\"opngreduc.c\\0\" as *const u8 as *const c_char,\n                110 as c_uint,\n                b\"int opng_insert_palette_entry(png_colorp, int *, png_bytep, int *, int, unsigned int, unsigned int, unsigned int, unsigned int, int *)\\0\"\n                    as *const u8 as *const c_char,\n            );\n        }\n    };\n\n    let red_i = red as c_int;\n    let green_i = green as c_int;\n    let blue_i = blue as c_int;\n    let alpha_i = alpha as c_int;\n\n    if alpha < 255 as c_uint {\n        low = 0 as c_int;\n        high = nt - 1 as c_int;\n        while low <= high {\n            mid = low + ((high - low) >> 1);\n            // SAFETY: `mid` is kept within [0, nt-1], and `nt <= np`; callers provide valid arrays for existing palette/transparency entries.\n            let a = *trans_alpha.offset(mid as isize) as c_int;\n            cmp = alpha_i - a;\n            if cmp == 0 {\n                // SAFETY: `mid < np` by construction and `palette` points to at least `np` initialized entries.\n                let p = &*palette.offset(mid as isize);\n                cmp = red_i - p.red as c_int;\n                if cmp == 0 {\n                    cmp = green_i - p.green as c_int;\n                    if cmp == 0 {\n                        cmp = blue_i - p.blue as c_int;\n                    }\n                }\n            }\n            if cmp < 0 as c_int {\n                high = mid - 1 as c_int;\n            } else if cmp > 0 as c_int {\n                low = mid + 1 as c_int;\n            } else {\n                *index = mid;\n                return 0 as c_int;\n            }\n        }\n    } else {\n        low = nt;\n        high = np - 1 as c_int;\n        while low <= high {\n            mid = low + ((high - low) >> 1);\n            // SAFETY: `mid` is kept within [nt, np-1], and `palette` points to at least `np` initialized entries.\n            let p = &*palette.offset(mid as isize);\n            cmp = red_i - p.red as c_int;\n            if cmp == 0 {\n                cmp = green_i - p.green as c_int;\n                if cmp == 0 {\n                    cmp = blue_i - p.blue as c_int;\n                }\n            }\n            if cmp < 0 as c_int {\n                high = mid - 1 as c_int;\n            } else if cmp > 0 as c_int {\n                low = mid + 1 as c_int;\n            } else {\n                *index = mid;\n                return 0 as c_int;\n            }\n        }\n    }\n\n    if alpha > 255 as c_uint {\n        i = 0 as c_int;\n        while i < nt {\n            // SAFETY: `i < nt <= np`; `palette` points to at least `np` initialized entries.\n            let p = &*palette.offset(i as isize);\n            cmp = red_i - p.red as c_int;\n            if cmp == 0 {\n                cmp = green_i - p.green as c_int;\n                if cmp == 0 {\n                    cmp = blue_i - p.blue as c_int;\n                }\n            }\n            if cmp == 0 as c_int {\n                *index = i;\n                return 0 as c_int;\n            }\n            i += 1;\n        }\n    }\n\n    if np >= max_tuples {\n        *index = -(1 as c_int);\n        *num_trans = *index;\n        *num_palette = *num_trans;\n        return -(1 as c_int);\n    }\n\n    '_c2rust_label_1: {\n        if low >= 0 as c_int && low <= np {\n        } else {\n            __assert_fail(\n                b\"low >= 0 && low <= *num_palette\\0\" as *const u8\n                    as *const c_char,\n                b\"opngreduc.c\\0\" as *const u8 as *const c_char,\n                179 as c_uint,\n                b\"int opng_insert_palette_entry(png_colorp, int *, png_bytep, int *, int, unsigned int, unsigned int, unsigned int, unsigned int, int *)\\0\"\n                    as *const u8 as *const c_char,\n            );\n        }\n    };\n\n    if np > low {\n        let count = (np - low) as usize;\n        // SAFETY: Source and destination ranges are within the allocated palette buffer and may overlap; `ptr::copy` performs memmove semantics.\n        std::ptr::copy(\n            palette.offset(low as isize),\n            palette.offset((low + 1 as c_int) as isize),\n            count,\n        );\n    }\n\n    // SAFETY: `low <= np < max_tuples`, so writing the new entry at `low` is within the destination palette buffer.\n    let dst = palette.offset(low as isize);\n    (*dst).red = red as png_byte;\n    (*dst).green = green as png_byte;\n    (*dst).blue = blue as png_byte;\n    *num_palette = np + 1 as c_int;\n\n    if alpha < 255 as c_uint {\n        '_c2rust_label_2: {\n            if low <= nt {\n            } else {\n                __assert_fail(\n                    b\"low <= *num_trans\\0\" as *const u8 as *const c_char,\n                    b\"opngreduc.c\\0\" as *const u8 as *const c_char,\n                    188 as c_uint,\n                    b\"int opng_insert_palette_entry(png_colorp, int *, png_bytep, int *, int, unsigned int, unsigned int, unsigned int, unsigned int, int *)\\0\"\n                        as *const u8 as *const c_char,\n                );\n            }\n        };\n        if nt > low {\n            let count = (nt - low) as usize;\n            // SAFETY: Source and destination ranges are within the allocated trans_alpha buffer and may overlap; `ptr::copy` performs memmove semantics.\n            std::ptr::copy(\n                trans_alpha.offset(low as isize),\n                trans_alpha.offset((low + 1 as c_int) as isize),\n                count,\n            );\n        }\n        // SAFETY: `low <= nt` and caller provides capacity for inserting one transparency entry.\n        *trans_alpha.offset(low as isize) = alpha as png_byte;\n        *num_trans = nt + 1 as c_int;\n    }\n\n    *index = low;\n    1 as c_int\n}",
+            "start_byte": 4724
+          }
+        ],
+        "facts": {
+          "fn_name": "opng_insert_palette_entry",
+          "target_span_hash": "37146ff8131de3237970ceb7b79c08891450082031390a397ee4a1be5628f7f0"
+        },
+        "operation_id": "replace-6c41d9266a76772e"
+      }
+    ],
+    "resolved_head": "5a37a4b1ab464f92ead6ffe81f6bd88220b44dec"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/opngreduc/opngreduc.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

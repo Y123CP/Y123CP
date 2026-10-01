@@ -1,0 +1,173 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 1.269007721830197,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 1.3633754577905646,
+            "aggregate_ci_low_pct": 1.1746399858698293,
+            "aggregate_pct": 1.269007721830197,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 1.9665,
+                "ci_low_pct": 1.8223,
+                "insns_delta_pct": -1.5196,
+                "mean_delta_pct": 1.8944,
+                "op": "encode_png",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              },
+              {
+                "ci_high_pct": 2.0243,
+                "ci_low_pct": 1.7745,
+                "insns_delta_pct": -1.9581,
+                "mean_delta_pct": 1.8994,
+                "op": "file_codec",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              },
+              {
+                "ci_high_pct": 1.7724,
+                "ci_low_pct": 1.6189,
+                "insns_delta_pct": -0.6682,
+                "mean_delta_pct": 1.6956,
+                "op": "memory_codec",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              },
+              {
+                "ci_high_pct": -0.0568,
+                "ci_low_pct": -0.7699,
+                "insns_delta_pct": -3.2337,
+                "mean_delta_pct": -0.4134,
+                "op": "raw_deflate_inflate",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_png",
+          "file_codec",
+          "memory_codec",
+          "raw_deflate_inflate"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "file_codec"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "5bfc4d62914268a805f55c10b462300d9b3ac808",
+      "changeset_id": "legacy-88fbd28866b0c2a2",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-b6eb7bf8a376dacf",
+          "replacement_function_source": "unsafe fn getHash(\n    mut data: *const c_uchar,\n    mut size: size_t,\n    mut pos: size_t,\n) -> c_uint {\n    if pos >= size {\n        return 0 as c_uint;\n    }\n\n    let remaining = size.wrapping_sub(pos);\n    let result = if remaining >= 3 as size_t {\n        let p = data.wrapping_add(pos);\n        // SAFETY: remaining >= 3 and pos < size guarantee p, p.add(1), and p.add(2) are within the original allocation.\n        ((*p as c_uint) << 0 as c_uint)\n            ^ ((*p.add(1) as c_uint) << 4 as c_uint)\n            ^ ((*p.add(2) as c_uint) << 8 as c_uint)\n    } else {\n        let p = data.wrapping_add(pos);\n        if remaining == 1 as size_t {\n            // SAFETY: remaining == 1 and pos < size guarantee p is within the original allocation.\n            (*p as c_uint) << 0\n        } else {\n            // SAFETY: remaining == 2 and pos < size guarantee p and p.add(1) are within the original allocation.\n            ((*p as c_uint) << 0) ^ ((*p.add(1) as c_uint) << 8)\n        }\n    };\n\n    result & HASH_BIT_MASK\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "bfc4dc403459599eed9a93c473fc715472dc174958c1a96274c7e3bd88394f10",
+            "file_hint": "src/lodepng.rs",
+            "qualified_name": "crate::getHash",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "getHash-c144a36e997f",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "getHash",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "7a5e9fe28ef6643edfc79f298a5bb5a174390378ed9a03938baf5dfaff149c42",
+            "edit_id": "edit-replace-b6eb7bf8a376dacf",
+            "end_byte": 86335,
+            "operation_id": "replace-b6eb7bf8a376dacf",
+            "relative_path": "src/lodepng.rs",
+            "replacement_text": "unsafe fn getHash(\n    mut data: *const c_uchar,\n    mut size: size_t,\n    mut pos: size_t,\n) -> c_uint {\n    if pos >= size {\n        return 0 as c_uint;\n    }\n\n    let remaining = size.wrapping_sub(pos);\n    let result = if remaining >= 3 as size_t {\n        let p = data.wrapping_add(pos);\n        // SAFETY: remaining >= 3 and pos < size guarantee p, p.add(1), and p.add(2) are within the original allocation.\n        ((*p as c_uint) << 0 as c_uint)\n            ^ ((*p.add(1) as c_uint) << 4 as c_uint)\n            ^ ((*p.add(2) as c_uint) << 8 as c_uint)\n    } else {\n        let p = data.wrapping_add(pos);\n        if remaining == 1 as size_t {\n            // SAFETY: remaining == 1 and pos < size guarantee p is within the original allocation.\n            (*p as c_uint) << 0\n        } else {\n            // SAFETY: remaining == 2 and pos < size guarantee p and p.add(1) are within the original allocation.\n            ((*p as c_uint) << 0) ^ ((*p.add(1) as c_uint) << 8)\n        }\n    };\n\n    result & HASH_BIT_MASK\n}",
+            "start_byte": 85355
+          }
+        ],
+        "facts": {
+          "fn_name": "getHash",
+          "target_span_hash": "bfc4dc403459599eed9a93c473fc715472dc174958c1a96274c7e3bd88394f10"
+        },
+        "operation_id": "replace-b6eb7bf8a376dacf"
+      }
+    ],
+    "resolved_head": "5bfc4d62914268a805f55c10b462300d9b3ac808"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/lodepng.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

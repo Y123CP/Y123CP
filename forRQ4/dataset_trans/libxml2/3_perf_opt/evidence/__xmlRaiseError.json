@@ -1,0 +1,791 @@
+{
+  "hot_function": {
+    "symbol": "__xmlRaiseError",
+    "location": "src/error.rs:1718-2044",
+    "workload": "schema_suite",
+    "hot_region": "src/error.rs:1718-2044",
+    "rust_source": "pub unsafe extern \"C\" fn __xmlRaiseError(\n    mut schannel: xmlStructuredErrorFunc,\n    mut channel: xmlGenericErrorFunc,\n    mut data: *mut c_void,\n    mut ctx: *mut c_void,\n    mut nod: *mut c_void,\n    mut domain: c_int,\n    mut code: c_int,\n    mut level: xmlErrorLevel,\n    mut file: *const c_char,\n    mut line: c_int,\n    mut str1: *const c_char,\n    mut str2: *const c_char,\n    mut str3: *const c_char,\n    mut int1: c_int,\n    mut col: c_int,\n    mut msg: *const c_char,\n    mut args: ...\n) {\n    let mut ctxt: xmlParserCtxtPtr = ::core::ptr::null_mut::<xmlParserCtxt>();\n    let mut node: xmlNodePtr = nod as xmlNodePtr;\n    let mut str: *mut c_char = ::core::ptr::null_mut::<c_char>();\n    let mut input: xmlParserInputPtr = ::core::ptr::null_mut::<xmlParserInput>();\n    let mut to: xmlErrorPtr = __xmlLastError();\n    let mut baseptr: xmlNodePtr = ::core::ptr::null_mut::<xmlNode>();\n    if code == XML_ERR_OK as c_int {\n        return;\n    }\n    if *__xmlGetWarningsDefaultValue() == 0 as c_int\n        && level as c_uint\n            == XML_ERR_WARNING as c_int as c_uint\n    {\n        return;\n    }\n    if domain == XML_FROM_PARSER as c_int\n        || domain == XML_FROM_HTML as c_int\n        || domain == XML_FROM_DTD as c_int\n        || domain == XML_FROM_NAMESPACE as c_int\n        || domain == XML_FROM_IO as c_int\n        || domain == XML_FROM_VALID as c_int\n    {\n        ctxt = ctx as xmlParserCtxtPtr;\n        if !ctxt.is_null() {\n            if level as c_uint\n                == XML_ERR_WARNING as c_int as c_uint\n            {\n                if (*ctxt).nbWarnings as c_int >= XML_MAX_ERRORS {\n                    return;\n                }\n                (*ctxt).nbWarnings = ((*ctxt).nbWarnings as c_int\n                    + 1 as c_int)\n                    as c_ushort;\n            } else {\n                if (*ctxt).nbErrors as c_int >= XML_MAX_ERRORS {\n                    return;\n                }\n                (*ctxt).nbErrors = ((*ctxt).nbErrors as c_int\n                    + 1 as c_int)\n                    as c_ushort;\n            }\n            if schannel.is_none()\n                && !(*ctxt).sax.is_null()\n                && (*(*ctxt).sax).initialized == XML_SAX2_MAGIC\n                && (*(*ctxt).sax).serror.is_some()\n            {\n                schannel = (*(*ctxt).sax).serror;\n                data = (*ctxt).userData;\n            }\n        }\n    }\n    if schannel.is_none() {\n        schannel = *__xmlStructuredError();\n        if schannel.is_some() {\n            data = *__xmlStructuredErrorContext();\n        }\n    }\n    if msg.is_null() {\n        str = xmlStrdup(\n            b\"No error message provided\\0\" as *const u8 as *const c_char\n                as *mut xmlChar,\n        ) as *mut c_char;\n    } else {\n        let mut size: c_int = 0;\n        let mut prev_size: c_int = -(1 as c_int);\n        let mut chars: c_int = 0;\n        let mut larger: *mut c_char = ::core::ptr::null_mut::<c_char>();\n        let mut ap: ::core::ffi::VaListImpl;\n        str = xmlMalloc.expect(\"non-null function pointer\")(150 as size_t)\n            as *mut c_char;\n        if !str.is_null() {\n            size = 150 as c_int;\n            while size < 64000 as c_int {\n                ap = args.clone();\n                chars = vsnprintf(str, size as size_t, msg, ap.as_va_list());\n                if chars > -(1 as c_int) && chars < size {\n                    if prev_size == chars {\n                        break;\n                    }\n                    prev_size = chars;\n                }\n                if chars > -(1 as c_int) {\n                    size += chars + 1 as c_int;\n                } else {\n                    size += 100 as c_int;\n                }\n                larger = xmlRealloc.expect(\"non-null function pointer\")(\n                    str as *mut c_void,\n                    size as size_t,\n                ) as *mut c_char;\n                if larger.is_null() {\n                    break;\n                }\n                str = larger;\n            }\n        }\n    }\n    if !ctxt.is_null() {\n        if file.is_null() {\n            input = (*ctxt).input;\n            if !input.is_null()\n                && (*input).filename.is_null()\n                && (*ctxt).inputNr > 1 as c_int\n            {\n                input = *(*ctxt)\n                    .inputTab\n                    .offset(((*ctxt).inputNr - 2 as c_int) as isize);\n            }\n            if !input.is_null() {\n                file = (*input).filename;\n                line = (*input).line;\n                col = (*input).col;\n            }\n        }\n        to = &raw mut (*ctxt).lastError as xmlErrorPtr;\n    } else if !node.is_null() && file.is_null() {\n        let mut i: c_int = 0;\n        if !(*node).doc.is_null() && !(*(*node).doc).URL.is_null() {\n            baseptr = node;\n        }\n        i = 0 as c_int;\n        while i < 10 as c_int\n            && !node.is_null()\n            && (*node).type_0 as c_uint\n                != XML_ELEMENT_NODE as c_int as c_uint\n        {\n            node = (*node).parent as xmlNodePtr;\n            i += 1;\n        }\n        if baseptr.is_null()\n            && !node.is_null()\n            && !(*node).doc.is_null()\n            && !(*(*node).doc).URL.is_null()\n        {\n            baseptr = node;\n        }\n        if !node.is_null()\n            && (*node).type_0 as c_uint\n                == XML_ELEMENT_NODE as c_int as c_uint\n        {\n            line = (*node).line as c_int;\n        }\n        if line == 0 as c_int || line == 65535 as c_int {\n            line = xmlGetLineNo(node as *const xmlNode) as c_int;\n        }\n    }\n    xmlResetError(to);\n    (*to).domain = domain;\n    (*to).code = code;\n    (*to).message = str;\n    (*to).level = level;\n    if !file.is_null() {\n        (*to).file = xmlStrdup(file as *const xmlChar) as *mut c_char;\n    } else if !baseptr.is_null() {\n        let mut prev: xmlNodePtr = baseptr;\n        let mut href: *mut c_char = ::core::ptr::null_mut::<c_char>();\n        let mut inclcount: c_int = 0 as c_int;\n        while !prev.is_null() {\n            if (*prev).prev.is_null() {\n                prev = (*prev).parent as xmlNodePtr;\n            } else {\n                prev = (*prev).prev as xmlNodePtr;\n                if (*prev).type_0 as c_uint\n                    == XML_XINCLUDE_START as c_int as c_uint\n                {\n                    if inclcount > 0 as c_int {\n                        inclcount -= 1;\n                    } else {\n                        href = xmlGetProp(\n                            prev as *const xmlNode,\n                            b\"href\\0\" as *const u8 as *const c_char as *mut xmlChar,\n                        ) as *mut c_char;\n                        if !href.is_null() {\n                            break;\n                        }\n                    }\n                } else if (*prev).type_0 as c_uint\n                    == XML_XINCLUDE_END as c_int as c_uint\n                {\n                    inclcount += 1;\n                }\n            }\n        }\n        if !href.is_null() {\n            (*to).file = href;\n        } else {\n            (*to).file = xmlStrdup((*(*baseptr).doc).URL) as *mut c_char;\n        }\n        if (*to).file.is_null() && !node.is_null() && !(*node).doc.is_null() {\n            (*to).file = xmlStrdup((*(*node).doc).URL) as *mut c_char;\n        }\n    }\n    (*to).line = line;\n    if !str1.is_null() {\n        (*to).str1 = xmlStrdup(str1 as *const xmlChar) as *mut c_char;\n    }\n    if !str2.is_null() {\n        (*to).str2 = xmlStrdup(str2 as *const xmlChar) as *mut c_char;\n    }\n    if !str3.is_null() {\n        (*to).str3 = xmlStrdup(str3 as *const xmlChar) as *mut c_char;\n    }\n    (*to).int1 = int1;\n    (*to).int2 = col;\n    (*to).node = node as *mut c_void;\n    (*to).ctxt = ctx;\n    if to != __xmlLastError() {\n        xmlCopyError(to as *const xmlError, __xmlLastError());\n    }\n    if schannel.is_some() {\n        schannel.expect(\"non-null function pointer\")(data, to as *const xmlError);\n        return;\n    }\n    if !ctxt.is_null()\n        && channel.is_none()\n        && (*__xmlStructuredError()).is_none()\n        && !(*ctxt).sax.is_null()\n    {\n        if level as c_uint\n            == XML_ERR_WARNING as c_int as c_uint\n        {\n            channel = (*(*ctxt).sax).warning as xmlGenericErrorFunc;\n        } else {\n            channel = (*(*ctxt).sax).error as xmlGenericErrorFunc;\n        }\n        data = (*ctxt).userData;\n    } else if channel.is_none() {\n        channel = *__xmlGenericError();\n        if !ctxt.is_null() {\n            data = ctxt as *mut c_void;\n        } else {\n            data = *__xmlGenericErrorContext();\n        }\n    }\n    if channel.is_none() {\n        return;\n    }\n    if channel\n        == Some(\n            xmlParserError\n                as unsafe extern \"C\" fn(\n                    *mut c_void,\n                    *const c_char,\n                    ...\n                ) -> (),\n        )\n        || channel\n            == Some(\n                xmlParserWarning\n                    as unsafe extern \"C\" fn(\n                        *mut c_void,\n                        *const c_char,\n                        ...\n                    ) -> (),\n            )\n        || channel\n            == Some(\n                xmlParserValidityError\n                    as unsafe extern \"C\" fn(\n                        *mut c_void,\n                        *const c_char,\n                        ...\n                    ) -> (),\n            )\n        || channel\n            == Some(\n                xmlParserValidityWarning\n                    as unsafe extern \"C\" fn(\n                        *mut c_void,\n                        *const c_char,\n                        ...\n                    ) -> (),\n            )\n    {\n        xmlReportError(to, ctxt, str, None, NULL);\n    } else if ::core::mem::transmute::<xmlGenericErrorFunc, Option<unsafe extern \"C\" fn() -> ()>>(\n        channel,\n    ) == ::core::mem::transmute::<\n        Option<\n            unsafe extern \"C\" fn(*mut FILE, *const c_char, ...) -> c_int,\n        >,\n        Option<unsafe extern \"C\" fn() -> ()>,\n    >(Some(\n        fprintf\n            as unsafe extern \"C\" fn(\n                *mut FILE,\n                *const c_char,\n                ...\n            ) -> c_int,\n    )) || channel\n        == Some(\n            xmlGenericErrorDefaultFunc\n                as unsafe extern \"C\" fn(\n                    *mut c_void,\n                    *const c_char,\n                    ...\n                ) -> (),\n        )\n    {\n        xmlReportError(to, ctxt, str, channel, data);\n    } else {\n        channel.expect(\"non-null function pointer\")(\n            data,\n            b\"%s\\0\" as *const u8 as *const c_char,\n            str,\n        );\n    };\n}",
+    "signature": "pub unsafe extern \"C\" fn __xmlRaiseError(\n    mut schannel: xmlStructuredErrorFunc,\n    mut channel: xmlGenericErrorFunc,\n    mut data: *mut c_void,\n    mut ctx: *mut c_void,\n    mut nod: *mut c_void,\n    mut domain: c_int,\n    mut code: c_int,\n    mut level: xmlErrorLevel,\n    mut file: *const c_char,\n    mut line: c_int,\n    mut str1: *const c_char,\n    mut str2: *const c_char,\n    mut str3: *const c_char,\n    mut int1: c_int,\n    mut col: c_int,\n    mut msg: *const c_char,\n    mut args: ...\n)",
+    "profile": {
+      "self_time_ratio": 0.0835,
+      "call_count": null,
+      "retired_instructions": 2611637697,
+      "instructions_per_call": null,
+      "cpi": 0.381,
+      "tma": {
+        "scope": "process",
+        "retiring": 40.90777088778057,
+        "frontend_bound": 44.447962074417134,
+        "bad_speculation": 5.872614848902449,
+        "backend_bound": 8.771652188899845,
+        "memory_bound": 3.7274769017627145,
+        "core_bound": 5.04417528713713,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0149
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "frontend_bound",
+    "class_i_hits": {
+      "C1": 2,
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1811,
+        "message": "vsnprintf will not be inlined into __xmlRaiseError because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2044,
+        "message": "'_ZN4core3ptr42drop_in_place$LT$core..ffi..VaListImpl$GT$17h88c00c0302410152E' inlined into '__xmlRaiseError' with (cost=-30, threshold=375) at callsite __xmlRaiseError:326:1;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1795,
+        "message": "'_ZN15libxml2_cleaned3src9xmlstring9xmlStrdup17h9c0681a98d5bcbbcE' inlined into '__xmlRaiseError' with (cost=100, threshold=325) at callsite __xmlRaiseError:77:15;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1810,
+        "message": "'_ZN4core3ptr42drop_in_place$LT$core..ffi..VaListImpl$GT$17h88c00c0302410152E' inlined into '__xmlRaiseError' with (cost=-30, threshold=375) at callsite __xmlRaiseError:92:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1833,
+        "message": "'_ZN4core3ptr42drop_in_place$LT$core..ffi..VaListImpl$GT$17h88c00c0302410152E' inlined into '__xmlRaiseError' with (cost=-30, threshold=375) at callsite __xmlRaiseError:115:5;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1883,
+        "message": "'_ZN15libxml2_cleaned3src5error13xmlResetError17h28b00582390ce258E' not inlined into '__xmlRaiseError' because too costly to inline (cost=420, threshold=325)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1880,
+        "message": "'xmlGetLineNo' inlined into '__xmlRaiseError' with (cost=5, threshold=375) at callsite __xmlRaiseError:162:20;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1889,
+        "message": "'_ZN15libxml2_cleaned3src9xmlstring9xmlStrdup17h9c0681a98d5bcbbcE' inlined into '__xmlRaiseError' with (cost=100, threshold=325) at callsite __xmlRaiseError:171:22;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1905,
+        "message": "'xmlGetProp' inlined into '__xmlRaiseError' with (cost=45, threshold=250) at callsite __xmlRaiseError:187:32;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1923,
+        "message": "'_ZN15libxml2_cleaned3src9xmlstring9xmlStrdup17h9c0681a98d5bcbbcE' inlined into '__xmlRaiseError' with (cost=110, threshold=325) at callsite __xmlRaiseError:205:26;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1926,
+        "message": "'_ZN15libxml2_cleaned3src9xmlstring9xmlStrdup17h9c0681a98d5bcbbcE' not inlined into '__xmlRaiseError' because too costly to inline (cost=110, threshold=45)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1931,
+        "message": "'_ZN15libxml2_cleaned3src9xmlstring9xmlStrdup17h9c0681a98d5bcbbcE' inlined into '__xmlRaiseError' with (cost=100, threshold=325) at callsite __xmlRaiseError:213:22;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1934,
+        "message": "'_ZN15libxml2_cleaned3src9xmlstring9xmlStrdup17h9c0681a98d5bcbbcE' inlined into '__xmlRaiseError' with (cost=100, threshold=325) at callsite __xmlRaiseError:216:22;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1937,
+        "message": "'_ZN15libxml2_cleaned3src9xmlstring9xmlStrdup17h9c0681a98d5bcbbcE' inlined into '__xmlRaiseError' with (cost=100, threshold=325) at callsite __xmlRaiseError:219:22;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1944,
+        "message": "'_ZN15libxml2_cleaned3src5error12xmlCopyError17h350f988daf1807f4E' not inlined into '__xmlRaiseError' because too costly to inline (cost=1260, threshold=325)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2011,
+        "message": "'_ZN15libxml2_cleaned3src5error14xmlReportError17h2f4bbddb80bfbfe0E' not inlined into '__xmlRaiseError' because too costly to inline (cost=3495, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2036,
+        "message": "'_ZN15libxml2_cleaned3src5error14xmlReportError17h2f4bbddb80bfbfe0E' not inlined into '__xmlRaiseError' because too costly to inline (cost=3195, threshold=45)"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1823,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 1809,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 1894,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1746,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1771,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1764,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1779,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1784,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1789,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1791,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1805,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1823,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1854,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1836,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1839,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1841,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 1846,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1923,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 1925,
+        "message": "load of type ptr eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1925,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1953,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1962,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1964,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1968,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1944,
+        "message": "'_ZN15libxml2_cleaned3src5error12xmlCopyError17h350f988daf1807f4E' not inlined into '__xmlRaiseError' because too costly to inline (cost=1250, threshold=325)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2011,
+        "message": "'_ZN15libxml2_cleaned3src5error14xmlReportError17h2f4bbddb80bfbfe0E' not inlined into '__xmlRaiseError' because too costly to inline (cost=3485, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2036,
+        "message": "'_ZN15libxml2_cleaned3src5error14xmlReportError17h2f4bbddb80bfbfe0E' not inlined into '__xmlRaiseError' because too costly to inline (cost=3185, threshold=45)"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "X86 DAG->DAG Instruction Selection: Function: __xmlRaiseError: MI Instruction count changed from 0 to 989; Delta: 989"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "Early Tail Duplication: Function: __xmlRaiseError: MI Instruction count changed from 989 to 988; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "Merge disjoint stack slots: Function: __xmlRaiseError: MI Instruction count changed from 988 to 984; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "Remove dead machine instructions: Function: __xmlRaiseError: MI Instruction count changed from 984 to 979; Delta: -5"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "Early Machine Loop Invariant Code Motion: Function: __xmlRaiseError: MI Instruction count changed from 979 to 980; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "Machine Common Subexpression Elimination: Function: __xmlRaiseError: MI Instruction count changed from 980 to 978; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "Machine code sinking: Function: __xmlRaiseError: MI Instruction count changed from 978 to 977; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "Peephole Optimizations: Function: __xmlRaiseError: MI Instruction count changed from 977 to 973; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "X86 Fixup SetCC: Function: __xmlRaiseError: MI Instruction count changed from 973 to 974; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "Process Implicit Definitions: Function: __xmlRaiseError: MI Instruction count changed from 974 to 972; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "Eliminate PHI nodes for register allocation: Function: __xmlRaiseError: MI Instruction count changed from 972 to 1141; Delta: 169"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "Two-Address instruction pass: Function: __xmlRaiseError: MI Instruction count changed from 1141 to 1166; Delta: 25"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "Register Coalescer: Function: __xmlRaiseError: MI Instruction count changed from 1166 to 862; Delta: -304"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1894,
+        "message": "1 virtual registers copies 1.715950e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1894,
+        "message": "2 virtual registers copies 1.803756e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1809,
+        "message": "5 virtual registers copies 5.132692e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1718,
+        "message": "28 spills 4.519713e+00 total spills cost 30 reloads 2.997868e+00 total reloads cost 2 folded reloads 5.803571e-01 total folded reloads cost 63 virtual registers copies 1.403161e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "Greedy Register Allocator: Function: __xmlRaiseError: MI Instruction count changed from 862 to 932; Delta: 70"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "Virtual Register Rewriter: Function: __xmlRaiseError: MI Instruction count changed from 932 to 873; Delta: -59"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 1718,
+        "message": "392 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: __xmlRaiseError: MI Instruction count changed from 873 to 795; Delta: -78"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "Control Flow Optimizer: Function: __xmlRaiseError: MI Instruction count changed from 795 to 685; Delta: -110"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "Tail Duplication: Function: __xmlRaiseError: MI Instruction count changed from 685 to 687; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "X86 pseudo instruction expansion pass: Function: __xmlRaiseError: MI Instruction count changed from 687 to 696; Delta: 9"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "Branch Probability Basic Block Placement: Function: __xmlRaiseError: MI Instruction count changed from 696 to 706; Delta: 10"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1718,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: __xmlRaiseError: MI Instruction count changed from 706 to 707; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1746,
+        "message": "BasicBlock: bb215"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1752,
+        "message": "BasicBlock: bb4"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1760,
+        "message": "BasicBlock: bb10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1767,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1774,
+        "message": "BasicBlock: bb18"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1780,
+        "message": "BasicBlock: bb22"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1789,
+        "message": "BasicBlock: bb220"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1805,
+        "message": "BasicBlock: bb37"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1805,
+        "message": "BasicBlock: bb231"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1812,
+        "message": "BasicBlock: bb42"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1813,
+        "message": "BasicBlock: bb46"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1823,
+        "message": "BasicBlock: bb51"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1818,
+        "message": "BasicBlock: bb234"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1835,
+        "message": "BasicBlock: bb64"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1852,
+        "message": "BasicBlock: bb63"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1854,
+        "message": "BasicBlock: bb79"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1854,
+        "message": "BasicBlock: bb81"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1836,
+        "message": "BasicBlock: bb65"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1838,
+        "message": "BasicBlock: bb67"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1839,
+        "message": "BasicBlock: bb68"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1841,
+        "message": "BasicBlock: bb72"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1846,
+        "message": "BasicBlock: bb72.bb74_crit_edge"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1860,
+        "message": "BasicBlock: bb88"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1863,
+        "message": "BasicBlock: bb89"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1866,
+        "message": "BasicBlock: bb92"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1866,
+        "message": "BasicBlock: bb92.thread"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1868,
+        "message": "BasicBlock: bb95"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1869,
+        "message": "BasicBlock: bb97"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1874,
+        "message": "BasicBlock: bb103"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1877,
+        "message": "BasicBlock: bb104"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1879,
+        "message": "BasicBlock: bb106"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1847,
+        "message": "BasicBlock: bb74"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1851,
+        "message": "BasicBlock: bb76"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1883,
+        "message": "BasicBlock: bb114"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1890,
+        "message": "BasicBlock: bb116"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1896,
+        "message": "BasicBlock: bb124"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1895,
+        "message": "BasicBlock: bb123"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1899,
+        "message": "BasicBlock: bb125"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1923,
+        "message": "BasicBlock: bb137"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1925,
+        "message": "BasicBlock: bb143"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1926,
+        "message": "BasicBlock: bb145"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1937,
+        "message": "BasicBlock: _ZN15libxml2_cleaned3src9xmlstring9xmlStrdup17h9c0681a98d5bcbbcE.exit261"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1947,
+        "message": "BasicBlock: bb246"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2044,
+        "message": "BasicBlock: bb207"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1944,
+        "message": "BasicBlock: bb240"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1950,
+        "message": "BasicBlock: bb168"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1964,
+        "message": "BasicBlock: bb252"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1953,
+        "message": "BasicBlock: bb172"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1974,
+        "message": "BasicBlock: bb264"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2012,
+        "message": "BasicBlock: bb282"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2038,
+        "message": "BasicBlock: bb289"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2011,
+        "message": "BasicBlock: bb195"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2036,
+        "message": "BasicBlock: bb200"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1718,
+        "message": "685 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

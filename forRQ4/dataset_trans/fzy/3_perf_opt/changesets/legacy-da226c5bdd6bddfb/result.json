@@ -1,0 +1,101 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": "choices_fread_search:532bdabc: sha256 82623948e3f7… ≠ 83aac916d3bf…"
+      },
+      "gate": "w1",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "c2b0c073d04e3bf88c0c86c16cbb8cbd04b76a55",
+      "changeset_id": "legacy-da226c5bdd6bddfb",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-86448fe44590225d",
+          "replacement_function_source": "// Applied rules: [III④, C3, II_vec]\n// Skipped rules: [III③: hit [10] is `fread`, which is not covered by the card's supported memory/string replacement templates; hit [11] `strchr` is subsumed by the III④ bounded delimiter-scan rewrite; II_vec: hit [9] on the fread/capacity-growth loop is abstained because its trip count depends on `fread` results and realloc growth]\n#[inline]\npub unsafe fn choices_fread(\n    mut c: *mut choices_t,\n    mut file: *mut FILE,\n    mut input_delimiter: c_char,\n) {\n    let mut buffer_size: size_t = (*c).buffer_size;\n    let buffer_start: size_t = buffer_size;\n    let mut capacity: size_t = INITIAL_BUFFER_CAPACITY as size_t;\n    while capacity <= buffer_size {\n        capacity = capacity.wrapping_mul(2 as size_t);\n    }\n\n    let mut buffer = safe_realloc((*c).buffer as *mut c_void, capacity) as *mut c_char;\n    (*c).buffer = buffer;\n\n    loop {\n        let bytes_read = fread(\n            buffer.offset(buffer_size as isize) as *mut c_void,\n            1 as size_t,\n            capacity.wrapping_sub(buffer_size),\n            file,\n        );\n        buffer_size = (buffer_size as c_ulong).wrapping_add(bytes_read) as size_t as size_t;\n        (*c).buffer_size = buffer_size;\n        if !(buffer_size == capacity) {\n            break;\n        }\n        capacity = capacity.wrapping_mul(2 as size_t);\n        buffer = safe_realloc(buffer as *mut c_void, capacity) as *mut c_char;\n        (*c).buffer = buffer;\n    }\n\n    buffer = safe_realloc(\n        buffer as *mut c_void,\n        buffer_size.wrapping_add(1 as size_t),\n    ) as *mut c_char;\n    (*c).buffer = buffer;\n\n    let nul_pos = buffer_size;\n    buffer_size = buffer_size.wrapping_add(1);\n    (*c).buffer_size = buffer_size;\n    *buffer.offset(nul_pos as isize) = '\\0' as i32 as c_char;\n\n    let scan_len = buffer_size.wrapping_sub(buffer_start);\n    // SAFETY: `buffer` is the freshly (re)allocated `(*c).buffer`, non-null per allocator\n    // contract, and valid for `buffer_size` bytes. The scan region starts at `buffer_start`\n    // and has stable length `scan_len <= buffer_size` in this region. No Rust references to\n    // the same memory are live across this mutable slice creation.\n    let scan = unsafe {\n        core::slice::from_raw_parts_mut(buffer.offset(buffer_start as isize), scan_len)\n    };\n\n    let delimiter = input_delimiter as u8;\n    let mut line_start: usize = 0;\n    let mut i: usize = 0;\n    while i < scan.len() {\n        if scan[i] as u8 == delimiter {\n            scan[i] = '\\0' as i32 as c_char;\n            if line_start != i {\n                choices_add(c, scan.as_mut_ptr().add(line_start));\n            }\n            line_start = i.wrapping_add(1);\n        }\n        i = i.wrapping_add(1);\n    }\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "c9981cf53a56936794cbdf41a0d47bf876cc3bab80aee48c900ee1c50e048cb9",
+            "file_hint": "src/choices.rs",
+            "qualified_name": "crate::choices_fread",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "choices_fread-4a92a13a55b5",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "choices_fread",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "f819b8f900a5edafa096099c9d1446d12512d166db00764c0fb772b71c066cd6",
+            "edit_id": "edit-replace-86448fe44590225d",
+            "end_byte": 16203,
+            "operation_id": "replace-86448fe44590225d",
+            "relative_path": "src/choices.rs",
+            "replacement_text": "// Applied rules: [III④, C3, II_vec]\n// Skipped rules: [III③: hit [10] is `fread`, which is not covered by the card's supported memory/string replacement templates; hit [11] `strchr` is subsumed by the III④ bounded delimiter-scan rewrite; II_vec: hit [9] on the fread/capacity-growth loop is abstained because its trip count depends on `fread` results and realloc growth]\n#[inline]\npub unsafe fn choices_fread(\n    mut c: *mut choices_t,\n    mut file: *mut FILE,\n    mut input_delimiter: c_char,\n) {\n    let mut buffer_size: size_t = (*c).buffer_size;\n    let buffer_start: size_t = buffer_size;\n    let mut capacity: size_t = INITIAL_BUFFER_CAPACITY as size_t;\n    while capacity <= buffer_size {\n        capacity = capacity.wrapping_mul(2 as size_t);\n    }\n\n    let mut buffer = safe_realloc((*c).buffer as *mut c_void, capacity) as *mut c_char;\n    (*c).buffer = buffer;\n\n    loop {\n        let bytes_read = fread(\n            buffer.offset(buffer_size as isize) as *mut c_void,\n            1 as size_t,\n            capacity.wrapping_sub(buffer_size),\n            file,\n        );\n        buffer_size = (buffer_size as c_ulong).wrapping_add(bytes_read) as size_t as size_t;\n        (*c).buffer_size = buffer_size;\n        if !(buffer_size == capacity) {\n            break;\n        }\n        capacity = capacity.wrapping_mul(2 as size_t);\n        buffer = safe_realloc(buffer as *mut c_void, capacity) as *mut c_char;\n        (*c).buffer = buffer;\n    }\n\n    buffer = safe_realloc(\n        buffer as *mut c_void,\n        buffer_size.wrapping_add(1 as size_t),\n    ) as *mut c_char;\n    (*c).buffer = buffer;\n\n    let nul_pos = buffer_size;\n    buffer_size = buffer_size.wrapping_add(1);\n    (*c).buffer_size = buffer_size;\n    *buffer.offset(nul_pos as isize) = '\\0' as i32 as c_char;\n\n    let scan_len = buffer_size.wrapping_sub(buffer_start);\n    // SAFETY: `buffer` is the freshly (re)allocated `(*c).buffer`, non-null per allocator\n    // contract, and valid for `buffer_size` bytes. The scan region starts at `buffer_start`\n    // and has stable length `scan_len <= buffer_size` in this region. No Rust references to\n    // the same memory are live across this mutable slice creation.\n    let scan = unsafe {\n        core::slice::from_raw_parts_mut(buffer.offset(buffer_start as isize), scan_len)\n    };\n\n    let delimiter = input_delimiter as u8;\n    let mut line_start: usize = 0;\n    let mut i: usize = 0;\n    while i < scan.len() {\n        if scan[i] as u8 == delimiter {\n            scan[i] = '\\0' as i32 as c_char;\n            if line_start != i {\n                choices_add(c, scan.as_mut_ptr().add(line_start));\n            }\n            line_start = i.wrapping_add(1);\n        }\n        i = i.wrapping_add(1);\n    }\n}",
+            "start_byte": 14359
+          }
+        ],
+        "facts": {
+          "fn_name": "choices_fread",
+          "target_span_hash": "c9981cf53a56936794cbdf41a0d47bf876cc3bab80aee48c900ee1c50e048cb9"
+        },
+        "operation_id": "replace-86448fe44590225d"
+      }
+    ],
+    "resolved_head": "c2b0c073d04e3bf88c0c86c16cbb8cbd04b76a55"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w1",
+  "touched_paths": [
+    "src/choices.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

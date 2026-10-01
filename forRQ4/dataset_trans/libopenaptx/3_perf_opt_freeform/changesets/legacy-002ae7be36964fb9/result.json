@@ -1,0 +1,175 @@
+{
+  "applied_rules": [
+    "freeform"
+  ],
+  "commit_sha": "e813178",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.08823877756373036,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.2267928821270607,
+            "aggregate_ci_low_pct": -0.05031532699959998,
+            "aggregate_pct": 0.08823877756373036,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.7016,
+                "ci_low_pct": -0.3461,
+                "insns_delta_pct": -0.0064,
+                "mean_delta_pct": 0.1778,
+                "op": "decode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.1679,
+                "ci_low_pct": 0.0229,
+                "insns_delta_pct": 0.0027,
+                "mean_delta_pct": 0.0954,
+                "op": "decode_sync_hd",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2791,
+                "ci_low_pct": -0.0344,
+                "insns_delta_pct": -0.0826,
+                "mean_delta_pct": 0.1224,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.1388,
+                "ci_low_pct": -0.224,
+                "insns_delta_pct": -0.0055,
+                "mean_delta_pct": -0.0426,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "decode_std",
+          "decode_sync_hd",
+          "encode_hd_reset",
+          "encode_std"
+        ],
+        "reason": "accepted",
+        "triggering_op": "decode_std"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "fe032f11d4cabfcc56e9891228cfd4b79b32777b",
+      "changeset_id": "legacy-002ae7be36964fb9",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-d38a8548d47106f2",
+          "replacement_function_source": "unsafe fn aptx_prediction_filtering(\n    mut prediction: *mut aptx_prediction,\n    mut reconstructed_difference: int32_t,\n    mut order: c_int,\n) {\n    let pred = prediction;\n    let pred_ref = unsafe { &mut *pred }; // SAFETY: caller guarantees `prediction` is a valid, unique pointer for mutation during this function.\n\n    let reconstructed_sample = clip_intp2(\n        reconstructed_difference + pred_ref.predicted_sample,\n        23 as c_uint,\n    );\n\n    let predictor = clip_intp2(\n        ((pred_ref.s_weight[0] as int64_t * pred_ref.previous_reconstructed_sample as int64_t\n            + pred_ref.s_weight[1] as int64_t * reconstructed_sample as int64_t)\n            >> 22) as int32_t,\n        23 as c_uint,\n    );\n\n    pred_ref.previous_reconstructed_sample = reconstructed_sample;\n\n    let reconstructed_differences =\n        aptx_reconstructed_differences_update(pred, reconstructed_difference, order);\n\n    let srd0 = ((reconstructed_difference > 0) as c_int - (reconstructed_difference < 0) as c_int)\n        as int32_t\n        * ((1 as int32_t) << 23);\n\n    let mut predicted_difference: int64_t = 0;\n    let mut i: c_int = 0;\n\n    while i < order {\n        let idx = i as usize;\n        let rd_prev = unsafe { *reconstructed_differences.offset((-i - 1) as isize) }; // SAFETY: `aptx_reconstructed_differences_update` returns a pointer into a buffer with at least `order + 1` accessible prior elements, matching the original code's indexing.\n        let srd = (rd_prev >> 31) | 1;\n        let dw = pred_ref.d_weight[idx];\n        let new_dw = dw - rshift32(dw - srd * srd0, 8 as c_uint);\n        pred_ref.d_weight[idx] = new_dw;\n\n        let rd_cur = unsafe { *reconstructed_differences.offset(-(i as isize)) }; // SAFETY: same bounds reasoning as above; the original code accesses element `-i` for all `i < order`.\n        predicted_difference += rd_cur as int64_t * new_dw as int64_t;\n\n        i += 1;\n    }\n\n    pred_ref.predicted_difference = clip_intp2((predicted_difference >> 22) as int32_t, 23 as c_uint);\n    pred_ref.predicted_sample =\n        clip_intp2(predictor + pred_ref.predicted_difference, 23 as c_uint);\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "bb629d94dbe5ae5bccac4e9ab030fa0eb52da51ae4f44e29453634f4f0890241",
+            "file_hint": "src/openaptx.rs",
+            "qualified_name": "crate::aptx_prediction_filtering",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "aptx_prediction_filtering-6bef47031ecb",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "aptx_prediction_filtering",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "7f0e39d4fc5153087b2606513bb04ebcf9819b1b4d1a414b188cabf7b89f3e9a",
+            "edit_id": "edit-replace-d38a8548d47106f2",
+            "end_byte": 63065,
+            "operation_id": "replace-d38a8548d47106f2",
+            "relative_path": "src/openaptx.rs",
+            "replacement_text": "unsafe fn aptx_prediction_filtering(\n    mut prediction: *mut aptx_prediction,\n    mut reconstructed_difference: int32_t,\n    mut order: c_int,\n) {\n    let pred = prediction;\n    let pred_ref = unsafe { &mut *pred }; // SAFETY: caller guarantees `prediction` is a valid, unique pointer for mutation during this function.\n\n    let reconstructed_sample = clip_intp2(\n        reconstructed_difference + pred_ref.predicted_sample,\n        23 as c_uint,\n    );\n\n    let predictor = clip_intp2(\n        ((pred_ref.s_weight[0] as int64_t * pred_ref.previous_reconstructed_sample as int64_t\n            + pred_ref.s_weight[1] as int64_t * reconstructed_sample as int64_t)\n            >> 22) as int32_t,\n        23 as c_uint,\n    );\n\n    pred_ref.previous_reconstructed_sample = reconstructed_sample;\n\n    let reconstructed_differences =\n        aptx_reconstructed_differences_update(pred, reconstructed_difference, order);\n\n    let srd0 = ((reconstructed_difference > 0) as c_int - (reconstructed_difference < 0) as c_int)\n        as int32_t\n        * ((1 as int32_t) << 23);\n\n    let mut predicted_difference: int64_t = 0;\n    let mut i: c_int = 0;\n\n    while i < order {\n        let idx = i as usize;\n        let rd_prev = unsafe { *reconstructed_differences.offset((-i - 1) as isize) }; // SAFETY: `aptx_reconstructed_differences_update` returns a pointer into a buffer with at least `order + 1` accessible prior elements, matching the original code's indexing.\n        let srd = (rd_prev >> 31) | 1;\n        let dw = pred_ref.d_weight[idx];\n        let new_dw = dw - rshift32(dw - srd * srd0, 8 as c_uint);\n        pred_ref.d_weight[idx] = new_dw;\n\n        let rd_cur = unsafe { *reconstructed_differences.offset(-(i as isize)) }; // SAFETY: same bounds reasoning as above; the original code accesses element `-i` for all `i < order`.\n        predicted_difference += rd_cur as int64_t * new_dw as int64_t;\n\n        i += 1;\n    }\n\n    pred_ref.predicted_difference = clip_intp2((predicted_difference >> 22) as int32_t, 23 as c_uint);\n    pred_ref.predicted_sample =\n        clip_intp2(predictor + pred_ref.predicted_difference, 23 as c_uint);\n}",
+            "start_byte": 60957
+          }
+        ],
+        "facts": {
+          "fn_name": "aptx_prediction_filtering",
+          "target_span_hash": "bb629d94dbe5ae5bccac4e9ab030fa0eb52da51ae4f44e29453634f4f0890241"
+        },
+        "operation_id": "replace-d38a8548d47106f2"
+      }
+    ],
+    "resolved_head": "fe032f11d4cabfcc56e9891228cfd4b79b32777b"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/openaptx.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,214 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -2.296244977983864,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -2.056608618382248,
+            "aggregate_ci_low_pct": -2.53588133758548,
+            "aggregate_pct": -2.296244977983864,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -1.3789,
+                "ci_low_pct": -3.0926,
+                "insns_delta_pct": -1.6034,
+                "mean_delta_pct": -2.2357,
+                "op": "cache_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.7852,
+                "ci_low_pct": -2.0873,
+                "insns_delta_pct": 2.7805,
+                "mean_delta_pct": -1.9363,
+                "op": "lz77_blocksplit_analysis",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -2.8814,
+                "ci_low_pct": -3.0337,
+                "insns_delta_pct": -0.9859,
+                "mean_delta_pct": -2.9576,
+                "op": "raw_deflate",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.3663,
+                "ci_low_pct": -2.2471,
+                "insns_delta_pct": 0.0966,
+                "mean_delta_pct": -1.3067,
+                "op": "tree_codegen",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -2.8721,
+                "ci_low_pct": -3.2179,
+                "insns_delta_pct": -1.0112,
+                "mean_delta_pct": -3.045,
+                "op": "zlib_compress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.08546910715234894,
+            "aggregate_ci_low_pct": -0.07277777107180299,
+            "aggregate_pct": 0.006345668040272978,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.2122,
+                "ci_low_pct": 0.0567,
+                "insns_delta_pct": 0.0076,
+                "mean_delta_pct": 0.1345,
+                "op": "raw_deflate",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.0246,
+                "ci_low_pct": -0.2682,
+                "insns_delta_pct": -0.0507,
+                "mean_delta_pct": -0.1218,
+                "op": "zlib_compress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "raw_deflate",
+          "zlib_compress"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "tree_codegen"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "b64f66c04174dd16ef949722e8282a5a0f02882c",
+      "changeset_id": "legacy-562b08b704e630f7",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-0769604fc7f35aa6",
+          "replacement_function_source": "unsafe extern \"C\" fn GetCostStat(\n    mut litlen: c_uint,\n    mut dist: c_uint,\n    mut context: *mut c_void,\n) -> c_double {\n    let stats = context as *mut SymbolStats;\n    if dist == 0 {\n        // SAFETY: `context` is expected by the caller to be a valid `*mut SymbolStats`,\n        // and `litlen` is used exactly as in the original code to index `ll_symbols`.\n        unsafe { (*stats).ll_symbols[litlen as usize] }\n    } else {\n        let lit = litlen as c_int;\n        let dst = dist as c_int;\n        let lsym = ZopfliGetLengthSymbol(lit) as usize;\n        let dsym = ZopfliGetDistSymbol(dst) as usize;\n        let extra = (ZopfliGetLengthExtraBits(lit) + ZopfliGetDistExtraBits(dst)) as c_double;\n        // SAFETY: `context` is expected by the caller to be a valid `*mut SymbolStats`,\n        // and the symbol indices are produced by the same helper functions as in the original code.\n        unsafe { extra + (*stats).ll_symbols[lsym] + (*stats).d_symbols[dsym] }\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "235ddd364bd65804a33edf33a9cf22b83d8011243c9054bf4db96561b8426052",
+            "file_hint": "src/squeeze.rs",
+            "qualified_name": "crate::GetCostStat",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "GetCostStat-c6e0f2559e21",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "GetCostStat",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "776be2a8e300a9f93ffb0f6eb543ca7c5477cdbfc0457c2555d3d45f8d41109e",
+            "edit_id": "edit-replace-0769604fc7f35aa6",
+            "end_byte": 7884,
+            "operation_id": "replace-0769604fc7f35aa6",
+            "relative_path": "src/squeeze.rs",
+            "replacement_text": "unsafe extern \"C\" fn GetCostStat(\n    mut litlen: c_uint,\n    mut dist: c_uint,\n    mut context: *mut c_void,\n) -> c_double {\n    let stats = context as *mut SymbolStats;\n    if dist == 0 {\n        // SAFETY: `context` is expected by the caller to be a valid `*mut SymbolStats`,\n        // and `litlen` is used exactly as in the original code to index `ll_symbols`.\n        unsafe { (*stats).ll_symbols[litlen as usize] }\n    } else {\n        let lit = litlen as c_int;\n        let dst = dist as c_int;\n        let lsym = ZopfliGetLengthSymbol(lit) as usize;\n        let dsym = ZopfliGetDistSymbol(dst) as usize;\n        let extra = (ZopfliGetLengthExtraBits(lit) + ZopfliGetDistExtraBits(dst)) as c_double;\n        // SAFETY: `context` is expected by the caller to be a valid `*mut SymbolStats`,\n        // and the symbol indices are produced by the same helper functions as in the original code.\n        unsafe { extra + (*stats).ll_symbols[lsym] + (*stats).d_symbols[dsym] }\n    }\n}",
+            "start_byte": 7167
+          }
+        ],
+        "facts": {
+          "fn_name": "GetCostStat",
+          "target_span_hash": "235ddd364bd65804a33edf33a9cf22b83d8011243c9054bf4db96561b8426052"
+        },
+        "operation_id": "replace-0769604fc7f35aa6"
+      }
+    ],
+    "resolved_head": "b64f66c04174dd16ef949722e8282a5a0f02882c"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/squeeze.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

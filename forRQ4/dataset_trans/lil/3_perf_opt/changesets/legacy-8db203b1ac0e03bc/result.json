@@ -1,0 +1,151 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 2.178514814883716,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 2.5975120865816703,
+            "aggregate_ci_low_pct": 1.7595175431857615,
+            "aggregate_pct": 2.178514814883716,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 4.2812,
+                "ci_low_pct": 3.7912,
+                "insns_delta_pct": -1.8955,
+                "mean_delta_pct": 4.0362,
+                "op": "builtin_script_matrix",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              },
+              {
+                "ci_high_pct": 1.1366,
+                "ci_low_pct": -0.495,
+                "insns_delta_pct": -0.1415,
+                "mean_delta_pct": 0.3208,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "builtin_script_matrix",
+          "subst_list_pipeline"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "builtin_script_matrix"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "e507c3a5a3f84ac16d2d16be8b8c4cb0a18f1d31",
+      "changeset_id": "legacy-8db203b1ac0e03bc",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-4847f1d74cdbb019",
+          "replacement_function_source": "// Applied rules: [III④, C3]\n// Skipped rules: [III③: Hits [11, 12, 13, 14] are calls to project helpers `lil_append_char`, not visible libc/custom byte-copy wrappers in this function body. Replacing them would require inspecting callee semantics and likely broader API redesign; not a concrete in-body manual-memory-op rewrite from the provided evidence.; II_vec: The reported vectorization misses [5, 6, 7, 8, 9, 10] are tied to a different loop/state-machine region around line 557 in the broader file, not to the shown `lil_list_to_value` body. Within this target function there is no switch/state-machine to canonicalize, so no concrete hit can be addressed here beyond what III④ already improves structurally.]\n#[inline]\npub fn lil_list_to_value(\n    mut list: lil_list_t,\n    mut do_escape: c_int,\n) -> lil_value_t { unsafe {\n    let mut val: lil_value_t = alloc_value(::core::ptr::null::<c_char>());\n    let list_len: size_t = (*list).c;\n    // SAFETY: `list` is dereferenced by the original function, so it is non-null here.\n    // `list_len` comes from `(*list).c` and is not modified in this region, and `(*list).v`\n    // points to at least `list_len` elements by the list invariant. This is a shared view only.\n    let values: &[lil_value_t] = unsafe { ::core::slice::from_raw_parts((*list).v, list_len) };\n    let mut i: size_t = 0;\n    while i < list_len {\n        // SAFETY: `i < list_len` by the loop condition, and `values` was created with length `list_len`.\n        let elem: lil_value_t = unsafe { *values.get_unchecked(i as usize) };\n        let mut escape: c_int = if do_escape != 0 {\n            needs_escape(lil_to_string(elem))\n        } else {\n            0 as c_int\n        };\n        if i != 0 {\n            lil_append_char(val, ' ' as i32 as c_char);\n        }\n        if escape != 0 {\n            lil_append_char(val, '{' as i32 as c_char);\n            let elem_len: size_t = (*elem).l;\n            // SAFETY: `elem` is dereferenced by the original function, so it is non-null here.\n            // `elem_len` comes from `(*elem).l` and is not modified in this region, and `(*elem).d`\n            // points to at least `elem_len` bytes by the value invariant. This is a shared view only.\n            let data: &[c_char] = unsafe { ::core::slice::from_raw_parts((*elem).d, elem_len) };\n            let mut j: size_t = 0;\n            while j < elem_len {\n                // SAFETY: `j < elem_len` by the loop condition, and `data` was created with length `elem_len`.\n                let ch: c_char = unsafe { *data.get_unchecked(j as usize) };\n                if ch as c_int == '{' as i32 {\n                    lil_append_string(\n                        val,\n                        b\"}\\\"\\\\o\\\"{\\0\" as *const u8 as *const c_char,\n                    );\n                } else if ch as c_int == '}' as i32 {\n                    lil_append_string(\n                        val,\n                        b\"}\\\"\\\\c\\\"{\\0\" as *const u8 as *const c_char,\n                    );\n                } else {\n                    lil_append_char(val, ch);\n                }\n                j = j.wrapping_add(1);\n            }\n            lil_append_char(val, '}' as i32 as c_char);\n        } else {\n            lil_append_val(val, elem);\n        }\n        i = i.wrapping_add(1);\n    }\n    return val;\n} }",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "928ef7aaf82db44237f50fc948ca66e3f60c342c8da35608acc3afad31cd0006",
+            "file_hint": "src/lil.rs",
+            "qualified_name": "crate::lil_list_to_value",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "lil_list_to_value-fb3a18f6cfed",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "lil_list_to_value",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "93d4f9748cb019999e3c70b17cfc222edeb9e6ecdd10b3c525bdc57993570466",
+            "edit_id": "edit-replace-4847f1d74cdbb019",
+            "end_byte": 20922,
+            "operation_id": "replace-4847f1d74cdbb019",
+            "relative_path": "src/lil.rs",
+            "replacement_text": "// Applied rules: [III④, C3]\n// Skipped rules: [III③: Hits [11, 12, 13, 14] are calls to project helpers `lil_append_char`, not visible libc/custom byte-copy wrappers in this function body. Replacing them would require inspecting callee semantics and likely broader API redesign; not a concrete in-body manual-memory-op rewrite from the provided evidence.; II_vec: The reported vectorization misses [5, 6, 7, 8, 9, 10] are tied to a different loop/state-machine region around line 557 in the broader file, not to the shown `lil_list_to_value` body. Within this target function there is no switch/state-machine to canonicalize, so no concrete hit can be addressed here beyond what III④ already improves structurally.]\n#[inline]\npub fn lil_list_to_value(\n    mut list: lil_list_t,\n    mut do_escape: c_int,\n) -> lil_value_t { unsafe {\n    let mut val: lil_value_t = alloc_value(::core::ptr::null::<c_char>());\n    let list_len: size_t = (*list).c;\n    // SAFETY: `list` is dereferenced by the original function, so it is non-null here.\n    // `list_len` comes from `(*list).c` and is not modified in this region, and `(*list).v`\n    // points to at least `list_len` elements by the list invariant. This is a shared view only.\n    let values: &[lil_value_t] = unsafe { ::core::slice::from_raw_parts((*list).v, list_len) };\n    let mut i: size_t = 0;\n    while i < list_len {\n        // SAFETY: `i < list_len` by the loop condition, and `values` was created with length `list_len`.\n        let elem: lil_value_t = unsafe { *values.get_unchecked(i as usize) };\n        let mut escape: c_int = if do_escape != 0 {\n            needs_escape(lil_to_string(elem))\n        } else {\n            0 as c_int\n        };\n        if i != 0 {\n            lil_append_char(val, ' ' as i32 as c_char);\n        }\n        if escape != 0 {\n            lil_append_char(val, '{' as i32 as c_char);\n            let elem_len: size_t = (*elem).l;\n            // SAFETY: `elem` is dereferenced by the original function, so it is non-null here.\n            // `elem_len` comes from `(*elem).l` and is not modified in this region, and `(*elem).d`\n            // points to at least `elem_len` bytes by the value invariant. This is a shared view only.\n            let data: &[c_char] = unsafe { ::core::slice::from_raw_parts((*elem).d, elem_len) };\n            let mut j: size_t = 0;\n            while j < elem_len {\n                // SAFETY: `j < elem_len` by the loop condition, and `data` was created with length `elem_len`.\n                let ch: c_char = unsafe { *data.get_unchecked(j as usize) };\n                if ch as c_int == '{' as i32 {\n                    lil_append_string(\n                        val,\n                        b\"}\\\"\\\\o\\\"{\\0\" as *const u8 as *const c_char,\n                    );\n                } else if ch as c_int == '}' as i32 {\n                    lil_append_string(\n                        val,\n                        b\"}\\\"\\\\c\\\"{\\0\" as *const u8 as *const c_char,\n                    );\n                } else {\n                    lil_append_char(val, ch);\n                }\n                j = j.wrapping_add(1);\n            }\n            lil_append_char(val, '}' as i32 as c_char);\n        } else {\n            lil_append_val(val, elem);\n        }\n        i = i.wrapping_add(1);\n    }\n    return val;\n} }",
+            "start_byte": 19185
+          }
+        ],
+        "facts": {
+          "fn_name": "lil_list_to_value",
+          "target_span_hash": "928ef7aaf82db44237f50fc948ca66e3f60c342c8da35608acc3afad31cd0006"
+        },
+        "operation_id": "replace-4847f1d74cdbb019"
+      }
+    ],
+    "resolved_head": "e507c3a5a3f84ac16d2d16be8b8c4cb0a18f1d31"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/lil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

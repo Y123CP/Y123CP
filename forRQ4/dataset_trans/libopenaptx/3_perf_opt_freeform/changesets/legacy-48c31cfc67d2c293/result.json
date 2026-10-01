@@ -1,0 +1,204 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.10292597784130636,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.16737233516516553,
+            "aggregate_ci_low_pct": 0.0384796205174472,
+            "aggregate_pct": 0.10292597784130636,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.1568,
+                "ci_low_pct": -0.1109,
+                "insns_delta_pct": 0.0121,
+                "mean_delta_pct": 0.0229,
+                "op": "decode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2615,
+                "ci_low_pct": 0.0167,
+                "insns_delta_pct": 0.0301,
+                "mean_delta_pct": 0.1391,
+                "op": "decode_sync_hd",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2403,
+                "ci_low_pct": 0.0326,
+                "insns_delta_pct": 0.0833,
+                "mean_delta_pct": 0.1365,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.3065,
+                "ci_low_pct": -0.08,
+                "insns_delta_pct": 0.087,
+                "mean_delta_pct": 0.1133,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.11863075003197512,
+            "aggregate_ci_low_pct": -0.23824883471121763,
+            "aggregate_pct": -0.05980904233962126,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.3173,
+                "ci_low_pct": -0.339,
+                "insns_delta_pct": 0.2112,
+                "mean_delta_pct": -0.0108,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.076,
+                "ci_low_pct": -0.2935,
+                "insns_delta_pct": 0.1337,
+                "mean_delta_pct": -0.1088,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_hd_reset",
+          "encode_std"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "decode_sync_hd"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "e8131785ed847292ebe3493a5feefa2ccb74f732",
+      "changeset_id": "legacy-48c31cfc67d2c293",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-8063ef48e51d5d3e",
+          "replacement_function_source": "#[inline]\nunsafe fn aptx_bin_search(\n    mut value: int32_t,\n    mut factor: int32_t,\n    mut intervals: *const int32_t,\n    mut nb_intervals: c_int,\n) -> int32_t {\n    let target = (value as int64_t) << 24;\n    let factor64 = factor as int64_t;\n    let mut idx: int32_t = 0;\n    let mut i: c_int = nb_intervals >> 1;\n\n    while i > 0 {\n        let probe = idx + i as int32_t;\n        let interval = unsafe { // SAFETY: caller upholds that `intervals` points to a valid table indexed as in the original function; `probe` matches the original computed offset.\n            *intervals.offset(probe as isize)\n        } as int64_t;\n        if factor64 * interval <= target {\n            idx = probe;\n        }\n        i >>= 1;\n    }\n\n    idx\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "8478b38e6d308dfa79191af4b30e52b340ddcd02751e445c9d83f3d165a2d602",
+            "file_hint": "src/openaptx.rs",
+            "qualified_name": "crate::aptx_bin_search",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "aptx_bin_search-280f8194367a",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "aptx_bin_search",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "740b1755bf447a144bb4cef0b7feb45b1fee2b570624277aa82dffded3ef1223",
+            "edit_id": "edit-replace-8063ef48e51d5d3e",
+            "end_byte": 53706,
+            "operation_id": "replace-8063ef48e51d5d3e",
+            "relative_path": "src/openaptx.rs",
+            "replacement_text": "#[inline]\nunsafe fn aptx_bin_search(\n    mut value: int32_t,\n    mut factor: int32_t,\n    mut intervals: *const int32_t,\n    mut nb_intervals: c_int,\n) -> int32_t {\n    let target = (value as int64_t) << 24;\n    let factor64 = factor as int64_t;\n    let mut idx: int32_t = 0;\n    let mut i: c_int = nb_intervals >> 1;\n\n    while i > 0 {\n        let probe = idx + i as int32_t;\n        let interval = unsafe { // SAFETY: caller upholds that `intervals` points to a valid table indexed as in the original function; `probe` matches the original computed offset.\n            *intervals.offset(probe as isize)\n        } as int64_t;\n        if factor64 * interval <= target {\n            idx = probe;\n        }\n        i >>= 1;\n    }\n\n    idx\n}",
+            "start_byte": 53153
+          }
+        ],
+        "facts": {
+          "fn_name": "aptx_bin_search",
+          "target_span_hash": "8478b38e6d308dfa79191af4b30e52b340ddcd02751e445c9d83f3d165a2d602"
+        },
+        "operation_id": "replace-8063ef48e51d5d3e"
+      }
+    ],
+    "resolved_head": "e8131785ed847292ebe3493a5feefa2ccb74f732"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/openaptx.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

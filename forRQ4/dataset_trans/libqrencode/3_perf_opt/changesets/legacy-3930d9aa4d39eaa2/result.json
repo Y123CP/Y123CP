@@ -1,0 +1,196 @@
+{
+  "applied_rules": [
+    "III④,C3"
+  ],
+  "commit_sha": "33ea635",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.9217261130059238,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -0.6738238477544414,
+            "aggregate_ci_low_pct": -1.1696283782574062,
+            "aggregate_pct": -0.9217261130059238,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -0.4644,
+                "ci_low_pct": -1.1955,
+                "insns_delta_pct": -1.2623,
+                "mean_delta_pct": -0.83,
+                "op": "encode_data_and_input",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.6273,
+                "ci_low_pct": -1.3996,
+                "insns_delta_pct": -1.2925,
+                "mean_delta_pct": -1.0135,
+                "op": "encode_string_api",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -9.822305585689936,
+            "aggregate_ci_low_pct": -10.874642022347519,
+            "aggregate_pct": -10.348473804018727,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -0.8538,
+                "ci_low_pct": -1.4638,
+                "insns_delta_pct": -1.3987,
+                "mean_delta_pct": -1.1588,
+                "op": "encode_data_and_input",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.4786,
+                "ci_low_pct": -1.5932,
+                "insns_delta_pct": -1.4375,
+                "mean_delta_pct": -1.5359,
+                "op": "encode_string_api",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -26.803,
+                "ci_low_pct": -29.8984,
+                "insns_delta_pct": -32.3737,
+                "mean_delta_pct": -28.3507,
+                "op": "spec_mask_ecc",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_data_and_input",
+          "encode_string_api"
+        ],
+        "reason": "accepted",
+        "triggering_op": "encode_data_and_input"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "4e6562fc0a5bb4a0b7bc46b4ee7aeefb81992675",
+      "changeset_id": "legacy-3930d9aa4d39eaa2",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-7e921e4e353e4ecf",
+          "replacement_function_source": "// Applied rules: [III④, C3]\n// Skipped rules: [C3.S1: Would require changing `frame`/`runLength` parameters to references or slices and proving all callers; defer because the local-body rewrite can address the concrete hits without cross-function signature changes.]\nunsafe fn Mask_calcRunLengthH(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n    mut runLength: *mut c_int,\n) -> c_int {\n    // SAFETY: `width` is the caller-provided L1 length source for this region;\n    // the original function unconditionally dereferences `frame[0]`, so callers\n    // must provide a non-null `frame` valid for at least `width` elements here,\n    // and no other live references alias this reborrowed shared slice.\n    let frame = unsafe { core::slice::from_raw_parts(frame as *const c_uchar, width as usize) };\n    // SAFETY: `width` is the caller-provided L1 length source for this region;\n    // callers must provide a non-null `runLength` buffer valid for at least\n    // `width` elements for the writes performed here, and no other live\n    // references alias this reborrowed mutable slice.\n    let run_length = unsafe { core::slice::from_raw_parts_mut(runLength, width as usize) };\n\n    let mut head: c_int;\n    let mut prev: c_uchar;\n\n    let first = frame[0];\n    if first as c_int & 1 as c_int != 0 {\n        run_length[0] = -(1 as c_int);\n        head = 1 as c_int;\n    } else {\n        head = 0 as c_int;\n    }\n\n    // SAFETY: `head` is either 0 or 1 here, and the original function already\n    // requires `runLength` to be valid for the writes it performs for this\n    // caller-provided `width`; this preserves the same unchecked write shape.\n    unsafe {\n        *run_length.get_unchecked_mut(head as usize) = 1 as c_int;\n    }\n    prev = first;\n\n    for &cur in frame[1..width as usize].iter() {\n        if (cur as c_int ^ prev as c_int) & 1 as c_int != 0 {\n            head += 1;\n            // SAFETY: `head` advances exactly as in the original raw-pointer\n            // loop and indexes the same caller-provided `runLength` region;\n            // this preserves the original unchecked per-iteration write.\n            unsafe {\n                *run_length.get_unchecked_mut(head as usize) = 1 as c_int;\n            }\n            prev = cur;\n        } else {\n            // SAFETY: `head` is the current run slot established by prior\n            // writes in this same loop, matching the original unchecked\n            // `runLength.offset(head)` access.\n            unsafe {\n                *run_length.get_unchecked_mut(head as usize) += 1;\n            }\n        }\n    }\n\n    head + 1 as c_int\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "69377a956a0866acbbe07a816a3d8a475fb7c92ccf0fb56b7fd8eaf417ddeecc",
+            "file_hint": "src/mask.rs",
+            "qualified_name": "crate::Mask_calcRunLengthH",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "Mask_calcRunLengthH-54366b25bf14",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "Mask_calcRunLengthH",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "a38d93f87d0658705488019fc56ffb43aaca0469af77914e6d89eba0ce006c91",
+            "edit_id": "edit-replace-7e921e4e353e4ecf",
+            "end_byte": 14365,
+            "operation_id": "replace-7e921e4e353e4ecf",
+            "relative_path": "src/mask.rs",
+            "replacement_text": "// Applied rules: [III④, C3]\n// Skipped rules: [C3.S1: Would require changing `frame`/`runLength` parameters to references or slices and proving all callers; defer because the local-body rewrite can address the concrete hits without cross-function signature changes.]\nunsafe fn Mask_calcRunLengthH(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n    mut runLength: *mut c_int,\n) -> c_int {\n    // SAFETY: `width` is the caller-provided L1 length source for this region;\n    // the original function unconditionally dereferences `frame[0]`, so callers\n    // must provide a non-null `frame` valid for at least `width` elements here,\n    // and no other live references alias this reborrowed shared slice.\n    let frame = unsafe { core::slice::from_raw_parts(frame as *const c_uchar, width as usize) };\n    // SAFETY: `width` is the caller-provided L1 length source for this region;\n    // callers must provide a non-null `runLength` buffer valid for at least\n    // `width` elements for the writes performed here, and no other live\n    // references alias this reborrowed mutable slice.\n    let run_length = unsafe { core::slice::from_raw_parts_mut(runLength, width as usize) };\n\n    let mut head: c_int;\n    let mut prev: c_uchar;\n\n    let first = frame[0];\n    if first as c_int & 1 as c_int != 0 {\n        run_length[0] = -(1 as c_int);\n        head = 1 as c_int;\n    } else {\n        head = 0 as c_int;\n    }\n\n    // SAFETY: `head` is either 0 or 1 here, and the original function already\n    // requires `runLength` to be valid for the writes it performs for this\n    // caller-provided `width`; this preserves the same unchecked write shape.\n    unsafe {\n        *run_length.get_unchecked_mut(head as usize) = 1 as c_int;\n    }\n    prev = first;\n\n    for &cur in frame[1..width as usize].iter() {\n        if (cur as c_int ^ prev as c_int) & 1 as c_int != 0 {\n            head += 1;\n            // SAFETY: `head` advances exactly as in the original raw-pointer\n            // loop and indexes the same caller-provided `runLength` region;\n            // this preserves the original unchecked per-iteration write.\n            unsafe {\n                *run_length.get_unchecked_mut(head as usize) = 1 as c_int;\n            }\n            prev = cur;\n        } else {\n            // SAFETY: `head` is the current run slot established by prior\n            // writes in this same loop, matching the original unchecked\n            // `runLength.offset(head)` access.\n            unsafe {\n                *run_length.get_unchecked_mut(head as usize) += 1;\n            }\n        }\n    }\n\n    head + 1 as c_int\n}",
+            "start_byte": 13368
+          }
+        ],
+        "facts": {
+          "fn_name": "Mask_calcRunLengthH",
+          "target_span_hash": "69377a956a0866acbbe07a816a3d8a475fb7c92ccf0fb56b7fd8eaf417ddeecc"
+        },
+        "operation_id": "replace-7e921e4e353e4ecf"
+      }
+    ],
+    "resolved_head": "4e6562fc0a5bb4a0b7bc46b4ee7aeefb81992675"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/mask.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

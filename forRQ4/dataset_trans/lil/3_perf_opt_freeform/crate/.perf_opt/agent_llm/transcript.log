@@ -1,0 +1,1326 @@
+================================================================================
+TIMESTAMP : 2026-09-08 07:29:00
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : lil_append_char
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/lil/3_perf_opt_freeform/crate/src/lil.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 902
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/lil.rs
+symbol: lil_append_char
+signature: #[inline]
+pub fn lil_append_char(
+    mut val: lil_value_t,
+    mut ch: c_char,
+) -> c_int
+location: 368..386  (attrs included)
+
+```rust
+#[inline]
+pub fn lil_append_char(
+    mut val: lil_value_t,
+    mut ch: c_char,
+) -> c_int { unsafe {
+    let mut new: *mut c_char = realloc(
+        (*val).d as *mut c_void,
+        (*val).l.wrapping_add(2 as size_t),
+    ) as *mut c_char;
+    if new.is_null() {
+        return 0 as c_int;
+    }
+    let fresh10 = (*val).l;
+    (*val).l = (*val).l.wrapping_add(1);
+    *new.offset(fresh10 as isize) = ch;
+    *new.offset((*val).l as isize) = 0 as c_char;
+    (*val).d = new;
+    return 1 as c_int;
+} }
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+pub type lil_value_t = *mut _lil_value_t;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _lil_value_t {
+    pub l: size_t,
+    pub d: *mut c_char,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+pub fn lil_append_char(
+    mut val: lil_value_t,
+    mut ch: c_char,
+) -> c_int {
+    unsafe {
+        // SAFETY: `val` is assumed valid by the original function's contract; we only read/write its fields.
+        let len = (*val).l;
+        let new_len = len.wrapping_add(1);
+        let new = realloc((*val).d as *mut c_void, len.wrapping_add(2)) as *mut c_char;
+        if new.is_null() {
+            return 0 as c_int;
+        }
+        // SAFETY: successful `realloc` returns a buffer of at least `len + 2` bytes, so writing at `len` and `len + 1` is in-bounds.
+        *new.add(len) = ch;
+        // SAFETY: same allocation-size reasoning as above.
+        *new.add(new_len) = 0 as c_char;
+        // SAFETY: `val` is valid and we are updating its fields consistently with the original behavior.
+        (*val).l = new_len;
+        (*val).d = new;
+        1 as c_int
+    }
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-08 07:35:10
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : hm_destroy
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/lil/3_perf_opt_freeform/crate/src/lil.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 971
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/lil.rs
+symbol: hm_destroy
+signature: unsafe fn hm_destroy(mut hm: *mut hashmap_t)
+location: 223..237  (attrs included)
+
+```rust
+unsafe fn hm_destroy(mut hm: *mut hashmap_t) {
+    let hm_view: &hashmap_t = unsafe { &*hm };
+    let mut i: size_t = 0;
+    let mut j: size_t = 0;
+    i = 0 as size_t;
+    while i < HASHMAP_CELLS as size_t {
+        j = 0 as size_t;
+        while j < hm_view.cell[i as usize].c {
+            free((*hm_view.cell[i as usize].e.offset(j as isize)).k as *mut c_void);
+            j = j.wrapping_add(1);
+        }
+        free(hm_view.cell[i as usize].e as *mut c_void);
+        i = i.wrapping_add(1);
+    }
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+pub type hashmap_t = _hashmap_t;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _hashmap_t {
+    pub cell: [hashcell_t; 256],
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct hashcell_t {
+    pub e: *mut hashentry_t,
+    pub c: size_t,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct hashentry_t {
+    pub k: *mut c_char,
+    pub v: *mut c_void,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+unsafe fn hm_destroy(mut hm: *mut hashmap_t) {
+    let hm_view = unsafe { &*hm }; // SAFETY: caller provides a valid pointer to hashmap_t for the duration of this function.
+    let cells = hm_view.cell.as_ptr();
+    let mut i: usize = 0;
+    while i < HASHMAP_CELLS as usize {
+        let cell = unsafe { &*cells.add(i) }; // SAFETY: i is bounded by HASHMAP_CELLS, matching the array length.
+        let mut e = cell.e;
+        let end = unsafe { e.add(cell.c as usize) }; // SAFETY: end pointer is one-past the allocated range of `cell.e` entries.
+        while e != end {
+            unsafe { free((*e).k as *mut c_void) }; // SAFETY: preserves original behavior by freeing each stored key pointer.
+            e = unsafe { e.add(1) }; // SAFETY: loop invariant maintains e within [start, end].
+        }
+        unsafe { free(cell.e as *mut c_void) }; // SAFETY: preserves original behavior by freeing the cell entry buffer pointer.
+        i += 1;
+    }
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-08 07:41:44
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : lil_list_to_value
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/lil/3_perf_opt_freeform/crate/src/lil.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 1522
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/lil.rs
+symbol: lil_list_to_value
+signature: #[inline]
+pub fn lil_list_to_value(
+    mut list: lil_list_t,
+    mut do_escape: c_int,
+) -> lil_value_t
+location: 536..585  (attrs included)
+
+```rust
+#[inline]
+pub fn lil_list_to_value(
+    mut list: lil_list_t,
+    mut do_escape: c_int,
+) -> lil_value_t { unsafe {
+    let mut val: lil_value_t = alloc_value(::core::ptr::null::<c_char>());
+    let mut i: size_t = 0;
+    let mut j: size_t = 0;
+    i = 0 as size_t;
+    while i < (*list).c {
+        let mut escape: c_int = if do_escape != 0 {
+            needs_escape(lil_to_string(*(*list).v.offset(i as isize)))
+        } else {
+            0 as c_int
+        };
+        if i != 0 {
+            lil_append_char(val, ' ' as i32 as c_char);
+        }
+        if escape != 0 {
+            lil_append_char(val, '{' as i32 as c_char);
+            j = 0 as size_t;
+            while j < (**(*list).v.offset(i as isize)).l {
+                if *(**(*list).v.offset(i as isize)).d.offset(j as isize) as c_int
+                    == '{' as i32
+                {
+                    lil_append_string(
+                        val,
+                        b"}\"\\o\"{\0" as *const u8 as *const c_char,
+                    );
+                } else if *(**(*list).v.offset(i as isize)).d.offset(j as isize)
+                    as c_int
+                    == '}' as i32
+                {
+                    lil_append_string(
+                        val,
+                        b"}\"\\c\"{\0" as *const u8 as *const c_char,
+                    );
+                } else {
+                    lil_append_char(val, *(**(*list).v.offset(i as isize)).d.offset(j as isize));
+                }
+                j = j.wrapping_add(1);
+            }
+            lil_append_char(val, '}' as i32 as c_char);
+        } else {
+            lil_append_val(val, *(*list).v.offset(i as isize));
+        }
+        i = i.wrapping_add(1);
+    }
+    return val;
+} }
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+pub type lil_value_t = *mut _lil_value_t;
+
+pub type lil_list_t = *mut _lil_list_t;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _lil_value_t {
+    pub l: size_t,
+    pub d: *mut c_char,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _lil_list_t {
+    pub v: *mut lil_value_t,
+    pub c: size_t,
+    pub cap: size_t,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+pub fn lil_list_to_value(
+    mut list: lil_list_t,
+    mut do_escape: c_int,
+) -> lil_value_t { unsafe {
+    let val: lil_value_t = alloc_value(::core::ptr::null::<c_char>());
+    let count = (*list).c;
+    let items = (*list).v;
+    let escape_enabled = do_escape != 0;
+
+    let mut i: size_t = 0;
+    while i < count {
+        let item = *items.add(i as usize);
+        if i != 0 {
+            lil_append_char(val, ' ' as i32 as c_char);
+        }
+
+        let escape: c_int = if escape_enabled {
+            needs_escape(lil_to_string(item))
+        } else {
+            0 as c_int
+        };
+
+        if escape != 0 {
+            lil_append_char(val, '{' as i32 as c_char);
+
+            let item_ref = &*item;
+            let len = item_ref.l;
+            let data = item_ref.d;
+
+            let mut j: size_t = 0;
+            while j < len {
+                let ch = *data.add(j as usize);
+                if ch as c_int == '{' as i32 {
+                    lil_append_string(val, b"}\"\\o\"{\0" as *const u8 as *const c_char);
+                } else if ch as c_int == '}' as i32 {
+                    lil_append_string(val, b"}\"\\c\"{\0" as *const u8 as *const c_char);
+                } else {
+                    lil_append_char(val, ch);
+                }
+                j = j.wrapping_add(1);
+            }
+
+            lil_append_char(val, '}' as i32 as c_char);
+        } else {
+            lil_append_val(val, item);
+        }
+
+        i = i.wrapping_add(1);
+    }
+
+    return val;
+} }
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-08 07:47:03
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : add_func
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/lil/3_perf_opt_freeform/crate/src/lil.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 1331
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/lil.rs
+symbol: add_func
+signature: unsafe fn add_func(mut lil: lil_t, mut name: *const c_char) -> lil_func_t
+location: 636..672  (attrs included)
+
+```rust
+unsafe fn add_func(mut lil: lil_t, mut name: *const c_char) -> lil_func_t {
+    let mut cmd: lil_func_t = ::core::ptr::null_mut::<_lil_func_t>();
+    let mut ncmd: *mut lil_func_t = ::core::ptr::null_mut::<lil_func_t>();
+    cmd = find_cmd(lil, name);
+    if !cmd.is_null() {
+        if !(*cmd).argnames.is_null() {
+            lil_free_list((*cmd).argnames);
+        }
+        lil_free_value((*cmd).code);
+        (*cmd).argnames = ::core::ptr::null_mut::<_lil_list_t>();
+        (*cmd).code = ::core::ptr::null_mut::<_lil_value_t>();
+        (*cmd).proc_0 = None;
+        return cmd;
+    }
+    cmd = calloc(1 as size_t, ::core::mem::size_of::<_lil_func_t>() as size_t) as lil_func_t;
+    (*cmd).name = strclone(name);
+    ncmd = realloc(
+        (*lil).cmd as *mut c_void,
+        (::core::mem::size_of::<lil_func_t>() as size_t)
+            .wrapping_mul((*lil).cmds.wrapping_add(1 as size_t)),
+    ) as *mut lil_func_t;
+    if ncmd.is_null() {
+        free(cmd as *mut c_void);
+        return ::core::ptr::null_mut::<_lil_func_t>();
+    }
+    (*lil).cmd = ncmd;
+    let fresh16 = (*lil).cmds;
+    (*lil).cmds = (*lil).cmds.wrapping_add(1);
+    let ref mut fresh17 = *ncmd.offset(fresh16 as isize);
+    *fresh17 = cmd;
+    hm_put(
+        &raw mut (*lil).cmdmap,
+        name,
+        cmd as *mut c_void,
+    );
+    return cmd;
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _lil_value_t {
+    pub l: size_t,
+    pub d: *mut c_char,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _lil_func_t {
+    pub name: *mut c_char,
+    pub code: lil_value_t,
+    pub argnames: lil_list_t,
+    pub proc_0: lil_func_proc_t,
+}
+
+pub type lil_t = *mut _lil_t;
+
+pub type lil_func_t = *mut _lil_func_t;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _lil_list_t {
+    pub v: *mut lil_value_t,
+    pub c: size_t,
+    pub cap: size_t,
+}
+
+pub type lil_value_t = *mut _lil_value_t;
+
+pub type lil_list_t = *mut _lil_list_t;
+
+pub type lil_func_proc_t =
+    Option<unsafe extern "C" fn(lil_t, size_t, *mut lil_value_t) -> lil_value_t>;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _lil_t {
+    pub code: *const c_char,
+    pub rootcode: *const c_char,
+    pub clen: size_t,
+    pub head: size_t,
+    pub ignoreeol: c_int,
+    pub cmd: *mut lil_func_t,
+    pub cmds: size_t,
+    pub syscmds: size_t,
+    pub cmdmap: hashmap_t,
+    pub catcher: *mut c_char,
+    pub in_catcher: c_int,
+    pub dollarprefix: *mut c_char,
+    pub env: lil_env_t,
+    pub rootenv: lil_env_t,
+    pub downenv: lil_env_t,
+    pub empty: lil_value_t,
+    pub error: c_int,
+    pub err_head: size_t,
+    pub err_msg: *mut c_char,
+    pub callback: [lil_callback_proc_t; 8],
+    pub parse_depth: size_t,
+    pub data: *mut c_void,
+    pub embed: *mut c_char,
+    pub embedlen: size_t,
+}
+
+pub type hashmap_t = _hashmap_t;
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+unsafe fn add_func(mut lil: lil_t, mut name: *const c_char) -> lil_func_t {
+    let cmd = find_cmd(lil, name);
+    if !cmd.is_null() {
+        if !(*cmd).argnames.is_null() {
+            lil_free_list((*cmd).argnames);
+        }
+        lil_free_value((*cmd).code);
+        (*cmd).argnames = ::core::ptr::null_mut::<_lil_list_t>();
+        (*cmd).code = ::core::ptr::null_mut::<_lil_value_t>();
+        (*cmd).proc_0 = None;
+        return cmd;
+    }
+
+    let cmd = calloc(1 as size_t, ::core::mem::size_of::<_lil_func_t>() as size_t) as lil_func_t;
+    if cmd.is_null() {
+        return ::core::ptr::null_mut::<_lil_func_t>();
+    }
+
+    (*cmd).name = strclone(name);
+
+    let lilp = &mut *lil;
+    let old_cmds = lilp.cmds;
+    let new_cmd = realloc(
+        lilp.cmd as *mut c_void,
+        (::core::mem::size_of::<lil_func_t>() as size_t).wrapping_mul(old_cmds.wrapping_add(1)),
+    ) as *mut lil_func_t;
+
+    if new_cmd.is_null() {
+        free(cmd as *mut c_void);
+        return ::core::ptr::null_mut::<_lil_func_t>();
+    }
+
+    lilp.cmd = new_cmd;
+    lilp.cmds = old_cmds.wrapping_add(1);
+    // SAFETY: `new_cmd` points to an allocation large enough for `old_cmds + 1` elements after successful realloc.
+    *new_cmd.add(old_cmds) = cmd;
+
+    hm_put(&raw mut lilp.cmdmap, name, cmd as *mut c_void);
+    cmd
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-08 07:56:14
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : lil_new
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/lil/3_perf_opt_freeform/crate/src/lil.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 539
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/lil.rs
+symbol: lil_new
+signature: #[inline]
+pub fn lil_new() -> lil_t
+location: 862..872  (attrs included)
+
+```rust
+#[inline]
+pub fn lil_new() -> lil_t { unsafe {
+    let mut lil: lil_t = calloc(1 as size_t, ::core::mem::size_of::<_lil_t>() as size_t) as lil_t;
+    (*lil).env = lil_alloc_env(::core::ptr::null_mut::<_lil_env_t>());
+    (*lil).rootenv = (*lil).env;
+    (*lil).empty = alloc_value(::core::ptr::null::<c_char>());
+    (*lil).dollarprefix = strclone(b"set \0" as *const u8 as *const c_char);
+    hm_init(&raw mut (*lil).cmdmap);
+    register_stdcmds(lil);
+    return lil;
+} }
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+pub type lil_t = *mut _lil_t;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _lil_t {
+    pub code: *const c_char,
+    pub rootcode: *const c_char,
+    pub clen: size_t,
+    pub head: size_t,
+    pub ignoreeol: c_int,
+    pub cmd: *mut lil_func_t,
+    pub cmds: size_t,
+    pub syscmds: size_t,
+    pub cmdmap: hashmap_t,
+    pub catcher: *mut c_char,
+    pub in_catcher: c_int,
+    pub dollarprefix: *mut c_char,
+    pub env: lil_env_t,
+    pub rootenv: lil_env_t,
+    pub downenv: lil_env_t,
+    pub empty: lil_value_t,
+    pub error: c_int,
+    pub err_head: size_t,
+    pub err_msg: *mut c_char,
+    pub callback: [lil_callback_proc_t; 8],
+    pub parse_depth: size_t,
+    pub data: *mut c_void,
+    pub embed: *mut c_char,
+    pub embedlen: size_t,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _lil_env_t {
+    pub parent: *mut _lil_env_t,
+    pub func: lil_func_t,
+    pub catcher_for: lil_value_t,
+    pub var: *mut lil_var_t,
+    pub vars: size_t,
+    pub varmap: hashmap_t,
+    pub retval: lil_value_t,
+    pub retval_set: c_int,
+    pub breakrun: c_int,
+}
+
+pub type lil_func_t = *mut _lil_func_t;
+
+pub type hashmap_t = _hashmap_t;
+
+pub type lil_env_t = *mut _lil_env_t;
+
+pub type lil_value_t = *mut _lil_value_t;
+
+pub type lil_var_t = *mut _lil_var_t;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _lil_func_t {
+    pub name: *mut c_char,
+    pub code: lil_value_t,
+    pub argnames: lil_list_t,
+    pub proc_0: lil_func_proc_t,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _hashmap_t {
+    pub cell: [hashcell_t; 256],
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+pub fn lil_new() -> lil_t { unsafe {
+    let lil = calloc(1 as size_t, ::core::mem::size_of::<_lil_t>() as size_t) as lil_t;
+    let env = lil_alloc_env(::core::ptr::null_mut::<_lil_env_t>());
+    let empty = alloc_value(::core::ptr::null::<c_char>());
+    let dollarprefix = strclone(b"set \0" as *const u8 as *const c_char);
+
+    (*lil).env = env;
+    (*lil).rootenv = env;
+    (*lil).empty = empty;
+    (*lil).dollarprefix = dollarprefix;
+    hm_init(&raw mut (*lil).cmdmap);
+    register_stdcmds(lil);
+    lil
+} }
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-08 08:02:02
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : lil_free
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/lil/3_perf_opt_freeform/crate/src/lil.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 930
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/lil.rs
+symbol: lil_free
+signature: #[inline]
+pub fn lil_free(mut lil: lil_t)
+location: 3047..3075  (attrs included)
+
+```rust
+#[inline]
+pub fn lil_free(mut lil: lil_t) { unsafe {
+    let mut i: size_t = 0;
+    if lil.is_null() {
+        return;
+    }
+    free((*lil).err_msg as *mut c_void);
+    lil_free_value((*lil).empty);
+    while !(*lil).env.is_null() {
+        let mut next: lil_env_t = (*(*lil).env).parent as lil_env_t;
+        lil_free_env((*lil).env);
+        (*lil).env = next;
+    }
+    i = 0 as size_t;
+    while i < (*lil).cmds {
+        if !(**(*lil).cmd.offset(i as isize)).argnames.is_null() {
+            lil_free_list((**(*lil).cmd.offset(i as isize)).argnames);
+        }
+        lil_free_value((**(*lil).cmd.offset(i as isize)).code);
+        free((**(*lil).cmd.offset(i as isize)).name as *mut c_void);
+        free(*(*lil).cmd.offset(i as isize) as *mut c_void);
+        i = i.wrapping_add(1);
+    }
+    hm_destroy(&raw mut (*lil).cmdmap);
+    free((*lil).cmd as *mut c_void);
+    free((*lil).dollarprefix as *mut c_void);
+    free((*lil).catcher as *mut c_void);
+    free(lil as *mut c_void);
+} }
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+pub type lil_t = *mut _lil_t;
+
+pub type lil_env_t = *mut _lil_env_t;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _lil_t {
+    pub code: *const c_char,
+    pub rootcode: *const c_char,
+    pub clen: size_t,
+    pub head: size_t,
+    pub ignoreeol: c_int,
+    pub cmd: *mut lil_func_t,
+    pub cmds: size_t,
+    pub syscmds: size_t,
+    pub cmdmap: hashmap_t,
+    pub catcher: *mut c_char,
+    pub in_catcher: c_int,
+    pub dollarprefix: *mut c_char,
+    pub env: lil_env_t,
+    pub rootenv: lil_env_t,
+    pub downenv: lil_env_t,
+    pub empty: lil_value_t,
+    pub error: c_int,
+    pub err_head: size_t,
+    pub err_msg: *mut c_char,
+    pub callback: [lil_callback_proc_t; 8],
+    pub parse_depth: size_t,
+    pub data: *mut c_void,
+    pub embed: *mut c_char,
+    pub embedlen: size_t,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _lil_env_t {
+    pub parent: *mut _lil_env_t,
+    pub func: lil_func_t,
+    pub catcher_for: lil_value_t,
+    pub var: *mut lil_var_t,
+    pub vars: size_t,
+    pub varmap: hashmap_t,
+    pub retval: lil_value_t,
+    pub retval_set: c_int,
+    pub breakrun: c_int,
+}
+
+pub type lil_func_t = *mut _lil_func_t;
+
+pub type hashmap_t = _hashmap_t;
+
+pub type lil_value_t = *mut _lil_value_t;
+
+pub type lil_var_t = *mut _lil_var_t;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _lil_func_t {
+    pub name: *mut c_char,
+    pub code: lil_value_t,
+    pub argnames: lil_list_t,
+    pub proc_0: lil_func_proc_t,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _hashmap_t {
+    pub cell: [hashcell_t; 256],
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+pub fn lil_free(mut lil: lil_t) { unsafe {
+    if lil.is_null() {
+        return;
+    }
+
+    let lilp = &mut *lil;
+
+    free(lilp.err_msg as *mut c_void);
+    lil_free_value(lilp.empty);
+
+    let mut env = lilp.env;
+    while !env.is_null() {
+        let next = (*env).parent as lil_env_t;
+        lil_free_env(env);
+        env = next;
+    }
+
+    let cmd = lilp.cmd;
+    let cmds = lilp.cmds;
+    let mut i: size_t = 0;
+    while i < cmds {
+        let func = *cmd.add(i);
+        if !(*func).argnames.is_null() {
+            lil_free_list((*func).argnames);
+        }
+        lil_free_value((*func).code);
+        free((*func).name as *mut c_void);
+        free(func as *mut c_void);
+        i = i.wrapping_add(1);
+    }
+
+    hm_destroy(&raw mut lilp.cmdmap);
+    free(cmd as *mut c_void);
+    free(lilp.dollarprefix as *mut c_void);
+    free(lilp.catcher as *mut c_void);
+    free(lil as *mut c_void);
+} }
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-08 08:11:09
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : hm_put
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/lil/3_perf_opt_freeform/crate/src/lil.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 937
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/lil.rs
+symbol: hm_put
+signature: unsafe fn hm_put(
+    mut hm: *mut hashmap_t,
+    mut key: *const c_char,
+    mut value: *mut c_void,
+)
+location: 239..266  (attrs included)
+
+```rust
+unsafe fn hm_put(
+    mut hm: *mut hashmap_t,
+    mut key: *const c_char,
+    mut value: *mut c_void,
+) {
+    let mut cell: *mut hashcell_t = (&raw mut (*hm).cell as *mut hashcell_t)
+        .offset((hm_hash(key) & HASHMAP_CELLMASK as c_ulong) as isize);
+    let mut i: size_t = 0;
+    i = 0 as size_t;
+    while i < (*cell).c {
+        if strcmp(key, (*(*cell).e.offset(i as isize)).k) == 0 {
+            let ref mut fresh6 = (*(*cell).e.offset(i as isize)).v;
+            *fresh6 = value;
+            return;
+        }
+        i = i.wrapping_add(1);
+    }
+    (*cell).e = realloc(
+        (*cell).e as *mut c_void,
+        (::core::mem::size_of::<hashentry_t>() as size_t)
+            .wrapping_mul((*cell).c.wrapping_add(1 as size_t)),
+    ) as *mut hashentry_t;
+    let ref mut fresh7 = (*(*cell).e.offset((*cell).c as isize)).k;
+    *fresh7 = strclone(key);
+    let ref mut fresh8 = (*(*cell).e.offset((*cell).c as isize)).v;
+    *fresh8 = value;
+    (*cell).c = (*cell).c.wrapping_add(1);
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+pub type hashmap_t = _hashmap_t;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct hashcell_t {
+    pub e: *mut hashentry_t,
+    pub c: size_t,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct hashentry_t {
+    pub k: *mut c_char,
+    pub v: *mut c_void,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _hashmap_t {
+    pub cell: [hashcell_t; 256],
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+unsafe fn hm_put(
+    mut hm: *mut hashmap_t,
+    mut key: *const c_char,
+    mut value: *mut c_void,
+) {
+    let cell = (&raw mut (*hm).cell as *mut hashcell_t)
+        .add((hm_hash(key) & HASHMAP_CELLMASK as c_ulong) as usize);
+    let entries = (*cell).e;
+    let count = (*cell).c;
+
+    let mut i: size_t = 0;
+    while i < count {
+        let entry = entries.add(i as usize);
+        if strcmp(key, (*entry).k) == 0 {
+            (*entry).v = value;
+            return;
+        }
+        i = i.wrapping_add(1);
+    }
+
+    let new_count = count.wrapping_add(1 as size_t);
+    let new_entries = realloc(
+        entries as *mut c_void,
+        (::core::mem::size_of::<hashentry_t>() as size_t).wrapping_mul(new_count),
+    ) as *mut hashentry_t;
+    (*cell).e = new_entries;
+
+    let new_entry = new_entries.add(count as usize);
+    (*new_entry).k = strclone(key);
+    (*new_entry).v = value;
+    (*cell).c = new_count;
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-08 08:18:40
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : lil_append_val
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/lil/3_perf_opt_freeform/crate/src/lil.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 773
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/lil.rs
+symbol: lil_append_val
+signature: #[inline]
+pub fn lil_append_val(
+    mut val: lil_value_t,
+    mut v: lil_value_t,
+) -> c_int
+location: 422..447  (attrs included)
+
+```rust
+#[inline]
+pub fn lil_append_val(
+    mut val: lil_value_t,
+    mut v: lil_value_t,
+) -> c_int { unsafe {
+    let mut new: *mut c_char = ::core::ptr::null_mut::<c_char>();
+    if v.is_null() || (*v).l == 0 {
+        return 1 as c_int;
+    }
+    new = realloc(
+        (*val).d as *mut c_void,
+        (*val).l.wrapping_add((*v).l).wrapping_add(1 as size_t),
+    ) as *mut c_char;
+    if new.is_null() {
+        return 0 as c_int;
+    }
+    memcpy(
+        new.offset((*val).l as isize) as *mut c_void,
+        (*v).d as *const c_void,
+        (*v).l.wrapping_add(1 as size_t),
+    );
+    (*val).d = new;
+    (*val).l = ((*val).l as c_ulong).wrapping_add((*v).l as c_ulong)
+        as size_t as size_t;
+    return 1 as c_int;
+} }
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+pub type lil_value_t = *mut _lil_value_t;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _lil_value_t {
+    pub l: size_t,
+    pub d: *mut c_char,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+pub fn lil_append_val(
+    mut val: lil_value_t,
+    mut v: lil_value_t,
+) -> c_int { unsafe {
+    // SAFETY: `v` is checked for null before dereference; `val` and `v` are expected valid per original function contract.
+    if v.is_null() || (*v).l == 0 {
+        return 1 as c_int;
+    }
+
+    let val_l = (*val).l;
+    let v_l = (*v).l;
+    let new_len = val_l.wrapping_add(v_l);
+    let new = realloc(
+        (*val).d as *mut c_void,
+        new_len.wrapping_add(1 as size_t),
+    ) as *mut c_char;
+
+    if new.is_null() {
+        return 0 as c_int;
+    }
+
+    memcpy(
+        new.add(val_l) as *mut c_void,
+        (*v).d as *const c_void,
+        v_l.wrapping_add(1 as size_t),
+    );
+    (*val).d = new;
+    (*val).l = new_len;
+    1 as c_int
+} }
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-08 08:24:44
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : hm_hash
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/lil/3_perf_opt_freeform/crate/src/lil.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 595
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/lil.rs
+symbol: hm_hash
+signature: unsafe fn hm_hash(mut key: *const c_char) -> c_ulong
+location: 200..215  (attrs included)
+
+```rust
+unsafe fn hm_hash(mut key: *const c_char) -> c_ulong {
+    let mut hash: c_ulong = 5381 as c_ulong;
+    let mut c: c_int = 0;
+    loop {
+        let fresh9 = key;
+        key = key.offset(1);
+        c = *fresh9 as c_int;
+        if !(c != 0) {
+            break;
+        }
+        hash = (hash << 5 as c_int)
+            .wrapping_add(hash)
+            .wrapping_add(c as c_ulong);
+    }
+    return hash;
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+unsafe fn hm_hash(mut key: *const c_char) -> c_ulong {
+    let mut hash: c_ulong = 5381 as c_ulong;
+    loop {
+        let c = {
+            // SAFETY: `key` is assumed to point to a valid NUL-terminated C string, matching the original function's preconditions.
+            *key
+        } as c_int;
+        if c == 0 {
+            break;
+        }
+        hash = hash.wrapping_mul(33).wrapping_add(c as c_ulong);
+        // SAFETY: Advancing by one byte stays within the same valid NUL-terminated C string traversal as in the original code.
+        key = key.add(1);
+    }
+    hash
+}
+```
+================================================================================
+

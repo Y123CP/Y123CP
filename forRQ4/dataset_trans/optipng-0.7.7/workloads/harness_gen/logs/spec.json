@@ -1,0 +1,147 @@
+{
+  "harness_name": "optipng_raw_harness",
+  "operations": [
+    {
+      "name": "zlib_compress_uncompress",
+      "needs_input": true,
+      "summary": "Exercises the main zlib hot path by compressing the provided bytes with the crate's compressor and then decompressing them back with the crate's decompressor, folding both status codes and content-derived checksums.",
+      "api_calls": [
+        "compressBound",
+        "compress2",
+        "uncompress2",
+        "crc32",
+        "adler32",
+        "zlibVersion",
+        "zError"
+      ],
+      "input_format": "Raw byte buffer. Seed files contain deterministic, realistic text-like and record-like data with substantial repetition so compression runs through its normal match-finding path.",
+      "digest": "Folds input length, crc32/adler32 of the original input (computed once before the loop), compress/uncompress return codes, compressed length, decompressed length, crc32 of the decompressed output, and a round-trip equality flag."
+    },
+    {
+      "name": "zlib_deflate_inflate_stream",
+      "needs_input": true,
+      "summary": "Runs streaming compression and decompression through explicit z_stream state, covering init/reset/finish/end style APIs and the library's stateful codec core.",
+      "api_calls": [
+        "deflateInit_",
+        "deflate",
+        "deflateReset",
+        "deflateEnd",
+        "deflateBound",
+        "inflateInit_",
+        "inflate",
+        "inflateReset",
+        "inflateEnd",
+        "crc32",
+        "zlibVersion",
+        "zError"
+      ],
+      "input_format": "Raw byte buffer. Seed files contain deterministic structured payloads made of repeated lines/blocks to produce realistic streaming compression behavior.",
+      "digest": "Folds stream init/final status codes, total compressed size, total decompressed size, crc32 of the final decompressed bytes, and a round-trip equality flag."
+    },
+    {
+      "name": "gzip_file_roundtrip",
+      "needs_input": true,
+      "summary": "Uses the gz* file-style API by writing the input into a temporary .gz file with the crate's gzip writer, then reopening and reading it back with the crate's gzip reader.",
+      "api_calls": [
+        "gzopen",
+        "gzwrite",
+        "gzflush",
+        "gzclose_w",
+        "gzopen",
+        "gzread",
+        "gzeof",
+        "gzerror",
+        "gzclearerr",
+        "gzclose_r",
+        "crc32"
+      ],
+      "input_format": "Raw byte buffer. Seed files contain deterministic compressible corpus data; the runner materializes it into temporary gzip files during execution.",
+      "digest": "Folds write/read return values, eof/error indicators, total bytes read back, crc32 of the recovered bytes, and a round-trip equality flag."
+    },
+    {
+      "name": "png_write_read_roundtrip",
+      "needs_input": true,
+      "summary": "Builds a small valid PNG image from the input bytes using libpng write APIs and custom in-memory I/O callbacks, then decodes that PNG back with libpng read APIs to cover PNG struct/info setup, IHDR/rows handling, and full image read/write.",
+      "api_calls": [
+        "png_create_write_struct",
+        "png_create_info_struct",
+        "png_set_IHDR",
+        "png_set_rows",
+        "png_set_write_fn",
+        "png_write_png",
+        "png_destroy_write_struct",
+        "png_create_read_struct",
+        "png_create_info_struct",
+        "png_set_read_fn",
+        "png_read_png",
+        "png_get_image_width",
+        "png_get_image_height",
+        "png_get_rowbytes",
+        "png_get_rows",
+        "png_destroy_read_struct",
+        "png_sig_cmp",
+        "png_access_version_number"
+      ],
+      "input_format": "Raw byte buffer interpreted deterministically as grayscale pixel data for a small image; the runner encodes it to a valid PNG in memory before decoding it.",
+      "digest": "Folds PNG signature check result, encoded PNG size, decoded width/height/rowbytes, a checksum over decoded row bytes, and whether decoded pixels match the original synthesized image buffer."
+    },
+    {
+      "name": "bitset_and_ratio",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": "",
+      "adopted": true
+    },
+    {
+      "name": "ioutil_paths_and_files",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": "",
+      "adopted": true
+    },
+    {
+      "name": "png_palette_roundtrip",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": "",
+      "adopted": true
+    },
+    {
+      "name": "pnm_roundtrip",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": "",
+      "adopted": true
+    },
+    {
+      "name": "zlib_gzip_advanced",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": "",
+      "adopted": true
+    },
+    {
+      "name": "zlib_inflate_back",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": "",
+      "adopted": true
+    }
+  ],
+  "seed_strategy": "gen_seeds writes two distinct deterministic raw-input corpora per operation. For the zlib and gzip operations, it emits realistic compressible buffers: one mostly textual corpus with repeated log-like lines and paragraph blocks, and one record-oriented corpus with repeated field prefixes plus varying counters encoded as ASCII. For the PNG round-trip operation, it emits two different raw pixel payloads sized to fixed small dimensions, one with gradients/stripes and one with checkerboard-style structure, so the resulting encoded PNGs differ while remaining fully valid when the runner interprets the bytes as image data. The same raw files can also serve the zlib operations directly, keeping seed generation simple and deterministic.",
+  "dropped_operations": [
+    "gif_decode_blocks"
+  ]
+}

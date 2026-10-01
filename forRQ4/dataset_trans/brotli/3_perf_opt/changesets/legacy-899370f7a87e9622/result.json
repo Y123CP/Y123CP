@@ -1,0 +1,89 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": "error[E0308]: mismatched types\n    --> /perf-build/crate/src/dec/decode.rs:2246:31\n     |\n2246 |         if ringbuffer_size == full_ring_size || force != 0 {\n     |            ---------------    ^^^^^^^^^^^^^^ expected `i32`, found `usize`\n     |            |\n     |            expected because this is `i32`\n     |\nhelp: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit\n     |\n2246 |         if ringbuffer_size == full_ring_size.try_into().unwrap() || force != 0 {\n     |                                             ++++++++++++++++++++\nerror[E0308]: mismatched types\n    --> /perf-build/crate/src/dec/decode.rs:2253:27\n     |\n2253 |     if ringbuffer_size == full_ring_size && pos >= ringbuffer_size {\n     |        ---------------    ^^^^^^^^^^^^^^ expected `i32`, found `usize`\n     |        |\n     |        expected because this is `i32`\n     |\nhelp: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit\n     |\n2253 |     if ringbuffer_size == full_ring_size.try_into().unwrap() && pos >= ringbuffer_size {\n     |                                         ++++++++++++++++++++\n\nFor more information about this error, try `rustc --explain E0308`.\nerror: could not compile `brotli_cleaned` (lib) due to 2 previous errors; 173 warnings emitted"
+      },
+      "gate": "build",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "7d12dc4ba696b77a95a018731305350efeb21217",
+      "changeset_id": "legacy-899370f7a87e9622",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-8976bf64b25a76b9",
+          "replacement_function_source": "// Applied rules: [C3]\n// Skipped rules: [III③: Although hit [8] is a concrete `memcpy` site, it sits in a decoder output-path kernel (`decode_buffer` workload) and matches the card's hot decode/compress loop perf abstain guidance. Replacing libc `memcpy` with `ptr::copy_nonoverlapping` or slice APIs here is semantically easy but may perturb codegen in a tuned hot path without guaranteed win.; C3.S1: Signature lift of raw pointers to references/slices would require caller-wide alias/null/length proof and thus cross-function rewrite. The provided evidence only shows intra-function redundant loads, so prefer S2 and abstain from S1 for this pass.]\n#[inline(never)]\nunsafe fn WriteRingBuffer(\n    mut s: *mut BrotliDecoderStateInternal,\n    mut available_out: *mut size_t,\n    mut next_out: *mut *mut uint8_t,\n    mut total_out: *mut size_t,\n    mut force: c_int,\n) -> BrotliDecoderErrorCode {\n    let available_out_view: &mut size_t = unsafe { &mut *available_out };\n    let mut start: *mut uint8_t = (*s)\n        .ringbuffer\n        .offset(((*s).partial_pos_out & (*s).ringbuffer_mask as size_t) as isize);\n    let mut to_write: size_t = UnwrittenBytes(s, BROTLI_TRUE);\n    let mut num_written: size_t = *available_out_view;\n    if num_written > to_write {\n        num_written = to_write;\n    }\n    if (*s).meta_block_remaining_len < 0 as c_int {\n        return BROTLI_DECODER_ERROR_FORMAT_BLOCK_LENGTH_1 as c_int\n            as BrotliDecoderErrorCode;\n    }\n\n    let next_out_is_null = next_out.is_null();\n    let total_out_is_null = total_out.is_null();\n    let ringbuffer_size = (*s).ringbuffer_size;\n    let window_bits = (*s).window_bits();\n    let full_ring_size = ((1 as c_int) << window_bits as c_int) as size_t;\n\n    if !next_out_is_null && (*next_out).is_null() {\n        *next_out = start;\n    } else if !next_out_is_null {\n        memcpy(\n            *next_out as *mut c_void,\n            start as *const c_void,\n            num_written,\n        );\n        *next_out = (*next_out).offset(num_written as isize);\n    }\n    *available_out_view = (*available_out_view as c_ulong)\n        .wrapping_sub(num_written as c_ulong) as size_t as size_t;\n    (*s).partial_pos_out = ((*s).partial_pos_out as c_ulong)\n        .wrapping_add(num_written as c_ulong) as size_t\n        as size_t;\n    if !total_out_is_null {\n        *total_out = (*s).partial_pos_out;\n    }\n    if num_written < to_write {\n        if ringbuffer_size == full_ring_size || force != 0 {\n            return BROTLI_DECODER_NEEDS_MORE_OUTPUT;\n        } else {\n            return BROTLI_DECODER_SUCCESS;\n        }\n    }\n    let pos = (*s).pos;\n    if ringbuffer_size == full_ring_size && pos >= ringbuffer_size {\n        (*s).pos = pos - ringbuffer_size;\n        (*s).rb_roundtrips = (*s).rb_roundtrips.wrapping_add(1);\n        (*s).set_should_wrap_ringbuffer(\n            (if (*s).pos as size_t != 0 as size_t {\n                1 as c_int\n            } else {\n                0 as c_int\n            }) as c_uint as c_uint,\n        );\n    }\n    return BROTLI_DECODER_SUCCESS;\n}",
+          "rule_id": "C3",
+          "target": {
+            "declaration_hash": "a0e9b882b429efeb8c8b70fc1c1d9f4a1a809c74326b7c2407d2e96fa05a7637",
+            "file_hint": "src/dec/decode.rs",
+            "qualified_name": "crate::WriteRingBuffer",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "WriteRingBuffer-1ba838edbe2f",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "WriteRingBuffer",
+        "rule_id": "C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "aee77e87e2e6f1c149a8349188e90cdae73bfd9937bc4df5920c257285915d53",
+            "edit_id": "edit-replace-8976bf64b25a76b9",
+            "end_byte": 86322,
+            "operation_id": "replace-8976bf64b25a76b9",
+            "relative_path": "src/dec/decode.rs",
+            "replacement_text": "// Applied rules: [C3]\n// Skipped rules: [III③: Although hit [8] is a concrete `memcpy` site, it sits in a decoder output-path kernel (`decode_buffer` workload) and matches the card's hot decode/compress loop perf abstain guidance. Replacing libc `memcpy` with `ptr::copy_nonoverlapping` or slice APIs here is semantically easy but may perturb codegen in a tuned hot path without guaranteed win.; C3.S1: Signature lift of raw pointers to references/slices would require caller-wide alias/null/length proof and thus cross-function rewrite. The provided evidence only shows intra-function redundant loads, so prefer S2 and abstain from S1 for this pass.]\n#[inline(never)]\nunsafe fn WriteRingBuffer(\n    mut s: *mut BrotliDecoderStateInternal,\n    mut available_out: *mut size_t,\n    mut next_out: *mut *mut uint8_t,\n    mut total_out: *mut size_t,\n    mut force: c_int,\n) -> BrotliDecoderErrorCode {\n    let available_out_view: &mut size_t = unsafe { &mut *available_out };\n    let mut start: *mut uint8_t = (*s)\n        .ringbuffer\n        .offset(((*s).partial_pos_out & (*s).ringbuffer_mask as size_t) as isize);\n    let mut to_write: size_t = UnwrittenBytes(s, BROTLI_TRUE);\n    let mut num_written: size_t = *available_out_view;\n    if num_written > to_write {\n        num_written = to_write;\n    }\n    if (*s).meta_block_remaining_len < 0 as c_int {\n        return BROTLI_DECODER_ERROR_FORMAT_BLOCK_LENGTH_1 as c_int\n            as BrotliDecoderErrorCode;\n    }\n\n    let next_out_is_null = next_out.is_null();\n    let total_out_is_null = total_out.is_null();\n    let ringbuffer_size = (*s).ringbuffer_size;\n    let window_bits = (*s).window_bits();\n    let full_ring_size = ((1 as c_int) << window_bits as c_int) as size_t;\n\n    if !next_out_is_null && (*next_out).is_null() {\n        *next_out = start;\n    } else if !next_out_is_null {\n        memcpy(\n            *next_out as *mut c_void,\n            start as *const c_void,\n            num_written,\n        );\n        *next_out = (*next_out).offset(num_written as isize);\n    }\n    *available_out_view = (*available_out_view as c_ulong)\n        .wrapping_sub(num_written as c_ulong) as size_t as size_t;\n    (*s).partial_pos_out = ((*s).partial_pos_out as c_ulong)\n        .wrapping_add(num_written as c_ulong) as size_t\n        as size_t;\n    if !total_out_is_null {\n        *total_out = (*s).partial_pos_out;\n    }\n    if num_written < to_write {\n        if ringbuffer_size == full_ring_size || force != 0 {\n            return BROTLI_DECODER_NEEDS_MORE_OUTPUT;\n        } else {\n            return BROTLI_DECODER_SUCCESS;\n        }\n    }\n    let pos = (*s).pos;\n    if ringbuffer_size == full_ring_size && pos >= ringbuffer_size {\n        (*s).pos = pos - ringbuffer_size;\n        (*s).rb_roundtrips = (*s).rb_roundtrips.wrapping_add(1);\n        (*s).set_should_wrap_ringbuffer(\n            (if (*s).pos as size_t != 0 as size_t {\n                1 as c_int\n            } else {\n                0 as c_int\n            }) as c_uint as c_uint,\n        );\n    }\n    return BROTLI_DECODER_SUCCESS;\n}",
+            "start_byte": 84080
+          }
+        ],
+        "facts": {
+          "fn_name": "WriteRingBuffer",
+          "target_span_hash": "a0e9b882b429efeb8c8b70fc1c1d9f4a1a809c74326b7c2407d2e96fa05a7637"
+        },
+        "operation_id": "replace-8976bf64b25a76b9"
+      }
+    ],
+    "resolved_head": "7d12dc4ba696b77a95a018731305350efeb21217"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_build",
+  "touched_paths": [
+    "src/dec/decode.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

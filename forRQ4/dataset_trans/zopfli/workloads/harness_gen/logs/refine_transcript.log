@@ -1,0 +1,1731 @@
+================================================================================
+TIMESTAMP : 2026-08-16 13:22:46
+MODEL     : gpt-5.4
+PHASE     : refine-0
+CLUSTER   : -
+FUNCTION  : -
+TARGET    : -
+RULE      : -
+FILE      : -
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 27317
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are an expert Rust systems engineer improving ONE function — `gen_perf` — of
+an existing c2rust workload harness. You output ONE complete `src/lib.rs` file in
+a single ```rust block and nothing else.
+
+----- USER PROMPT -----
+The harness below compiles and is a valid oracle. Its `gen_perf` produces ONE
+large input per op to make the library's hot loop dominate under perf. But a
+fuzzer explored these ops and its corpus REACHES 11 library functions
+that `gen_perf`'s large inputs never touch — i.e. `gen_perf` misses whole
+input SHAPES the fuzzer found:
+
+MISSED functions (gen_perf must learn to exercise these at scale):
+  ZopfliAppendLZ77Store
+  ZopfliCacheToSublen
+  ZopfliCalculateEntropy
+  ZopfliCopyLZ77Store
+  ZopfliDeflate
+  ZopfliDeflatePart
+  ZopfliLZ77Optimal
+  ZopfliLZ77OptimalFixed
+  ZopfliLengthsToSymbols
+  ZopfliMaxCachedSublen
+  ZopfliZlibCompress
+
+The fuzzer inputs are TINY (bytes). Your job is FORMAT-AWARE SCALE-UP: figure
+out, from these samples + the library API, what feature each missed function
+needs (e.g. multiple/typed chunks, text/exif/icc metadata, palette, a specific
+sub-format), then make `gen_perf` emit a LARGE input carrying that feature so
+the function runs many times, NOT once. Never just pad/concatenate bytes —
+that produces malformed input that hits error paths. Use the library's own
+encoders (as gen_seeds does) to build big VALID inputs.
+
+Representative fuzzer inputs per op (hex):
+
+operation `raw_deflate` (its corpus reaches gap fns: ZopfliAppendLZ77Store, ZopfliCacheToSublen, ZopfliCalculateEntropy, ZopfliCopyLZ77Store, ZopfliDeflate, ZopfliDeflatePart, ZopfliLZ77Optimal, ZopfliLZ77OptimalFixed, ZopfliLengthsToSymbols, ZopfliMaxCachedSublen) — representative fuzzer inputs:
+    2900B: 323032342d30352d30315430303a30303a30305a206c6576656c3d5741524e20736572766963653d73656172636820726567696f6e3d75732d656173742d31207265715f69643d7265712d30313030303020757365723d7573657230303137206d73673d226f7065726174696f6e20636f6d706c657465642220706174683d2f6170692f76312f7365617263682f6974656d732f303031207374617475733d3230312062797465733d313233312072657472793d30206e6f74653d436166c3a9 …(+2708B)
+  325268B: 7265636f72647c6b696e643d494e534552547c74656e616e743d626c75657c7461626c653d745f30307c706b3d30353631343133317c7665723d30303030307c7461673d616c7068612c626574612c67616d6d617c7061796c6f61643d226c6f72656d20697073756d206c6f72656d20697073756d20636f706965642d737562737472696e6720636f706965642d737562737472696e6720636f706965642d737562737472696e6720555446382dd0b4d0b0d0bdd0bdd18bd0b5227c6f6b3d66 …(+325076B)
+  854374B: 323032342d30352d30315430303a30303a30305a206c6576656c3d5741524e20736572766963653d73656172636820726567696f6e3d75732d656173742d31207265715f69643d7265712d30313030303020757365723d7573657230303137206d73673d226f7065726174696f6e20636f6d706c657465642220706174683d2f6170692f76312f7365617263682f6974656d732f303031207374617475733d3230312062797465733d313233312072657472793d30206e6f74653d436166c3a9 …(+854182B)
+  1008050B: 323032342d30352d30315430303a30303a30305a206c6576656c3d5741524e20736572766963653d73656172636820726567696f6e3d75732d656173742d31207265715f69643d7265712d30313030303020757365723d7573657230303137206d73673d226f7065726174696f6e20636f6d706c657465642220706174683d2f6170692f76312f7365617263682f6974656d732f303031207374617475733d3230312062797465733d313233312072657472793d30206e6f74653d436166c3a9 …(+1007858B)
+
+operation `zlib_compress` (its corpus reaches gap fns: ZopfliAppendLZ77Store, ZopfliCacheToSublen, ZopfliCalculateEntropy, ZopfliCopyLZ77Store, ZopfliDeflate, ZopfliDeflatePart, ZopfliLZ77Optimal, ZopfliLZ77OptimalFixed, ZopfliLengthsToSymbols, ZopfliMaxCachedSublen, ZopfliZlibCompress) — representative fuzzer inputs:
+     223B: 7265636f72647c6b696e643d494e534552547c74656e616e743d626c75657c7461626c653d745f30307c706b3d30353631343133317c7665723d30303030307c7461673d616c7068612c626574612c67616d6d617c7061796c6f61643d226c6f72656d20697073756d206c6f72656d20697073756d20636f706965642d737562737472696e6720636f706965642d737562737472696e6720636f706965642d737562737472696e6720555446382dd0b4d0b0d0bdd0bdd18bd0b5227c6f6b3d66 …(+31B)
+  261798B: 7265636f72647c6b696e643d494e534552547c74656e616e743d626c75657c7461626c653d745f30307c706b3d30353631343133317c7665723d30303030307c7461673d616c7068612c626574612c67616d6d617c7061796c6f61643d226c6f72656d20697073756d206c6f72656d20697073756d20636f706965642d737562737472696e6720636f706965642d737562737472696e6720636f706965642d737562737472696e6720555446382dd0b4d0b0d0bdd0bdd18bd0b5227c6f6b3d66 …(+261606B)
+  382952B: 7265636f72647c6b696e643d494e534552547c74656e616e743d626c75657c7461626c653d745f30307c706b3d30353631343133317c7665723d30303030307c7461673d616c7068612c626574612c67616d6d617c7061796c6f61643d226c6f72656d20697073756d206c6f72656d20697073756d20636f706965642d737562737472696e6720636f706965642d737562737472696e6720636f706965642d737562737472696e6720555446382dd0b4d0b0d0bdd0bdd18bd0b5227c6f6b3d66 …(+382760B)
+  1008026B: 323032342d30352d30315430303a30303a30305a206c6576656c3d5741524e20736572766963653d73656172636820726567696f6e3d75732d656173742d31207265715f69643d7265712d30313030303020757365723d7573657230303137206d73673d226f7065726174696f6e20636f6d706c657465642220706174683d2f6170692f76312f7365617263682f6974656d732f303031207374617475733d3230312062797465733d313233312072657472793d30206e6f74653d436166c3a9 …(+1007834B)
+
+operation `lz77_blocksplit_analysis` — representative fuzzer inputs:
+   17181B: 323032342d30352d30315430303a30303a30305a206c6576656c3d5741524e20736572766963653d73656172636820726567696f6e3d75732d656173742d31207265715f69643d7265712d30313030303020757365723d7573657230303137206d73673d226f7065726174696f6e20636f6d706c657465642220706174683d2f6170692f76312f7365617263682f6974656d732f303031207374617475733d3230312062797465733d313233312072657472793d30206e6f74653d436166c3a9 …(+16989B)
+  647543B: 323032342d30352d30315430303a30303a30305a206c6576656c3d5741524e20736572766963653d73656172636820726567696f6e3d75732d656173742d31207265715f69643d7265712d30313030303020757365723d7573657230303137206d73673d226f7065726174696f6e20636f6d706c657465642220706174683d2f6170692f76312f7365617263682f6974656d732f303031207374617475733d3230312062797465733d313233312072657472793d30206e6f74653d436166c3a9 …(+647351B)
+  1007987B: 323032342d30352d30315430303a30303a30305a206c6576656c3d5741524e20736572766963653d73656172636820726567696f6e3d75732d656173742d31207265715f69643d7265712d30313030303020757365723d7573657230303137206d73673d226f7065726174696f6e20636f6d706c657465642220706174683d2f6170692f76312f7365617263682f6974656d732f303031207374617475733d3230312062797465733d313233312072657472793d30206e6f74653d436166c3a9 …(+1007795B)
+  1008197B: 323032342d30352d30315430303a30303a30305a206c6576656c3d5741524e20736572766963653d73656172636820726567696f6e3d75732d656173742d31207265715f69643d7265712d30313030303020757365723d7573657230303137206d73673d226f7065726174696f6e20636f6d706c657465642220706174683d2f6170692f76312f7365617263682f6974656d732f303031207374617475733d3230312062797465733d313233312072657472793d30206e6f74653d436166c3a9 …(+1008005B)
+
+operation `tree_codegen` (its corpus reaches gap fns: ZopfliCalculateEntropy, ZopfliLengthsToSymbols) — representative fuzzer inputs:
+    1525B: 323032342d30352d30315430303a30303a30305a206c6576656c3d5741524e20736572766963653d73656172636820726567696f6e3d75732d656173742d31207265715f69643d7265712d30313030303020757365723d7573657230303137206d73673d226f7065726174696f6e20636f6d706c657465642220706174683d2f6170692f76312f7365617263682f6974656d732f303031207374617475733d3230312062797465733d313233312072657472793d30206e6f74653d436166c3a9 …(+1333B)
+  769323B: 323032342d30352d30315430303a30303a30305a206c6576656c3d5741524e20736572766963653d73656172636820726567696f6e3d75732d656173742d31207265715f69643d7265712d30313030303020757365723d7573657230303137206d73673d226f7065726174696f6e20636f6d706c657465642220706174683d2f6170692f76312f7365617263682f6974656d732f303031207374617475733d3230312062797465733d313233312072657472793d30206e6f74653d436166c3a9 …(+769131B)
+  1007989B: 323032342d30352d30315430303a30303a30305a206c6576656c3d5741524e20736572766963653d73656172636820726567696f6e3d75732d656173742d31207265715f69643d7265712d30313030303020757365723d7573657230303137206d73673d226f7065726174696f6e20636f6d706c657465642220706174683d2f6170692f76312f7365617263682f6974656d732f303031207374617475733d3230312062797465733d313233312072657472793d30206e6f74653d436166c3a9 …(+1007797B)
+  1008106B: 323032342d30352d30315430303a30303a30305a206c6576656c3d5741524e20736572766963653d73656172636820726567696f6e3d75732d656173742d31207265715f69643d7265712d30313030303020757365723d7573657230303137206d73673d226f7065726174696f6e20636f6d706c657465642220706174683d2f6170692f76312f7365617263682f6974656d732f303031207374617475733d3230312062797465733d313233312072657472793d30206e6f74653d436166c3a9 …(+1007914B)
+
+operation `cache_roundtrip` (its corpus reaches gap fns: ZopfliCacheToSublen, ZopfliMaxCachedSublen) — representative fuzzer inputs:
+    2486B: 7265636f72647c6b696e643d494e534552547c74656e616e743d626c75657c7461626c653d745f30307c706b3d30353631343133317c7665723d30303030307c7461673d616c7068612c626574612c67616d6d617c7061796c6f61643d226c6f72656d20697073756d206c6f72656d20697073756d20636f706965642d737562737472696e6720636f706965642d737562737472696e6720636f706965642d737562737472696e6720555446382dd0b4d0b0d0bdd0bdd18bd0b5227c6f6b3d66 …(+2294B)
+  250253B: 7265636f72647c6b696e643d494e534552547c74656e616e743d626c75657c7461626c653d745f30307c706b3d30353631343133317c7665723d30303030307c7461673d616c7068612c626574612c67616d6d617c7061796c6f61643d226c6f72656d20697073756d206c6f72656d20697073756d20636f706965642d737562737472696e6720636f706965642d737562737472696e6720636f706965642d737562737472696e6720555446382dd0b4d0b0d0bdd0bdd18bd0b5227c6f6b3d66 …(+250061B)
+  1007987B: 323032342d30352d30315430303a30303a30305a206c6576656c3d5741524e20736572766963653d73656172636820726567696f6e3d75732d656173742d31207265715f69643d7265712d30313030303020757365723d7573657230303137206d73673d226f7065726174696f6e20636f6d706c657465642220706174683d2f6170692f76312f7365617263682f6974656d732f303031207374617475733d3230312062797465733d313233312072657472793d30206e6f74653d436166c3a9 …(+1007795B)
+  1008135B: 323032342d30352d30315430303a30303a30305a206c6576656c3d5741524e20736572766963653d73656172636820726567696f6e3d75732d656173742d31207265715f69643d7265712d30313030303020757365723d7573657230303137206d73673d226f7065726174696f6e20636f6d706c657465642220706174683d2f6170692f76312f7365617263682f6974656d732f303031207374617475733d3230312062797465733d313233312072657472793d30206e6f74653d436166c3a9 …(+1007943B)
+
+CRATE API (for the module paths / encoders you may call):
+The `## use …` line above each group is the EXACT import path for every function in that group. Copy it verbatim.
+Do NOT place a function under a module you remember it from in the upstream C library — this crate's module split is c2rust's, not upstream's, and sibling modules here often hold functions the original header grouped together. Import ONLY names shown below, and ONLY from the group they are shown under.
+## use zopfli_raw::src::blocksplitter::<fn>;
+fn ZopfliBlockSplitLZ77(options: *const ZopfliOptions, lz77: *const ZopfliLZ77Store, maxblocks: size_t, splitpoints: *mut *mut size_t, npoints: *mut size_t)
+fn ZopfliBlockSplit(options: *const ZopfliOptions, in_0: *const c_uchar, instart: size_t, inend: size_t, maxblocks: size_t, splitpoints: *mut *mut size_t, npoints: *mut size_t)
+fn ZopfliBlockSplitSimple(in_0: *const c_uchar, instart: size_t, inend: size_t, blocksize: size_t, splitpoints: *mut *mut size_t, npoints: *mut size_t)
+## use zopfli_raw::src::cache::<fn>;
+fn ZopfliInitCache(blocksize: size_t, lmc: *mut ZopfliLongestMatchCache)
+fn ZopfliCleanCache(lmc: *mut ZopfliLongestMatchCache)
+fn ZopfliSublenToCache(sublen: *const c_ushort, pos: size_t, length: size_t, lmc: *mut ZopfliLongestMatchCache)
+fn ZopfliCacheToSublen(lmc: *const ZopfliLongestMatchCache, pos: size_t, length: size_t, sublen: *mut c_ushort)
+fn ZopfliMaxCachedSublen(lmc: *const ZopfliLongestMatchCache, pos: size_t, length: size_t) -> c_uint
+## use zopfli_raw::src::deflate::<fn>;
+fn OptimizeHuffmanForRle(length: c_int, counts: *mut size_t)
+fn ZopfliCalculateBlockSize(lz77: *const ZopfliLZ77Store, lstart: size_t, lend: size_t, btype: c_int) -> c_double
+fn ZopfliCalculateBlockSizeAutoType(lz77: *const ZopfliLZ77Store, lstart: size_t, lend: size_t) -> c_double
+fn ZopfliDeflatePart(options: *const ZopfliOptions, btype: c_int, final_0: c_int, in_0: *const c_uchar, instart: size_t, inend: size_t, bp: *mut c_uchar, out: *mut *mut c_uchar, outsize: *mut size_t)
+fn ZopfliDeflate(options: *const ZopfliOptions, btype: c_int, final_0: c_int, in_0: *const c_uchar, insize: size_t, bp: *mut c_uchar, out: *mut *mut c_uchar, outsize: *mut size_t)
+## use zopfli_raw::src::gzip_container::<fn>;
+fn ZopfliGzipCompress(options: *const ZopfliOptions, in_0: *const c_uchar, insize: size_t, out: *mut *mut c_uchar, outsize: *mut size_t)
+## use zopfli_raw::src::hash::<fn>;
+fn ZopfliAllocHash(window_size: size_t, h: *mut ZopfliHash)
+fn ZopfliResetHash(window_size: size_t, h: *mut ZopfliHash)
+fn ZopfliCleanHash(h: *mut ZopfliHash)
+fn ZopfliUpdateHash(array: *const c_uchar, pos: size_t, end: size_t, h: *mut ZopfliHash)
+fn ZopfliWarmupHash(array: *const c_uchar, pos: size_t, end: size_t, h: *mut ZopfliHash)
+## use zopfli_raw::src::katajainen::<fn>;
+fn ZopfliLengthLimitedCodeLengths(frequencies: *const size_t, n: c_int, maxbits: c_int, bitlengths: *mut c_uint) -> c_int
+## use zopfli_raw::src::lz77::<fn>;
+fn ZopfliInitLZ77Store(data: *const c_uchar, store: *mut ZopfliLZ77Store)
+fn ZopfliCleanLZ77Store(store: *mut ZopfliLZ77Store)
+fn ZopfliCopyLZ77Store(source: *const ZopfliLZ77Store, dest: *mut ZopfliLZ77Store)
+fn ZopfliStoreLitLenDist(length: c_ushort, dist: c_ushort, pos: size_t, store: *mut ZopfliLZ77Store)
+fn ZopfliAppendLZ77Store(store: *const ZopfliLZ77Store, target: *mut ZopfliLZ77Store)
+fn ZopfliLZ77GetByteRange(lz77: *const ZopfliLZ77Store, lstart: size_t, lend: size_t) -> size_t
+fn ZopfliLZ77GetHistogram(lz77: *const ZopfliLZ77Store, lstart: size_t, lend: size_t, ll_counts: *mut size_t, d_counts: *mut size_t)
+fn ZopfliInitBlockState(options: *const ZopfliOptions, blockstart: size_t, blockend: size_t, add_lmc: c_int, s: *mut ZopfliBlockState)
+fn ZopfliCleanBlockState(s: *mut ZopfliBlockState)
+fn ZopfliVerifyLenDist(data: *const c_uchar, datasize: size_t, pos: size_t, dist: c_ushort, length: c_ushort)
+fn ZopfliFindLongestMatch(s: *mut ZopfliBlockState, h: *const ZopfliHash, array: *const c_uchar, pos: size_t, size: size_t, limit: size_t, sublen: *mut c_ushort, distance: *mut c_ushort, length: *mut c_ushort)
+fn ZopfliLZ77Greedy(s: *mut ZopfliBlockState, in_0: *const c_uchar, instart: size_t, inend: size_t, store: *mut ZopfliLZ77Store, h: *mut ZopfliHash)
+## use zopfli_raw::src::squeeze::<fn>;
+fn ZopfliLZ77Optimal(s: *mut ZopfliBlockState, in_0: *const c_uchar, instart: size_t, inend: size_t, numiterations: c_int, store: *mut ZopfliLZ77Store)
+fn ZopfliLZ77OptimalFixed(s: *mut ZopfliBlockState, in_0: *const c_uchar, instart: size_t, inend: size_t, store: *mut ZopfliLZ77Store)
+## use zopfli_raw::src::tree::<fn>;
+fn ZopfliLengthsToSymbols(lengths: *const c_uint, n: size_t, maxbits: c_uint, symbols: *mut c_uint)
+fn ZopfliCalculateEntropy(count: *const size_t, n: size_t, bitlengths: *mut c_double)
+fn ZopfliCalculateBitLengths(count: *const size_t, n: size_t, maxbits: c_int, bitlengths: *mut c_uint)
+## use zopfli_raw::src::util::<fn>;
+fn ZopfliInitOptions(options: *mut ZopfliOptions)
+## use zopfli_raw::src::zlib_container::<fn>;
+fn ZopfliZlibCompress(options: *const ZopfliOptions, in_0: *const c_uchar, insize: size_t, out: *mut *mut c_uchar, outsize: *mut size_t)
+## use zopfli_raw::src::zopfli_lib::<fn>;
+fn ZopfliCompress(options: *const ZopfliOptions, output_type: ZopfliFormat, in_0: *const c_uchar, insize: size_t, out: *mut *mut c_uchar, outsize: *mut size_t)
+
+CURRENT src/lib.rs:
+```rust
+use std::fs;
+use std::mem::MaybeUninit;
+use std::os::raw::{c_int, c_uchar, c_uint, c_ushort, c_void};
+use std::ptr;
+
+use zopfli_raw::src::blocksplitter::{
+    ZopfliBlockSplit, ZopfliBlockSplitLZ77, ZopfliBlockSplitSimple,
+};
+use zopfli_raw::src::cache::{
+    ZopfliCacheToSublen, ZopfliCleanCache, ZopfliInitCache, ZopfliMaxCachedSublen,
+    ZopfliSublenToCache,
+};
+use zopfli_raw::src::deflate::{
+    OptimizeHuffmanForRle, ZopfliCalculateBlockSize, ZopfliCalculateBlockSizeAutoType,
+    ZopfliDeflate, ZopfliDeflatePart,
+};
+use zopfli_raw::src::gzip_container::ZopfliGzipCompress;
+use zopfli_raw::src::hash::{
+    ZopfliAllocHash, ZopfliCleanHash, ZopfliResetHash, ZopfliUpdateHash, ZopfliWarmupHash,
+};
+use zopfli_raw::src::katajainen::ZopfliLengthLimitedCodeLengths;
+use zopfli_raw::src::lz77::{
+    ZopfliAppendLZ77Store, ZopfliCleanBlockState, ZopfliCleanLZ77Store, ZopfliCopyLZ77Store,
+    ZopfliFindLongestMatch, ZopfliInitBlockState, ZopfliInitLZ77Store, ZopfliLZ77GetByteRange,
+    ZopfliLZ77GetHistogram, ZopfliLZ77Greedy, ZopfliStoreLitLenDist, ZopfliVerifyLenDist,
+};
+use zopfli_raw::src::squeeze::{ZopfliLZ77Optimal, ZopfliLZ77OptimalFixed};
+use zopfli_raw::src::tree::{
+    ZopfliCalculateBitLengths, ZopfliCalculateEntropy, ZopfliLengthsToSymbols,
+};
+use zopfli_raw::src::util::ZopfliInitOptions;
+use zopfli_raw::src::zlib_container::ZopfliZlibCompress;
+use zopfli_raw::src::zopfli_lib::ZopfliCompress;
+
+extern "C" {
+    fn free(ptr: *mut c_void);
+}
+
+fn fold(acc: u64, x: u64) -> u64 {
+    acc.rotate_left(7) ^ x.wrapping_mul(0x9e37_79b9_7f4a_7c15)
+}
+
+fn checksum_bytes(data: &[u8]) -> u64 {
+    let mut acc = 0x243f_6a88_85a3_08d3u64;
+    for &b in data {
+        acc = fold(acc, b as u64);
+    }
+    acc ^ (data.len() as u64).wrapping_mul(0x1000_0000_01b3)
+}
+
+fn sample_slice_digest(data: &[u8]) -> u64 {
+    let mut acc = 0u64;
+    let len = data.len();
+    let idxs = [
+        0usize,
+        1,
+        2,
+        3,
+        len.saturating_div(3),
+        len.saturating_div(2),
+        len.saturating_mul(2).saturating_div(3),
+        len.saturating_sub(4),
+        len.saturating_sub(3),
+        len.saturating_sub(2),
+        len.saturating_sub(1),
+    ];
+    for &i in &idxs {
+        if let Some(&b) = data.get(i) {
+            acc = fold(acc, ((i as u64) << 8) ^ (b as u64));
+        } else {
+            acc = fold(acc, (i as u64) ^ 0xff00);
+        }
+    }
+    acc
+}
+
+unsafe fn free_c_ptr<T>(p: *mut T) {
+    if !p.is_null() {
+        free(p as *mut c_void);
+    }
+}
+
+fn make_corpus_one() -> Vec<u8> {
+    let mut v = Vec::new();
+    for day in 1..=28u32 {
+        for hour in 0..24u32 {
+            for minute in [0u32, 7, 15, 23, 31, 42, 55] {
+                let level = match (day + hour + minute) % 5 {
+                    0 => "INFO",
+                    1 => "WARN",
+                    2 => "DEBUG",
+                    3 => "TRACE",
+                    _ => "ERROR",
+                };
+                let service = match (day + hour) % 6 {
+                    0 => "auth",
+                    1 => "search",
+                    2 => "billing",
+                    3 => "cache",
+                    4 => "worker",
+                    _ => "frontend",
+                };
+                let region = match day % 4 {
+                    0 => "eu-west-1",
+                    1 => "us-east-1",
+                    2 => "ap-south-1",
+                    _ => "sa-east-1",
+                };
+                let line = format!(
+                    "2024-05-{day:02}T{hour:02}:{minute:02}:00Z level={level} service={service} region={region} req_id=req-{day:02}{hour:02}{minute:02} user=user{:04} msg=\"operation completed\" path=/api/v1/{service}/items/{:03} status={} bytes={} retry={} note=Café-Δ\n",
+                    (day * 17 + hour * 13 + minute) % 10000,
+                    (day + hour + minute) % 200,
+                    if level == "ERROR" { 500 } else { 200 + ((day + hour) % 5) },
+                    1200 + ((day * 31 + hour * 7 + minute) % 9000),
+                    (minute / 15) % 3
+                );
+                v.extend_from_slice(line.as_bytes());
+                if hour % 6 == 0 {
+                    let extra = format!(
+                        "kv session=sess-{day:02}-{hour:02} shard={} feature=rollout bucket={} msg=\"prefix_common prefix_common prefix_common\"\n",
+                        (day + hour) % 32,
+                        (day * 9 + hour * 5) % 100
+                    );
+                    v.extend_from_slice(extra.as_bytes());
+                }
+            }
+        }
+    }
+    v
+}
+
+fn make_corpus_two() -> Vec<u8> {
+    let mut v = Vec::new();
+    for block in 0..1800u32 {
+        let kind = match block % 7 {
+            0 => "INSERT",
+            1 => "UPDATE",
+            2 => "DELETE",
+            3 => "SNAPSHOT",
+            4 => "REPLAY",
+            5 => "MERGE",
+            _ => "COMMIT",
+        };
+        let tenant = match block % 5 {
+            0 => "blue",
+            1 => "green",
+            2 => "orange",
+            3 => "violet",
+            _ => "silver",
+        };
+        let template = format!(
+            "record|kind={kind}|tenant={tenant}|table=t_{:02}|pk={:08}|ver={:05}|tag=alpha,beta,gamma|payload=\"lorem ipsum lorem ipsum copied-substring copied-substring copied-substring {}\"|ok={}\n",
+            block % 37,
+            block.wrapping_mul(104729) ^ 0x55aa33,
+            block % 1000,
+            if block % 9 == 0 {
+                "UTF8-данные"
+            } else if block % 9 == 1 {
+                "UTF8-日本語"
+            } else {
+                "UTF8-normal"
+            },
+            if block % 11 == 0 { "false" } else { "true" }
+        );
+        v.extend_from_slice(template.as_bytes());
+        if block % 8 == 0 {
+            v.extend_from_slice(
+                b"copy-range|AAAAABBBBBCCCCCDDDDDEEEEE|AAAAABBBBBCCCCCDDDDDEEEEE|AAAAABBBBBCCCCCDDDDDEEEEE\n",
+            );
+        }
+        if block % 13 == 0 {
+            let hdr = format!(
+                "header version=3 source=node-{:03} partition={} watermark={} comment=\"repeated repeated repeated marker\"\n",
+                block % 97,
+                block % 16,
+                1_700_000_000u64 + block as u64
+            );
+            v.extend_from_slice(hdr.as_bytes());
+        }
+    }
+    v
+}
+
+fn make_perf_corpus() -> Vec<u8> {
+    let mut v = Vec::new();
+    for chunk in 0..22_000u32 {
+        let app = match chunk % 6 {
+            0 => "payments",
+            1 => "search",
+            2 => "gateway",
+            3 => "worker",
+            4 => "notifier",
+            _ => "profile",
+        };
+        let status = if chunk % 29 == 0 {
+            503
+        } else if chunk % 17 == 0 {
+            429
+        } else {
+            200
+        };
+        let line1 = format!(
+            "ts=2024-06-{:02}T{:02}:{:02}:{:02}Z app={app} env=prod cluster=c{:02} pod={app}-{:05} req=req-{:08} path=/v1/{app}/resource/{:04} status={status} bytes={} latency_ms={} user=u{:06} msg=\"request completed with repeated common prefix\"\n",
+            (chunk % 28) + 1,
+            chunk % 24,
+            (chunk / 2) % 60,
+            (chunk / 3) % 60,
+            chunk % 12,
+            chunk % 10000,
+            chunk.wrapping_mul(2654435761),
+            chunk % 4096,
+            700 + (chunk % 8000),
+            1 + (chunk % 250),
+            chunk % 500000
+        );
+        let line2 = format!(
+            "metrics cpu={} mem_mb={} queue={} region={} flags=hot,cacheable,stable body=\"aaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee copied-fragment copied-fragment copied-fragment\"\n",
+            20 + (chunk % 70),
+            256 + (chunk % 2048),
+            chunk % 1000,
+            match chunk % 4 {
+                0 => "us-east",
+                1 => "eu-west",
+                2 => "ap-south",
+                _ => "sa-east",
+            }
+        );
+        v.extend_from_slice(line1.as_bytes());
+        v.extend_from_slice(line2.as_bytes());
+        if chunk % 10 == 0 {
+            v.extend_from_slice(
+                b"json {\"type\":\"event\",\"name\":\"session.refresh\",\"attrs\":{\"k1\":\"v1\",\"k2\":\"v2\",\"rep\":\"rep rep rep rep rep\"}}\n",
+            );
+        }
+    }
+    v
+}
+
+fn write_seed_files_for_op(dir: &str, op: &str, s1: &[u8], s2: &[u8], out: &mut Vec<String>) {
+    let p1 = format!("{}/{}.1.bin", dir, op);
+    let p2 = format!("{}/{}.2.bin", dir, op);
+    fs::write(&p1, s1).unwrap();
+    fs::write(&p2, s2).unwrap();
+    out.push(format!("seed {} {}", op, p1));
+    out.push(format!("seed {} {}", op, p2));
+}
+
+pub fn op_raw_deflate(data: &[u8], iters: u64) -> String {
+    let input_ck = checksum_bytes(data);
+    let mut digest = 0u64;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut options = MaybeUninit::<zopfli_raw::src::util::ZopfliOptions>::zeroed();
+            ZopfliInitOptions(options.as_mut_ptr());
+
+            let mut bp: c_uchar = 0;
+            let mut out: *mut c_uchar = ptr::null_mut();
+            let mut outsize: usize = 0;
+
+            ZopfliDeflate(
+                options.as_ptr() as *const _,
+                2,
+                1,
+                data.as_ptr(),
+                data.len(),
+                &mut bp,
+                &mut out,
+                &mut outsize,
+            );
+
+            let out_slice = if out.is_null() || outsize == 0 {
+                &[][..]
+            } else {
+                std::slice::from_raw_parts(out as *const u8, outsize)
+            };
+
+            let mut d = 0u64;
+            d = fold(d, input_ck);
+            d = fold(d, outsize as u64);
+            d = fold(d, (!out.is_null()) as u64);
+            d = fold(d, bp as u64);
+            d = fold(d, sample_slice_digest(out_slice));
+            digest = fold(digest, d);
+
+            free_c_ptr(out);
+        }
+    }
+
+    format!("op=raw_deflate digest={:016x}", digest)
+}
+
+pub fn op_zlib_compress(data: &[u8], iters: u64) -> String {
+    let input_ck = checksum_bytes(data);
+    let mut digest = 0u64;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut options = MaybeUninit::<zopfli_raw::src::util::ZopfliOptions>::zeroed();
+            ZopfliInitOptions(options.as_mut_ptr());
+
+            let mut out: *mut c_uchar = ptr::null_mut();
+            let mut outsize: usize = 0;
+
+            ZopfliZlibCompress(
+                options.as_ptr() as *const _,
+                data.as_ptr(),
+                data.len(),
+                &mut out,
+                &mut outsize,
+            );
+
+            let out_slice = if out.is_null() || outsize == 0 {
+                &[][..]
+            } else {
+                std::slice::from_raw_parts(out as *const u8, outsize)
+            };
+
+            let mut d = 0u64;
+            d = fold(d, input_ck);
+            d = fold(d, outsize as u64);
+            d = fold(d, (!out.is_null()) as u64);
+            d = fold(d, sample_slice_digest(out_slice));
+            digest = fold(digest, d);
+
+            free_c_ptr(out);
+        }
+    }
+
+    format!("op=zlib_compress digest={:016x}", digest)
+}
+
+pub fn op_lz77_blocksplit_analysis(data: &[u8], iters: u64) -> String {
+    let input_ck = checksum_bytes(data);
+    let mut digest = 0u64;
+    let window_size = 32_768usize;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut options = MaybeUninit::<zopfli_raw::src::util::ZopfliOptions>::zeroed();
+            ZopfliInitOptions(options.as_mut_ptr());
+
+            let mut state = MaybeUninit::<zopfli_raw::src::lz77::ZopfliBlockState>::zeroed();
+            ZopfliInitBlockState(
+                options.as_ptr() as *const _,
+                0,
+                data.len(),
+                1,
+                state.as_mut_ptr(),
+            );
+
+            let mut store = MaybeUninit::<zopfli_raw::src::lz77::ZopfliLZ77Store>::zeroed();
+            ZopfliInitLZ77Store(data.as_ptr(), store.as_mut_ptr());
+
+            let mut h = MaybeUninit::<zopfli_raw::src::hash::ZopfliHash>::zeroed();
+            ZopfliAllocHash(window_size, h.as_mut_ptr());
+            ZopfliResetHash(window_size, h.as_mut_ptr());
+            ZopfliWarmupHash(data.as_ptr(), 0, data.len(), h.as_mut_ptr());
+            ZopfliUpdateHash(data.as_ptr(), 0, data.len(), h.as_mut_ptr());
+
+            ZopfliLZ77Greedy(
+                state.as_mut_ptr(),
+                data.as_ptr(),
+                0,
+                data.len(),
+                store.as_mut_ptr(),
+                h.as_mut_ptr() as *mut _,
+            );
+
+            let lzsize = (*store.as_ptr()).size;
+
+            let byte_range = ZopfliLZ77GetByteRange(store.as_ptr(), 0, lzsize);
+
+            let mut ll_counts = vec![0usize; 288];
+            let mut d_counts = vec![0usize; 32];
+            ZopfliLZ77GetHistogram(
+                store.as_ptr(),
+                0,
+                lzsize,
+                ll_counts.as_mut_ptr(),
+                d_counts.as_mut_ptr(),
+            );
+
+            let block_cost_fixed = ZopfliCalculateBlockSize(store.as_ptr() as *const _, 0, lzsize, 1);
+            let block_cost_dynamic =
+                ZopfliCalculateBlockSizeAutoType(store.as_ptr() as *const _, 0, lzsize);
+
+            let mut raw_splitpoints: *mut usize = ptr::null_mut();
+            let mut raw_npoints: usize = 0;
+            ZopfliBlockSplit(
+                options.as_ptr() as *const _,
+                data.as_ptr(),
+                0,
+                data.len(),
+                16,
+                &mut raw_splitpoints,
+                &mut raw_npoints,
+            );
+
+            let raw_points = if raw_splitpoints.is_null() || raw_npoints == 0 {
+                &[][..]
+            } else {
+                std::slice::from_raw_parts(raw_splitpoints as *const usize, raw_npoints)
+            };
+
+            let mut lz_splitpoints: *mut usize = ptr::null_mut();
+            let mut lz_npoints: usize = 0;
+            ZopfliBlockSplitLZ77(
+                options.as_ptr() as *const _,
+                store.as_ptr() as *const _,
+                16,
+                &mut lz_splitpoints,
+                &mut lz_npoints,
+            );
+
+            let lz_points = if lz_splitpoints.is_null() || lz_npoints == 0 {
+                &[][..]
+            } else {
+                std::slice::from_raw_parts(lz_splitpoints as *const usize, lz_npoints)
+            };
+
+            let mut raw_sum = 0u64;
+            let mut raw_xor = 0u64;
+            for &p in raw_points {
+                raw_sum = raw_sum.wrapping_add(p as u64);
+                raw_xor ^= p as u64;
+            }
+
+            let mut lz_sum = 0u64;
+            let mut lz_xor = 0u64;
+            for &p in lz_points {
+                lz_sum = lz_sum.wrapping_add(p as u64);
+                lz_xor ^= p as u64;
+            }
+
+            let ll_total = ll_counts.iter().copied().fold(0usize, |a, b| a.wrapping_add(b));
+            let d_total = d_counts.iter().copied().fold(0usize, |a, b| a.wrapping_add(b));
+            let ll_head = ll_counts
+                .iter()
+                .take(16)
+                .copied()
+                .fold(0usize, |a, b| a.wrapping_add(b));
+            let d_head = d_counts
+                .iter()
+                .take(8)
+                .copied()
+                .fold(0usize, |a, b| a.wrapping_add(b));
+
+            let mut d = 0u64;
+            d = fold(d, input_ck);
+            d = fold(d, byte_range as u64);
+            d = fold(d, lzsize as u64);
+            d = fold(d, ll_total as u64);
+            d = fold(d, d_total as u64);
+            d = fold(d, ll_head as u64);
+            d = fold(d, d_head as u64);
+            d = fold(d, block_cost_fixed.to_bits());
+            d = fold(d, block_cost_dynamic.to_bits());
+            d = fold(d, raw_npoints as u64);
+            d = fold(d, raw_sum);
+            d = fold(d, raw_xor);
+            d = fold(d, lz_npoints as u64);
+            d = fold(d, lz_sum);
+            d = fold(d, lz_xor);
+            digest = fold(digest, d);
+
+            free_c_ptr(raw_splitpoints);
+            free_c_ptr(lz_splitpoints);
+            ZopfliCleanHash(h.as_mut_ptr());
+            ZopfliCleanLZ77Store(store.as_mut_ptr());
+            ZopfliCleanBlockState(state.as_mut_ptr());
+        }
+    }
+
+    format!("op=lz77_blocksplit_analysis digest={:016x}", digest)
+}
+
+pub fn op_tree_codegen(data: &[u8], iters: u64) -> String {
+    let input_ck = checksum_bytes(data);
+
+    let mut freqs = vec![0usize; 256];
+    for &b in data {
+        freqs[b as usize] = freqs[b as usize].wrapping_add(1);
+    }
+    if freqs.iter().all(|&x| x == 0) {
+        freqs[0] = 1;
+    }
+
+    let mut digest = 0u64;
+    for _ in 0..iters {
+        let mut entropy = vec![0f64; 256];
+        let mut bitlengths = vec![0u32; 256];
+        let mut ll_bitlengths = vec![0u32; 256];
+        let mut symbols = vec![0u32; 256];
+
+        let mut counts_for_rle = freqs.clone();
+        unsafe {
+            OptimizeHuffmanForRle(counts_for_rle.len() as c_int, counts_for_rle.as_mut_ptr());
+            ZopfliCalculateEntropy(freqs.as_ptr(), freqs.len(), entropy.as_mut_ptr());
+            ZopfliCalculateBitLengths(freqs.as_ptr(), freqs.len(), 15, bitlengths.as_mut_ptr());
+            let rc = ZopfliLengthLimitedCodeLengths(
+                counts_for_rle.as_ptr(),
+                counts_for_rle.len() as c_int,
+                15,
+                ll_bitlengths.as_mut_ptr(),
+            );
+            ZopfliLengthsToSymbols(
+                ll_bitlengths.as_ptr(),
+                ll_bitlengths.len(),
+                15,
+                symbols.as_mut_ptr(),
+            );
+
+            let sum_bl = bitlengths
+                .iter()
+                .copied()
+                .fold(0u64, |a, b| a.wrapping_add(b as u64));
+            let sum_ll = ll_bitlengths
+                .iter()
+                .copied()
+                .fold(0u64, |a, b| a.wrapping_add(b as u64));
+            let sum_sym = symbols
+                .iter()
+                .copied()
+                .fold(0u64, |a, b| a.wrapping_add(b as u64));
+
+            let mut d = 0u64;
+            d = fold(d, input_ck);
+            d = fold(d, rc as u64);
+            d = fold(d, sum_bl);
+            d = fold(d, sum_ll);
+            d = fold(d, sum_sym);
+
+            for &idx in &[0usize, 1, 10, 65, 127, 255] {
+                d = fold(d, entropy[idx].to_bits());
+                d = fold(d, bitlengths[idx] as u64);
+                d = fold(d, ll_bitlengths[idx] as u64);
+                d = fold(d, symbols[idx] as u64);
+            }
+
+            digest = fold(digest, d);
+        }
+    }
+
+    format!("op=tree_codegen digest={:016x}", digest)
+}
+
+pub fn op_cache_roundtrip(data: &[u8], iters: u64) -> String {
+    let input_ck = checksum_bytes(data);
+    let blocksize = data.len().clamp(1, 1024);
+    let positions = blocksize.min(8);
+    let mut digest = 0u64;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut cache = MaybeUninit::<zopfli_raw::src::cache::ZopfliLongestMatchCache>::zeroed();
+            ZopfliInitCache(blocksize, cache.as_mut_ptr());
+
+            for pos in 0..positions {
+                let seed = data.get(pos).copied().unwrap_or((pos as u8).wrapping_mul(17));
+                let length = 3usize + (seed as usize % 32);
+                let mut sublen = [0u16; 259];
+                for l in 3..=length {
+                    let val = (((pos + l) * 13) ^ (seed as usize) ^ (blocksize * 3)) % 32_768;
+                    sublen[l] = val as c_ushort;
+                }
+                ZopfliSublenToCache(sublen.as_ptr(), pos, length, cache.as_mut_ptr());
+            }
+
+            let mut recovered_sum = 0u64;
+            let mut max_sum = 0u64;
+
+            for pos in 0..positions {
+                let seed = data.get(pos).copied().unwrap_or((pos as u8).wrapping_mul(17));
+                let length = 3usize + (seed as usize % 32);
+                let mut recovered = [0u16; 259];
+                ZopfliCacheToSublen(cache.as_ptr(), pos, length, recovered.as_mut_ptr());
+                let max_cached = ZopfliMaxCachedSublen(cache.as_ptr(), pos, length);
+
+                let mut local = 0u64;
+                for &idx in &[3usize, length / 2 + 2, length] {
+                    if idx < recovered.len() {
+                        local = fold(local, recovered[idx] as u64);
+                    }
+                }
+                recovered_sum = recovered_sum.wrapping_add(local);
+                max_sum = max_sum.wrapping_add(max_cached as u64);
+            }
+
+            let mut d = 0u64;
+            d = fold(d, input_ck);
+            d = fold(d, blocksize as u64);
+            d = fold(d, positions as u64);
+            d = fold(d, recovered_sum);
+            d = fold(d, max_sum);
+            digest = fold(digest, d);
+
+            ZopfliCleanCache(cache.as_mut_ptr());
+        }
+    }
+
+    format!("op=cache_roundtrip digest={:016x}", digest)
+}
+
+pub fn ops() -> Vec<(&'static str, fn(&[u8], u64) -> String)> {
+    vec![
+        ("raw_deflate", op_raw_deflate as fn(&[u8], u64) -> String),
+        ("zlib_compress", op_zlib_compress as fn(&[u8], u64) -> String),
+        (
+            "lz77_blocksplit_analysis",
+            op_lz77_blocksplit_analysis as fn(&[u8], u64) -> String,
+        ),
+        ("tree_codegen", op_tree_codegen as fn(&[u8], u64) -> String),
+        (
+            "cache_roundtrip",
+            op_cache_roundtrip as fn(&[u8], u64) -> String,
+        ),
+    ]
+}
+
+pub fn gen_seeds(dir: &str) -> Vec<String> {
+    let s1 = make_corpus_one();
+    let s2 = make_corpus_two();
+    let mut lines = Vec::new();
+
+    for op in [
+        "raw_deflate",
+        "zlib_compress",
+        "lz77_blocksplit_analysis",
+        "tree_codegen",
+        "cache_roundtrip",
+    ] {
+        write_seed_files_for_op(dir, op, &s1, &s2, &mut lines);
+    }
+
+    lines
+}
+
+pub fn gen_perf(dir: &str) -> Vec<String> {
+    let big = make_perf_corpus();
+    let mut lines = Vec::new();
+
+    for op in ["raw_deflate", "zlib_compress", "lz77_blocksplit_analysis"] {
+        let path = format!("{}/{}.perf.bin", dir, op);
+        fs::write(&path, &big).unwrap();
+        lines.push(format!("perf {} {}", op, path));
+    }
+
+    lines
+}
+
+```
+
+HARNESS CONTRACT (the gates verify every point below mechanically):
+
+You write ONLY `src/lib.rs`. A fixed, pre-generated `src/main.rs` CLI
+shell (and separate fuzz targets) call into it, so lib.rs MUST export
+exactly this interface:
+
+  /// (op_name, runner) registry — one entry per operation.
+  pub fn ops() -> Vec<(&'static str, fn(&[u8], u64) -> String)>
+
+  /// Write, for EVERY operation with "needs_input": true, exactly two
+  /// DISTINCT, VALID input files: <dir>/<op>.1.bin and <dir>/<op>.2.bin
+  /// (deterministic bytes — same files on every run). You may call the
+  /// library itself to synthesize them (e.g. use the encoder to produce
+  /// inputs for a decode operation). Return one line per file:
+  /// `seed <op> <path>`.
+  pub fn gen_seeds(dir: &str) -> Vec<String>
+
+  /// Write, for each operation whose work SCALES with input size, ONE input
+  /// `<dir>/<op>.perf.bin` that is LARGE and REALISTIC enough that the
+  /// operation's inner loop — not per-call setup/malloc/memset/libc —
+  /// dominates a profiled run (the library's own code should account for the
+  /// bulk of the time). This usually needs SEVERAL MEGABYTES, not a few KB.
+  ///
+  /// The data MUST be REALISTIC for the operation, NOT random/uniform bytes.
+  /// Random or degenerate data makes many kernels take a trivial path and stay
+  /// cold: compressors/matchers find no repeats, parsers/decoders hit an early
+  /// error and bail, searches find nothing. Generate data with the STRUCTURE
+  /// and REDUNDANCY that real inputs of this domain have (repeated substrings,
+  /// valid records/tokens, realistic value distributions) so the hot loop runs
+  /// to completion over the whole input.
+  ///
+  /// The input MUST be a VALID input the operation processes end-to-end — one
+  /// that is accepted, not rejected at a format/length/validation gate (a
+  /// rejected input measures error handling, not the kernel). For an operation
+  /// whose input is an ENCODED/COMPRESSED/PACKED blob (decode/decompress/
+  /// verify/inverse), PRODUCE that blob by first running the FORWARD direction
+  /// (the library's own encoder/compressor) over a large realistic buffer,
+  /// then feed the result — do NOT hand a decoder raw or random bytes.
+  ///
+  /// Rules of thumb by category: text/format parsers → a large valid document
+  /// with many records; codecs/compressors → a big buffer of realistic,
+  /// compressible content; hashers → a big realistic data block; decoders →
+  /// the encoder's output over such content; matrix/DP/search kernels → large
+  /// dimensions / a long realistic haystack. Deterministic bytes.
+  /// SIZE: aim for HUNDREDS OF KILOBYTES TO A FEW MEGABYTES — large enough
+  /// that the kernel, not per-call setup, dominates one call. Do NOT emit
+  /// tens of megabytes: the driver auto-tunes the iteration count to a fixed
+  /// wall-clock budget, so a huge input buys no extra work — it only starves
+  /// the iteration count (leaving any one-off per-run setup unamortized) and
+  /// pushes the working set out of cache, turning the measurement into memory
+  /// bandwidth. Prefer MORE RECORDS OF REALISTIC SIZE over one giant blob.
+  /// OMIT an operation (leave it functional-only, write it no perf input)
+  /// when EITHER of these holds — both make it a coverage op, not a perf
+  /// target, and a perf input for it is a wasted measurement slot:
+  ///   (a) its work does not scale with the input at all (config / option /
+  ///       getter / free ops); or
+  ///   (b) each individual library call is TRIVIAL — a predicate, validator,
+  ///       classifier or single table/range lookup returning a bool or one
+  ///       scalar (`xmlIsBaseChar`, `is_*`, `*_valid`, char-class sweeps).
+  ///       Total work still grows with input, so (a) does not catch these,
+  ///       but a call of a handful of instructions costs no more than the
+  ///       loop's own counter and fold; at opt-level 3 the callee is inlined
+  ///       and FUSED with that bookkeeping, leaving no library time that can
+  ///       be separated from harness time, and nothing anyone actually runs
+  ///       that way to optimize. Measured: such an op profiled at 2% library
+  ///       even with full debug info and inline-aware attribution.
+  /// A good perf op is one where ONE library call does a lot of work — parse
+  /// a document, encode a buffer, build a tree, hash a stream.
+  /// Return one line per file written: `perf <op> <path>`.
+  pub fn gen_perf(dir: &str) -> Vec<String>
+
+Each runner fn takes (input_bytes, iters) and RETURNS the digest line(s)
+as a String (no trailing newline needed; the shell prints it).
+
+Hard rules:
+  1. DETERMINISM: identical (input, iters) → identical returned String.
+     Never include pointers/addresses, time, PIDs, paths, or HashMap
+     iteration order. Floating-point values must be folded into an
+     integer checksum (e.g. to_bits()), never formatted as decimals.
+     CRITICAL — a raw pointer VALUE is an address even when masked:
+     NEVER `fold(digest, some_ptr as u64)` or `as usize & 0xFF`. A
+     function returning a `*mut`/`*const` (e.g. lodepng_chunk_next) gives
+     an address — fold a CONTENT-derived fact instead: whether it is null
+     (`p.is_null() as u64`), or its OFFSET from a known base
+     (`(p as usize).wrapping_sub(base as usize) as u64`). An address low
+     byte looks stable within one build but changes across builds/hosts,
+     silently rotting the golden oracle.
+  2. INPUT-SENSITIVITY: the digest MUST depend on the input bytes
+     (<op>.1.bin and <op>.2.bin must yield different digests).
+  3. ERRORS ARE DATA — NEVER EXIT OR PANIC: these runners are also used
+     as fuzz targets fed with arbitrary malformed bytes. When the
+     library reports an error, fold the error code into the digest
+     (e.g. return "op=decode err=83 digest=0") and return normally.
+     No std::process::exit, no panics/unwrap on input-dependent values,
+     no slice indexing that can go out of bounds on short inputs.
+  4. ITERS: when iters > 1, re-run the operation each iteration and fold
+     each iteration's digest into a running wrapping checksum; return
+     the digest once at the end. Iterations must not accumulate state
+     that changes results (re-init library state each iteration).
+  5. THE LIBRARY MUST DOMINATE THE TIMED LOOP. The harness feeds inputs
+     and folds outputs; it must never out-cost the call it measures. The
+     loop body in rule 4 is a MEASUREMENT loop — everything in it is
+     timed, so put nothing there that does not have to be recomputed.
+     Concretely, inside `for _ in 0..iters`:
+       a. Anything determined SOLELY by the input bytes (not by library
+          state) is loop-invariant: compute it ONCE before the loop, bind
+          it to a variable, and fold that saved value each iteration.
+          This covers a checksum over the whole input, `windows()` /
+          substring scans, and any length or format probing of the input.
+       b. Never `clone()` a whole struct just to read a few fields off
+          the copy — read the live value instead; a clone observes
+          exactly the same values, so the digest is unchanged.
+       c. Fold facts that are already computed (counts, sizes, error
+          codes, a handful of scalar fields), never freshly recomputed
+          O(input) work.
+     Rule 4 still requires a per-iteration fold — hoisting changes only
+     WHERE the value is computed, never the digest.
+     An op whose profile is dominated by the harness's own symbols
+     measures the harness rather than the library; it is flagged
+     downstream as `harness_bound` in `perf_workload.json` and is useless
+     as an optimization target.
+     NEVER RE-IMPLEMENT LIBRARY LOGIC IN THE HARNESS. This has one
+     tempting trigger, so it is spelled out: when a function you want is
+     not reachable — `error[E0603]: function ... is private`, or it is
+     simply absent — the fix is NOT to write your own copy of it. A local
+     re-implementation compiles, passes smoke, and yields a stable digest,
+     which is exactly why it slips through; but from then on the timed
+     loop measures YOUR code and the op is worthless as a perf target.
+     The allowed fixes, in order: call a PUBLIC function that reaches the
+     same code path (an exported wrapper almost always exists — that is
+     what the library's own users call), or DROP the operation from the
+     spec. Building test INPUTS (documents, buffers, encodings) in the
+     harness is fine and expected — what is banned is re-implementing the
+     transformation the op claims to measure.
+  6. Free / clean up library-allocated buffers with the library's own
+     free functions where provided (also on error paths — no leaks per
+     iteration, fuzzing runs millions of executions).
+  7. Runner fns registered in ops() must be safe `fn` items (wrap the
+     unsafe FFI work inside the function body).
+  8. NON-ASCII TEST TEXT (two ways Rust differs from C here, both seen):
+       a. `\xNN` in a `&str` literal is limited to `\x00-\x7f` — writing
+          `"Caf\xe9"` is `error: out of range hex escape`, not a byte. For a
+          `&str`, write the character itself ("Café") or `\u{e9}`; `\xNN`
+          above 0x7f is legal ONLY in a byte string (`b"..."`) or byte
+          escape context. To emit a specific NON-UTF-8 byte, build a
+          `Vec<u8>` / `b"..."` — a `&str` cannot hold one at all.
+       b. Byte indices are not character indices: `&s[..n]` on a `String`
+          PANICS when `n` splits a multi-byte character ("byte index N is
+          not a char boundary"). To truncate, work on `as_bytes()` /
+          `Vec<u8>`, or use `char_indices()` to find a real boundary.
+     Both bite exactly where non-ASCII belongs — encoding, markup and text
+     corpora — so this applies to seeds, gen_seeds and gen_perf alike.
+  9. Cross-module pointers need an INFERRED cast: `callee(p as *mut _)` or
+     `p as *const _`. Never a named alias (`p as png_structrp` picks one
+     module's type and fails the same way), never a transmute of the pointee.
+     The TYPE SCOPING section above says which names this applies to.
+
+
+RULES FOR THIS EDIT:
+- Change ONLY `gen_perf` (and add private helper fns if needed). Keep `ops()`
+  and `gen_seeds` BYTE-FOR-BYTE identical — they define correctness.
+- Each op that currently has a perf input should still get one, now shaped to
+  also exercise the missed functions belonging to that op.
+- Inputs must stay VALID and LARGE (the library algorithm dominates, not libc).
+
+Output the single complete updated `src/lib.rs` in one ```rust block.
+
+----- OUTPUT -----
+```rust
+use std::fs;
+use std::mem::MaybeUninit;
+use std::os::raw::{c_int, c_uchar, c_uint, c_ushort, c_void};
+use std::ptr;
+
+use zopfli_raw::src::blocksplitter::{
+    ZopfliBlockSplit, ZopfliBlockSplitLZ77, ZopfliBlockSplitSimple,
+};
+use zopfli_raw::src::cache::{
+    ZopfliCacheToSublen, ZopfliCleanCache, ZopfliInitCache, ZopfliMaxCachedSublen,
+    ZopfliSublenToCache,
+};
+use zopfli_raw::src::deflate::{
+    OptimizeHuffmanForRle, ZopfliCalculateBlockSize, ZopfliCalculateBlockSizeAutoType,
+    ZopfliDeflate, ZopfliDeflatePart,
+};
+use zopfli_raw::src::gzip_container::ZopfliGzipCompress;
+use zopfli_raw::src::hash::{
+    ZopfliAllocHash, ZopfliCleanHash, ZopfliResetHash, ZopfliUpdateHash, ZopfliWarmupHash,
+};
+use zopfli_raw::src::katajainen::ZopfliLengthLimitedCodeLengths;
+use zopfli_raw::src::lz77::{
+    ZopfliAppendLZ77Store, ZopfliCleanBlockState, ZopfliCleanLZ77Store, ZopfliCopyLZ77Store,
+    ZopfliFindLongestMatch, ZopfliInitBlockState, ZopfliInitLZ77Store, ZopfliLZ77GetByteRange,
+    ZopfliLZ77GetHistogram, ZopfliLZ77Greedy, ZopfliStoreLitLenDist, ZopfliVerifyLenDist,
+};
+use zopfli_raw::src::squeeze::{ZopfliLZ77Optimal, ZopfliLZ77OptimalFixed};
+use zopfli_raw::src::tree::{
+    ZopfliCalculateBitLengths, ZopfliCalculateEntropy, ZopfliLengthsToSymbols,
+};
+use zopfli_raw::src::util::ZopfliInitOptions;
+use zopfli_raw::src::zlib_container::ZopfliZlibCompress;
+use zopfli_raw::src::zopfli_lib::ZopfliCompress;
+
+extern "C" {
+    fn free(ptr: *mut c_void);
+}
+
+fn fold(acc: u64, x: u64) -> u64 {
+    acc.rotate_left(7) ^ x.wrapping_mul(0x9e37_79b9_7f4a_7c15)
+}
+
+fn checksum_bytes(data: &[u8]) -> u64 {
+    let mut acc = 0x243f_6a88_85a3_08d3u64;
+    for &b in data {
+        acc = fold(acc, b as u64);
+    }
+    acc ^ (data.len() as u64).wrapping_mul(0x1000_0000_01b3)
+}
+
+fn sample_slice_digest(data: &[u8]) -> u64 {
+    let mut acc = 0u64;
+    let len = data.len();
+    let idxs = [
+        0usize,
+        1,
+        2,
+        3,
+        len.saturating_div(3),
+        len.saturating_div(2),
+        len.saturating_mul(2).saturating_div(3),
+        len.saturating_sub(4),
+        len.saturating_sub(3),
+        len.saturating_sub(2),
+        len.saturating_sub(1),
+    ];
+    for &i in &idxs {
+        if let Some(&b) = data.get(i) {
+            acc = fold(acc, ((i as u64) << 8) ^ (b as u64));
+        } else {
+            acc = fold(acc, (i as u64) ^ 0xff00);
+        }
+    }
+    acc
+}
+
+unsafe fn free_c_ptr<T>(p: *mut T) {
+    if !p.is_null() {
+        free(p as *mut c_void);
+    }
+}
+
+fn make_corpus_one() -> Vec<u8> {
+    let mut v = Vec::new();
+    for day in 1..=28u32 {
+        for hour in 0..24u32 {
+            for minute in [0u32, 7, 15, 23, 31, 42, 55] {
+                let level = match (day + hour + minute) % 5 {
+                    0 => "INFO",
+                    1 => "WARN",
+                    2 => "DEBUG",
+                    3 => "TRACE",
+                    _ => "ERROR",
+                };
+                let service = match (day + hour) % 6 {
+                    0 => "auth",
+                    1 => "search",
+                    2 => "billing",
+                    3 => "cache",
+                    4 => "worker",
+                    _ => "frontend",
+                };
+                let region = match day % 4 {
+                    0 => "eu-west-1",
+                    1 => "us-east-1",
+                    2 => "ap-south-1",
+                    _ => "sa-east-1",
+                };
+                let line = format!(
+                    "2024-05-{day:02}T{hour:02}:{minute:02}:00Z level={level} service={service} region={region} req_id=req-{day:02}{hour:02}{minute:02} user=user{:04} msg=\"operation completed\" path=/api/v1/{service}/items/{:03} status={} bytes={} retry={} note=Café-Δ\n",
+                    (day * 17 + hour * 13 + minute) % 10000,
+                    (day + hour + minute) % 200,
+                    if level == "ERROR" { 500 } else { 200 + ((day + hour) % 5) },
+                    1200 + ((day * 31 + hour * 7 + minute) % 9000),
+                    (minute / 15) % 3
+                );
+                v.extend_from_slice(line.as_bytes());
+                if hour % 6 == 0 {
+                    let extra = format!(
+                        "kv session=sess-{day:02}-{hour:02} shard={} feature=rollout bucket={} msg=\"prefix_common prefix_common prefix_common\"\n",
+                        (day + hour) % 32,
+                        (day * 9 + hour * 5) % 100
+                    );
+                    v.extend_from_slice(extra.as_bytes());
+                }
+            }
+        }
+    }
+    v
+}
+
+fn make_corpus_two() -> Vec<u8> {
+    let mut v = Vec::new();
+    for block in 0..1800u32 {
+        let kind = match block % 7 {
+            0 => "INSERT",
+            1 => "UPDATE",
+            2 => "DELETE",
+            3 => "SNAPSHOT",
+            4 => "REPLAY",
+            5 => "MERGE",
+            _ => "COMMIT",
+        };
+        let tenant = match block % 5 {
+            0 => "blue",
+            1 => "green",
+            2 => "orange",
+            3 => "violet",
+            _ => "silver",
+        };
+        let template = format!(
+            "record|kind={kind}|tenant={tenant}|table=t_{:02}|pk={:08}|ver={:05}|tag=alpha,beta,gamma|payload=\"lorem ipsum lorem ipsum copied-substring copied-substring copied-substring {}\"|ok={}\n",
+            block % 37,
+            block.wrapping_mul(104729) ^ 0x55aa33,
+            block % 1000,
+            if block % 9 == 0 {
+                "UTF8-данные"
+            } else if block % 9 == 1 {
+                "UTF8-日本語"
+            } else {
+                "UTF8-normal"
+            },
+            if block % 11 == 0 { "false" } else { "true" }
+        );
+        v.extend_from_slice(template.as_bytes());
+        if block % 8 == 0 {
+            v.extend_from_slice(
+                b"copy-range|AAAAABBBBBCCCCCDDDDDEEEEE|AAAAABBBBBCCCCCDDDDDEEEEE|AAAAABBBBBCCCCCDDDDDEEEEE\n",
+            );
+        }
+        if block % 13 == 0 {
+            let hdr = format!(
+                "header version=3 source=node-{:03} partition={} watermark={} comment=\"repeated repeated repeated marker\"\n",
+                block % 97,
+                block % 16,
+                1_700_000_000u64 + block as u64
+            );
+            v.extend_from_slice(hdr.as_bytes());
+        }
+    }
+    v
+}
+
+fn make_perf_corpus() -> Vec<u8> {
+    let mut v = Vec::new();
+    for chunk in 0..22_000u32 {
+        let app = match chunk % 6 {
+            0 => "payments",
+            1 => "search",
+            2 => "gateway",
+            3 => "worker",
+            4 => "notifier",
+            _ => "profile",
+        };
+        let status = if chunk % 29 == 0 {
+            503
+        } else if chunk % 17 == 0 {
+            429
+        } else {
+            200
+        };
+        let line1 = format!(
+            "ts=2024-06-{:02}T{:02}:{:02}:{:02}Z app={app} env=prod cluster=c{:02} pod={app}-{:05} req=req-{:08} path=/v1/{app}/resource/{:04} status={status} bytes={} latency_ms={} user=u{:06} msg=\"request completed with repeated common prefix\"\n",
+            (chunk % 28) + 1,
+            chunk % 24,
+            (chunk / 2) % 60,
+            (chunk / 3) % 60,
+            chunk % 12,
+            chunk % 10000,
+            chunk.wrapping_mul(2654435761),
+            chunk % 4096,
+            700 + (chunk % 8000),
+            1 + (chunk % 250),
+            chunk % 500000
+        );
+        let line2 = format!(
+            "metrics cpu={} mem_mb={} queue={} region={} flags=hot,cacheable,stable body=\"aaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee copied-fragment copied-fragment copied-fragment\"\n",
+            20 + (chunk % 70),
+            256 + (chunk % 2048),
+            chunk % 1000,
+            match chunk % 4 {
+                0 => "us-east",
+                1 => "eu-west",
+                2 => "ap-south",
+                _ => "sa-east",
+            }
+        );
+        v.extend_from_slice(line1.as_bytes());
+        v.extend_from_slice(line2.as_bytes());
+        if chunk % 10 == 0 {
+            v.extend_from_slice(
+                b"json {\"type\":\"event\",\"name\":\"session.refresh\",\"attrs\":{\"k1\":\"v1\",\"k2\":\"v2\",\"rep\":\"rep rep rep rep rep\"}}\n",
+            );
+        }
+    }
+    v
+}
+
+fn write_seed_files_for_op(dir: &str, op: &str, s1: &[u8], s2: &[u8], out: &mut Vec<String>) {
+    let p1 = format!("{}/{}.1.bin", dir, op);
+    let p2 = format!("{}/{}.2.bin", dir, op);
+    fs::write(&p1, s1).unwrap();
+    fs::write(&p2, s2).unwrap();
+    out.push(format!("seed {} {}", op, p1));
+    out.push(format!("seed {} {}", op, p2));
+}
+
+pub fn op_raw_deflate(data: &[u8], iters: u64) -> String {
+    let input_ck = checksum_bytes(data);
+    let mut digest = 0u64;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut options = MaybeUninit::<zopfli_raw::src::util::ZopfliOptions>::zeroed();
+            ZopfliInitOptions(options.as_mut_ptr());
+
+            let mut bp: c_uchar = 0;
+            let mut out: *mut c_uchar = ptr::null_mut();
+            let mut outsize: usize = 0;
+
+            ZopfliDeflate(
+                options.as_ptr() as *const _,
+                2,
+                1,
+                data.as_ptr(),
+                data.len(),
+                &mut bp,
+                &mut out,
+                &mut outsize,
+            );
+
+            let out_slice = if out.is_null() || outsize == 0 {
+                &[][..]
+            } else {
+                std::slice::from_raw_parts(out as *const u8, outsize)
+            };
+
+            let mut d = 0u64;
+            d = fold(d, input_ck);
+            d = fold(d, outsize as u64);
+            d = fold(d, (!out.is_null()) as u64);
+            d = fold(d, bp as u64);
+            d = fold(d, sample_slice_digest(out_slice));
+            digest = fold(digest, d);
+
+            free_c_ptr(out);
+        }
+    }
+
+    format!("op=raw_deflate digest={:016x}", digest)
+}
+
+pub fn op_zlib_compress(data: &[u8], iters: u64) -> String {
+    let input_ck = checksum_bytes(data);
+    let mut digest = 0u64;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut options = MaybeUninit::<zopfli_raw::src::util::ZopfliOptions>::zeroed();
+            ZopfliInitOptions(options.as_mut_ptr());
+
+            let mut out: *mut c_uchar = ptr::null_mut();
+            let mut outsize: usize = 0;
+
+            ZopfliZlibCompress(
+                options.as_ptr() as *const _,
+                data.as_ptr(),
+                data.len(),
+                &mut out,
+                &mut outsize,
+            );
+
+            let out_slice = if out.is_null() || outsize == 0 {
+                &[][..]
+            } else {
+                std::slice::from_raw_parts(out as *const u8, outsize)
+            };
+
+            let mut d = 0u64;
+            d = fold(d, input_ck);
+            d = fold(d, outsize as u64);
+            d = fold(d, (!out.is_null()) as u64);
+            d = fold(d, sample_slice_digest(out_slice));
+            digest = fold(digest, d);
+
+            free_c_ptr(out);
+        }
+    }
+
+    format!("op=zlib_compress digest={:016x}", digest)
+}
+
+pub fn op_lz77_blocksplit_analysis(data: &[u8], iters: u64) -> String {
+    let input_ck = checksum_bytes(data);
+    let mut digest = 0u64;
+    let window_size = 32_768usize;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut options = MaybeUninit::<zopfli_raw::src::util::ZopfliOptions>::zeroed();
+            ZopfliInitOptions(options.as_mut_ptr());
+
+            let mut state = MaybeUninit::<zopfli_raw::src::lz77::ZopfliBlockState>::zeroed();
+            ZopfliInitBlockState(
+                options.as_ptr() as *const _,
+                0,
+                data.len(),
+                1,
+                state.as_mut_ptr(),
+            );
+
+            let mut store = MaybeUninit::<zopfli_raw::src::lz77::ZopfliLZ77Store>::zeroed();
+            ZopfliInitLZ77Store(data.as_ptr(), store.as_mut_ptr());
+
+            let mut h = MaybeUninit::<zopfli_raw::src::hash::ZopfliHash>::zeroed();
+            ZopfliAllocHash(window_size, h.as_mut_ptr());
+            ZopfliResetHash(window_size, h.as_mut_ptr());
+            ZopfliWarmupHash(data.as_ptr(), 0, data.len(), h.as_mut_ptr());
+            ZopfliUpdateHash(data.as_ptr(), 0, data.len(), h.as_mut_ptr());
+
+            ZopfliLZ77Greedy(
+                state.as_mut_ptr(),
+                data.as_ptr(),
+                0,
+                data.len(),
+                store.as_mut_ptr(),
+                h.as_mut_ptr() as *mut _,
+            );
+
+            let lzsize = (*store.as_ptr()).size;
+
+            let byte_range = ZopfliLZ77GetByteRange(store.as_ptr(), 0, lzsize);
+
+            let mut ll_counts = vec![0usize; 288];
+            let mut d_counts = vec![0usize; 32];
+            ZopfliLZ77GetHistogram(
+                store.as_ptr(),
+                0,
+                lzsize,
+                ll_counts.as_mut_ptr(),
+                d_counts.as_mut_ptr(),
+            );
+
+            let block_cost_fixed = ZopfliCalculateBlockSize(store.as_ptr() as *const _, 0, lzsize, 1);
+            let block_cost_dynamic =
+                ZopfliCalculateBlockSizeAutoType(store.as_ptr() as *const _, 0, lzsize);
+
+            let mut raw_splitpoints: *mut usize = ptr::null_mut();
+            let mut raw_npoints: usize = 0;
+            ZopfliBlockSplit(
+                options.as_ptr() as *const _,
+                data.as_ptr(),
+                0,
+                data.len(),
+                16,
+                &mut raw_splitpoints,
+                &mut raw_npoints,
+            );
+
+            let raw_points = if raw_splitpoints.is_null() || raw_npoints == 0 {
+                &[][..]
+            } else {
+                std::slice::from_raw_parts(raw_splitpoints as *const usize, raw_npoints)
+            };
+
+            let mut lz_splitpoints: *mut usize = ptr::null_mut();
+            let mut lz_npoints: usize = 0;
+            ZopfliBlockSplitLZ77(
+                options.as_ptr() as *const _,
+                store.as_ptr() as *const _,
+                16,
+                &mut lz_splitpoints,
+                &mut lz_npoints,
+            );
+
+            let lz_points = if lz_splitpoints.is_null() || lz_npoints == 0 {
+                &[][..]
+            } else {
+                std::slice::from_raw_parts(lz_splitpoints as *const usize, lz_npoints)
+            };
+
+            let mut raw_sum = 0u64;
+            let mut raw_xor = 0u64;
+            for &p in raw_points {
+                raw_sum = raw_sum.wrapping_add(p as u64);
+                raw_xor ^= p as u64;
+            }
+
+            let mut lz_sum = 0u64;
+            let mut lz_xor = 0u64;
+            for &p in lz_points {
+                lz_sum = lz_sum.wrapping_add(p as u64);
+                lz_xor ^= p as u64;
+            }
+
+            let ll_total = ll_counts.iter().copied().fold(0usize, |a, b| a.wrapping_add(b));
+            let d_total = d_counts.iter().copied().fold(0usize, |a, b| a.wrapping_add(b));
+            let ll_head = ll_counts
+                .iter()
+                .take(16)
+                .copied()
+                .fold(0usize, |a, b| a.wrapping_add(b));
+            let d_head = d_counts
+                .iter()
+                .take(8)
+                .copied()
+                .fold(0usize, |a, b| a.wrapping_add(b));
+
+            let mut d = 0u64;
+            d = fold(d, input_ck);
+            d = fold(d, byte_range as u64);
+            d = fold(d, lzsize as u64);
+            d = fold(d, ll_total as u64);
+            d = fold(d, d_total as u64);
+            d = fold(d, ll_head as u64);
+            d = fold(d, d_head as u64);
+            d = fold(d, block_cost_fixed.to_bits());
+            d = fold(d, block_cost_dynamic.to_bits());
+            d = fold(d, raw_npoints as u64);
+            d = fold(d, raw_sum);
+            d = fold(d, raw_xor);
+            d = fold(d, lz_npoints as u64);
+            d = fold(d, lz_sum);
+            d = fold(d, lz_xor);
+            digest = fold(digest, d);
+
+            free_c_ptr(raw_splitpoints);
+            free_c_ptr(lz_splitpoints);
+            ZopfliCleanHash(h.as_mut_ptr());
+            ZopfliCleanLZ77Store(store.as_mut_ptr());
+            ZopfliCleanBlockState(state.as_mut_ptr());
+        }
+    }
+
+    format!("op=lz77_blocksplit_analysis digest={:016x}", digest)
+}
+
+pub fn op_tree_codegen(data: &[u8], iters: u64) -> String {
+    let input_ck = checksum_bytes(data);
+
+    let mut freqs = vec![0usize; 256];
+    for &b in data {
+        freqs[b as usize] = freqs[b as usize].wrapping_add(1);
+    }
+    if freqs.iter().all(|&x| x == 0) {
+        freqs[0] = 1;
+    }
+
+    let mut digest = 0u64;
+    for _ in 0..iters {
+        let mut entropy = vec![0f64; 256];
+        let mut bitlengths = vec![0u32; 256];
+        let mut ll_bitlengths = vec![0u32; 256];
+        let mut symbols = vec![0u32; 256];
+
+        let mut counts_for_rle = freqs.clone();
+        unsafe {
+            OptimizeHuffmanForRle(counts_for_rle.len() as c_int, counts_for_rle.as_mut_ptr());
+            ZopfliCalculateEntropy(freqs.as_ptr(), freqs.len(), entropy.as_mut_ptr());
+            ZopfliCalculateBitLengths(freqs.as_ptr(), freqs.len(), 15, bitlengths.as_mut_ptr());
+            let rc = ZopfliLengthLimitedCodeLengths(
+                counts_for_rle.as_ptr(),
+                counts_for_rle.len() as c_int,
+                15,
+                ll_bitlengths.as_mut_ptr(),
+            );
+            ZopfliLengthsToSymbols(
+                ll_bitlengths.as_ptr(),
+                ll_bitlengths.len(),
+                15,
+                symbols.as_mut_ptr(),
+            );
+
+            let sum_bl = bitlengths
+                .iter()
+                .copied()
+                .fold(0u64, |a, b| a.wrapping_add(b as u64));
+            let sum_ll = ll_bitlengths
+                .iter()
+                .copied()
+                .fold(0u64, |a, b| a.wrapping_add(b as u64));
+            let sum_sym = symbols
+                .iter()
+                .copied()
+                .fold(0u64, |a, b| a.wrapping_add(b as u64));
+
+            let mut d = 0u64;
+            d = fold(d, input_ck);
+            d = fold(d, rc as u64);
+            d = fold(d, sum_bl);
+            d = fold(d, sum_ll);
+            d = fold(d, sum_sym);
+
+            for &idx in &[0usize, 1, 10, 65, 127, 255] {
+                d = fold(d, entropy[idx].to_bits());
+                d = fold(d, bitlengths[idx] as u64);
+                d = fold(d, ll_bitlengths[idx] as u64);
+                d = fold(d, symbols[idx] as u64);
+            }
+
+            digest = fold(digest, d);
+        }
+    }
+
+    format!("op=tree_codegen digest={:016x}", digest)
+}
+
+pub fn op_cache_roundtrip(data: &[u8], iters: u64) -> String {
+    let input_ck = checksum_bytes(data);
+    let blocksize = data.len().clamp(1, 1024);
+    let positions = blocksize.min(8);
+    let mut digest = 0u64;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut cache = MaybeUninit::<zopfli_raw::src::cache::ZopfliLongestMatchCache>::zeroed();
+            ZopfliInitCache(blocksize, cache.as_mut_ptr());
+
+            for pos in 0..positions {
+                let seed = data.get(pos).copied().unwrap_or((pos as u8).wrapping_mul(17));
+                let length = 3usize + (seed as usize % 32);
+                let mut sublen = [0u16; 259];
+                for l in 3..=length {
+                    let val = (((pos + l) * 13) ^ (seed as usize) ^ (blocksize * 3)) % 32_768;
+                    sublen[l] = val as c_ushort;
+                }
+                ZopfliSublenToCache(sublen.as_ptr(), pos, length, cache.as_mut_ptr());
+            }
+
+            let mut recovered_sum = 0u64;
+            let mut max_sum = 0u64;
+
+            for pos in 0..positions {
+                let seed = data.get(pos).copied().unwrap_or((pos as u8).wrapping_mul(17));
+                let length = 3usize + (seed as usize % 32);
+                let mut recovered = [0u16; 259];
+                ZopfliCacheToSublen(cache.as_ptr(), pos, length, recovered.as_mut_ptr());
+                let max_cached = ZopfliMaxCachedSublen(cache.as_ptr(), pos, length);
+
+                let mut local = 0u64;
+                for &idx in &[3usize, length / 2 + 2, length] {
+                    if idx < recovered.len() {
+                        local = fold(local, recovered[idx] as u64);
+                    }
+                }
+                recovered_sum = recovered_sum.wrapping_add(local);
+                max_sum = max_sum.wrapping_add(max_cached as u64);
+            }
+
+            let mut d = 0u64;
+            d = fold(d, input_ck);
+            d = fold(d, blocksize as u64);
+            d = fold(d, positions as u64);
+            d = fold(d, recovered_sum);
+            d = fold(d, max_sum);
+            digest = fold(digest, d);
+
+            ZopfliCleanCache(cache.as_mut_ptr());
+        }
+    }
+
+    format!("op=cache_roundtrip digest={:016x}", digest)
+}
+
+pub fn ops() -> Vec<(&'static str, fn(&[u8], u64) -> String)> {
+    vec![
+        ("raw_deflate", op_raw_deflate as fn(&[u8], u64) -> String),
+        ("zlib_compress", op_zlib_compress as fn(&[u8], u64) -> String),
+        (
+            "lz77_blocksplit_analysis",
+            op_lz77_blocksplit_analysis as fn(&[u8], u64) -> String,
+        ),
+        ("tree_codegen", op_tree_codegen as fn(&[u8], u64) -> String),
+        (
+            "cache_roundtrip",
+            op_cache_roundtrip as fn(&[u8], u64) -> String,
+        ),
+    ]
+}
+
+pub fn gen_seeds(dir: &str) -> Vec<String> {
+    let s1 = make_corpus_one();
+    let s2 = make_corpus_two();
+    let mut lines = Vec::new();
+
+    for op in [
+        "raw_deflate",
+        "zlib_compress",
+        "lz77_blocksplit_analysis",
+        "tree_codegen",
+        "cache_roundtrip",
+    ] {
+        write_seed_files_for_op(dir, op, &s1, &s2, &mut lines);
+    }
+
+    lines
+}
+
+fn make_structured_compression_perf_corpus() -> Vec<u8> {
+    let base_logs = make_corpus_one();
+    let base_records = make_corpus_two();
+    let base_perf = make_perf_corpus();
+
+    let mut v = Vec::with_capacity(3_500_000);
+
+    for epoch in 0..18u32 {
+        v.extend_from_slice(format!("bundle-start epoch={epoch:02} mode=logs\n").as_bytes());
+        v.extend_from_slice(&base_logs);
+
+        for batch in 0..96u32 {
+            let tenant = match (epoch + batch) % 5 {
+                0 => "blue",
+                1 => "green",
+                2 => "orange",
+                3 => "violet",
+                _ => "silver",
+            };
+            let kind = match (epoch * 3 + batch) % 7 {
+                0 => "INSERT",
+                1 => "UPDATE",
+                2 => "DELETE",
+                3 => "SNAPSHOT",
+                4 => "REPLAY",
+                5 => "MERGE",
+                _ => "COMMIT",
+            };
+            let service = match (epoch + batch) % 6 {
+                0 => "auth",
+                1 => "search",
+                2 => "billing",
+                3 => "cache",
+                4 => "worker",
+                _ => "frontend",
+            };
+
+            let rec = format!(
+                "record|kind={kind}|tenant={tenant}|table=t_{:02}|pk={:08}|ver={:05}|tag=alpha,beta,gamma|payload=\"lorem ipsum lorem ipsum copied-substring copied-substring copied-substring UTF8-данные UTF8-日本語 UTF8-normal\"|ok={}|route=/api/v1/{service}/items/{:03}|note=Café-Δ\n",
+                batch % 37,
+                (epoch.wrapping_mul(104729) ^ batch.wrapping_mul(65537)) ^ 0x55aa33,
+                (epoch * 97 + batch) % 1000,
+                if (epoch + batch) % 11 == 0 { "false" } else { "true" },
+                (epoch * 17 + batch * 13) % 200,
+            );
+            v.extend_from_slice(rec.as_bytes());
+
+            let copyish = format!(
+                "copy-range|session={epoch:02}-{batch:03}|AAAAABBBBBCCCCCDDDDDEEEEE|AAAAABBBBBCCCCCDDDDDEEEEE|AAAAABBBBBCCCCCDDDDDEEEEE|suffix={:04}\n",
+                (epoch * 911 + batch * 37) % 10000
+            );
+            v.extend_from_slice(copyish.as_bytes());
+
+            let json = format!(
+                "{{\"type\":\"event\",\"name\":\"session.refresh\",\"tenant\":\"{tenant}\",\"kind\":\"{kind}\",\"attrs\":{{\"region\":\"{}\",\"rep\":\"rep rep rep rep rep\",\"path\":\"/v1/{service}/resource/{:04}\",\"blob\":\"aaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee copied-fragment copied-fragment copied-fragment\"}}}}\n",
+                match batch % 4 {
+                    0 => "us-east",
+                    1 => "eu-west",
+                    2 => "ap-south",
+                    _ => "sa-east",
+                },
+                (epoch * 257 + batch) % 4096
+            );
+            v.extend_from_slice(json.as_bytes());
+
+            if batch % 8 == 0 {
+                let hdr = format!(
+                    "header version=3 source=node-{:03} partition={} watermark={} comment=\"repeated repeated repeated marker repeated repeated repeated marker\"\n",
+                    (epoch * 97 + batch) % 97,
+                    batch % 16,
+                    1_700_000_000u64 + (epoch as u64) * 10_000 + batch as u64
+                );
+                v.extend_from_slice(hdr.as_bytes());
+            }
+        }
+
+        v.extend_from_slice(format!("bundle-middle epoch={epoch:02} mode=records\n").as_bytes());
+        v.extend_from_slice(&base_records);
+        v.extend_from_slice(format!("bundle-end epoch={epoch:02} mode=perf\n").as_bytes());
+        v.extend_from_slice(&base_perf);
+
+        for stripe in 0..64u32 {
+            let line = format!(
+                "ts=2024-07-{day:02}T{hour:02}:{minute:02}:{second:02}Z app={app} env=prod cluster=c{cluster:02} pod={app}-{pod:05} req=req-{req:08} path=/v1/{app}/resource/{res:04} status={status} bytes={bytes} latency_ms={lat} user=u{user:06} msg=\"request completed with repeated common prefix\" tail=\"common common common suffix-{stripe:03}\"\n",
+                day = (epoch + stripe) % 28 + 1,
+                hour = stripe % 24,
+                minute = (stripe * 7) % 60,
+                second = (stripe * 11) % 60,
+                app = match stripe % 6 {
+                    0 => "payments",
+                    1 => "search",
+                    2 => "gateway",
+                    3 => "worker",
+                    4 => "notifier",
+                    _ => "profile",
+                },
+                cluster = stripe % 12,
+                pod = (epoch * 1000 + stripe) % 10000,
+                req = epoch.wrapping_mul(2654435761).wrapping_add(stripe),
+                res = (epoch * 131 + stripe * 17) % 4096,
+                status = if stripe % 29 == 0 {
+                    503
+                } else if stripe % 17 == 0 {
+                    429
+                } else {
+                    200
+                },
+                bytes = 700 + ((epoch * 123 + stripe * 19) % 8000),
+                lat = 1 + ((epoch * 23 + stripe * 5) % 250),
+                user = (epoch * 8191 + stripe * 17) % 500000
+            );
+            v.extend_from_slice(line.as_bytes());
+        }
+    }
+
+    v
+}
+
+pub fn gen_perf(dir: &str) -> Vec<String> {
+    let big = make_structured_compression_perf_corpus();
+    let mut lines = Vec::new();
+
+    for op in ["raw_deflate", "zlib_compress", "lz77_blocksplit_analysis"] {
+        let path = format!("{}/{}.perf.bin", dir, op);
+        fs::write(&path, &big).unwrap();
+        lines.push(format!("perf {} {}", op, path));
+    }
+
+    lines
+}
+```
+================================================================================
+

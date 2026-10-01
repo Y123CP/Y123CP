@@ -1,0 +1,207 @@
+{
+  "applied_rules": [
+    "III④,C3,C1,II_vec"
+  ],
+  "commit_sha": "cffb317",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -2.0591881220696346,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -1.6576763499403686,
+            "aggregate_ci_low_pct": -2.4606998941989007,
+            "aggregate_pct": -2.0591881220696346,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -1.8151,
+                "ci_low_pct": -2.7974,
+                "insns_delta_pct": -3.7438,
+                "mean_delta_pct": -2.3063,
+                "op": "choices_add_search",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.6705,
+                "ci_low_pct": -2.9275,
+                "insns_delta_pct": -6.3019,
+                "mean_delta_pct": -1.799,
+                "op": "choices_fread_search",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.7931,
+                "ci_low_pct": -2.3514,
+                "insns_delta_pct": -4.5481,
+                "mean_delta_pct": -2.0722,
+                "op": "match_primitives",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -6.3457527431645495,
+            "aggregate_ci_low_pct": -6.693802342328116,
+            "aggregate_pct": -6.519777542746333,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -5.515,
+                "ci_low_pct": -6.0761,
+                "insns_delta_pct": -7.8438,
+                "mean_delta_pct": -5.7955,
+                "op": "choices_add_search",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -6.7938,
+                "ci_low_pct": -7.6793,
+                "insns_delta_pct": -14.7367,
+                "mean_delta_pct": -7.2366,
+                "op": "choices_fread_search",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -6.3183,
+                "ci_low_pct": -6.7361,
+                "insns_delta_pct": -9.9226,
+                "mean_delta_pct": -6.5272,
+                "op": "match_primitives",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "choices_add_search",
+          "choices_fread_search",
+          "match_primitives"
+        ],
+        "reason": "accepted",
+        "triggering_op": "choices_fread_search"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "48d206c5efa56fd685b5d627964e48430068fcd9",
+      "changeset_id": "legacy-a1e54d02aec2b48d",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-aa6149a7a7ac2d09",
+          "replacement_function_source": "// Applied rules: [III④, C3, C1, II_vec]\n// Skipped rules: []\nunsafe fn precompute_bonus(\n    mut haystack: *const c_char,\n    mut match_bonus: *mut score_t,\n) {\n    // SAFETY: `haystack` is required by this unsafe function's contract to be\n    // non-null and NUL-terminated within a single allocation; `CStr` derives a\n    // stable byte slice for exactly the non-NUL prefix.\n    let haystack_bytes = unsafe { core::ffi::CStr::from_ptr(haystack).to_bytes() };\n    // SAFETY: `match_bonus` is required by this unsafe function's contract to\n    // point to writable storage for at least `haystack_bytes.len()` elements,\n    // and no other live reference aliases that region for the duration here.\n    let match_bonus_slice =\n        unsafe { core::slice::from_raw_parts_mut(match_bonus, haystack_bytes.len()) };\n\n    let mut last_ch: c_char = '/' as i32 as c_char;\n    for (&ch_u8, dst) in haystack_bytes.iter().zip(match_bonus_slice.iter_mut()) {\n        let ch = ch_u8 as c_char;\n        let bonus_idx = {\n            // SAFETY: `ch_u8 as usize` is in 0..=255, matching the byte-indexed\n            // lookup table domain used by the original C translation.\n            unsafe { *bonus_index.get_unchecked(ch_u8 as usize) as usize }\n        };\n        let bonus_row = {\n            // SAFETY: `bonus_idx` comes from `bonus_index` and is intended by\n            // the original table design to select a valid row in `bonus_states`.\n            unsafe { bonus_states.get_unchecked(bonus_idx) }\n        };\n        let score = {\n            // SAFETY: `last_ch as c_uchar as usize` is in 0..=255, matching the\n            // second-dimension byte-indexed lookup table domain.\n            unsafe { *bonus_row.get_unchecked(last_ch as c_uchar as usize) }\n        };\n        *dst = score;\n        last_ch = ch;\n    }\n}",
+          "rule_id": "III④,C3,C1,II_vec",
+          "target": {
+            "declaration_hash": "c8b3d0e0ea46b615b7e14fbe0b366d01be89284968c34091e9b800b0785ff97b",
+            "file_hint": "src/match.rs",
+            "qualified_name": "crate::precompute_bonus",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "precompute_bonus-cba59a904047",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "precompute_bonus",
+        "rule_id": "III④,C3,C1,II_vec"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "5f431756e3d8650a7cd1ad8c26e64b1c1f82c072aab4c626398cbc945b723cd6",
+            "edit_id": "edit-replace-aa6149a7a7ac2d09",
+            "end_byte": 2881,
+            "operation_id": "replace-aa6149a7a7ac2d09",
+            "relative_path": "src/match.rs",
+            "replacement_text": "// Applied rules: [III④, C3, C1, II_vec]\n// Skipped rules: []\nunsafe fn precompute_bonus(\n    mut haystack: *const c_char,\n    mut match_bonus: *mut score_t,\n) {\n    // SAFETY: `haystack` is required by this unsafe function's contract to be\n    // non-null and NUL-terminated within a single allocation; `CStr` derives a\n    // stable byte slice for exactly the non-NUL prefix.\n    let haystack_bytes = unsafe { core::ffi::CStr::from_ptr(haystack).to_bytes() };\n    // SAFETY: `match_bonus` is required by this unsafe function's contract to\n    // point to writable storage for at least `haystack_bytes.len()` elements,\n    // and no other live reference aliases that region for the duration here.\n    let match_bonus_slice =\n        unsafe { core::slice::from_raw_parts_mut(match_bonus, haystack_bytes.len()) };\n\n    let mut last_ch: c_char = '/' as i32 as c_char;\n    for (&ch_u8, dst) in haystack_bytes.iter().zip(match_bonus_slice.iter_mut()) {\n        let ch = ch_u8 as c_char;\n        let bonus_idx = {\n            // SAFETY: `ch_u8 as usize` is in 0..=255, matching the byte-indexed\n            // lookup table domain used by the original C translation.\n            unsafe { *bonus_index.get_unchecked(ch_u8 as usize) as usize }\n        };\n        let bonus_row = {\n            // SAFETY: `bonus_idx` comes from `bonus_index` and is intended by\n            // the original table design to select a valid row in `bonus_states`.\n            unsafe { bonus_states.get_unchecked(bonus_idx) }\n        };\n        let score = {\n            // SAFETY: `last_ch as c_uchar as usize` is in 0..=255, matching the\n            // second-dimension byte-indexed lookup table domain.\n            unsafe { *bonus_row.get_unchecked(last_ch as c_uchar as usize) }\n        };\n        *dst = score;\n        last_ch = ch;\n    }\n}",
+            "start_byte": 2387
+          }
+        ],
+        "facts": {
+          "fn_name": "precompute_bonus",
+          "target_span_hash": "c8b3d0e0ea46b615b7e14fbe0b366d01be89284968c34091e9b800b0785ff97b"
+        },
+        "operation_id": "replace-aa6149a7a7ac2d09"
+      }
+    ],
+    "resolved_head": "48d206c5efa56fd685b5d627964e48430068fcd9"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/match.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "introduced_scan",
+      "detail": "rewrite builds a view whose length must be scanned for, which the original did not do: let haystack_bytes = unsafe { core::ffi::CStr::from_ptr(haystack).to_b",
+      "ok": true
+    }
+  ]
+}

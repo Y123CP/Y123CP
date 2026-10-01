@@ -1,0 +1,204 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -13.611359319533499,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -13.536443335686615,
+            "aggregate_ci_low_pct": -13.686275303380382,
+            "aggregate_pct": -13.611359319533499,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -15.0103,
+                "ci_low_pct": -15.3036,
+                "insns_delta_pct": -27.7029,
+                "mean_delta_pct": -15.157,
+                "op": "decode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -14.7362,
+                "ci_low_pct": -15.2226,
+                "insns_delta_pct": -27.8018,
+                "mean_delta_pct": -14.9794,
+                "op": "decode_sync_hd",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -11.714,
+                "ci_low_pct": -11.8684,
+                "insns_delta_pct": -22.7353,
+                "mean_delta_pct": -11.7912,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -12.3737,
+                "ci_low_pct": -12.662,
+                "insns_delta_pct": -23.155,
+                "mean_delta_pct": -12.5179,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.15150245539800358,
+            "aggregate_ci_low_pct": -0.17449676474906353,
+            "aggregate_pct": -0.011497154675529982,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.1107,
+                "ci_low_pct": -0.3429,
+                "insns_delta_pct": -0.0203,
+                "mean_delta_pct": -0.1161,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.3592,
+                "ci_low_pct": -0.173,
+                "insns_delta_pct": -0.0516,
+                "mean_delta_pct": 0.0931,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_hd_reset",
+          "encode_std"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "encode_hd_reset"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "d7120e40e30b59fde26e3d01c8b6e0a8c81ace78",
+      "changeset_id": "legacy-2050cc3a2a737936",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-1862eace7fe424ca",
+          "replacement_function_source": "// Applied rules: [III④]\n// Skipped rules: [III③: Hit [0] is a call to aptx_qmf_convolution, not a visible libc/custom byte-wise memory operation inside this function body. Without the callee body here, there is no concrete in-function manual memory op to rewrite under III③.]\n#[inline]\nunsafe fn aptx_qmf_polyphase_analysis(\n    mut signal: *mut aptx_filter_signal,\n    mut coeffs: *const [int32_t; 16],\n    mut shift: c_uint,\n    mut samples: *const int32_t,\n    mut low_subband_output: *mut int32_t,\n    mut high_subband_output: *mut int32_t,\n) {\n    let mut subbands: [int32_t; 2] = [0; 2];\n    let mut i: c_uint = 0;\n    // SAFETY: `samples` is required by the caller to point to `NB_FILTERS`\n    // contiguous `int32_t` elements; `NB_FILTERS` is a compile-time constant\n    // length used only for this local immutable reborrow, and no mutable\n    // reference to the same memory is created here.\n    let samples = unsafe { core::slice::from_raw_parts(samples, NB_FILTERS as usize) };\n    // SAFETY: `coeffs` is required by the caller to point to `NB_FILTERS`\n    // contiguous coefficient rows of type `[int32_t; 16]`; `NB_FILTERS` is a\n    // compile-time constant and this local immutable reborrow does not alias\n    // any mutable reference created in this function.\n    let coeffs = unsafe { core::slice::from_raw_parts(coeffs, NB_FILTERS as usize) };\n    i = 0 as c_uint;\n    while i < NB_FILTERS as c_uint {\n        let idx = i as usize;\n        let sample = samples[NB_FILTERS as usize - 1 - idx];\n        let coeff_row = &coeffs[idx];\n        aptx_qmf_filter_signal_push(\n            signal.offset(i as isize) as *mut aptx_filter_signal,\n            sample,\n        );\n        subbands[idx] = aptx_qmf_convolution(\n            signal.offset(i as isize) as *mut aptx_filter_signal,\n            coeff_row.as_ptr(),\n            shift,\n        );\n        i = i.wrapping_add(1);\n    }\n    *low_subband_output = clip_intp2(\n        subbands[0 as c_int as usize] + subbands[1 as c_int as usize],\n        23 as c_uint,\n    );\n    *high_subband_output = clip_intp2(\n        subbands[0 as c_int as usize] - subbands[1 as c_int as usize],\n        23 as c_uint,\n    );\n}",
+          "rule_id": "III④",
+          "target": {
+            "declaration_hash": "aec117c6af70a6b2e2c7c152bb0ff556e4529fdc0780b70fe8561c28eba8e51d",
+            "file_hint": "src/openaptx.rs",
+            "qualified_name": "crate::aptx_qmf_polyphase_analysis",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "aptx_qmf_polyphase_analysis-eebc809d26aa",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "aptx_qmf_polyphase_analysis",
+        "rule_id": "III④"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "21b65bbbab1b1f87c4ad4f89b01fc8b0b881f3d93fac4b803a0b4f108cd7339d",
+            "edit_id": "edit-replace-1862eace7fe424ca",
+            "end_byte": 48481,
+            "operation_id": "replace-1862eace7fe424ca",
+            "relative_path": "src/openaptx.rs",
+            "replacement_text": "// Applied rules: [III④]\n// Skipped rules: [III③: Hit [0] is a call to aptx_qmf_convolution, not a visible libc/custom byte-wise memory operation inside this function body. Without the callee body here, there is no concrete in-function manual memory op to rewrite under III③.]\n#[inline]\nunsafe fn aptx_qmf_polyphase_analysis(\n    mut signal: *mut aptx_filter_signal,\n    mut coeffs: *const [int32_t; 16],\n    mut shift: c_uint,\n    mut samples: *const int32_t,\n    mut low_subband_output: *mut int32_t,\n    mut high_subband_output: *mut int32_t,\n) {\n    let mut subbands: [int32_t; 2] = [0; 2];\n    let mut i: c_uint = 0;\n    // SAFETY: `samples` is required by the caller to point to `NB_FILTERS`\n    // contiguous `int32_t` elements; `NB_FILTERS` is a compile-time constant\n    // length used only for this local immutable reborrow, and no mutable\n    // reference to the same memory is created here.\n    let samples = unsafe { core::slice::from_raw_parts(samples, NB_FILTERS as usize) };\n    // SAFETY: `coeffs` is required by the caller to point to `NB_FILTERS`\n    // contiguous coefficient rows of type `[int32_t; 16]`; `NB_FILTERS` is a\n    // compile-time constant and this local immutable reborrow does not alias\n    // any mutable reference created in this function.\n    let coeffs = unsafe { core::slice::from_raw_parts(coeffs, NB_FILTERS as usize) };\n    i = 0 as c_uint;\n    while i < NB_FILTERS as c_uint {\n        let idx = i as usize;\n        let sample = samples[NB_FILTERS as usize - 1 - idx];\n        let coeff_row = &coeffs[idx];\n        aptx_qmf_filter_signal_push(\n            signal.offset(i as isize) as *mut aptx_filter_signal,\n            sample,\n        );\n        subbands[idx] = aptx_qmf_convolution(\n            signal.offset(i as isize) as *mut aptx_filter_signal,\n            coeff_row.as_ptr(),\n            shift,\n        );\n        i = i.wrapping_add(1);\n    }\n    *low_subband_output = clip_intp2(\n        subbands[0 as c_int as usize] + subbands[1 as c_int as usize],\n        23 as c_uint,\n    );\n    *high_subband_output = clip_intp2(\n        subbands[0 as c_int as usize] - subbands[1 as c_int as usize],\n        23 as c_uint,\n    );\n}",
+            "start_byte": 47287
+          }
+        ],
+        "facts": {
+          "fn_name": "aptx_qmf_polyphase_analysis",
+          "target_span_hash": "aec117c6af70a6b2e2c7c152bb0ff556e4529fdc0780b70fe8561c28eba8e51d"
+        },
+        "operation_id": "replace-1862eace7fe424ca"
+      }
+    ],
+    "resolved_head": "d7120e40e30b59fde26e3d01c8b6e0a8c81ace78"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/openaptx.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

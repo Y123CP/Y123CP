@@ -1,0 +1,204 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.12886070763914886,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.12117046668676273,
+            "aggregate_ci_low_pct": -0.37889188196506046,
+            "aggregate_pct": -0.12886070763914886,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.5124,
+                "ci_low_pct": -0.4607,
+                "insns_delta_pct": -0.0561,
+                "mean_delta_pct": 0.0258,
+                "op": "builtin_script_matrix",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2851,
+                "ci_low_pct": -0.3089,
+                "insns_delta_pct": -0.0259,
+                "mean_delta_pct": -0.0119,
+                "op": "expr_embedded_builtins",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.3057,
+                "ci_low_pct": -1.4594,
+                "insns_delta_pct": 0.552,
+                "mean_delta_pct": -0.5768,
+                "op": "native_call_state",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2635,
+                "ci_low_pct": -0.1685,
+                "insns_delta_pct": 0.1376,
+                "mean_delta_pct": 0.0475,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.10792189520303008,
+            "aggregate_ci_low_pct": -0.31000410068999884,
+            "aggregate_pct": -0.10104110274348438,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.1548,
+                "ci_low_pct": -0.6507,
+                "insns_delta_pct": -0.0001,
+                "mean_delta_pct": -0.2479,
+                "op": "native_call_state",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.1964,
+                "ci_low_pct": -0.1046,
+                "insns_delta_pct": -0.0115,
+                "mean_delta_pct": 0.0459,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "native_call_state",
+          "subst_list_pipeline"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "subst_list_pipeline"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "3fc6eb04c82f4e5e37dd4a8552d95248112a62e7",
+      "changeset_id": "legacy-1328926a2000c806",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-57030d984ee31288",
+          "replacement_function_source": "unsafe fn hm_hash(mut key: *const c_char) -> c_ulong {\n    let mut hash: c_ulong = 5381 as c_ulong;\n    loop {\n        let c = {\n            // SAFETY: `key` is assumed to point to a valid NUL-terminated C string, matching the original function's preconditions.\n            *key\n        } as c_int;\n        if c == 0 {\n            break;\n        }\n        hash = hash.wrapping_mul(33).wrapping_add(c as c_ulong);\n        // SAFETY: Advancing by one byte stays within the same valid NUL-terminated C string traversal as in the original code.\n        key = key.add(1);\n    }\n    hash\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "a6389f0653ee3363f6b90336031b1c2cd73a87b7a504b5e801ec9083a6a39859",
+            "file_hint": "src/lil.rs",
+            "qualified_name": "crate::hm_hash",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "hm_hash-209e1226959b",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "hm_hash",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "a1175c4553361b0b4ac3fa10966c24e10f242ea7ecfb3615a8263e74e4434cae",
+            "edit_id": "edit-replace-57030d984ee31288",
+            "end_byte": 6351,
+            "operation_id": "replace-57030d984ee31288",
+            "relative_path": "src/lil.rs",
+            "replacement_text": "unsafe fn hm_hash(mut key: *const c_char) -> c_ulong {\n    let mut hash: c_ulong = 5381 as c_ulong;\n    loop {\n        let c = {\n            // SAFETY: `key` is assumed to point to a valid NUL-terminated C string, matching the original function's preconditions.\n            *key\n        } as c_int;\n        if c == 0 {\n            break;\n        }\n        hash = hash.wrapping_mul(33).wrapping_add(c as c_ulong);\n        // SAFETY: Advancing by one byte stays within the same valid NUL-terminated C string traversal as in the original code.\n        key = key.add(1);\n    }\n    hash\n}",
+            "start_byte": 5944
+          }
+        ],
+        "facts": {
+          "fn_name": "hm_hash",
+          "target_span_hash": "a6389f0653ee3363f6b90336031b1c2cd73a87b7a504b5e801ec9083a6a39859"
+        },
+        "operation_id": "replace-57030d984ee31288"
+      }
+    ],
+    "resolved_head": "3fc6eb04c82f4e5e37dd4a8552d95248112a62e7"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/lil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

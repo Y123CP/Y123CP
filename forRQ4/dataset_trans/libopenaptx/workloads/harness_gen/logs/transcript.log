@@ -1,0 +1,1940 @@
+================================================================================
+TIMESTAMP : 2026-07-15 06:53:14
+MODEL     : claude-opus-4-6
+PHASE     : plan
+CLUSTER   : -
+FUNCTION  : -
+TARGET    : -
+RULE      : -
+FILE      : -
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 2566
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are an expert Rust systems engineer. You design a minimal workload
+harness for a Rust crate that was mechanically translated from C by
+c2rust (all-unsafe, C-ABI functions, raw pointers). You answer with ONE
+JSON object and nothing else.
+
+----- USER PROMPT -----
+CRATE UNDER TEST
+  package name : libopenaptx_raw
+  import shape : use libopenaptx_raw::<module_path>::<fn>;
+                 (module_path is given per function in brackets below)
+
+lib.rs (module tree):
+```rust
+#![allow(dead_code)]
+#![allow(non_camel_case_types)]
+#![allow(non_snake_case)]
+#![allow(non_upper_case_globals)]
+#![allow(unused_assignments)]
+#![allow(unused_mut)]
+#![feature(extern_types)]
+#![feature(raw_ref_op)]
+
+pub mod src {
+    pub mod openaptx;
+} // mod src
+```
+
+Exported C-ABI functions (8 total):
+[src::openaptx] pub unsafe extern "C" fn aptx_init(mut hd: ::core::ffi::c_int) -> *mut aptx_context
+[src::openaptx] pub unsafe extern "C" fn aptx_reset(mut ctx: *mut aptx_context)
+[src::openaptx] pub unsafe extern "C" fn aptx_finish(mut ctx: *mut aptx_context)
+[src::openaptx] pub unsafe extern "C" fn aptx_encode( mut ctx: *mut aptx_context, mut input: *const ::core::ffi::c_uchar, mut input_size: size_t, mut output: *mut ::core::ffi::c_uchar, mut output_size: size_t, mut written: *mut size_t, ) -> size_t
+[src::openaptx] pub unsafe extern "C" fn aptx_encode_finish( mut ctx: *mut aptx_context, mut output: *mut ::core::ffi::c_uchar, mut output_size: size_t, mut written: *mut size_t, ) -> ::core::ffi::c_int
+[src::openaptx] pub unsafe extern "C" fn aptx_decode( mut ctx: *mut aptx_context, mut input: *const ::core::ffi::c_uchar, mut input_size: size_t, mut output: *mut ::core::ffi::c_uchar, mut output_size: size_t, mut written: *mut size_t, ) -> size_t
+[src::openaptx] pub unsafe extern "C" fn aptx_decode_sync( mut ctx: *mut aptx_context, mut input: *const ::core::ffi::c_uchar, mut input_size: size_t, mut output: *mut ::core::ffi::c_uchar, mut output_size: size_t, mut written: *mut size_t, mut synced: *mut ::core::ffi::c_int, mut dropped: *mut size_t, ) -> size_t
+[src::openaptx] pub unsafe extern "C" fn aptx_decode_sync_finish(mut ctx: *mut aptx_context) -> size_t
+
+Public structs: aptx_context, aptx_channel, aptx_prediction, aptx_invert_quantize, aptx_quantize, aptx_QMF_analysis, aptx_filter_signal, aptx_tables
+
+HARNESS CONTRACT (the gates verify every point below mechanically):
+
+You write ONLY `src/lib.rs`. A fixed, pre-generated `src/main.rs` CLI
+shell (and separate fuzz targets) call into it, so lib.rs MUST export
+exactly this interface:
+
+  /// (op_name, runner) registry — one entry per operation.
+  pub fn ops() -> Vec<(&'static str, fn(&[u8], u64) -> String)>
+
+  /// Write, for EVERY operation with "needs_input": true, exactly two
+  /// DISTINCT, VALID input files: <dir>/<op>.1.bin and <dir>/<op>.2.bin
+  /// (deterministic bytes — same files on every run). You may call the
+  /// library itself to synthesize them (e.g. use the encoder to produce
+  /// inputs for a decode operation). Return one line per file:
+  /// `seed <op> <path>`.
+  pub fn gen_seeds(dir: &str) -> Vec<String>
+
+  /// Write, for each operation that has a SCALABLE computational hot path,
+  /// ONE LARGE, REALISTIC input `<dir>/<op>.perf.bin` sized so the library
+  /// algorithm — not per-call setup/malloc/memset — dominates runtime.
+  /// Rules of thumb: parsers/codecs → a large document/buffer (hundreds of
+  /// KB); hashers/compressors → a big data block; matrix/DP kernels → large
+  /// dimensions (e.g. a long haystack). Deterministic bytes. Operations
+  /// whose work does NOT scale with input size (config/option/getter ops)
+  /// SHOULD be omitted — they are functional-only, not perf targets. Return
+  /// one line per file written: `perf <op> <path>`.
+  pub fn gen_perf(dir: &str) -> Vec<String>
+
+Each runner fn takes (input_bytes, iters) and RETURNS the digest line(s)
+as a String (no trailing newline needed; the shell prints it).
+
+Hard rules:
+  1. DETERMINISM: identical (input, iters) → identical returned String.
+     Never include pointers/addresses, time, PIDs, paths, or HashMap
+     iteration order. Floating-point values must be folded into an
+     integer checksum (e.g. to_bits()), never formatted as decimals.
+  2. INPUT-SENSITIVITY: the digest MUST depend on the input bytes
+     (<op>.1.bin and <op>.2.bin must yield different digests).
+  3. ERRORS ARE DATA — NEVER EXIT OR PANIC: these runners are also used
+     as fuzz targets fed with arbitrary malformed bytes. When the
+     library reports an error, fold the error code into the digest
+     (e.g. return "op=decode err=83 digest=0") and return normally.
+     No std::process::exit, no panics/unwrap on input-dependent values,
+     no slice indexing that can go out of bounds on short inputs.
+  4. ITERS: when iters > 1, re-run the operation each iteration and fold
+     each iteration's digest into a running wrapping checksum; return
+     the digest once at the end. Iterations must not accumulate state
+     that changes results (re-init library state each iteration).
+  5. The heavy lifting must happen INSIDE the library-under-test; the
+     harness only feeds inputs and folds outputs (checksum over output
+     buffers, counts, sizes). Do not re-implement library logic.
+  6. Free / clean up library-allocated buffers with the library's own
+     free functions where provided (also on error paths — no leaks per
+     iteration, fuzzing runs millions of executions).
+  7. Runner fns registered in ops() must be safe `fn` items (wrap the
+     unsafe FFI work inside the function body).
+  8. PER-MODULE DUPLICATE TYPES (c2rust gotcha): c2rust emits the SAME C
+     struct as a DISTINCT Rust type in EVERY module that references it —
+     e.g. `json_tokener::json_object`, `json_patch::json_object` and
+     `json_object::json_object` are three different types with IDENTICAL
+     layout. The compiler will NOT unify them: passing a pointer returned by
+     one module's fn into another module's fn is an E0308 `mismatched types`
+     (`expected *mut a::T, found *mut b::T`). To bridge, CAST THE RAW POINTER
+     at the call boundary: `foo_from_mod_b(p as *mut _)` (or
+     `p as *const _` / `p.cast()`). Pick ONE module's type as canonical per
+     struct and cast every cross-module pointer to it. Never assume two
+     same-named structs from different modules are the same type, and never
+     transmute whole values — cast the pointer.
+
+
+TASK: design the harness as 2–5 OPERATIONS. Each operation is one
+end-to-end scenario driving a coherent slice of the API (e.g. decode,
+encode, round-trip, state/config coverage). Together they should reach
+as many of the exported functions as practical. Prefer one operation
+whose inner loop is the library's computational hot path.
+
+Answer with ONE JSON object, schema:
+{
+  "harness_name": "<snake_case, e.g. lodepng_harness>",
+  "operations": [
+    {
+      "name": "<snake_case op name, not 'gen-seeds'>",
+      "needs_input": true,
+      "summary": "<1-2 sentences: what it drives end-to-end>",
+      "api_calls": ["<fn names used>"],
+      "input_format": "<what bytes <op>.N.bin contains>",
+      "digest": "<what the printed digest folds over>"
+    }
+  ],
+  "seed_strategy": "<how gen-seeds deterministically synthesizes two
+                    distinct valid inputs per operation>"
+}
+
+----- OUTPUT -----
+
+
+```json
+{
+  "harness_name": "openaptx_harness",
+  "operations": [
+    {
+      "name": "encode",
+      "needs_input": true,
+      "summary": "Encodes raw 24-bit stereo PCM audio through aptX (non-HD), exercises aptx_init, aptx_encode, aptx_encode_finish, aptx_finish.",
+      "api_calls": ["aptx_init", "aptx_encode", "aptx_encode_finish", "aptx_finish"],
+      "input_format": "Raw 24-bit little-endian interleaved stereo PCM samples (multiple of 3 bytes per sample, 6 bytes per stereo pair).",
+      "digest": "Wrapping checksum over all encoded output bytes, plus processed/written counts."
+    },
+    {
+      "name": "decode",
+      "needs_input": true,
+      "summary": "Decodes aptX-encoded data back to PCM, exercises aptx_init, aptx_decode, aptx_finish.",
+      "api_calls": ["aptx_init", "aptx_decode", "aptx_finish"],
+      "input_format": "aptX encoded bitstream (4 bytes per stereo sample pair for non-HD).",
+      "digest": "Wrapping checksum over all decoded PCM output bytes, plus processed/written counts."
+    },
+    {
+      "name": "decode_sync",
+      "needs_input": true,
+      "summary": "Decodes aptX data with synchronization recovery, exercises aptx_init, aptx_decode_sync, aptx_decode_sync_finish, aptx_finish.",
+      "api_calls": ["aptx_init", "aptx_decode_sync", "aptx_decode_sync_finish", "aptx_finish"],
+      "input_format": "aptX encoded bitstream, possibly with leading garbage bytes to test sync.",
+      "digest": "Wrapping checksum over decoded output bytes, synced flag, dropped count, and sync_finish return value."
+    },
+    {
+      "name": "roundtrip",
+      "needs_input": true,
+      "summary": "Encodes PCM then decodes the result, verifying the full encode-decode pipeline and exercising aptx_reset between phases.",
+      "api_calls": ["aptx_init", "aptx_encode", "aptx_encode_finish", "aptx_reset", "aptx_decode", "aptx_finish"],
+      "input_format": "Raw 24-bit little-endian interleaved stereo PCM samples.",
+      "digest": "Wrapping checksum over the final decoded PCM output bytes."
+    }
+  ],
+  "seed_strategy": "gen_seeds creates two distinct valid PCM buffers for encode and roundtrip ops (e.g. 960 bytes of deterministic sine-wave-like patterns at two different frequencies). For decode and decode_sync, it uses aptx_init+aptx_encode+aptx_encode_finish to encode those two PCM buffers into valid aptX bitstreams and writes those as seed files. For decode_sync, the second seed has a few prepended garbage bytes to exercise sync recovery. All bytes are deterministic (seeded PRNG or computed patterns)."
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-07-15 06:54:08
+MODEL     : claude-opus-4-6
+PHASE     : codegen
+CLUSTER   : -
+FUNCTION  : -
+TARGET    : -
+RULE      : -
+FILE      : -
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 13484
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are an expert Rust systems engineer writing unsafe FFI-style Rust.
+You output ONE complete `src/lib.rs` file in a single ```rust code
+block and nothing else. The file must compile as the lib target of a
+crate that path-depends on the crate under test; a fixed CLI shell and
+fuzz targets call it through the `ops()` registry it exports.
+
+----- USER PROMPT -----
+Write the complete `src/lib.rs` for the harness specified below.
+
+CRATE UNDER TEST
+  package name : libopenaptx_raw
+  import shape : use libopenaptx_raw::<module_path>::<fn>;
+
+lib.rs (module tree):
+```rust
+#![allow(dead_code)]
+#![allow(non_camel_case_types)]
+#![allow(non_snake_case)]
+#![allow(non_upper_case_globals)]
+#![allow(unused_assignments)]
+#![allow(unused_mut)]
+#![feature(extern_types)]
+#![feature(raw_ref_op)]
+
+pub mod src {
+    pub mod openaptx;
+} // mod src
+```
+
+Exported C-ABI functions (with module paths):
+[src::openaptx] pub unsafe extern "C" fn aptx_init(mut hd: ::core::ffi::c_int) -> *mut aptx_context
+[src::openaptx] pub unsafe extern "C" fn aptx_reset(mut ctx: *mut aptx_context)
+[src::openaptx] pub unsafe extern "C" fn aptx_finish(mut ctx: *mut aptx_context)
+[src::openaptx] pub unsafe extern "C" fn aptx_encode( mut ctx: *mut aptx_context, mut input: *const ::core::ffi::c_uchar, mut input_size: size_t, mut output: *mut ::core::ffi::c_uchar, mut output_size: size_t, mut written: *mut size_t, ) -> size_t
+[src::openaptx] pub unsafe extern "C" fn aptx_encode_finish( mut ctx: *mut aptx_context, mut output: *mut ::core::ffi::c_uchar, mut output_size: size_t, mut written: *mut size_t, ) -> ::core::ffi::c_int
+[src::openaptx] pub unsafe extern "C" fn aptx_decode( mut ctx: *mut aptx_context, mut input: *const ::core::ffi::c_uchar, mut input_size: size_t, mut output: *mut ::core::ffi::c_uchar, mut output_size: size_t, mut written: *mut size_t, ) -> size_t
+[src::openaptx] pub unsafe extern "C" fn aptx_decode_sync( mut ctx: *mut aptx_context, mut input: *const ::core::ffi::c_uchar, mut input_size: size_t, mut output: *mut ::core::ffi::c_uchar, mut output_size: size_t, mut written: *mut size_t, mut synced: *mut ::core::ffi::c_int, mut dropped: *mut size_t, ) -> size_t
+[src::openaptx] pub unsafe extern "C" fn aptx_decode_sync_finish(mut ctx: *mut aptx_context) -> size_t
+
+HARNESS SPEC (already agreed):
+```json
+{
+  "harness_name": "openaptx_harness",
+  "operations": [
+    {
+      "name": "encode",
+      "needs_input": true,
+      "summary": "Encodes raw 24-bit stereo PCM audio through aptX (non-HD), exercises aptx_init, aptx_encode, aptx_encode_finish, aptx_finish.",
+      "api_calls": [
+        "aptx_init",
+        "aptx_encode",
+        "aptx_encode_finish",
+        "aptx_finish"
+      ],
+      "input_format": "Raw 24-bit little-endian interleaved stereo PCM samples (multiple of 3 bytes per sample, 6 bytes per stereo pair).",
+      "digest": "Wrapping checksum over all encoded output bytes, plus processed/written counts."
+    },
+    {
+      "name": "decode",
+      "needs_input": true,
+      "summary": "Decodes aptX-encoded data back to PCM, exercises aptx_init, aptx_decode, aptx_finish.",
+      "api_calls": [
+        "aptx_init",
+        "aptx_decode",
+        "aptx_finish"
+      ],
+      "input_format": "aptX encoded bitstream (4 bytes per stereo sample pair for non-HD).",
+      "digest": "Wrapping checksum over all decoded PCM output bytes, plus processed/written counts."
+    },
+    {
+      "name": "decode_sync",
+      "needs_input": true,
+      "summary": "Decodes aptX data with synchronization recovery, exercises aptx_init, aptx_decode_sync, aptx_decode_sync_finish, aptx_finish.",
+      "api_calls": [
+        "aptx_init",
+        "aptx_decode_sync",
+        "aptx_decode_sync_finish",
+        "aptx_finish"
+      ],
+      "input_format": "aptX encoded bitstream, possibly with leading garbage bytes to test sync.",
+      "digest": "Wrapping checksum over decoded output bytes, synced flag, dropped count, and sync_finish return value."
+    },
+    {
+      "name": "roundtrip",
+      "needs_input": true,
+      "summary": "Encodes PCM then decodes the result, verifying the full encode-decode pipeline and exercising aptx_reset between phases.",
+      "api_calls": [
+        "aptx_init",
+        "aptx_encode",
+        "aptx_encode_finish",
+        "aptx_reset",
+        "aptx_decode",
+        "aptx_finish"
+      ],
+      "input_format": "Raw 24-bit little-endian interleaved stereo PCM samples.",
+      "digest": "Wrapping checksum over the final decoded PCM output bytes."
+    }
+  ],
+  "seed_strategy": "gen_seeds creates two distinct valid PCM buffers for encode and roundtrip ops (e.g. 960 bytes of deterministic sine-wave-like patterns at two different frequencies). For decode and decode_sync, it uses aptx_init+aptx_encode+aptx_encode_finish to encode those two PCM buffers into valid aptX bitstreams and writes those as seed files. For decode_sync, the second seed has a few prepended garbage bytes to exercise sync recovery. All bytes are deterministic (seeded PRNG or computed patterns)."
+}
+```
+
+HARNESS CONTRACT (the gates verify every point below mechanically):
+
+You write ONLY `src/lib.rs`. A fixed, pre-generated `src/main.rs` CLI
+shell (and separate fuzz targets) call into it, so lib.rs MUST export
+exactly this interface:
+
+  /// (op_name, runner) registry — one entry per operation.
+  pub fn ops() -> Vec<(&'static str, fn(&[u8], u64) -> String)>
+
+  /// Write, for EVERY operation with "needs_input": true, exactly two
+  /// DISTINCT, VALID input files: <dir>/<op>.1.bin and <dir>/<op>.2.bin
+  /// (deterministic bytes — same files on every run). You may call the
+  /// library itself to synthesize them (e.g. use the encoder to produce
+  /// inputs for a decode operation). Return one line per file:
+  /// `seed <op> <path>`.
+  pub fn gen_seeds(dir: &str) -> Vec<String>
+
+  /// Write, for each operation that has a SCALABLE computational hot path,
+  /// ONE LARGE, REALISTIC input `<dir>/<op>.perf.bin` sized so the library
+  /// algorithm — not per-call setup/malloc/memset — dominates runtime.
+  /// Rules of thumb: parsers/codecs → a large document/buffer (hundreds of
+  /// KB); hashers/compressors → a big data block; matrix/DP kernels → large
+  /// dimensions (e.g. a long haystack). Deterministic bytes. Operations
+  /// whose work does NOT scale with input size (config/option/getter ops)
+  /// SHOULD be omitted — they are functional-only, not perf targets. Return
+  /// one line per file written: `perf <op> <path>`.
+  pub fn gen_perf(dir: &str) -> Vec<String>
+
+Each runner fn takes (input_bytes, iters) and RETURNS the digest line(s)
+as a String (no trailing newline needed; the shell prints it).
+
+Hard rules:
+  1. DETERMINISM: identical (input, iters) → identical returned String.
+     Never include pointers/addresses, time, PIDs, paths, or HashMap
+     iteration order. Floating-point values must be folded into an
+     integer checksum (e.g. to_bits()), never formatted as decimals.
+  2. INPUT-SENSITIVITY: the digest MUST depend on the input bytes
+     (<op>.1.bin and <op>.2.bin must yield different digests).
+  3. ERRORS ARE DATA — NEVER EXIT OR PANIC: these runners are also used
+     as fuzz targets fed with arbitrary malformed bytes. When the
+     library reports an error, fold the error code into the digest
+     (e.g. return "op=decode err=83 digest=0") and return normally.
+     No std::process::exit, no panics/unwrap on input-dependent values,
+     no slice indexing that can go out of bounds on short inputs.
+  4. ITERS: when iters > 1, re-run the operation each iteration and fold
+     each iteration's digest into a running wrapping checksum; return
+     the digest once at the end. Iterations must not accumulate state
+     that changes results (re-init library state each iteration).
+  5. The heavy lifting must happen INSIDE the library-under-test; the
+     harness only feeds inputs and folds outputs (checksum over output
+     buffers, counts, sizes). Do not re-implement library logic.
+  6. Free / clean up library-allocated buffers with the library's own
+     free functions where provided (also on error paths — no leaks per
+     iteration, fuzzing runs millions of executions).
+  7. Runner fns registered in ops() must be safe `fn` items (wrap the
+     unsafe FFI work inside the function body).
+  8. PER-MODULE DUPLICATE TYPES (c2rust gotcha): c2rust emits the SAME C
+     struct as a DISTINCT Rust type in EVERY module that references it —
+     e.g. `json_tokener::json_object`, `json_patch::json_object` and
+     `json_object::json_object` are three different types with IDENTICAL
+     layout. The compiler will NOT unify them: passing a pointer returned by
+     one module's fn into another module's fn is an E0308 `mismatched types`
+     (`expected *mut a::T, found *mut b::T`). To bridge, CAST THE RAW POINTER
+     at the call boundary: `foo_from_mod_b(p as *mut _)` (or
+     `p as *const _` / `p.cast()`). Pick ONE module's type as canonical per
+     struct and cast every cross-module pointer to it. Never assume two
+     same-named structs from different modules are the same type, and never
+     transmute whole values — cast the pointer.
+
+
+EXAMPLE SHAPE (for a DIFFERENT crate, libcsv — shows the expected style;
+note MaybeUninit::zeroed for C structs, safe runner wrapping unsafe FFI,
+error-as-data, checksum fold):
+
+```rust
+use std::fs;
+use std::mem::MaybeUninit;
+use libcsv_raw::src::libcsv::{csv_parser, csv_init, csv_parse, csv_fini, csv_free};
+
+fn fold(acc: u64, x: u64) -> u64 { acc.rotate_left(1) ^ x }
+
+pub fn op_parse(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0i32;
+    for _ in 0..iters {
+        unsafe {
+            let mut st = MaybeUninit::<csv_parser>::zeroed();
+            let p = st.as_mut_ptr();
+            csv_init(p, 0);
+            // … feed `data` through csv_parse with counting callbacks;
+            //   on parse error, record it and keep going (error is data) …
+            last_err = 0; // e.g. csv_error(p)
+            csv_fini(p, None, None, std::ptr::null_mut());
+            csv_free(p);
+        }
+        digest = fold(digest, /* rows */ 0).wrapping_add(/* fields */ 0);
+    }
+    format!("op=parse err={} digest={:016x}", last_err, digest)
+}
+
+pub fn ops() -> Vec<(&'static str, fn(&[u8], u64) -> String)> {
+    vec![("parse", op_parse as fn(&[u8], u64) -> String)]
+}
+
+pub fn gen_seeds(dir: &str) -> Vec<String> {
+    let mut lines = Vec::new();
+    let s1 = b"a,b,c\n1,2,3\n".to_vec();          // deterministic bytes
+    let s2 = b"x;y\n\"q,uo\",z\n7,8,9\n".to_vec();
+    for (op, idx, bytes) in [("parse", 1, &s1), ("parse", 2, &s2)] {
+        let path = format!("{}/{}.{}.bin", dir, op, idx);
+        fs::write(&path, bytes).unwrap();
+        lines.push(format!("seed {} {}", op, path));
+    }
+    lines
+}
+
+pub fn gen_perf(dir: &str) -> Vec<String> {
+    // one LARGE realistic input per perf-relevant op (here: a big CSV so
+    // csv_parse's scanning loop dominates, not per-call setup)
+    let mut big = Vec::new();
+    for i in 0..200_000u32 { big.extend_from_slice(format!("f{},{},{}\n", i, i*7, i^0x55).as_bytes()); }
+    let path = format!("{}/parse.perf.bin", dir);
+    fs::write(&path, &big).unwrap();
+    vec![format!("perf parse {}", path)]
+}
+```
+
+
+Notes for THIS crate:
+- Every library call is `unsafe extern "C"`: use raw pointers,
+  MaybeUninit::<T>::zeroed() for C structs, and the library's own
+  init/cleanup functions.
+- The dependency is already declared in Cargo.toml; just `use` it.
+- Do NOT add external crates (std only).
+
+Output the single complete file in one ```rust block.
+
+----- OUTPUT -----
+
+
+```rust
+use std::fs;
+use std::ptr;
+
+use libopenaptx_raw::src::openaptx::{
+    aptx_context, aptx_decode, aptx_decode_sync, aptx_decode_sync_finish, aptx_encode,
+    aptx_encode_finish, aptx_finish, aptx_init, aptx_reset, size_t,
+};
+
+fn fold(acc: u64, x: u64) -> u64 {
+    acc.rotate_left(1) ^ x
+}
+
+fn checksum_bytes(acc: u64, buf: &[u8]) -> u64 {
+    let mut h = acc;
+    for &b in buf {
+        h = fold(h, b as u64);
+    }
+    h
+}
+
+/// Encode operation: takes raw 24-bit LE interleaved stereo PCM, encodes via aptX (non-HD).
+fn op_encode(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+
+    for _ in 0..iters {
+        unsafe {
+            let ctx = aptx_init(0); // 0 = non-HD
+            if ctx.is_null() {
+                digest = fold(digest, 0xDEAD);
+                continue;
+            }
+
+            // Output buffer: aptX non-HD produces 4 bytes per 24 bytes of input (4 samples * 3 bytes * 2 channels = 24 bytes -> 4 bytes)
+            // Be generous with output buffer size
+            let out_size = if data.is_empty() { 64 } else { data.len() + 64 };
+            let mut output = vec![0u8; out_size];
+            let mut written: size_t = 0;
+
+            let processed = aptx_encode(
+                ctx,
+                data.as_ptr(),
+                data.len() as size_t,
+                output.as_mut_ptr(),
+                output.len() as size_t,
+                &mut written,
+            );
+
+            let mut iter_digest = 0u64;
+            iter_digest = fold(iter_digest, processed as u64);
+            iter_digest = fold(iter_digest, written as u64);
+            iter_digest = checksum_bytes(iter_digest, &output[..written as usize]);
+
+            // Finish encoding (flush)
+            let mut finish_output = vec![0u8; 64];
+            let mut finish_written: size_t = 0;
+            let finish_ret = aptx_encode_finish(
+                ctx,
+                finish_output.as_mut_ptr(),
+                finish_output.len() as size_t,
+                &mut finish_written,
+            );
+
+            iter_digest = fold(iter_digest, finish_ret as u64);
+            iter_digest = fold(iter_digest, finish_written as u64);
+            iter_digest = checksum_bytes(iter_digest, &finish_output[..finish_written as usize]);
+
+            aptx_finish(ctx);
+
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=encode digest={:016x}", digest)
+}
+
+/// Decode operation: takes aptX encoded bitstream, decodes to PCM.
+fn op_decode(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+
+    for _ in 0..iters {
+        unsafe {
+            let ctx = aptx_init(0);
+            if ctx.is_null() {
+                digest = fold(digest, 0xDEAD);
+                continue;
+            }
+
+            // Output buffer: each 4 bytes of aptX -> 24 bytes of PCM (generous)
+            let out_size = if data.is_empty() { 64 } else { data.len() * 8 + 64 };
+            let mut output = vec![0u8; out_size];
+            let mut written: size_t = 0;
+
+            let processed = aptx_decode(
+                ctx,
+                data.as_ptr(),
+                data.len() as size_t,
+                output.as_mut_ptr(),
+                output.len() as size_t,
+                &mut written,
+            );
+
+            let mut iter_digest = 0u64;
+            iter_digest = fold(iter_digest, processed as u64);
+            iter_digest = fold(iter_digest, written as u64);
+            iter_digest = checksum_bytes(iter_digest, &output[..written as usize]);
+
+            aptx_finish(ctx);
+
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=decode digest={:016x}", digest)
+}
+
+/// Decode with sync recovery.
+fn op_decode_sync(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+
+    for _ in 0..iters {
+        unsafe {
+            let ctx = aptx_init(0);
+            if ctx.is_null() {
+                digest = fold(digest, 0xDEAD);
+                continue;
+            }
+
+            let out_size = if data.is_empty() { 64 } else { data.len() * 8 + 64 };
+            let mut output = vec![0u8; out_size];
+            let mut written: size_t = 0;
+            let mut synced: i32 = 0;
+            let mut dropped: size_t = 0;
+
+            let processed = aptx_decode_sync(
+                ctx,
+                data.as_ptr(),
+                data.len() as size_t,
+                output.as_mut_ptr(),
+                output.len() as size_t,
+                &mut written,
+                &mut synced,
+                &mut dropped,
+            );
+
+            let mut iter_digest = 0u64;
+            iter_digest = fold(iter_digest, processed as u64);
+            iter_digest = fold(iter_digest, written as u64);
+            iter_digest = fold(iter_digest, synced as u64);
+            iter_digest = fold(iter_digest, dropped as u64);
+            iter_digest = checksum_bytes(iter_digest, &output[..written as usize]);
+
+            let sync_finish_ret = aptx_decode_sync_finish(ctx);
+            iter_digest = fold(iter_digest, sync_finish_ret as u64);
+
+            aptx_finish(ctx);
+
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=decode_sync digest={:016x}", digest)
+}
+
+/// Roundtrip: encode PCM -> decode the encoded data -> checksum decoded PCM.
+fn op_roundtrip(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+
+    for _ in 0..iters {
+        unsafe {
+            let ctx = aptx_init(0);
+            if ctx.is_null() {
+                digest = fold(digest, 0xDEAD);
+                continue;
+            }
+
+            // --- Encode phase ---
+            let enc_out_size = if data.is_empty() { 64 } else { data.len() + 64 };
+            let mut enc_output = vec![0u8; enc_out_size];
+            let mut enc_written: size_t = 0;
+
+            let _enc_processed = aptx_encode(
+                ctx,
+                data.as_ptr(),
+                data.len() as size_t,
+                enc_output.as_mut_ptr(),
+                enc_output.len() as size_t,
+                &mut enc_written,
+            );
+
+            // Finish encoding
+            let mut finish_output = vec![0u8; 64];
+            let mut finish_written: size_t = 0;
+            let _finish_ret = aptx_encode_finish(
+                ctx,
+                finish_output.as_mut_ptr(),
+                finish_output.len() as size_t,
+                &mut finish_written,
+            );
+
+            // Combine encoded data
+            let total_encoded_len = (enc_written + finish_written) as usize;
+            let mut encoded = Vec::with_capacity(total_encoded_len);
+            encoded.extend_from_slice(&enc_output[..enc_written as usize]);
+            encoded.extend_from_slice(&finish_output[..finish_written as usize]);
+
+            // --- Reset for decode phase ---
+            aptx_reset(ctx);
+
+            // --- Decode phase ---
+            let dec_out_size = if encoded.is_empty() { 64 } else { encoded.len() * 8 + 64 };
+            let mut dec_output = vec![0u8; dec_out_size];
+            let mut dec_written: size_t = 0;
+
+            let _dec_processed = aptx_decode(
+                ctx,
+                encoded.as_ptr(),
+                encoded.len() as size_t,
+                dec_output.as_mut_ptr(),
+                dec_output.len() as size_t,
+                &mut dec_written,
+            );
+
+            let mut iter_digest = 0u64;
+            iter_digest = fold(iter_digest, dec_written as u64);
+            iter_digest = checksum_bytes(iter_digest, &dec_output[..dec_written as usize]);
+
+            aptx_finish(ctx);
+
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=roundtrip digest={:016x}", digest)
+}
+
+pub fn ops() -> Vec<(&'static str, fn(&[u8], u64) -> String)> {
+    vec![
+        ("encode", op_encode as fn(&[u8], u64) -> String),
+        ("decode", op_decode as fn(&[u8], u64) -> String),
+        ("decode_sync", op_decode_sync as fn(&[u8], u64) -> String),
+        ("roundtrip", op_roundtrip as fn(&[u8], u64) -> String),
+    ]
+}
+
+/// Generate a deterministic 24-bit LE stereo PCM buffer with a sine-like pattern.
+/// Each sample is 3 bytes (24-bit LE). Stereo = 2 channels.
+/// aptX non-HD processes 4 stereo samples at a time = 4 * 2 * 3 = 24 bytes per block.
+fn gen_pcm_buffer(freq_param: u32, num_stereo_pairs: usize) -> Vec<u8> {
+    // Each stereo pair = 6 bytes (3 bytes left + 3 bytes right)
+    // We need multiples of 4 stereo pairs for aptX (24 bytes per aptX sample)
+    let pairs = (num_stereo_pairs / 4) * 4; // round down to multiple of 4
+    let pairs = if pairs == 0 { 4 } else { pairs };
+    let mut buf = Vec::with_capacity(pairs * 6);
+
+    for i in 0..pairs {
+        // Deterministic "sine-like" pattern using integer math
+        let t = i as u32;
+        let left = ((t.wrapping_mul(freq_param).wrapping_add(17)) % 0x1000000) as i32;
+        let right = ((t.wrapping_mul(freq_param.wrapping_mul(3)).wrapping_add(31)) % 0x1000000) as i32;
+
+        // Write as 24-bit LE
+        let l = left as u32;
+        buf.push((l & 0xFF) as u8);
+        buf.push(((l >> 8) & 0xFF) as u8);
+        buf.push(((l >> 16) & 0xFF) as u8);
+
+        let r = right as u32;
+        buf.push((r & 0xFF) as u8);
+        buf.push(((r >> 8) & 0xFF) as u8);
+        buf.push(((r >> 16) & 0xFF) as u8);
+    }
+
+    buf
+}
+
+/// Encode a PCM buffer to aptX bitstream using the library.
+fn encode_pcm_to_aptx(pcm: &[u8]) -> Vec<u8> {
+    unsafe {
+        let ctx = aptx_init(0);
+        if ctx.is_null() {
+            return Vec::new();
+        }
+
+        let out_size = pcm.len() + 128;
+        let mut output = vec![0u8; out_size];
+        let mut written: size_t = 0;
+
+        let _processed = aptx_encode(
+            ctx,
+            pcm.as_ptr(),
+            pcm.len() as size_t,
+            output.as_mut_ptr(),
+            output.len() as size_t,
+            &mut written,
+        );
+
+        let mut finish_output = vec![0u8; 64];
+        let mut finish_written: size_t = 0;
+        let _finish_ret = aptx_encode_finish(
+            ctx,
+            finish_output.as_mut_ptr(),
+            finish_output.len() as size_t,
+            &mut finish_written,
+        );
+
+        let mut result = Vec::new();
+        result.extend_from_slice(&output[..written as usize]);
+        result.extend_from_slice(&finish_output[..finish_written as usize]);
+
+        aptx_finish(ctx);
+
+        result
+    }
+}
+
+pub fn gen_seeds(dir: &str) -> Vec<String> {
+    let mut lines = Vec::new();
+
+    // Two distinct PCM buffers for encode and roundtrip
+    let pcm1 = gen_pcm_buffer(1000, 40); // 40 stereo pairs = 240 bytes
+    let pcm2 = gen_pcm_buffer(3700, 40); // different frequency
+
+    // encode seeds
+    {
+        let path1 = format!("{}/encode.1.bin", dir);
+        fs::write(&path1, &pcm1).unwrap();
+        lines.push(format!("seed encode {}", path1));
+
+        let path2 = format!("{}/encode.2.bin", dir);
+        fs::write(&path2, &pcm2).unwrap();
+        lines.push(format!("seed encode {}", path2));
+    }
+
+    // roundtrip seeds (same PCM data)
+    {
+        let path1 = format!("{}/roundtrip.1.bin", dir);
+        fs::write(&path1, &pcm1).unwrap();
+        lines.push(format!("seed roundtrip {}", path1));
+
+        let path2 = format!("{}/roundtrip.2.bin", dir);
+        fs::write(&path2, &pcm2).unwrap();
+        lines.push(format!("seed roundtrip {}", path2));
+    }
+
+    // Encode PCM to aptX for decode seeds
+    let aptx1 = encode_pcm_to_aptx(&pcm1);
+    let aptx2 = encode_pcm_to_aptx(&pcm2);
+
+    // decode seeds
+    {
+        let path1 = format!("{}/decode.1.bin", dir);
+        fs::write(&path1, &aptx1).unwrap();
+        lines.push(format!("seed decode {}", path1));
+
+        let path2 = format!("{}/decode.2.bin", dir);
+        fs::write(&path2, &aptx2).unwrap();
+        lines.push(format!("seed decode {}", path2));
+    }
+
+    // decode_sync seeds: second one has prepended garbage bytes
+    {
+        let path1 = format!("{}/decode_sync.1.bin", dir);
+        fs::write(&path1, &aptx1).unwrap();
+        lines.push(format!("seed decode_sync {}", path1));
+
+        // Prepend some garbage bytes to test sync recovery
+        let mut garbage_aptx2 = vec![0xDE, 0xAD, 0xBE, 0xEF, 0x42];
+        garbage_aptx2.extend_from_slice(&aptx2);
+        let path2 = format!("{}/decode_sync.2.bin", dir);
+        fs::write(&path2, &garbage_aptx2).unwrap();
+        lines.push(format!("seed decode_sync {}", path2));
+    }
+
+    lines
+}
+
+pub fn gen_perf(dir: &str) -> Vec<String> {
+    let mut lines = Vec::new();
+
+    // Large PCM buffer for encode perf: ~240KB of PCM data
+    // 10000 stereo pairs * 6 bytes = 60000 bytes, round to multiple of 24
+    let large_pcm = gen_pcm_buffer(2500, 10000);
+
+    {
+        let path = format!("{}/encode.perf.bin", dir);
+        fs::write(&path, &large_pcm).unwrap();
+        lines.push(format!("perf encode {}", path));
+    }
+
+    // Large roundtrip
+    {
+        let path = format!("{}/roundtrip.perf.bin", dir);
+        fs::write(&path, &large_pcm).unwrap();
+        lines.push(format!("perf roundtrip {}", path));
+    }
+
+    // Large encoded data for decode perf
+    let large_aptx = encode_pcm_to_aptx(&large_pcm);
+
+    {
+        let path = format!("{}/decode.perf.bin", dir);
+        fs::write(&path, &large_aptx).unwrap();
+        lines.push(format!("perf decode {}", path));
+    }
+
+    {
+        let path = format!("{}/decode_sync.perf.bin", dir);
+        fs::write(&path, &large_aptx).unwrap();
+        lines.push(format!("perf decode_sync {}", path));
+    }
+
+    lines
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-08-13 11:46:00
+MODEL     : gpt-5.4
+PHASE     : plan
+CLUSTER   : -
+FUNCTION  : -
+TARGET    : -
+RULE      : -
+FILE      : -
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 4299
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are an expert Rust systems engineer. You design a minimal workload
+harness for a Rust crate that was mechanically translated from C by
+c2rust (all-unsafe, C-ABI functions, raw pointers). You answer with ONE
+JSON object and nothing else.
+
+----- USER PROMPT -----
+CRATE UNDER TEST
+  package name : libopenaptx_raw
+  import shape : use libopenaptx_raw::<module_path>::<fn>;
+                 (module_path is given per function in brackets below)
+
+lib.rs (module tree):
+```rust
+#![allow(dead_code)]
+#![allow(non_camel_case_types)]
+#![allow(non_snake_case)]
+#![allow(non_upper_case_globals)]
+#![allow(unused_assignments)]
+#![allow(unused_mut)]
+#![feature(extern_types)]
+#![feature(raw_ref_op)]
+
+pub mod src {
+    pub mod openaptx;
+} // mod src
+```
+
+Exported C-ABI functions (8 total):
+[src::openaptx] pub unsafe extern "C" fn aptx_init(mut hd: ::core::ffi::c_int) -> *mut aptx_context
+[src::openaptx] pub unsafe extern "C" fn aptx_reset(mut ctx: *mut aptx_context)
+[src::openaptx] pub unsafe extern "C" fn aptx_finish(mut ctx: *mut aptx_context)
+[src::openaptx] pub unsafe extern "C" fn aptx_encode( mut ctx: *mut aptx_context, mut input: *const ::core::ffi::c_uchar, mut input_size: size_t, mut output: *mut ::core::ffi::c_uchar, mut output_size: size_t, mut written: *mut size_t, ) -> size_t
+[src::openaptx] pub unsafe extern "C" fn aptx_encode_finish( mut ctx: *mut aptx_context, mut output: *mut ::core::ffi::c_uchar, mut output_size: size_t, mut written: *mut size_t, ) -> ::core::ffi::c_int
+[src::openaptx] pub unsafe extern "C" fn aptx_decode( mut ctx: *mut aptx_context, mut input: *const ::core::ffi::c_uchar, mut input_size: size_t, mut output: *mut ::core::ffi::c_uchar, mut output_size: size_t, mut written: *mut size_t, ) -> size_t
+[src::openaptx] pub unsafe extern "C" fn aptx_decode_sync( mut ctx: *mut aptx_context, mut input: *const ::core::ffi::c_uchar, mut input_size: size_t, mut output: *mut ::core::ffi::c_uchar, mut output_size: size_t, mut written: *mut size_t, mut synced: *mut ::core::ffi::c_int, mut dropped: *mut size_t, ) -> size_t
+[src::openaptx] pub unsafe extern "C" fn aptx_decode_sync_finish(mut ctx: *mut aptx_context) -> size_t
+
+Public structs: aptx_context, aptx_channel, aptx_prediction, aptx_invert_quantize, aptx_quantize, aptx_QMF_analysis, aptx_filter_signal, aptx_tables
+
+HARNESS CONTRACT (the gates verify every point below mechanically):
+
+You write ONLY `src/lib.rs`. A fixed, pre-generated `src/main.rs` CLI
+shell (and separate fuzz targets) call into it, so lib.rs MUST export
+exactly this interface:
+
+  /// (op_name, runner) registry — one entry per operation.
+  pub fn ops() -> Vec<(&'static str, fn(&[u8], u64) -> String)>
+
+  /// Write, for EVERY operation with "needs_input": true, exactly two
+  /// DISTINCT, VALID input files: <dir>/<op>.1.bin and <dir>/<op>.2.bin
+  /// (deterministic bytes — same files on every run). You may call the
+  /// library itself to synthesize them (e.g. use the encoder to produce
+  /// inputs for a decode operation). Return one line per file:
+  /// `seed <op> <path>`.
+  pub fn gen_seeds(dir: &str) -> Vec<String>
+
+  /// Write, for each operation whose work SCALES with input size, ONE input
+  /// `<dir>/<op>.perf.bin` that is LARGE and REALISTIC enough that the
+  /// operation's inner loop — not per-call setup/malloc/memset/libc —
+  /// dominates a profiled run (the library's own code should account for the
+  /// bulk of the time). This usually needs SEVERAL MEGABYTES, not a few KB.
+  ///
+  /// The data MUST be REALISTIC for the operation, NOT random/uniform bytes.
+  /// Random or degenerate data makes many kernels take a trivial path and stay
+  /// cold: compressors/matchers find no repeats, parsers/decoders hit an early
+  /// error and bail, searches find nothing. Generate data with the STRUCTURE
+  /// and REDUNDANCY that real inputs of this domain have (repeated substrings,
+  /// valid records/tokens, realistic value distributions) so the hot loop runs
+  /// to completion over the whole input.
+  ///
+  /// The input MUST be a VALID input the operation processes end-to-end — one
+  /// that is accepted, not rejected at a format/length/validation gate (a
+  /// rejected input measures error handling, not the kernel). For an operation
+  /// whose input is an ENCODED/COMPRESSED/PACKED blob (decode/decompress/
+  /// verify/inverse), PRODUCE that blob by first running the FORWARD direction
+  /// (the library's own encoder/compressor) over a large realistic buffer,
+  /// then feed the result — do NOT hand a decoder raw or random bytes.
+  ///
+  /// Rules of thumb by category: text/format parsers → a large valid document
+  /// with many records; codecs/compressors → a big buffer of realistic,
+  /// compressible content; hashers → a big realistic data block; decoders →
+  /// the encoder's output over such content; matrix/DP/search kernels → large
+  /// dimensions / a long realistic haystack. Deterministic bytes. Operations
+  /// whose work does NOT scale with input (config/option/getter/free ops)
+  /// SHOULD be omitted — functional-only, not perf targets. Return one line
+  /// per file written: `perf <op> <path>`.
+  pub fn gen_perf(dir: &str) -> Vec<String>
+
+Each runner fn takes (input_bytes, iters) and RETURNS the digest line(s)
+as a String (no trailing newline needed; the shell prints it).
+
+Hard rules:
+  1. DETERMINISM: identical (input, iters) → identical returned String.
+     Never include pointers/addresses, time, PIDs, paths, or HashMap
+     iteration order. Floating-point values must be folded into an
+     integer checksum (e.g. to_bits()), never formatted as decimals.
+     CRITICAL — a raw pointer VALUE is an address even when masked:
+     NEVER `fold(digest, some_ptr as u64)` or `as usize & 0xFF`. A
+     function returning a `*mut`/`*const` (e.g. lodepng_chunk_next) gives
+     an address — fold a CONTENT-derived fact instead: whether it is null
+     (`p.is_null() as u64`), or its OFFSET from a known base
+     (`(p as usize).wrapping_sub(base as usize) as u64`). An address low
+     byte looks stable within one build but changes across builds/hosts,
+     silently rotting the golden oracle.
+  2. INPUT-SENSITIVITY: the digest MUST depend on the input bytes
+     (<op>.1.bin and <op>.2.bin must yield different digests).
+  3. ERRORS ARE DATA — NEVER EXIT OR PANIC: these runners are also used
+     as fuzz targets fed with arbitrary malformed bytes. When the
+     library reports an error, fold the error code into the digest
+     (e.g. return "op=decode err=83 digest=0") and return normally.
+     No std::process::exit, no panics/unwrap on input-dependent values,
+     no slice indexing that can go out of bounds on short inputs.
+  4. ITERS: when iters > 1, re-run the operation each iteration and fold
+     each iteration's digest into a running wrapping checksum; return
+     the digest once at the end. Iterations must not accumulate state
+     that changes results (re-init library state each iteration).
+  5. The heavy lifting must happen INSIDE the library-under-test; the
+     harness only feeds inputs and folds outputs (checksum over output
+     buffers, counts, sizes). Do not re-implement library logic.
+  6. Free / clean up library-allocated buffers with the library's own
+     free functions where provided (also on error paths — no leaks per
+     iteration, fuzzing runs millions of executions).
+  7. Runner fns registered in ops() must be safe `fn` items (wrap the
+     unsafe FFI work inside the function body).
+  8. PER-MODULE DUPLICATE TYPES (c2rust gotcha): c2rust emits the SAME C
+     struct as a DISTINCT Rust type in EVERY module that references it —
+     e.g. `json_tokener::json_object`, `json_patch::json_object` and
+     `json_object::json_object` are three different types with IDENTICAL
+     layout. The compiler will NOT unify them: passing a pointer returned by
+     one module's fn into another module's fn is an E0308 `mismatched types`
+     (`expected *mut a::T, found *mut b::T`). To bridge, CAST THE RAW POINTER
+     at the call boundary: `foo_from_mod_b(p as *mut _)` (or
+     `p as *const _` / `p.cast()`). Pick ONE module's type as canonical per
+     struct and cast every cross-module pointer to it. Never assume two
+     same-named structs from different modules are the same type, and never
+     transmute whole values — cast the pointer.
+
+
+TASK: design the harness as 2–5 OPERATIONS. Each operation is one
+end-to-end scenario driving a coherent slice of the API (e.g. decode,
+encode, round-trip, state/config coverage). Together they should reach
+as many of the exported functions as practical. Prefer one operation
+whose inner loop is the library's computational hot path.
+
+Answer with ONE JSON object, schema:
+{
+  "harness_name": "<snake_case, e.g. lodepng_harness>",
+  "operations": [
+    {
+      "name": "<snake_case op name, not 'gen-seeds'>",
+      "needs_input": true,
+      "summary": "<1-2 sentences: what it drives end-to-end>",
+      "api_calls": ["<fn names used>"],
+      "input_format": "<what bytes <op>.N.bin contains>",
+      "digest": "<what the printed digest folds over>"
+    }
+  ],
+  "seed_strategy": "<how gen-seeds deterministically synthesizes two
+                    distinct valid inputs per operation>"
+}
+
+----- OUTPUT -----
+{
+  "harness_name": "libopenaptx_raw_harness",
+  "operations": [
+    {
+      "name": "encode_std",
+      "needs_input": true,
+      "summary": "Initializes a standard aptX encoder, encodes a raw PCM stream to aptX frames, flushes delayed state with encode_finish, and destroys the context. This is the main forward hot path for the non-HD codec.",
+      "api_calls": [
+        "aptx_init",
+        "aptx_encode",
+        "aptx_encode_finish",
+        "aptx_finish"
+      ],
+      "input_format": "Raw little-endian stereo 16-bit PCM bytes for standard aptX encoding; the harness treats the file as an opaque PCM byte stream and passes it directly to aptx_encode.",
+      "digest": "Folds over the total consumed input, total written encoded bytes, encode_finish return code, and a checksum of all produced aptX output bytes."
+    },
+    {
+      "name": "encode_hd_reset",
+      "needs_input": true,
+      "summary": "Initializes an aptX HD encoder, encodes PCM, exercises aptx_reset on the live context, re-encodes deterministically from the reset state, then flushes and frees. This covers both the HD encode path and state reset semantics.",
+      "api_calls": [
+        "aptx_init",
+        "aptx_encode",
+        "aptx_reset",
+        "aptx_encode_finish",
+        "aptx_finish"
+      ],
+      "input_format": "Raw little-endian stereo 24-bit-style source bytes as an opaque PCM stream for the HD encoder; the harness feeds the full file bytes directly to aptx_encode with hd=1.",
+      "digest": "Folds over bytes written before reset, bytes written after reset, encode_finish return code, and checksums of the encoded output segments so different inputs and reset behavior affect the final digest."
+    },
+    {
+      "name": "decode_std",
+      "needs_input": true,
+      "summary": "Initializes a standard aptX decoder, decodes a valid aptX packet stream back to PCM, and destroys the context. Seeds and perf inputs are synthesized by first running the library's own standard encoder on realistic PCM.",
+      "api_calls": [
+        "aptx_init",
+        "aptx_decode",
+        "aptx_finish"
+      ],
+      "input_format": "A valid standard aptX elementary stream produced by this library's encoder from deterministic stereo PCM source material.",
+      "digest": "Folds over total consumed encoded bytes, total written PCM bytes, and a checksum of all decoded PCM output bytes."
+    },
+    {
+      "name": "decode_sync_hd",
+      "needs_input": true,
+      "summary": "Initializes an aptX HD decoder in sync mode, feeds it a stream containing a short deterministic unsynchronized prefix followed by valid HD frames, collects synced/dropped information, finalizes sync state, and frees the context. This drives the resynchronization path and HD inverse codec.",
+      "api_calls": [
+        "aptx_init",
+        "aptx_decode_sync",
+        "aptx_decode_sync_finish",
+        "aptx_finish"
+      ],
+      "input_format": "An aptX HD stream generated by this library's encoder from deterministic PCM, prefixed with a small fixed byte pattern that is not frame-aligned so decode_sync must search, drop bytes, and then decode the valid tail.",
+      "digest": "Folds over total consumed bytes, total written PCM bytes, synced flag transitions, dropped-byte count, decode_sync_finish return value, and a checksum of all decoded PCM output bytes."
+    }
+  ],
+  "seed_strategy": "gen_seeds writes two deterministic files per operation. For encode_std and encode_hd_reset, it directly emits two distinct valid PCM byte streams with realistic structure: repeated stereo waveform segments, ramps, silence runs, and alternating amplitude regions so the codec sees nontrivial but valid audio-like data. For decode_std, it first synthesizes two distinct PCM sources as above, then calls aptx_init(hd=0)+aptx_encode+aptx_encode_finish to serialize two valid standard aptX streams. For decode_sync_hd, it synthesizes two distinct HD PCM sources, encodes them with aptx_init(hd=1)+aptx_encode+aptx_encode_finish, and prefixes each encoded stream with a short fixed deterministic junk header of different length/content so aptx_decode_sync exercises sync acquisition and reports dropped bytes while still processing a valid encoded payload end-to-end. All files are byte-for-byte deterministic across runs."
+}
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-08-13 11:48:02
+MODEL     : gpt-5.4
+PHASE     : codegen
+CLUSTER   : -
+FUNCTION  : -
+TARGET    : -
+RULE      : -
+FILE      : -
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 16600
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are an expert Rust systems engineer writing unsafe FFI-style Rust.
+You output ONE complete `src/lib.rs` file in a single ```rust code
+block and nothing else. The file must compile as the lib target of a
+crate that path-depends on the crate under test; a fixed CLI shell and
+fuzz targets call it through the `ops()` registry it exports.
+
+----- USER PROMPT -----
+Write the complete `src/lib.rs` for the harness specified below.
+
+CRATE UNDER TEST
+  package name : libopenaptx_raw
+  import shape : use libopenaptx_raw::<module_path>::<fn>;
+
+lib.rs (module tree):
+```rust
+#![allow(dead_code)]
+#![allow(non_camel_case_types)]
+#![allow(non_snake_case)]
+#![allow(non_upper_case_globals)]
+#![allow(unused_assignments)]
+#![allow(unused_mut)]
+#![feature(extern_types)]
+#![feature(raw_ref_op)]
+
+pub mod src {
+    pub mod openaptx;
+} // mod src
+```
+
+Exported C-ABI functions (with module paths):
+[src::openaptx] pub unsafe extern "C" fn aptx_init(mut hd: ::core::ffi::c_int) -> *mut aptx_context
+[src::openaptx] pub unsafe extern "C" fn aptx_reset(mut ctx: *mut aptx_context)
+[src::openaptx] pub unsafe extern "C" fn aptx_finish(mut ctx: *mut aptx_context)
+[src::openaptx] pub unsafe extern "C" fn aptx_encode( mut ctx: *mut aptx_context, mut input: *const ::core::ffi::c_uchar, mut input_size: size_t, mut output: *mut ::core::ffi::c_uchar, mut output_size: size_t, mut written: *mut size_t, ) -> size_t
+[src::openaptx] pub unsafe extern "C" fn aptx_encode_finish( mut ctx: *mut aptx_context, mut output: *mut ::core::ffi::c_uchar, mut output_size: size_t, mut written: *mut size_t, ) -> ::core::ffi::c_int
+[src::openaptx] pub unsafe extern "C" fn aptx_decode( mut ctx: *mut aptx_context, mut input: *const ::core::ffi::c_uchar, mut input_size: size_t, mut output: *mut ::core::ffi::c_uchar, mut output_size: size_t, mut written: *mut size_t, ) -> size_t
+[src::openaptx] pub unsafe extern "C" fn aptx_decode_sync( mut ctx: *mut aptx_context, mut input: *const ::core::ffi::c_uchar, mut input_size: size_t, mut output: *mut ::core::ffi::c_uchar, mut output_size: size_t, mut written: *mut size_t, mut synced: *mut ::core::ffi::c_int, mut dropped: *mut size_t, ) -> size_t
+[src::openaptx] pub unsafe extern "C" fn aptx_decode_sync_finish(mut ctx: *mut aptx_context) -> size_t
+
+HARNESS SPEC (already agreed):
+```json
+{
+  "harness_name": "libopenaptx_raw_harness",
+  "operations": [
+    {
+      "name": "encode_std",
+      "needs_input": true,
+      "summary": "Initializes a standard aptX encoder, encodes a raw PCM stream to aptX frames, flushes delayed state with encode_finish, and destroys the context. This is the main forward hot path for the non-HD codec.",
+      "api_calls": [
+        "aptx_init",
+        "aptx_encode",
+        "aptx_encode_finish",
+        "aptx_finish"
+      ],
+      "input_format": "Raw little-endian stereo 16-bit PCM bytes for standard aptX encoding; the harness treats the file as an opaque PCM byte stream and passes it directly to aptx_encode.",
+      "digest": "Folds over the total consumed input, total written encoded bytes, encode_finish return code, and a checksum of all produced aptX output bytes."
+    },
+    {
+      "name": "encode_hd_reset",
+      "needs_input": true,
+      "summary": "Initializes an aptX HD encoder, encodes PCM, exercises aptx_reset on the live context, re-encodes deterministically from the reset state, then flushes and frees. This covers both the HD encode path and state reset semantics.",
+      "api_calls": [
+        "aptx_init",
+        "aptx_encode",
+        "aptx_reset",
+        "aptx_encode_finish",
+        "aptx_finish"
+      ],
+      "input_format": "Raw little-endian stereo 24-bit-style source bytes as an opaque PCM stream for the HD encoder; the harness feeds the full file bytes directly to aptx_encode with hd=1.",
+      "digest": "Folds over bytes written before reset, bytes written after reset, encode_finish return code, and checksums of the encoded output segments so different inputs and reset behavior affect the final digest."
+    },
+    {
+      "name": "decode_std",
+      "needs_input": true,
+      "summary": "Initializes a standard aptX decoder, decodes a valid aptX packet stream back to PCM, and destroys the context. Seeds and perf inputs are synthesized by first running the library's own standard encoder on realistic PCM.",
+      "api_calls": [
+        "aptx_init",
+        "aptx_decode",
+        "aptx_finish"
+      ],
+      "input_format": "A valid standard aptX elementary stream produced by this library's encoder from deterministic stereo PCM source material.",
+      "digest": "Folds over total consumed encoded bytes, total written PCM bytes, and a checksum of all decoded PCM output bytes."
+    },
+    {
+      "name": "decode_sync_hd",
+      "needs_input": true,
+      "summary": "Initializes an aptX HD decoder in sync mode, feeds it a stream containing a short deterministic unsynchronized prefix followed by valid HD frames, collects synced/dropped information, finalizes sync state, and frees the context. This drives the resynchronization path and HD inverse codec.",
+      "api_calls": [
+        "aptx_init",
+        "aptx_decode_sync",
+        "aptx_decode_sync_finish",
+        "aptx_finish"
+      ],
+      "input_format": "An aptX HD stream generated by this library's encoder from deterministic PCM, prefixed with a small fixed byte pattern that is not frame-aligned so decode_sync must search, drop bytes, and then decode the valid tail.",
+      "digest": "Folds over total consumed bytes, total written PCM bytes, synced flag transitions, dropped-byte count, decode_sync_finish return value, and a checksum of all decoded PCM output bytes."
+    }
+  ],
+  "seed_strategy": "gen_seeds writes two deterministic files per operation. For encode_std and encode_hd_reset, it directly emits two distinct valid PCM byte streams with realistic structure: repeated stereo waveform segments, ramps, silence runs, and alternating amplitude regions so the codec sees nontrivial but valid audio-like data. For decode_std, it first synthesizes two distinct PCM sources as above, then calls aptx_init(hd=0)+aptx_encode+aptx_encode_finish to serialize two valid standard aptX streams. For decode_sync_hd, it synthesizes two distinct HD PCM sources, encodes them with aptx_init(hd=1)+aptx_encode+aptx_encode_finish, and prefixes each encoded stream with a short fixed deterministic junk header of different length/content so aptx_decode_sync exercises sync acquisition and reports dropped bytes while still processing a valid encoded payload end-to-end. All files are byte-for-byte deterministic across runs."
+}
+```
+
+HARNESS CONTRACT (the gates verify every point below mechanically):
+
+You write ONLY `src/lib.rs`. A fixed, pre-generated `src/main.rs` CLI
+shell (and separate fuzz targets) call into it, so lib.rs MUST export
+exactly this interface:
+
+  /// (op_name, runner) registry — one entry per operation.
+  pub fn ops() -> Vec<(&'static str, fn(&[u8], u64) -> String)>
+
+  /// Write, for EVERY operation with "needs_input": true, exactly two
+  /// DISTINCT, VALID input files: <dir>/<op>.1.bin and <dir>/<op>.2.bin
+  /// (deterministic bytes — same files on every run). You may call the
+  /// library itself to synthesize them (e.g. use the encoder to produce
+  /// inputs for a decode operation). Return one line per file:
+  /// `seed <op> <path>`.
+  pub fn gen_seeds(dir: &str) -> Vec<String>
+
+  /// Write, for each operation whose work SCALES with input size, ONE input
+  /// `<dir>/<op>.perf.bin` that is LARGE and REALISTIC enough that the
+  /// operation's inner loop — not per-call setup/malloc/memset/libc —
+  /// dominates a profiled run (the library's own code should account for the
+  /// bulk of the time). This usually needs SEVERAL MEGABYTES, not a few KB.
+  ///
+  /// The data MUST be REALISTIC for the operation, NOT random/uniform bytes.
+  /// Random or degenerate data makes many kernels take a trivial path and stay
+  /// cold: compressors/matchers find no repeats, parsers/decoders hit an early
+  /// error and bail, searches find nothing. Generate data with the STRUCTURE
+  /// and REDUNDANCY that real inputs of this domain have (repeated substrings,
+  /// valid records/tokens, realistic value distributions) so the hot loop runs
+  /// to completion over the whole input.
+  ///
+  /// The input MUST be a VALID input the operation processes end-to-end — one
+  /// that is accepted, not rejected at a format/length/validation gate (a
+  /// rejected input measures error handling, not the kernel). For an operation
+  /// whose input is an ENCODED/COMPRESSED/PACKED blob (decode/decompress/
+  /// verify/inverse), PRODUCE that blob by first running the FORWARD direction
+  /// (the library's own encoder/compressor) over a large realistic buffer,
+  /// then feed the result — do NOT hand a decoder raw or random bytes.
+  ///
+  /// Rules of thumb by category: text/format parsers → a large valid document
+  /// with many records; codecs/compressors → a big buffer of realistic,
+  /// compressible content; hashers → a big realistic data block; decoders →
+  /// the encoder's output over such content; matrix/DP/search kernels → large
+  /// dimensions / a long realistic haystack. Deterministic bytes. Operations
+  /// whose work does NOT scale with input (config/option/getter/free ops)
+  /// SHOULD be omitted — functional-only, not perf targets. Return one line
+  /// per file written: `perf <op> <path>`.
+  pub fn gen_perf(dir: &str) -> Vec<String>
+
+Each runner fn takes (input_bytes, iters) and RETURNS the digest line(s)
+as a String (no trailing newline needed; the shell prints it).
+
+Hard rules:
+  1. DETERMINISM: identical (input, iters) → identical returned String.
+     Never include pointers/addresses, time, PIDs, paths, or HashMap
+     iteration order. Floating-point values must be folded into an
+     integer checksum (e.g. to_bits()), never formatted as decimals.
+     CRITICAL — a raw pointer VALUE is an address even when masked:
+     NEVER `fold(digest, some_ptr as u64)` or `as usize & 0xFF`. A
+     function returning a `*mut`/`*const` (e.g. lodepng_chunk_next) gives
+     an address — fold a CONTENT-derived fact instead: whether it is null
+     (`p.is_null() as u64`), or its OFFSET from a known base
+     (`(p as usize).wrapping_sub(base as usize) as u64`). An address low
+     byte looks stable within one build but changes across builds/hosts,
+     silently rotting the golden oracle.
+  2. INPUT-SENSITIVITY: the digest MUST depend on the input bytes
+     (<op>.1.bin and <op>.2.bin must yield different digests).
+  3. ERRORS ARE DATA — NEVER EXIT OR PANIC: these runners are also used
+     as fuzz targets fed with arbitrary malformed bytes. When the
+     library reports an error, fold the error code into the digest
+     (e.g. return "op=decode err=83 digest=0") and return normally.
+     No std::process::exit, no panics/unwrap on input-dependent values,
+     no slice indexing that can go out of bounds on short inputs.
+  4. ITERS: when iters > 1, re-run the operation each iteration and fold
+     each iteration's digest into a running wrapping checksum; return
+     the digest once at the end. Iterations must not accumulate state
+     that changes results (re-init library state each iteration).
+  5. The heavy lifting must happen INSIDE the library-under-test; the
+     harness only feeds inputs and folds outputs (checksum over output
+     buffers, counts, sizes). Do not re-implement library logic.
+  6. Free / clean up library-allocated buffers with the library's own
+     free functions where provided (also on error paths — no leaks per
+     iteration, fuzzing runs millions of executions).
+  7. Runner fns registered in ops() must be safe `fn` items (wrap the
+     unsafe FFI work inside the function body).
+  8. PER-MODULE DUPLICATE TYPES (c2rust gotcha): c2rust emits the SAME C
+     struct as a DISTINCT Rust type in EVERY module that references it —
+     e.g. `json_tokener::json_object`, `json_patch::json_object` and
+     `json_object::json_object` are three different types with IDENTICAL
+     layout. The compiler will NOT unify them: passing a pointer returned by
+     one module's fn into another module's fn is an E0308 `mismatched types`
+     (`expected *mut a::T, found *mut b::T`). To bridge, CAST THE RAW POINTER
+     at the call boundary: `foo_from_mod_b(p as *mut _)` (or
+     `p as *const _` / `p.cast()`). Pick ONE module's type as canonical per
+     struct and cast every cross-module pointer to it. Never assume two
+     same-named structs from different modules are the same type, and never
+     transmute whole values — cast the pointer.
+
+
+EXAMPLE SHAPE (for a DIFFERENT crate, libcsv — shows the expected style;
+note MaybeUninit::zeroed for C structs, safe runner wrapping unsafe FFI,
+error-as-data, checksum fold):
+
+```rust
+use std::fs;
+use std::mem::MaybeUninit;
+use libcsv_raw::src::libcsv::{csv_parser, csv_init, csv_parse, csv_fini, csv_free};
+
+fn fold(acc: u64, x: u64) -> u64 { acc.rotate_left(1) ^ x }
+
+pub fn op_parse(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0i32;
+    for _ in 0..iters {
+        unsafe {
+            let mut st = MaybeUninit::<csv_parser>::zeroed();
+            let p = st.as_mut_ptr();
+            csv_init(p, 0);
+            // … feed `data` through csv_parse with counting callbacks;
+            //   on parse error, record it and keep going (error is data) …
+            last_err = 0; // e.g. csv_error(p)
+            csv_fini(p, None, None, std::ptr::null_mut());
+            csv_free(p);
+        }
+        digest = fold(digest, /* rows */ 0).wrapping_add(/* fields */ 0);
+    }
+    format!("op=parse err={} digest={:016x}", last_err, digest)
+}
+
+pub fn ops() -> Vec<(&'static str, fn(&[u8], u64) -> String)> {
+    vec![("parse", op_parse as fn(&[u8], u64) -> String)]
+}
+
+pub fn gen_seeds(dir: &str) -> Vec<String> {
+    let mut lines = Vec::new();
+    let s1 = b"a,b,c\n1,2,3\n".to_vec();          // deterministic bytes
+    let s2 = b"x;y\n\"q,uo\",z\n7,8,9\n".to_vec();
+    for (op, idx, bytes) in [("parse", 1, &s1), ("parse", 2, &s2)] {
+        let path = format!("{}/{}.{}.bin", dir, op, idx);
+        fs::write(&path, bytes).unwrap();
+        lines.push(format!("seed {} {}", op, path));
+    }
+    lines
+}
+
+pub fn gen_perf(dir: &str) -> Vec<String> {
+    // one LARGE realistic input per perf-relevant op (here: a big CSV so
+    // csv_parse's scanning loop dominates, not per-call setup)
+    let mut big = Vec::new();
+    for i in 0..200_000u32 { big.extend_from_slice(format!("f{},{},{}\n", i, i*7, i^0x55).as_bytes()); }
+    let path = format!("{}/parse.perf.bin", dir);
+    fs::write(&path, &big).unwrap();
+    vec![format!("perf parse {}", path)]
+}
+```
+
+
+Notes for THIS crate:
+- Every library call is `unsafe extern "C"`: use raw pointers,
+  MaybeUninit::<T>::zeroed() for C structs, and the library's own
+  init/cleanup functions.
+- The dependency is already declared in Cargo.toml; just `use` it.
+- Do NOT add external crates (std only).
+
+Output the single complete file in one ```rust block.
+
+----- OUTPUT -----
+```rust
+use std::fs;
+use std::ptr;
+
+use libopenaptx_raw::src::openaptx::{
+    aptx_decode, aptx_decode_sync, aptx_decode_sync_finish, aptx_encode, aptx_encode_finish,
+    aptx_finish, aptx_init, aptx_reset,
+};
+
+fn fold(acc: u64, x: u64) -> u64 {
+    acc.rotate_left(7) ^ x.wrapping_mul(0x9E37_79B1_85EB_CA87)
+}
+
+fn checksum(bytes: &[u8]) -> u64 {
+    let mut acc = 0x243F_6A88_85A3_08D3u64;
+    for &b in bytes {
+        acc = fold(acc, b as u64);
+    }
+    acc
+}
+
+fn le_i16(v: i16, out: &mut Vec<u8>) {
+    out.extend_from_slice(&v.to_le_bytes());
+}
+
+fn le_i24(v: i32, out: &mut Vec<u8>) {
+    let x = v.clamp(-8_388_608, 8_388_607);
+    let b = x.to_le_bytes();
+    out.extend_from_slice(&b[..3]);
+}
+
+fn make_std_pcm_variant(variant: u32, frames: usize) -> Vec<u8> {
+    let mut out = Vec::with_capacity(frames * 4);
+    for i in 0..frames {
+        let seg = (i / 256) % 8;
+        let t = i as i32;
+        let base = match variant {
+            1 => ((t * 97) & 0x7fff) - 0x4000,
+            _ => ((t * 173 + ((t >> 3) * 29)) & 0x7fff) - 0x4000,
+        };
+        let ramp = (((t * (variant as i32 * 13 + 41)) & 0xffff) - 0x8000) / 2;
+        let alt = if ((i / 64) & 1) == 0 { 9000 } else { -9000 };
+        let (l, r) = match seg {
+            0 => (base / 2, -base / 2),
+            1 => (ramp / 3, ramp / 4),
+            2 => (0, 0),
+            3 => (alt, -alt),
+            4 => (((base + ramp) / 3), ((base - ramp) / 3)),
+            5 => (((base / 4) + alt), ((-base / 4) - alt)),
+            6 => (((t % 1024) - 512) * 20, (((1023 - (t % 1024)) - 512) * 18)),
+            _ => (
+                (((t * 31) ^ (t * 7)) & 0x7fff) - 0x4000,
+                ((((t * 19) ^ (t * 11)) & 0x7fff) - 0x4000) / 2,
+            ),
+        };
+        le_i16(l as i16, &mut out);
+        le_i16(r as i16, &mut out);
+    }
+    out
+}
+
+fn make_hd_pcm_variant(variant: u32, frames: usize) -> Vec<u8> {
+    let mut out = Vec::with_capacity(frames * 6);
+    for i in 0..frames {
+        let seg = (i / 192) % 8;
+        let t = i as i32;
+        let base = match variant {
+            1 => ((t * 19_133) & 0x7f_ffff) - 0x40_0000,
+            _ => ((t * 27_731 + ((t >> 2) * 1_021)) & 0x7f_ffff) - 0x40_0000,
+        };
+        let ramp = (((t * (variant as i32 * 997 + 1231)) & 0xff_ffff) - 0x80_0000) / 2;
+        let alt = if ((i / 48) & 1) == 0 {
+            1_200_000
+        } else {
+            -1_200_000
+        };
+        let (l, r) = match seg {
+            0 => (base / 2, -base / 2),
+            1 => (ramp / 3, ramp / 5),
+            2 => (0, 0),
+            3 => (alt, -alt),
+            4 => ((base + ramp) / 3, (base - ramp) / 3),
+            5 => ((base / 4) + alt, (-base / 4) - alt),
+            6 => (((t % 4096) - 2048) * 900, (((4095 - (t % 4096)) - 2048) * 700)),
+            _ => (
+                (((t * 131) ^ (t * 17)) & 0x7f_ffff) - 0x40_0000,
+                ((((t * 89) ^ (t * 23)) & 0x7f_ffff) - 0x40_0000) / 2,
+            ),
+        };
+        le_i24(l, &mut out);
+        le_i24(r, &mut out);
+    }
+    out
+}
+
+unsafe fn encode_all(hd: i32, input: &[u8]) -> (Vec<u8>, usize, i32, bool) {
+    let ctx = aptx_init(hd);
+    if ctx.is_null() {
+        return (Vec::new(), 0, -1, false);
+    }
+
+    let mut produced = Vec::new();
+    let mut consumed_total = 0usize;
+    let mut ok = true;
+
+    let mut offset = 0usize;
+    while offset < input.len() {
+        let remaining = input.len() - offset;
+        let out_cap = remaining.saturating_mul(2).saturating_add(4096).max(4096);
+        let mut out = vec![0u8; out_cap];
+        let mut written = 0usize;
+
+        let consumed = aptx_encode(
+            ctx,
+            input[offset..].as_ptr(),
+            remaining,
+            out.as_mut_ptr(),
+            out.len(),
+            &mut written as *mut usize,
+        );
+
+        let w = written.min(out.len());
+        produced.extend_from_slice(&out[..w]);
+        consumed_total = consumed_total.wrapping_add(consumed);
+
+        if consumed == 0 {
+            ok = false;
+            break;
+        }
+        offset = offset.saturating_add(consumed.min(remaining));
+    }
+
+    let mut flush_out = vec![0u8; 4096];
+    let mut flush_written = 0usize;
+    let finish_rc = aptx_encode_finish(
+        ctx,
+        flush_out.as_mut_ptr(),
+        flush_out.len(),
+        &mut flush_written as *mut usize,
+    );
+    let fw = flush_written.min(flush_out.len());
+    produced.extend_from_slice(&flush_out[..fw]);
+
+    aptx_finish(ctx);
+    (produced, consumed_total, finish_rc, ok)
+}
+
+unsafe fn decode_all(hd: i32, input: &[u8]) -> (Vec<u8>, usize, bool) {
+    let ctx = aptx_init(hd);
+    if ctx.is_null() {
+        return (Vec::new(), 0, false);
+    }
+
+    let mut produced = Vec::new();
+    let mut consumed_total = 0usize;
+    let mut ok = true;
+
+    let mut offset = 0usize;
+    while offset < input.len() {
+        let remaining = input.len() - offset;
+        let out_cap = remaining.saturating_mul(16).saturating_add(4096).max(4096);
+        let mut out = vec![0u8; out_cap];
+        let mut written = 0usize;
+
+        let consumed = aptx_decode(
+            ctx,
+            input[offset..].as_ptr(),
+            remaining,
+            out.as_mut_ptr(),
+            out.len(),
+            &mut written as *mut usize,
+        );
+
+        let w = written.min(out.len());
+        produced.extend_from_slice(&out[..w]);
+        consumed_total = consumed_total.wrapping_add(consumed);
+
+        if consumed == 0 {
+            ok = false;
+            break;
+        }
+        offset = offset.saturating_add(consumed.min(remaining));
+    }
+
+    aptx_finish(ctx);
+    (produced, consumed_total, ok)
+}
+
+unsafe fn decode_sync_all(input: &[u8]) -> (Vec<u8>, usize, i32, usize, usize, bool) {
+    let ctx = aptx_init(1);
+    if ctx.is_null() {
+        return (Vec::new(), 0, -1, 0, 0, false);
+    }
+
+    let mut produced = Vec::new();
+    let mut consumed_total = 0usize;
+    let mut synced_acc = 0i32;
+    let mut dropped_acc = 0usize;
+    let mut ok = true;
+
+    let mut offset = 0usize;
+    while offset < input.len() {
+        let remaining = input.len() - offset;
+        let out_cap = remaining.saturating_mul(16).saturating_add(4096).max(4096);
+        let mut out = vec![0u8; out_cap];
+        let mut written = 0usize;
+        let mut synced = 0i32;
+        let mut dropped = 0usize;
+
+        let consumed = aptx_decode_sync(
+            ctx,
+            input[offset..].as_ptr(),
+            remaining,
+            out.as_mut_ptr(),
+            out.len(),
+            &mut written as *mut usize,
+            &mut synced as *mut i32,
+            &mut dropped as *mut usize,
+        );
+
+        let w = written.min(out.len());
+        produced.extend_from_slice(&out[..w]);
+        consumed_total = consumed_total.wrapping_add(consumed);
+        synced_acc |= synced;
+        dropped_acc = dropped_acc.wrapping_add(dropped);
+
+        if consumed == 0 {
+            ok = false;
+            break;
+        }
+        offset = offset.saturating_add(consumed.min(remaining));
+    }
+
+    let finish_val = aptx_decode_sync_finish(ctx);
+    aptx_finish(ctx);
+    (
+        produced,
+        consumed_total,
+        synced_acc,
+        dropped_acc,
+        finish_val,
+        ok,
+    )
+}
+
+fn run_encode_std_once(data: &[u8]) -> (u64, i32) {
+    unsafe {
+        let (out, consumed, finish_rc, ok) = encode_all(0, data);
+        let mut d = 0u64;
+        d = fold(d, consumed as u64);
+        d = fold(d, out.len() as u64);
+        d = fold(d, finish_rc as u64);
+        d = fold(d, checksum(&out));
+        d = fold(d, ok as u64);
+        (d, finish_rc)
+    }
+}
+
+fn run_encode_hd_reset_once(data: &[u8]) -> (u64, i32) {
+    unsafe {
+        let ctx = aptx_init(1);
+        if ctx.is_null() {
+            let mut d = 0u64;
+            d = fold(d, 0);
+            d = fold(d, 0);
+            d = fold(d, u64::MAX);
+            return (d, -1);
+        }
+
+        let mut out1 = Vec::new();
+        let mut out2 = Vec::new();
+
+        let mut before_ok = true;
+        let mut after_ok = true;
+
+        let mut offset = 0usize;
+        while offset < data.len() {
+            let remaining = data.len() - offset;
+            let out_cap = remaining.saturating_mul(2).saturating_add(4096).max(4096);
+            let mut buf = vec![0u8; out_cap];
+            let mut written = 0usize;
+            let consumed = aptx_encode(
+                ctx,
+                data[offset..].as_ptr(),
+                remaining,
+                buf.as_mut_ptr(),
+                buf.len(),
+                &mut written as *mut usize,
+            );
+            let w = written.min(buf.len());
+            out1.extend_from_slice(&buf[..w]);
+            if consumed == 0 {
+                before_ok = false;
+                break;
+            }
+            offset = offset.saturating_add(consumed.min(remaining));
+        }
+
+        aptx_reset(ctx);
+
+        offset = 0usize;
+        while offset < data.len() {
+            let remaining = data.len() - offset;
+            let out_cap = remaining.saturating_mul(2).saturating_add(4096).max(4096);
+            let mut buf = vec![0u8; out_cap];
+            let mut written = 0usize;
+            let consumed = aptx_encode(
+                ctx,
+                data[offset..].as_ptr(),
+                remaining,
+                buf.as_mut_ptr(),
+                buf.len(),
+                &mut written as *mut usize,
+            );
+            let w = written.min(buf.len());
+            out2.extend_from_slice(&buf[..w]);
+            if consumed == 0 {
+                after_ok = false;
+                break;
+            }
+            offset = offset.saturating_add(consumed.min(remaining));
+        }
+
+        let mut flush = vec![0u8; 4096];
+        let mut flush_written = 0usize;
+        let finish_rc = aptx_encode_finish(
+            ctx,
+            flush.as_mut_ptr(),
+            flush.len(),
+            &mut flush_written as *mut usize,
+        );
+        let fw = flush_written.min(flush.len());
+        out2.extend_from_slice(&flush[..fw]);
+
+        aptx_finish(ctx);
+
+        let mut d = 0u64;
+        d = fold(d, out1.len() as u64);
+        d = fold(d, checksum(&out1));
+        d = fold(d, out2.len() as u64);
+        d = fold(d, checksum(&out2));
+        d = fold(d, finish_rc as u64);
+        d = fold(d, before_ok as u64);
+        d = fold(d, after_ok as u64);
+        (d, finish_rc)
+    }
+}
+
+fn run_decode_std_once(data: &[u8]) -> (u64, i32) {
+    unsafe {
+        let (out, consumed, ok) = decode_all(0, data);
+        let mut d = 0u64;
+        d = fold(d, consumed as u64);
+        d = fold(d, out.len() as u64);
+        d = fold(d, checksum(&out));
+        d = fold(d, ok as u64);
+        (d, if ok { 0 } else { -1 })
+    }
+}
+
+fn run_decode_sync_hd_once(data: &[u8]) -> (u64, i32) {
+    unsafe {
+        let (out, consumed, synced, dropped, finish_val, ok) = decode_sync_all(data);
+        let mut d = 0u64;
+        d = fold(d, consumed as u64);
+        d = fold(d, out.len() as u64);
+        d = fold(d, synced as u64);
+        d = fold(d, dropped as u64);
+        d = fold(d, finish_val as u64);
+        d = fold(d, checksum(&out));
+        d = fold(d, ok as u64);
+        (d, if ok { synced } else { -1 })
+    }
+}
+
+pub fn encode_std(data: &[u8], iters: u64) -> String {
+    let n = if iters == 0 { 1 } else { iters };
+    let mut digest = 0u64;
+    let mut last_rc = 0i32;
+    for _ in 0..n {
+        let (d, rc) = run_encode_std_once(data);
+        digest = fold(digest, d);
+        last_rc = rc;
+    }
+    format!("op=encode_std rc={} digest={:016x}", last_rc, digest)
+}
+
+pub fn encode_hd_reset(data: &[u8], iters: u64) -> String {
+    let n = if iters == 0 { 1 } else { iters };
+    let mut digest = 0u64;
+    let mut last_rc = 0i32;
+    for _ in 0..n {
+        let (d, rc) = run_encode_hd_reset_once(data);
+        digest = fold(digest, d);
+        last_rc = rc;
+    }
+    format!("op=encode_hd_reset rc={} digest={:016x}", last_rc, digest)
+}
+
+pub fn decode_std(data: &[u8], iters: u64) -> String {
+    let n = if iters == 0 { 1 } else { iters };
+    let mut digest = 0u64;
+    let mut last_err = 0i32;
+    for _ in 0..n {
+        let (d, err) = run_decode_std_once(data);
+        digest = fold(digest, d);
+        last_err = err;
+    }
+    format!("op=decode_std err={} digest={:016x}", last_err, digest)
+}
+
+pub fn decode_sync_hd(data: &[u8], iters: u64) -> String {
+    let n = if iters == 0 { 1 } else { iters };
+    let mut digest = 0u64;
+    let mut last_state = 0i32;
+    for _ in 0..n {
+        let (d, state) = run_decode_sync_hd_once(data);
+        digest = fold(digest, d);
+        last_state = state;
+    }
+    format!(
+        "op=decode_sync_hd state={} digest={:016x}",
+        last_state, digest
+    )
+}
+
+pub fn ops() -> Vec<(&'static str, fn(&[u8], u64) -> String)> {
+    vec![
+        ("encode_std", encode_std as fn(&[u8], u64) -> String),
+        (
+            "encode_hd_reset",
+            encode_hd_reset as fn(&[u8], u64) -> String,
+        ),
+        ("decode_std", decode_std as fn(&[u8], u64) -> String),
+        (
+            "decode_sync_hd",
+            decode_sync_hd as fn(&[u8], u64) -> String,
+        ),
+    ]
+}
+
+fn write_file(path: &str, bytes: &[u8]) -> bool {
+    if let Some(parent) = std::path::Path::new(path).parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    fs::write(path, bytes).is_ok()
+}
+
+fn make_decode_std_seed(variant: u32, frames: usize) -> Vec<u8> {
+    let pcm = make_std_pcm_variant(variant, frames);
+    unsafe {
+        let (enc, _, _, _) = encode_all(0, &pcm);
+        enc
+    }
+}
+
+fn make_decode_sync_hd_seed(variant: u32, frames: usize, prefix: &[u8]) -> Vec<u8> {
+    let pcm = make_hd_pcm_variant(variant, frames);
+    unsafe {
+        let (enc, _, _, _) = encode_all(1, &pcm);
+        let mut out = Vec::with_capacity(prefix.len() + enc.len());
+        out.extend_from_slice(prefix);
+        out.extend_from_slice(&enc);
+        out
+    }
+}
+
+pub fn gen_seeds(dir: &str) -> Vec<String> {
+    let mut lines = Vec::new();
+
+    let e1 = make_std_pcm_variant(1, 4096);
+    let e2 = make_std_pcm_variant(2, 6144);
+    for (idx, bytes) in [(1usize, &e1), (2usize, &e2)] {
+        let path = format!("{}/encode_std.{}.bin", dir, idx);
+        if write_file(&path, bytes) {
+            lines.push(format!("seed encode_std {}", path));
+        }
+    }
+
+    let h1 = make_hd_pcm_variant(1, 4096);
+    let h2 = make_hd_pcm_variant(2, 5632);
+    for (idx, bytes) in [(1usize, &h1), (2usize, &h2)] {
+        let path = format!("{}/encode_hd_reset.{}.bin", dir, idx);
+        if write_file(&path, bytes) {
+            lines.push(format!("seed encode_hd_reset {}", path));
+        }
+    }
+
+    let d1 = make_decode_std_seed(1, 4096);
+    let d2 = make_decode_std_seed(2, 6144);
+    for (idx, bytes) in [(1usize, &d1), (2usize, &d2)] {
+        let path = format!("{}/decode_std.{}.bin", dir, idx);
+        if write_file(&path, bytes) {
+            lines.push(format!("seed decode_std {}", path));
+        }
+    }
+
+    let s1 = make_decode_sync_hd_seed(1, 4096, &[0xA5, 0x5A, 0x13, 0x37, 0xC0]);
+    let s2 = make_decode_sync_hd_seed(2, 5632, &[0xDE, 0xAD, 0xBE, 0xEF, 0x44, 0x99, 0x12]);
+    for (idx, bytes) in [(1usize, &s1), (2usize, &s2)] {
+        let path = format!("{}/decode_sync_hd.{}.bin", dir, idx);
+        if write_file(&path, bytes) {
+            lines.push(format!("seed decode_sync_hd {}", path));
+        }
+    }
+
+    lines
+}
+
+pub fn gen_perf(dir: &str) -> Vec<String> {
+    let mut lines = Vec::new();
+
+    let pcm_std = make_std_pcm_variant(1, 1_500_000);
+    let path = format!("{}/encode_std.perf.bin", dir);
+    if write_file(&path, &pcm_std) {
+        lines.push(format!("perf encode_std {}", path));
+    }
+
+    let pcm_hd = make_hd_pcm_variant(1, 1_100_000);
+    let path = format!("{}/encode_hd_reset.perf.bin", dir);
+    if write_file(&path, &pcm_hd) {
+        lines.push(format!("perf encode_hd_reset {}", path));
+    }
+
+    let enc_std = unsafe {
+        let (enc, _, _, _) = encode_all(0, &pcm_std);
+        enc
+    };
+    let path = format!("{}/decode_std.perf.bin", dir);
+    if write_file(&path, &enc_std) {
+        lines.push(format!("perf decode_std {}", path));
+    }
+
+    let enc_hd = unsafe {
+        let (enc, _, _, _) = encode_all(1, &pcm_hd);
+        enc
+    };
+    let mut sync_perf = Vec::with_capacity(enc_hd.len() + 8);
+    sync_perf.extend_from_slice(&[0xF0, 0x0D, 0xCA, 0xFE, 0x01, 0x23, 0x45]);
+    sync_perf.extend_from_slice(&enc_hd);
+    let path = format!("{}/decode_sync_hd.perf.bin", dir);
+    if write_file(&path, &sync_perf) {
+        lines.push(format!("perf decode_sync_hd {}", path));
+    }
+
+    lines
+}
+```
+================================================================================
+

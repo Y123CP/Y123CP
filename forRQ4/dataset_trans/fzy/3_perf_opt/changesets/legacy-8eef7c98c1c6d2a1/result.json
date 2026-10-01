@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 17.860085601033603,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 20.05593303003747,
+            "aggregate_ci_low_pct": 15.664238172029737,
+            "aggregate_pct": 17.860085601033603,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 20.0559,
+                "ci_low_pct": 15.6642,
+                "insns_delta_pct": 27.8023,
+                "mean_delta_pct": 17.8601,
+                "op": "choices_fread_search",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "choices_fread_search"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "choices_fread_search"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "c2b0c073d04e3bf88c0c86c16cbb8cbd04b76a55",
+      "changeset_id": "legacy-8eef7c98c1c6d2a1",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-c93c9866028b40b5",
+          "replacement_function_source": "// Applied rules: [III④, C3, II_vec]\n// Skipped rules: [III③: hit [10] is `fread`, which is not covered by the card's supported memory/string replacement templates; hit [11] `strchr` would be subsumed by the III④ slice/iterator rewrite of the delimiter scan, so no standalone III③ rewrite is needed.; II_vec: hit [9] on the fread/capacity-growth loop is abstained: the loop trip count is governed by repeated `fread` results and realloc growth, so canonicalization will not give LLVM a meaningful fixed/derivable iteration count or vectorization opportunity.]\n#[inline]\npub unsafe fn choices_fread(\n    mut c: *mut choices_t,\n    mut file: *mut FILE,\n    mut input_delimiter: c_char,\n) {\n    let mut buffer_size: size_t = (*c).buffer_size;\n    let buffer_start: size_t = buffer_size;\n    let mut capacity: size_t = INITIAL_BUFFER_CAPACITY as size_t;\n    while capacity <= buffer_size {\n        capacity = capacity.wrapping_mul(2 as size_t);\n    }\n\n    let mut buffer =\n        safe_realloc((*c).buffer as *mut c_void, capacity) as *mut c_char;\n    (*c).buffer = buffer;\n\n    loop {\n        let read_ptr = buffer.offset(buffer_size as isize) as *mut c_void;\n        let remaining = capacity.wrapping_sub(buffer_size);\n        buffer_size = (buffer_size as c_ulong)\n            .wrapping_add(fread(read_ptr, 1 as size_t, remaining, file))\n            as size_t as size_t;\n        (*c).buffer_size = buffer_size;\n        if !(buffer_size == capacity) {\n            break;\n        }\n        capacity = capacity.wrapping_mul(2 as size_t);\n        buffer = safe_realloc(buffer as *mut c_void, capacity) as *mut c_char;\n        (*c).buffer = buffer;\n    }\n\n    buffer = safe_realloc(\n        buffer as *mut c_void,\n        buffer_size.wrapping_add(1 as size_t),\n    ) as *mut c_char;\n    (*c).buffer = buffer;\n\n    let nul_pos = buffer_size;\n    buffer_size = buffer_size.wrapping_add(1);\n    (*c).buffer_size = buffer_size;\n    *buffer.offset(nul_pos as isize) = '\\0' as i32 as c_char;\n\n    let appended_len = buffer_size.wrapping_sub(buffer_start);\n    // SAFETY: `buffer` is the current allocation stored in `(*c).buffer`, non-null as returned\n    // by `safe_realloc`; `buffer_start..buffer_start+appended_len` lies within that allocation\n    // because `buffer_size` was just finalized from the same allocation; this function creates\n    // the only mutable view over that region for the duration of the scan.\n    let appended = unsafe {\n        core::slice::from_raw_parts_mut(\n            buffer.offset(buffer_start as isize),\n            appended_len,\n        )\n    };\n\n    let delim = input_delimiter;\n    let mut line_start = 0usize;\n    for i in 0..appended_len {\n        if *appended.get_unchecked(i) == delim || *appended.get_unchecked(i) == 0 {\n            if *appended.get_unchecked(line_start) != 0 {\n                let line_ptr = appended.as_mut_ptr().add(line_start);\n                if *appended.get_unchecked(i) == delim {\n                    *appended.get_unchecked_mut(i) = 0;\n                }\n                choices_add(c, line_ptr);\n            } else if *appended.get_unchecked(i) == delim {\n                *appended.get_unchecked_mut(i) = 0;\n            }\n            line_start = i.wrapping_add(1);\n        }\n    }\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "c9981cf53a56936794cbdf41a0d47bf876cc3bab80aee48c900ee1c50e048cb9",
+            "file_hint": "src/choices.rs",
+            "qualified_name": "crate::choices_fread",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "choices_fread-fc5f6f6bac7c",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "choices_fread",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "f819b8f900a5edafa096099c9d1446d12512d166db00764c0fb772b71c066cd6",
+            "edit_id": "edit-replace-c93c9866028b40b5",
+            "end_byte": 16203,
+            "operation_id": "replace-c93c9866028b40b5",
+            "relative_path": "src/choices.rs",
+            "replacement_text": "// Applied rules: [III④, C3, II_vec]\n// Skipped rules: [III③: hit [10] is `fread`, which is not covered by the card's supported memory/string replacement templates; hit [11] `strchr` would be subsumed by the III④ slice/iterator rewrite of the delimiter scan, so no standalone III③ rewrite is needed.; II_vec: hit [9] on the fread/capacity-growth loop is abstained: the loop trip count is governed by repeated `fread` results and realloc growth, so canonicalization will not give LLVM a meaningful fixed/derivable iteration count or vectorization opportunity.]\n#[inline]\npub unsafe fn choices_fread(\n    mut c: *mut choices_t,\n    mut file: *mut FILE,\n    mut input_delimiter: c_char,\n) {\n    let mut buffer_size: size_t = (*c).buffer_size;\n    let buffer_start: size_t = buffer_size;\n    let mut capacity: size_t = INITIAL_BUFFER_CAPACITY as size_t;\n    while capacity <= buffer_size {\n        capacity = capacity.wrapping_mul(2 as size_t);\n    }\n\n    let mut buffer =\n        safe_realloc((*c).buffer as *mut c_void, capacity) as *mut c_char;\n    (*c).buffer = buffer;\n\n    loop {\n        let read_ptr = buffer.offset(buffer_size as isize) as *mut c_void;\n        let remaining = capacity.wrapping_sub(buffer_size);\n        buffer_size = (buffer_size as c_ulong)\n            .wrapping_add(fread(read_ptr, 1 as size_t, remaining, file))\n            as size_t as size_t;\n        (*c).buffer_size = buffer_size;\n        if !(buffer_size == capacity) {\n            break;\n        }\n        capacity = capacity.wrapping_mul(2 as size_t);\n        buffer = safe_realloc(buffer as *mut c_void, capacity) as *mut c_char;\n        (*c).buffer = buffer;\n    }\n\n    buffer = safe_realloc(\n        buffer as *mut c_void,\n        buffer_size.wrapping_add(1 as size_t),\n    ) as *mut c_char;\n    (*c).buffer = buffer;\n\n    let nul_pos = buffer_size;\n    buffer_size = buffer_size.wrapping_add(1);\n    (*c).buffer_size = buffer_size;\n    *buffer.offset(nul_pos as isize) = '\\0' as i32 as c_char;\n\n    let appended_len = buffer_size.wrapping_sub(buffer_start);\n    // SAFETY: `buffer` is the current allocation stored in `(*c).buffer`, non-null as returned\n    // by `safe_realloc`; `buffer_start..buffer_start+appended_len` lies within that allocation\n    // because `buffer_size` was just finalized from the same allocation; this function creates\n    // the only mutable view over that region for the duration of the scan.\n    let appended = unsafe {\n        core::slice::from_raw_parts_mut(\n            buffer.offset(buffer_start as isize),\n            appended_len,\n        )\n    };\n\n    let delim = input_delimiter;\n    let mut line_start = 0usize;\n    for i in 0..appended_len {\n        if *appended.get_unchecked(i) == delim || *appended.get_unchecked(i) == 0 {\n            if *appended.get_unchecked(line_start) != 0 {\n                let line_ptr = appended.as_mut_ptr().add(line_start);\n                if *appended.get_unchecked(i) == delim {\n                    *appended.get_unchecked_mut(i) = 0;\n                }\n                choices_add(c, line_ptr);\n            } else if *appended.get_unchecked(i) == delim {\n                *appended.get_unchecked_mut(i) = 0;\n            }\n            line_start = i.wrapping_add(1);\n        }\n    }\n}",
+            "start_byte": 14359
+          }
+        ],
+        "facts": {
+          "fn_name": "choices_fread",
+          "target_span_hash": "c9981cf53a56936794cbdf41a0d47bf876cc3bab80aee48c900ee1c50e048cb9"
+        },
+        "operation_id": "replace-c93c9866028b40b5"
+      }
+    ],
+    "resolved_head": "c2b0c073d04e3bf88c0c86c16cbb8cbd04b76a55"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/choices.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

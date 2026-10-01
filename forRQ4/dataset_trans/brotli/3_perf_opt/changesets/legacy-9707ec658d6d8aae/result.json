@@ -1,0 +1,101 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": "decode_buffer:3f855c67: sha256 ff43bfa42f40… ≠ b8fca460aa0e…"
+      },
+      "gate": "w1",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "791de8b0df254298473a7553150265f8f0f4e3bc",
+      "changeset_id": "legacy-9707ec658d6d8aae",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-4f16ee261e2e3ec4",
+          "replacement_function_source": "// Applied rules: [C3, III④]\n// Skipped rules: []\n#[inline(always)]\nunsafe fn DecodeSymbol(\n    mut bits: uint64_t,\n    mut table: *const HuffmanCode,\n    mut br: *mut BrotliBitReader,\n) -> uint64_t {\n    // SAFETY: `table` points to a Huffman decoding table whose first-level\n    // region has at least 256 entries; the index is exactly `(bits & 0xff)`,\n    // so it is in 0..256, and no mutable/reference aliasing is introduced.\n    let first_level = unsafe { core::slice::from_raw_parts(table, 256) };\n    let first_index = (bits & 0xff as uint64_t) as usize;\n    // SAFETY: `first_index` is masked to one byte, so it is always < 256.\n    let first = unsafe { first_level.get_unchecked(first_index) };\n    let first_bits = first.bits;\n    let first_value = first.value;\n\n    if first_bits as c_uint > HUFFMAN_TABLE_BITS {\n        let nbits: uint64_t =\n            (first_bits as c_uint).wrapping_sub(HUFFMAN_TABLE_BITS) as uint64_t;\n        BrotliDropBits(br, HUFFMAN_TABLE_BITS as uint64_t);\n        let second_index = (first_value as uint64_t)\n            .wrapping_add(bits >> 8 as c_uint & BitMask(nbits))\n            as usize;\n        // SAFETY: the second-level table is addressed from the original base\n        // pointer exactly as in `table = table.offset(...)`; the decoder's\n        // table layout guarantees this computed entry exists, and no mutable/\n        // reference aliasing is introduced.\n        let second_level = unsafe { core::slice::from_raw_parts(table, second_index + 1) };\n        // SAFETY: `second_level` was created with length `second_index + 1`.\n        let final_entry = unsafe { second_level.get_unchecked(second_index) };\n        let final_bits = final_entry.bits;\n        let final_value = final_entry.value;\n        BrotliDropBits(br, final_bits as uint64_t);\n        final_value as uint64_t\n    } else {\n        BrotliDropBits(br, first_bits as uint64_t);\n        first_value as uint64_t\n    }\n}",
+          "rule_id": "C3,III④",
+          "target": {
+            "declaration_hash": "655ef9c174760ad8190cc7b268bc3ff1b42bcca97e8396ddda82120c6db189fc",
+            "file_hint": "src/dec/decode.rs",
+            "qualified_name": "crate::DecodeSymbol",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "DecodeSymbol-71d771ab5c38",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "DecodeSymbol",
+        "rule_id": "C3,III④"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "aee77e87e2e6f1c149a8349188e90cdae73bfd9937bc4df5920c257285915d53",
+            "edit_id": "edit-replace-4f16ee261e2e3ec4",
+            "end_byte": 37898,
+            "operation_id": "replace-4f16ee261e2e3ec4",
+            "relative_path": "src/dec/decode.rs",
+            "replacement_text": "// Applied rules: [C3, III④]\n// Skipped rules: []\n#[inline(always)]\nunsafe fn DecodeSymbol(\n    mut bits: uint64_t,\n    mut table: *const HuffmanCode,\n    mut br: *mut BrotliBitReader,\n) -> uint64_t {\n    // SAFETY: `table` points to a Huffman decoding table whose first-level\n    // region has at least 256 entries; the index is exactly `(bits & 0xff)`,\n    // so it is in 0..256, and no mutable/reference aliasing is introduced.\n    let first_level = unsafe { core::slice::from_raw_parts(table, 256) };\n    let first_index = (bits & 0xff as uint64_t) as usize;\n    // SAFETY: `first_index` is masked to one byte, so it is always < 256.\n    let first = unsafe { first_level.get_unchecked(first_index) };\n    let first_bits = first.bits;\n    let first_value = first.value;\n\n    if first_bits as c_uint > HUFFMAN_TABLE_BITS {\n        let nbits: uint64_t =\n            (first_bits as c_uint).wrapping_sub(HUFFMAN_TABLE_BITS) as uint64_t;\n        BrotliDropBits(br, HUFFMAN_TABLE_BITS as uint64_t);\n        let second_index = (first_value as uint64_t)\n            .wrapping_add(bits >> 8 as c_uint & BitMask(nbits))\n            as usize;\n        // SAFETY: the second-level table is addressed from the original base\n        // pointer exactly as in `table = table.offset(...)`; the decoder's\n        // table layout guarantees this computed entry exists, and no mutable/\n        // reference aliasing is introduced.\n        let second_level = unsafe { core::slice::from_raw_parts(table, second_index + 1) };\n        // SAFETY: `second_level` was created with length `second_index + 1`.\n        let final_entry = unsafe { second_level.get_unchecked(second_index) };\n        let final_bits = final_entry.bits;\n        let final_value = final_entry.value;\n        BrotliDropBits(br, final_bits as uint64_t);\n        final_value as uint64_t\n    } else {\n        BrotliDropBits(br, first_bits as uint64_t);\n        first_value as uint64_t\n    }\n}",
+            "start_byte": 37180
+          }
+        ],
+        "facts": {
+          "fn_name": "DecodeSymbol",
+          "target_span_hash": "655ef9c174760ad8190cc7b268bc3ff1b42bcca97e8396ddda82120c6db189fc"
+        },
+        "operation_id": "replace-4f16ee261e2e3ec4"
+      }
+    ],
+    "resolved_head": "791de8b0df254298473a7553150265f8f0f4e3bc"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w1",
+  "touched_paths": [
+    "src/dec/decode.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

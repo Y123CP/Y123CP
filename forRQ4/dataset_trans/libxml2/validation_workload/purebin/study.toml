@@ -1,0 +1,341 @@
+# ============================================================================
+                                                        
+                                                                         
+                                                        
+                                                               
+                                    
+                                                               
+                                                            
+                        
+                                                       
+#       dataset_trans/run_validation.py dataset_trans/libxml2/validation_workload/purebin/study.toml
+# ============================================================================
+
+[study]
+project     = "libxml2"
+compare     = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+report_mode = "per_input"
+
+[builds.c]
+binary_path = "dataset_trans/libxml2/validation_workload/purebin/bin/libxml2_c"
+[builds.raw]
+binary_path = "dataset_trans/libxml2/validation_workload/purebin/bin/libxml2_raw"
+[builds.stage_a]
+binary_path = "dataset_trans/libxml2/validation_workload/purebin/bin/libxml2_stage_a"
+
+[builds.codex]
+binary_path = "dataset_trans/libxml2/validation_workload/purebin/bin/libxml2_codex"
+[builds.freeform]
+binary_path = "dataset_trans/libxml2/validation_workload/purebin/bin/libxml2_freeform"
+[builds.full]                                  # full arm = 3_perf_opt (rule-guided)
+binary_path = "dataset_trans/libxml2/validation_workload/purebin/bin/libxml2_full"
+
+[measure]
+warmup_runs  = 5
+measure_runs = 30
+required_cv  = 0.03
+max_load     = 1.0
+cv_retries   = 2
+pin_cpu      = 16
+order        = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+
+[gates]
+equivalence = "stdout_sha256"
+
+# ---------------------------------------------------------------------------
+                                                                                 
+# ---------------------------------------------------------------------------
+
+[[operations]]
+name = "parse_suite"              # tree parse + traverse + 2x serialize
+args = ["parse_suite", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "xml.list"
+  path = "dataset_trans/libxml2/validation_workload/inputs/xml.list"
+  iters = 90
+  stdout_sha256 = "9577ce269dc22d6c13839d8fdcf2d1a8942afaf178d474e8a7e8bd5fe3148a64"
+
+[[operations]]
+name = "html_suite"               # HTML parse + traverse + dump
+args = ["html_suite", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "html.list"
+  path = "dataset_trans/libxml2/validation_workload/inputs/html.list"
+  iters = 200
+  stdout_sha256 = "4a43b2187b57aca1591d39b9d9b113db8e26744376d414a2ac954b3556a118ac"
+
+[[operations]]
+name = "sax_suite"                # SAX2 event parse
+args = ["sax_suite", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "xml.list"
+  path = "dataset_trans/libxml2/validation_workload/inputs/xml.list"
+  iters = 90
+  stdout_sha256 = "3ff08e3e6aab6c9fd36fc87c9776492caa38c727fa1d044fa816ff73f9c80fd1"
+
+[[operations]]
+name = "reader_suite"             # xmlreader streaming walk
+args = ["reader_suite", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "xml.list"
+  path = "dataset_trans/libxml2/validation_workload/inputs/xml.list"
+  iters = 150
+  stdout_sha256 = "e7e0c1a0333dee8e812687485e6528fd4884e0ff03f385d8d2c890d508b53139"
+
+[[operations]]
+name = "valid_suite"              # DTD-validating parse
+args = ["valid_suite", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "valid.list"
+  path = "dataset_trans/libxml2/validation_workload/inputs/valid.list"
+  iters = 45
+  stdout_sha256 = "9512fb766286b3ee729bf695eb23a343e4fdfeb4fca7398b199e1b07a8b881e2"
+
+[[operations]]
+name = "xpath_op"                 # XPath expression set (nodesets/num/str/bool)
+args = ["xpath_op", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "slashdot16.xml"
+  path = "dataset_trans/libxml2/validation_workload/inputs/slashdot16.xml"
+  iters = 2500
+  stdout_sha256 = "8479dc6f65eb2f8ef639a6f7983f945bea5f19fb4a4645e92654462dfc2d0179"
+
+[[operations]]
+name = "writer_op"                # xmlwriter document generation
+args = ["writer_op", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "gen"
+  path = "dataset_trans/libxml2/validation_workload/inputs/xml.list"
+  iters = 7000
+  stdout_sha256 = "c1e28ddade4cf26a6c7c37b7a3feeacde961d1bc852f074bf79463bb6ad46861"
+
+[[operations]]
+name = "dict_uri_str"             # dict/hash/URI/string/chvalid utility surface
+args = ["dict_uri_str", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "slashdot16.xml"
+  path = "dataset_trans/libxml2/validation_workload/inputs/slashdot16.xml"
+  iters = 7000
+  stdout_sha256 = "d0f6dc4b15a46eb9c84d555ee39f4cd719da3d2e5d1d66a7c97a4c76ce1f7a92"
+
+[[operations]]
+name = "schema_suite"             # XSD parse + instance validation (135 pairs)
+args = ["schema_suite", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "schema.list"
+  path = "dataset_trans/libxml2/validation_workload/inputs/schema.list"
+  iters = 22
+  stdout_sha256 = "761a6b2a3d7d6773ea5b12a766f945e796e1398fc7663573aea5cf7e6bcb67b0"
+
+[[operations]]
+name = "relaxng_suite"            # RelaxNG parse + validation (19 pairs)
+args = ["relaxng_suite", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "relaxng.list"
+  path = "dataset_trans/libxml2/validation_workload/inputs/relaxng.list"
+  iters = 2
+  stdout_sha256 = "9546a59f1db591e383925e54b658606a0d72d114850c4325dc5953087157bd89"
+
+[[operations]]
+name = "c14n_op"                  # canonicalization
+args = ["c14n_op", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "slashdot16.xml"
+  path = "dataset_trans/libxml2/validation_workload/inputs/slashdot16.xml"
+  iters = 7000
+  stdout_sha256 = "cfe64a803d5b055d895aef17a016656f9e9710c58b82b01bb64d7e6bb4719353"
+
+[[operations]]
+name = "unicode_tables"                 # name-table dispatch over all Unicode block/cat predicates
+args = ["unicode_tables", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "unicode_tables-in"
+  path = "dataset_trans/libxml2/validation_workload/inputs/xml.list"
+  iters = 50
+  stdout_sha256 = "0c3ffcd7cde8c6a246321dd7275167b3406ffa4545c7f5adeadd7cdb6cf1ee02"
+
+[[operations]]
+name = "reader_full"                 # full xmlreader accessor surface + walker
+args = ["reader_full", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "reader_full-in"
+  path = "dataset_trans/libxml2/validation_workload/inputs/xml.list"
+  iters = 5
+  stdout_sha256 = "6bcfbe455f72e7dd4429b33c66dc74ccbc0b479c166e08adc61b76476a7452c6"
+
+[[operations]]
+name = "dom_build"                 # DOM construction/manipulation/query surface
+args = ["dom_build", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "dom_build-in"
+  path = "dataset_trans/libxml2/validation_workload/inputs/xml.list"
+  iters = 200
+  stdout_sha256 = "7d6980eabf05f88d883a08607e85ac927a0d75e719fa3dfe55ce5c0d181e6d12"
+
+[[operations]]
+name = "xpath_full"                 # axes/functions/compiled/variables/custom fn
+args = ["xpath_full", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "xpath_full-in"
+  path = "dataset_trans/libxml2/validation_workload/inputs/slashdot16.xml"
+  iters = 100
+  stdout_sha256 = "f825ce907eaaacf5c177031d1c33812faf16ecb3c2a49b72bc42b8334f6acf62"
+
+[[operations]]
+name = "writer_full"                 # DTD parts/attr staging/raw/base64/indent
+args = ["writer_full", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "writer_full-in"
+  path = "dataset_trans/libxml2/validation_workload/inputs/xml.list"
+  iters = 500
+  stdout_sha256 = "2643cff3fbf72c8584aec800283cf6c79c30fa7aec114712cb3f217df6705e5e"
+
+[[operations]]
+name = "push_parse"                 # push-mode xml+html parsing + html tables
+args = ["push_parse", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "push_parse-in"
+  path = "dataset_trans/libxml2/validation_workload/inputs/slashdot16.xml"
+  iters = 50
+  stdout_sha256 = "85608b1b1f40ca2ea6001f051db6dcd57ee85705da312d4e553ada453cffc38f"
+
+[[operations]]
+name = "encoding_op"                 # charset handlers + ISO-8859/UTF-16 parses
+args = ["encoding_op", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "encoding_op-in"
+  path = "dataset_trans/libxml2/validation_workload/inputs/enc.list"
+  iters = 100
+  stdout_sha256 = "817c495d8aee6145cc6c8147bf3361486734b5beb3d3ed537f4d8b7ba6d82296"
+
+[[operations]]
+name = "list_op"                 # xmlList generic list surface
+args = ["list_op", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "list_op-in"
+  path = "dataset_trans/libxml2/validation_workload/inputs/xml.list"
+  iters = 1000
+  stdout_sha256 = "8df854e51c81b5879999b52fd1152a9dc243eb0f30fcc4c11ce5118c7d929880"
+
+[[operations]]
+name = "error_op"                 # structured error surface
+args = ["error_op", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "error_op-in"
+  path = "dataset_trans/libxml2/validation_workload/inputs/xml.list"
+  iters = 500
+  stdout_sha256 = "deba387e80227f63778fa09e57d826b6708b38a35ef2b3f9ec95021d50c4f7fe"
+
+[[operations]]
+name = "xinclude_suite"                 # XInclude processing (upstream docs)
+args = ["xinclude_suite", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "xinclude_suite-in"
+  path = "dataset_trans/libxml2/validation_workload/inputs/xinclude.list"
+  iters = 10
+  stdout_sha256 = "e1991260f4bf286f852c69c3ff286a4c432b2d7c64870177310c63d45ed69752"
+
+[[operations]]
+name = "xpointer_op"                 # XPointer evaluation
+args = ["xpointer_op", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "xpointer_op-in"
+  path = "dataset_trans/libxml2/validation_workload/inputs/slashdot16.xml"
+  iters = 100
+  stdout_sha256 = "824faab31aead579549d988179b4e3554678e30ad135fcc89a6ae8bba1958314"
+
+[[operations]]
+name = "schematron_suite"                 # Schematron parse+validate (upstream pairs)
+args = ["schematron_suite", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "schematron_suite-in"
+  path = "dataset_trans/libxml2/validation_workload/inputs/schematron.list"
+  iters = 10
+  stdout_sha256 = "ea683aa9eeb4275f460b983b55588f89cdb4e179e2e5661ad285252c64fb3342"
+
+[[operations]]
+name = "gz_suite"                 # gzip-compressed XML I/O (xzlib)
+args = ["gz_suite", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "gz_suite-in"
+  path = "dataset_trans/libxml2/validation_workload/inputs/gz.list"
+  iters = 20
+  stdout_sha256 = "ff381e976ea4dfcf12d293199db93123ac68b2259c456b6aba08f91eee24c16d"
+
+[[operations]]
+name = "debug_op"                 # debugXML dump surface
+args = ["debug_op", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "debug_op-in"
+  path = "dataset_trans/libxml2/validation_workload/inputs/slashdot16.xml"
+  iters = 20
+  stdout_sha256 = "5cd55974f467feddec2d4271f2ecde49378dfaa2749d136e5c6f79a99e0d2e0d"
+
+[[operations]]
+name = "catalog_op"                 # XML catalog build/resolve/dump
+args = ["catalog_op", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "catalog_op-in"
+  path = "dataset_trans/libxml2/validation_workload/inputs/catalog-docbook.xml"
+  iters = 50
+  stdout_sha256 = "35f41ee30c1ddd7292e754a9bb5631a48beece53f2bb83018f75a1bff6d0497c"
+
+[[operations]]
+name = "api_storm"                 # direct public-API utilities (xpath/tree/valid/mem/threads/xlink)
+args = ["api_storm", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "api_storm-in"
+  path = "dataset_trans/libxml2/validation_workload/inputs/slashdot16.xml"
+  iters = 100
+  stdout_sha256 = "0c5b9b321635a211087fe0ad6d69cbf1313ff370834ccb3b7b355f7c112505a4"
+
+[[operations]]
+# round-4 coverage op: variant entry points of already-exercised kernels.
+# {xml,html}{Ctxt,}Read{Doc,Fd,File,IO,Memory}, deprecated xmlParse*/
+# xmlSAXParse*/xmlRecover*, xmlReaderFor*/xmlReaderNew* + accessor battery,
+# writer WriteFormat* (delegates to WriteVFormat*) + Doc/Tree/PushParser/
+# Filename constructors, xpath node-set algebra + parser-context stack ops,
+# valid DTD-table copy/dump, DOMWrap, xmlsave/HTMLtree sink variants,
+# xmlThrDef* + __xml* global accessors, SAX2 getters, schemas/relaxng/
+# schematron mem+doc ctxts, debug shell script, catalog globals, encoding/
+# chvalid/unicode/list/hash/dict/module/uri/pattern leftovers.
+# Network-touching APIs (nanohttp, xmlIOHTTP*) deliberately excluded.
+# Determinism notes hard-won here: xmlDump*Table output order follows the
+# time-seeded hash -- only lengths are folded; xmlFreeTextWriter(push-parser)
+# frees the ctxt+doc; xmlXPathLeading/Trailing return ALIASES when the
+# second set has <2 nodes; xmlMallocAtomicLoc pairs with xmlMemFree.
+name = "api_variants"
+args = ["api_variants", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "api_variants-in"
+  path = "dataset_trans/libxml2/validation_workload/inputs/slashdot16.xml"
+  iters = 1
+  stdout_sha256 = "2089fcb9da55ff41a8b67dc20100c26af4311ee80ae7b978dd4a9e2c7343b858"

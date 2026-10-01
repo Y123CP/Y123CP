@@ -1,0 +1,217 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -1.134099454304317,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": -1.0369317018237212,
+            "aggregate_ci_low_pct": -1.2312672067849129,
+            "aggregate_pct": -1.134099454304317,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.3986,
+                "ci_low_pct": -0.9442,
+                "insns_delta_pct": -1.3384,
+                "mean_delta_pct": -0.2728,
+                "op": "chunk_ops",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.4824,
+                "ci_low_pct": -1.6412,
+                "insns_delta_pct": -0.9034,
+                "mean_delta_pct": -1.5618,
+                "op": "color_convert",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 1.7427,
+                "ci_low_pct": 1.6454,
+                "insns_delta_pct": -0.5412,
+                "mean_delta_pct": 1.6941,
+                "op": "decode24_png",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              },
+              {
+                "ci_high_pct": -7.566,
+                "ci_low_pct": -7.702,
+                "insns_delta_pct": -6.6643,
+                "mean_delta_pct": -7.634,
+                "op": "decode32_png",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.8887,
+                "ci_low_pct": 0.5506,
+                "insns_delta_pct": -0.5082,
+                "mean_delta_pct": 0.7196,
+                "op": "file_codec",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.3744,
+                "ci_low_pct": 0.1788,
+                "insns_delta_pct": 0.367,
+                "mean_delta_pct": 0.2766,
+                "op": "memory_codec",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.259,
+                "ci_low_pct": -0.6207,
+                "insns_delta_pct": -0.9415,
+                "mean_delta_pct": -0.1808,
+                "op": "raw_deflate_inflate",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -2.0419,
+                "ci_low_pct": -2.1854,
+                "insns_delta_pct": -8.5267,
+                "mean_delta_pct": -2.1137,
+                "op": "zlib_decompress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "chunk_ops",
+          "color_convert",
+          "decode24_png",
+          "decode32_png",
+          "file_codec",
+          "memory_codec",
+          "raw_deflate_inflate",
+          "zlib_decompress"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "decode24_png"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "5bfc4d62914268a805f55c10b462300d9b3ac808",
+      "changeset_id": "legacy-b23246190a1fd840",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-6eaf72c4977b6a73",
+          "replacement_function_source": "unsafe fn lodepng_memcpy(\n    mut dst: *mut c_void,\n    mut src: *const c_void,\n    mut size: size_t,\n) {\n    // SAFETY: The original function requires that `dst` and `src` are valid\n    // for reads/writes of `size` bytes and non-overlapping as for memcpy.\n    // `copy_nonoverlapping` preserves the same byte-for-byte behavior.\n    unsafe {\n        core::ptr::copy_nonoverlapping(src as *const u8, dst as *mut u8, size);\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "cdd1bb36fe97fc881d60494f1d312f2bba8fed7929dadfc3df14452761657652",
+            "file_hint": "src/lodepng.rs",
+            "qualified_name": "crate::lodepng_memcpy",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "lodepng_memcpy-03a69535a036",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "lodepng_memcpy",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "7a5e9fe28ef6643edfc79f298a5bb5a174390378ed9a03938baf5dfaff149c42",
+            "edit_id": "edit-replace-6eaf72c4977b6a73",
+            "end_byte": 8913,
+            "operation_id": "replace-6eaf72c4977b6a73",
+            "relative_path": "src/lodepng.rs",
+            "replacement_text": "unsafe fn lodepng_memcpy(\n    mut dst: *mut c_void,\n    mut src: *const c_void,\n    mut size: size_t,\n) {\n    // SAFETY: The original function requires that `dst` and `src` are valid\n    // for reads/writes of `size` bytes and non-overlapping as for memcpy.\n    // `copy_nonoverlapping` preserves the same byte-for-byte behavior.\n    unsafe {\n        core::ptr::copy_nonoverlapping(src as *const u8, dst as *mut u8, size);\n    }\n}",
+            "start_byte": 8593
+          }
+        ],
+        "facts": {
+          "fn_name": "lodepng_memcpy",
+          "target_span_hash": "cdd1bb36fe97fc881d60494f1d312f2bba8fed7929dadfc3df14452761657652"
+        },
+        "operation_id": "replace-6eaf72c4977b6a73"
+      }
+    ],
+    "resolved_head": "5bfc4d62914268a805f55c10b462300d9b3ac808"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/lodepng.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

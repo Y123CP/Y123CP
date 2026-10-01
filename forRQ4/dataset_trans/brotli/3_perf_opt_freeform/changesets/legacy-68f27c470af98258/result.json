@@ -1,0 +1,94 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be",
+      "changeset_id": "legacy-68f27c470af98258",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-26a039e8daf623e5",
+          "replacement_function_source": "unsafe fn FindBlocksLiteral(\n    mut data: *const uint8_t,\n    length: size_t,\n    block_switch_bitcost: c_double,\n    num_histograms: size_t,\n    mut histograms: *const HistogramLiteral,\n    mut insert_cost: *mut c_double,\n    mut cost: *mut c_double,\n    mut switch_signal: *mut uint8_t,\n    mut block_id: *mut uint8_t,\n) -> size_t {\n    let alphabet_size: size_t = HistogramDataSizeLiteral() as size_t;\n    let bitmap_len: size_t = num_histograms.wrapping_add(7 as size_t) >> 3 as c_int;\n    let mut num_blocks: size_t = 1 as size_t;\n\n    if num_histograms <= 1 as size_t {\n        let mut i: size_t = 0;\n        while i < length {\n            // SAFETY: block_id points to an output buffer of at least `length` bytes per caller contract.\n            unsafe { *block_id.add(i as usize) = 0 as uint8_t };\n            i = i.wrapping_add(1);\n        }\n        return 1 as size_t;\n    }\n\n    memset(\n        insert_cost as *mut c_void,\n        0 as c_int,\n        (::core::mem::size_of::<c_double>() as size_t)\n            .wrapping_mul(alphabet_size)\n            .wrapping_mul(num_histograms),\n    );\n\n    let mut i: size_t = 0;\n    while i < num_histograms {\n        // SAFETY: `histograms` has at least `num_histograms` elements and `insert_cost` has at least that many entries.\n        unsafe {\n            *insert_cost.add(i as usize) =\n                FastLog2((*histograms.add(i as usize)).total_count_ as uint32_t as size_t);\n        }\n        i = i.wrapping_add(1);\n    }\n\n    i = alphabet_size;\n    while i != 0 as size_t {\n        i = i.wrapping_sub(1);\n        let row = i.wrapping_mul(num_histograms);\n        let mut j: size_t = 0;\n        while j < num_histograms {\n            // SAFETY: `histograms` and `insert_cost` are valid for the indexed accesses by construction above.\n            unsafe {\n                *insert_cost.add(row.wrapping_add(j) as usize) =\n                    *insert_cost.add(j as usize)\n                        - BitCost((*histograms.add(j as usize)).data_[i as usize] as size_t);\n            }\n            j = j.wrapping_add(1);\n        }\n    }\n\n    memset(\n        cost as *mut c_void,\n        0 as c_int,\n        (::core::mem::size_of::<c_double>() as size_t).wrapping_mul(num_histograms),\n    );\n    memset(\n        switch_signal as *mut c_void,\n        0 as c_int,\n        (::core::mem::size_of::<uint8_t>() as size_t)\n            .wrapping_mul(length)\n            .wrapping_mul(bitmap_len),\n    );\n\n    static mut prologue_length: size_t = 2000 as size_t;\n    static mut multiplier: c_double = 0.07f64 / 2000 as c_int as c_double;\n\n    let mut byte_ix: size_t = 0;\n    while byte_ix < length {\n        // SAFETY: `data` points to `length` bytes, `cost` to `num_histograms` doubles,\n        // `insert_cost` to `alphabet_size * num_histograms` doubles, and `block_id`/`switch_signal`\n        // to their respective output buffers per caller contract.\n        unsafe {\n            let symbol: size_t = *data.add(byte_ix as usize) as size_t;\n            let insert_row = insert_cost.add(symbol.wrapping_mul(num_histograms) as usize);\n            let cost_ptr = cost;\n            let mut min_cost: c_double = 1e99f64;\n            let mut best_k: size_t = 0;\n            let mut k: size_t = 0;\n\n            while k < num_histograms {\n                let new_cost = *cost_ptr.add(k as usize) + *insert_row.add(k as usize);\n                *cost_ptr.add(k as usize) = new_cost;\n                if new_cost < min_cost {\n                    min_cost = new_cost;\n                    best_k = k;\n                }\n                k = k.wrapping_add(1);\n            }\n            *block_id.add(byte_ix as usize) = best_k as uint8_t;\n\n            let mut block_switch_cost: c_double = block_switch_bitcost;\n            if byte_ix < prologue_length {\n                block_switch_cost *= 0.77f64 + multiplier * byte_ix as c_double;\n            }\n\n            let signal_row = switch_signal.add(byte_ix.wrapping_mul(bitmap_len) as usize);\n            k = 0 as size_t;\n            while k < num_histograms {\n                let mut v = *cost_ptr.add(k as usize) - min_cost;\n                if v >= block_switch_cost {\n                    let mask: uint8_t = ((1 as c_uint) << (k & 7 as size_t)) as uint8_t;\n                    v = block_switch_cost;\n                    let p = signal_row.add((k >> 3 as c_int) as usize);\n                    *p = (*p as c_int | mask as c_int) as uint8_t;\n                }\n                *cost_ptr.add(k as usize) = v;\n                k = k.wrapping_add(1);\n            }\n        }\n\n        byte_ix = byte_ix.wrapping_add(1);\n    }\n\n    let mut byte_ix: size_t = length.wrapping_sub(1 as size_t);\n    let mut ix_0: size_t = byte_ix.wrapping_mul(bitmap_len);\n    // SAFETY: `block_id` has at least `length` bytes and `length > 0` in this path, matching original behavior.\n    let mut cur_id: uint8_t = unsafe { *block_id.add(byte_ix as usize) };\n\n    while byte_ix > 0 as size_t {\n        let mask_0: uint8_t = ((1 as c_uint) << (cur_id as c_int & 7 as c_int)) as uint8_t;\n        byte_ix = byte_ix.wrapping_sub(1);\n        ix_0 = (ix_0 as c_ulong).wrapping_sub(bitmap_len as c_ulong) as size_t as size_t;\n        // SAFETY: `switch_signal` and `block_id` are valid for the indexed accesses during this backward pass.\n        unsafe {\n            if *switch_signal.add(\n                ix_0.wrapping_add((cur_id as c_int >> 3 as c_int) as size_t) as usize,\n            ) as c_int\n                & mask_0 as c_int\n                != 0\n            {\n                let prev_id = *block_id.add(byte_ix as usize);\n                if cur_id as c_int != prev_id as c_int {\n                    cur_id = prev_id;\n                    num_blocks = num_blocks.wrapping_add(1);\n                }\n            }\n            *block_id.add(byte_ix as usize) = cur_id;\n        }\n    }\n\n    num_blocks\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "9e48f3d0c5c68ecb05a1529e547919d5cc62aab8d449f16f01f592dd917b8c78",
+            "file_hint": "src/enc/block_splitter.rs",
+            "qualified_name": "crate::FindBlocksLiteral",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "FindBlocksLiteral-a1814c5125bf",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "FindBlocksLiteral",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "60759ccf20605de97129298beb46710a01f2bbcbea2bc1d9bb63e9d67736b80d",
+            "edit_id": "edit-replace-26a039e8daf623e5",
+            "end_byte": 21782,
+            "operation_id": "replace-26a039e8daf623e5",
+            "relative_path": "src/enc/block_splitter.rs",
+            "replacement_text": "unsafe fn FindBlocksLiteral(\n    mut data: *const uint8_t,\n    length: size_t,\n    block_switch_bitcost: c_double,\n    num_histograms: size_t,\n    mut histograms: *const HistogramLiteral,\n    mut insert_cost: *mut c_double,\n    mut cost: *mut c_double,\n    mut switch_signal: *mut uint8_t,\n    mut block_id: *mut uint8_t,\n) -> size_t {\n    let alphabet_size: size_t = HistogramDataSizeLiteral() as size_t;\n    let bitmap_len: size_t = num_histograms.wrapping_add(7 as size_t) >> 3 as c_int;\n    let mut num_blocks: size_t = 1 as size_t;\n\n    if num_histograms <= 1 as size_t {\n        let mut i: size_t = 0;\n        while i < length {\n            // SAFETY: block_id points to an output buffer of at least `length` bytes per caller contract.\n            unsafe { *block_id.add(i as usize) = 0 as uint8_t };\n            i = i.wrapping_add(1);\n        }\n        return 1 as size_t;\n    }\n\n    memset(\n        insert_cost as *mut c_void,\n        0 as c_int,\n        (::core::mem::size_of::<c_double>() as size_t)\n            .wrapping_mul(alphabet_size)\n            .wrapping_mul(num_histograms),\n    );\n\n    let mut i: size_t = 0;\n    while i < num_histograms {\n        // SAFETY: `histograms` has at least `num_histograms` elements and `insert_cost` has at least that many entries.\n        unsafe {\n            *insert_cost.add(i as usize) =\n                FastLog2((*histograms.add(i as usize)).total_count_ as uint32_t as size_t);\n        }\n        i = i.wrapping_add(1);\n    }\n\n    i = alphabet_size;\n    while i != 0 as size_t {\n        i = i.wrapping_sub(1);\n        let row = i.wrapping_mul(num_histograms);\n        let mut j: size_t = 0;\n        while j < num_histograms {\n            // SAFETY: `histograms` and `insert_cost` are valid for the indexed accesses by construction above.\n            unsafe {\n                *insert_cost.add(row.wrapping_add(j) as usize) =\n                    *insert_cost.add(j as usize)\n                        - BitCost((*histograms.add(j as usize)).data_[i as usize] as size_t);\n            }\n            j = j.wrapping_add(1);\n        }\n    }\n\n    memset(\n        cost as *mut c_void,\n        0 as c_int,\n        (::core::mem::size_of::<c_double>() as size_t).wrapping_mul(num_histograms),\n    );\n    memset(\n        switch_signal as *mut c_void,\n        0 as c_int,\n        (::core::mem::size_of::<uint8_t>() as size_t)\n            .wrapping_mul(length)\n            .wrapping_mul(bitmap_len),\n    );\n\n    static mut prologue_length: size_t = 2000 as size_t;\n    static mut multiplier: c_double = 0.07f64 / 2000 as c_int as c_double;\n\n    let mut byte_ix: size_t = 0;\n    while byte_ix < length {\n        // SAFETY: `data` points to `length` bytes, `cost` to `num_histograms` doubles,\n        // `insert_cost` to `alphabet_size * num_histograms` doubles, and `block_id`/`switch_signal`\n        // to their respective output buffers per caller contract.\n        unsafe {\n            let symbol: size_t = *data.add(byte_ix as usize) as size_t;\n            let insert_row = insert_cost.add(symbol.wrapping_mul(num_histograms) as usize);\n            let cost_ptr = cost;\n            let mut min_cost: c_double = 1e99f64;\n            let mut best_k: size_t = 0;\n            let mut k: size_t = 0;\n\n            while k < num_histograms {\n                let new_cost = *cost_ptr.add(k as usize) + *insert_row.add(k as usize);\n                *cost_ptr.add(k as usize) = new_cost;\n                if new_cost < min_cost {\n                    min_cost = new_cost;\n                    best_k = k;\n                }\n                k = k.wrapping_add(1);\n            }\n            *block_id.add(byte_ix as usize) = best_k as uint8_t;\n\n            let mut block_switch_cost: c_double = block_switch_bitcost;\n            if byte_ix < prologue_length {\n                block_switch_cost *= 0.77f64 + multiplier * byte_ix as c_double;\n            }\n\n            let signal_row = switch_signal.add(byte_ix.wrapping_mul(bitmap_len) as usize);\n            k = 0 as size_t;\n            while k < num_histograms {\n                let mut v = *cost_ptr.add(k as usize) - min_cost;\n                if v >= block_switch_cost {\n                    let mask: uint8_t = ((1 as c_uint) << (k & 7 as size_t)) as uint8_t;\n                    v = block_switch_cost;\n                    let p = signal_row.add((k >> 3 as c_int) as usize);\n                    *p = (*p as c_int | mask as c_int) as uint8_t;\n                }\n                *cost_ptr.add(k as usize) = v;\n                k = k.wrapping_add(1);\n            }\n        }\n\n        byte_ix = byte_ix.wrapping_add(1);\n    }\n\n    let mut byte_ix: size_t = length.wrapping_sub(1 as size_t);\n    let mut ix_0: size_t = byte_ix.wrapping_mul(bitmap_len);\n    // SAFETY: `block_id` has at least `length` bytes and `length > 0` in this path, matching original behavior.\n    let mut cur_id: uint8_t = unsafe { *block_id.add(byte_ix as usize) };\n\n    while byte_ix > 0 as size_t {\n        let mask_0: uint8_t = ((1 as c_uint) << (cur_id as c_int & 7 as c_int)) as uint8_t;\n        byte_ix = byte_ix.wrapping_sub(1);\n        ix_0 = (ix_0 as c_ulong).wrapping_sub(bitmap_len as c_ulong) as size_t as size_t;\n        // SAFETY: `switch_signal` and `block_id` are valid for the indexed accesses during this backward pass.\n        unsafe {\n            if *switch_signal.add(\n                ix_0.wrapping_add((cur_id as c_int >> 3 as c_int) as size_t) as usize,\n            ) as c_int\n                & mask_0 as c_int\n                != 0\n            {\n                let prev_id = *block_id.add(byte_ix as usize);\n                if cur_id as c_int != prev_id as c_int {\n                    cur_id = prev_id;\n                    num_blocks = num_blocks.wrapping_add(1);\n                }\n            }\n            *block_id.add(byte_ix as usize) = cur_id;\n        }\n    }\n\n    num_blocks\n}",
+            "start_byte": 16872
+          }
+        ],
+        "facts": {
+          "fn_name": "FindBlocksLiteral",
+          "target_span_hash": "9e48f3d0c5c68ecb05a1529e547919d5cc62aab8d449f16f01f592dd917b8c78"
+        },
+        "operation_id": "replace-26a039e8daf623e5"
+      }
+    ],
+    "resolved_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_post_validation",
+  "touched_paths": [
+    "src/enc/block_splitter.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "added_bounds_check_in_loop",
+      "detail": "rewrite adds a bounds check inside a loop the original indexed unchecked (1 site(s)): (*histograms.add(j as usize)).data_[i as usize]",
+      "ok": false
+    }
+  ]
+}

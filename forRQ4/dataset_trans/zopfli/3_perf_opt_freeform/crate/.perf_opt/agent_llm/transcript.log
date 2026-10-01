@@ -1,0 +1,4289 @@
+================================================================================
+TIMESTAMP : 2026-09-11 09:20:39
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : BoundaryPM
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/zopfli/3_perf_opt_freeform/crate/src/katajainen.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 2752
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/katajainen.rs
+symbol: BoundaryPM
+signature: unsafe fn BoundaryPM(
+    mut lists: *mut [*mut Node; 2],
+    mut leaves: *mut Node,
+    mut numsymbols: c_int,
+    mut pool: *mut NodePool,
+    mut index: c_int,
+)
+location: 42..111  (attrs included)
+
+```rust
+unsafe fn BoundaryPM(
+    mut lists: *mut [*mut Node; 2],
+    mut leaves: *mut Node,
+    mut numsymbols: c_int,
+    mut pool: *mut NodePool,
+    mut index: c_int,
+) {
+    let mut newchain: *mut Node = ::core::ptr::null_mut::<Node>();
+    let mut oldchain: *mut Node = ::core::ptr::null_mut::<Node>();
+    let mut lastcount: c_int =
+        (*(*lists.offset(index as isize))[1 as c_int as usize]).count;
+    if index == 0 as c_int && lastcount >= numsymbols {
+        return;
+    }
+    let fresh4 = (*pool).next;
+    (*pool).next = (*pool).next.offset(1);
+    newchain = fresh4;
+    oldchain = (*lists.offset(index as isize))[1 as c_int as usize];
+    let ref mut fresh5 = (*lists.offset(index as isize))[0 as c_int as usize];
+    *fresh5 = oldchain;
+    let ref mut fresh6 = (*lists.offset(index as isize))[1 as c_int as usize];
+    *fresh6 = newchain;
+    if index == 0 as c_int {
+        InitNode(
+            (*leaves.offset(lastcount as isize)).weight,
+            lastcount + 1 as c_int,
+            ::core::ptr::null_mut::<Node>(),
+            newchain,
+        );
+    } else {
+        let mut sum: size_t = (*(*lists.offset((index - 1 as c_int) as isize))
+            [0 as c_int as usize])
+            .weight
+            .wrapping_add(
+                (*(*lists.offset((index - 1 as c_int) as isize))
+                    [1 as c_int as usize])
+                    .weight,
+            );
+        if lastcount < numsymbols && sum > (*leaves.offset(lastcount as isize)).weight {
+            InitNode(
+                (*leaves.offset(lastcount as isize)).weight,
+                lastcount + 1 as c_int,
+                (*oldchain).tail,
+                newchain,
+            );
+        } else {
+            InitNode(
+                sum,
+                lastcount,
+                (*lists.offset((index - 1 as c_int) as isize))
+                    [1 as c_int as usize],
+                newchain,
+            );
+            BoundaryPM(
+                lists,
+                leaves,
+                numsymbols,
+                pool,
+                index - 1 as c_int,
+            );
+            BoundaryPM(
+                lists,
+                leaves,
+                numsymbols,
+                pool,
+                index - 1 as c_int,
+            );
+        }
+    };
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct Node {
+    pub weight: size_t,
+    pub tail: *mut Node,
+    pub count: c_int,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct NodePool {
+    pub next: *mut Node,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+unsafe fn BoundaryPM(
+    mut lists: *mut [*mut Node; 2],
+    mut leaves: *mut Node,
+    mut numsymbols: c_int,
+    mut pool: *mut NodePool,
+    mut index: c_int,
+) {
+    let list = unsafe { &mut *lists.offset(index as isize) }; // SAFETY: caller guarantees `lists` points to a valid array of list entries; `index` is used identically to the original code.
+    let oldchain = list[1];
+    let lastcount = unsafe { (*oldchain).count }; // SAFETY: `list[1]` is assumed valid by the original function and dereferenced there as well.
+
+    if index == 0 && lastcount >= numsymbols {
+        return;
+    }
+
+    let newchain = unsafe {
+        let p = (*pool).next;
+        (*pool).next = p.offset(1);
+        p
+    }; // SAFETY: caller guarantees `pool->next` points into a valid node pool with available capacity, matching the original code's assumptions.
+
+    list[0] = oldchain;
+    list[1] = newchain;
+
+    if index == 0 {
+        let leaf_weight = unsafe { (*leaves.offset(lastcount as isize)).weight }; // SAFETY: when reached, `lastcount < numsymbols` per the early-return condition, matching original valid access assumptions.
+        unsafe {
+            InitNode(
+                leaf_weight,
+                lastcount + 1,
+                ::core::ptr::null_mut::<Node>(),
+                newchain,
+            );
+        } // SAFETY: `newchain` is freshly allocated from the node pool and valid for initialization, as in the original.
+        return;
+    }
+
+    let prev = unsafe { &mut *lists.offset((index - 1) as isize) }; // SAFETY: `index > 0` here, and the caller/original code assumes the previous list entry exists and is valid.
+    let sum = unsafe { (*prev[0]).weight.wrapping_add((*prev[1]).weight) }; // SAFETY: `prev[0]` and `prev[1]` are dereferenced in the original under the same conditions.
+
+    if lastcount < numsymbols {
+        let leaf = unsafe { &*leaves.offset(lastcount as isize) }; // SAFETY: guarded by `lastcount < numsymbols`, matching the original valid leaf access.
+        if sum > leaf.weight {
+            unsafe {
+                InitNode(leaf.weight, lastcount + 1, (*oldchain).tail, newchain);
+            } // SAFETY: `oldchain` and `newchain` are valid as assumed by the original; this exactly mirrors original initialization.
+            return;
+        }
+    }
+
+    unsafe {
+        InitNode(sum, lastcount, prev[1], newchain);
+    } // SAFETY: `newchain` is valid for initialization and `prev[1]` is a valid tail pointer under the original assumptions.
+
+    unsafe {
+        BoundaryPM(lists, leaves, numsymbols, pool, index - 1);
+        BoundaryPM(lists, leaves, numsymbols, pool, index - 1);
+    } // SAFETY: recursive calls preserve the same preconditions as the original implementation.
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-11 11:09:46
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : ZopfliLengthLimitedCodeLengths
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/zopfli/3_perf_opt_freeform/crate/src/katajainen.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 4742
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/katajainen.rs
+symbol: ZopfliLengthLimitedCodeLengths
+signature: #[inline]
+pub unsafe fn ZopfliLengthLimitedCodeLengths(
+    mut frequencies: *const size_t,
+    mut n: c_int,
+    mut maxbits: c_int,
+    mut bitlengths: *mut c_uint,
+) -> c_int
+location: 217..347  (attrs included)
+
+```rust
+#[inline]
+pub unsafe fn ZopfliLengthLimitedCodeLengths(
+    mut frequencies: *const size_t,
+    mut n: c_int,
+    mut maxbits: c_int,
+    mut bitlengths: *mut c_uint,
+) -> c_int {
+    let frequencies_view: &[size_t] = unsafe { core::slice::from_raw_parts(frequencies, (n) as usize) };
+    let mut pool: NodePool = NodePool {
+        next: ::core::ptr::null_mut::<Node>(),
+    };
+    let mut i: c_int = 0;
+    let mut numsymbols: c_int = 0 as c_int;
+    let mut numBoundaryPMRuns: c_int = 0;
+    let mut nodes: *mut Node = ::core::ptr::null_mut::<Node>();
+    let mut lists: *mut [*mut Node; 2] = ::core::ptr::null_mut::<[*mut Node; 2]>();
+    let mut leaves: *mut Node =
+        malloc((n as size_t).wrapping_mul(::core::mem::size_of::<Node>() as size_t)) as *mut Node;
+    i = 0 as c_int;
+    while i < n {
+        *bitlengths.offset(i as isize) = 0 as c_uint;
+        i += 1;
+    }
+    i = 0 as c_int;
+    while i < n {
+        if frequencies_view[(i) as usize] != 0 {
+            (*leaves.offset(numsymbols as isize)).weight = frequencies_view[(i) as usize];
+            (*leaves.offset(numsymbols as isize)).count = i;
+            numsymbols += 1;
+        }
+        i += 1;
+    }
+    if (1 as c_int) << maxbits < numsymbols {
+        free(leaves as *mut c_void);
+        return 1 as c_int;
+    }
+    if numsymbols == 0 as c_int {
+        free(leaves as *mut c_void);
+        return 0 as c_int;
+    }
+    if numsymbols == 1 as c_int {
+        *bitlengths.offset((*leaves.offset(0 as c_int as isize)).count as isize) =
+            1 as c_uint;
+        free(leaves as *mut c_void);
+        return 0 as c_int;
+    }
+    if numsymbols == 2 as c_int {
+        let ref mut fresh0 =
+            *bitlengths.offset((*leaves.offset(0 as c_int as isize)).count as isize);
+        *fresh0 = (*fresh0).wrapping_add(1);
+        let ref mut fresh1 =
+            *bitlengths.offset((*leaves.offset(1 as c_int as isize)).count as isize);
+        *fresh1 = (*fresh1).wrapping_add(1);
+        free(leaves as *mut c_void);
+        return 0 as c_int;
+    }
+    i = 0 as c_int;
+    while i < numsymbols {
+        if (*leaves.offset(i as isize)).weight
+            >= (1 as c_int as size_t)
+                << (::core::mem::size_of::<size_t>() as usize)
+                    .wrapping_mul(CHAR_BIT as usize)
+                    .wrapping_sub(9 as usize)
+        {
+            free(leaves as *mut c_void);
+            return 1 as c_int;
+        }
+        (*leaves.offset(i as isize)).weight = (*leaves.offset(i as isize)).weight
+            << 9 as c_int
+            | (*leaves.offset(i as isize)).count as size_t;
+        i += 1;
+    }
+    qsort(
+        leaves as *mut c_void,
+        numsymbols as size_t,
+        ::core::mem::size_of::<Node>() as size_t,
+        Some(
+            LeafComparator
+                as unsafe extern "C" fn(
+                    *const c_void,
+                    *const c_void,
+                ) -> c_int,
+        ),
+    );
+    i = 0 as c_int;
+    while i < numsymbols {
+        (*leaves.offset(i as isize)).weight >>= 9 as c_int;
+        i += 1;
+    }
+    if (numsymbols - 1 as c_int) < maxbits {
+        maxbits = numsymbols - 1 as c_int;
+    }
+    nodes = malloc(
+        ((maxbits * 2 as c_int * numsymbols) as size_t)
+            .wrapping_mul(::core::mem::size_of::<Node>() as size_t),
+    ) as *mut Node;
+    pool.next = nodes;
+    lists = malloc(
+        (maxbits as size_t).wrapping_mul(::core::mem::size_of::<[*mut Node; 2]>() as size_t),
+    ) as *mut [*mut Node; 2];
+    InitLists(&raw mut pool, leaves, maxbits, lists);
+    numBoundaryPMRuns = 2 as c_int * numsymbols - 4 as c_int;
+    i = 0 as c_int;
+    while i < numBoundaryPMRuns - 1 as c_int {
+        BoundaryPM(
+            lists,
+            leaves,
+            numsymbols,
+            &raw mut pool,
+            maxbits - 1 as c_int,
+        );
+        i += 1;
+    }
+    BoundaryPMFinal(
+        lists,
+        leaves,
+        numsymbols,
+        &raw mut pool,
+        maxbits - 1 as c_int,
+    );
+    ExtractBitLengths(
+        (*lists.offset((maxbits - 1 as c_int) as isize))
+            [1 as c_int as usize],
+        leaves,
+        bitlengths,
+    );
+    free(lists as *mut c_void);
+    free(leaves as *mut c_void);
+    free(nodes as *mut c_void);
+    return 0 as c_int;
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct Node {
+    pub weight: size_t,
+    pub tail: *mut Node,
+    pub count: c_int,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct NodePool {
+    pub next: *mut Node,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+pub unsafe fn ZopfliLengthLimitedCodeLengths(
+    mut frequencies: *const size_t,
+    mut n: c_int,
+    mut maxbits: c_int,
+    mut bitlengths: *mut c_uint,
+) -> c_int {
+    // SAFETY: caller provides `frequencies` valid for `n` elements per original function contract.
+    let frequencies_view: &[size_t] =
+        unsafe { core::slice::from_raw_parts(frequencies, n as usize) };
+
+    let mut pool = NodePool {
+        next: ::core::ptr::null_mut::<Node>(),
+    };
+    let mut numsymbols: c_int = 0;
+    let mut numBoundaryPMRuns: c_int;
+    let mut nodes: *mut Node;
+    let mut lists: *mut [*mut Node; 2];
+
+    let leaves_size =
+        (n as size_t).wrapping_mul(::core::mem::size_of::<Node>() as size_t);
+    let leaves: *mut Node = malloc(leaves_size) as *mut Node;
+
+    let n_usize = n as usize;
+    let mut i = 0usize;
+    while i < n_usize {
+        // SAFETY: `bitlengths` is valid for `n` elements per original function contract, and `i < n`.
+        unsafe { *bitlengths.add(i) = 0 as c_uint };
+        i += 1;
+    }
+
+    i = 0;
+    while i < n_usize {
+        let freq = frequencies_view[i];
+        if freq != 0 {
+            // SAFETY: `leaves` points to allocation for `n` Nodes, and `numsymbols <= i < n`.
+            unsafe {
+                let leaf = leaves.add(numsymbols as usize);
+                (*leaf).weight = freq;
+                (*leaf).count = i as c_int;
+            }
+            numsymbols += 1;
+        }
+        i += 1;
+    }
+
+    if (1 as c_int) << maxbits < numsymbols {
+        free(leaves as *mut c_void);
+        return 1 as c_int;
+    }
+    if numsymbols == 0 {
+        free(leaves as *mut c_void);
+        return 0 as c_int;
+    }
+    if numsymbols == 1 {
+        // SAFETY: `numsymbols == 1` means first leaf exists; stored count is original symbol index in range.
+        unsafe {
+            *bitlengths.add((*leaves).count as usize) = 1 as c_uint;
+        }
+        free(leaves as *mut c_void);
+        return 0 as c_int;
+    }
+    if numsymbols == 2 {
+        // SAFETY: `numsymbols == 2` means first two leaves exist; counts are valid original symbol indices.
+        unsafe {
+            let c0 = (*leaves).count as usize;
+            let c1 = (*leaves.add(1)).count as usize;
+            *bitlengths.add(c0) = (*bitlengths.add(c0)).wrapping_add(1);
+            *bitlengths.add(c1) = (*bitlengths.add(c1)).wrapping_add(1);
+        }
+        free(leaves as *mut c_void);
+        return 0 as c_int;
+    }
+
+    let limit = (1 as c_int as size_t)
+        << (::core::mem::size_of::<size_t>() as usize)
+            .wrapping_mul(CHAR_BIT as usize)
+            .wrapping_sub(9usize);
+
+    i = 0;
+    let numsymbols_usize = numsymbols as usize;
+    while i < numsymbols_usize {
+        // SAFETY: `i < numsymbols <= n`, so this leaf is within allocation.
+        unsafe {
+            let leaf = leaves.add(i);
+            let weight = (*leaf).weight;
+            if weight >= limit {
+                free(leaves as *mut c_void);
+                return 1 as c_int;
+            }
+            (*leaf).weight = (weight << 9) | ((*leaf).count as size_t);
+        }
+        i += 1;
+    }
+
+    qsort(
+        leaves as *mut c_void,
+        numsymbols as size_t,
+        ::core::mem::size_of::<Node>() as size_t,
+        Some(
+            LeafComparator
+                as unsafe extern "C" fn(*const c_void, *const c_void) -> c_int,
+        ),
+    );
+
+    i = 0;
+    while i < numsymbols_usize {
+        // SAFETY: `i < numsymbols <= n`, so this leaf is within allocation.
+        unsafe {
+            (*leaves.add(i)).weight >>= 9;
+        }
+        i += 1;
+    }
+
+    if numsymbols - 1 < maxbits {
+        maxbits = numsymbols - 1;
+    }
+
+    let nodes_len = (maxbits * 2 * numsymbols) as size_t;
+    nodes = malloc(
+        nodes_len.wrapping_mul(::core::mem::size_of::<Node>() as size_t),
+    ) as *mut Node;
+    pool.next = nodes;
+
+    lists = malloc(
+        (maxbits as size_t)
+            .wrapping_mul(::core::mem::size_of::<[*mut Node; 2]>() as size_t),
+    ) as *mut [*mut Node; 2];
+
+    InitLists(&raw mut pool, leaves, maxbits, lists);
+
+    numBoundaryPMRuns = 2 * numsymbols - 4;
+    let last = maxbits - 1;
+    let mut run = 0;
+    while run < (numBoundaryPMRuns - 1) as usize {
+        BoundaryPM(lists, leaves, numsymbols, &raw mut pool, last);
+        run += 1;
+    }
+
+    BoundaryPMFinal(lists, leaves, numsymbols, &raw mut pool, last);
+
+    ExtractBitLengths(
+        // SAFETY: `last` is in-bounds for `lists` allocation and list slot [1] exists by type.
+        unsafe { (*lists.add(last as usize))[1] },
+        leaves,
+        bitlengths,
+    );
+
+    free(lists as *mut c_void);
+    free(leaves as *mut c_void);
+    free(nodes as *mut c_void);
+    0 as c_int
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-11 12:47:55
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : GetBestLengths
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/zopfli/3_perf_opt_freeform/crate/src/squeeze.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 5851
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/squeeze.rs
+symbol: GetBestLengths
+signature: unsafe fn GetBestLengths(
+    mut s: *mut ZopfliBlockState,
+    mut in_0: *const c_uchar,
+    mut instart: size_t,
+    mut inend: size_t,
+    mut costmodel: Option<CostModelFun>,
+    mut costcontext: *mut c_void,
+    mut length_array: *mut c_ushort,
+    mut h: *mut ZopfliHash,
+    mut costs: *mut c_float,
+) -> c_double
+location: 299..433  (attrs included)
+
+```rust
+unsafe fn GetBestLengths(
+    mut s: *mut ZopfliBlockState,
+    mut in_0: *const c_uchar,
+    mut instart: size_t,
+    mut inend: size_t,
+    mut costmodel: Option<CostModelFun>,
+    mut costcontext: *mut c_void,
+    mut length_array: *mut c_ushort,
+    mut h: *mut ZopfliHash,
+    mut costs: *mut c_float,
+) -> c_double {
+    let mut blocksize: size_t = inend.wrapping_sub(instart);
+    let mut i: size_t = 0 as size_t;
+    let mut k: size_t = 0;
+    let mut kend: size_t = 0;
+    let mut leng: c_ushort = 0;
+    let mut dist: c_ushort = 0;
+    let mut sublen: [c_ushort; 259] = [0; 259];
+    let mut windowstart: size_t = if instart > ZOPFLI_WINDOW_SIZE as size_t {
+        instart.wrapping_sub(ZOPFLI_WINDOW_SIZE as size_t)
+    } else {
+        0 as size_t
+    };
+    let mut result: c_double = 0.;
+    let mut mincost: c_double = GetCostModelMinCost(costmodel, costcontext);
+    let mut mincostaddcostj: c_double = 0.;
+    if instart == inend {
+        return 0 as c_int as c_double;
+    }
+    ZopfliResetHash(ZOPFLI_WINDOW_SIZE as size_t, h);
+    ZopfliWarmupHash(in_0, windowstart, inend, h);
+    i = windowstart;
+    while i < instart {
+        ZopfliUpdateHash(in_0, i, inend, h);
+        i = i.wrapping_add(1);
+    }
+    i = 1 as size_t;
+    while i < blocksize.wrapping_add(1 as size_t) {
+        *costs.offset(i as isize) = ZOPFLI_LARGE_FLOAT as c_float;
+        i = i.wrapping_add(1);
+    }
+    *costs.offset(0 as c_int as isize) =
+        0 as c_int as c_float;
+    *length_array.offset(0 as c_int as isize) = 0 as c_ushort;
+    i = instart;
+    while i < inend {
+        let mut j: size_t = i.wrapping_sub(instart);
+        ZopfliUpdateHash(in_0, i, inend, h);
+        if *(*h)
+            .same
+            .offset((i & ZOPFLI_WINDOW_MASK as size_t) as isize) as c_int
+            > ZOPFLI_MAX_MATCH * 2 as c_int
+            && i > instart
+                .wrapping_add(ZOPFLI_MAX_MATCH as size_t)
+                .wrapping_add(1 as size_t)
+            && i.wrapping_add((ZOPFLI_MAX_MATCH * 2 as c_int) as size_t)
+                .wrapping_add(1 as size_t)
+                < inend
+            && *(*h).same.offset(
+                (i.wrapping_sub(ZOPFLI_MAX_MATCH as size_t) & ZOPFLI_WINDOW_MASK as size_t)
+                    as isize,
+            ) as c_int
+                > ZOPFLI_MAX_MATCH
+        {
+            let mut symbolcost: c_double = costmodel
+                .expect("non-null function pointer")(
+                ZOPFLI_MAX_MATCH as c_uint,
+                1 as c_uint,
+                costcontext,
+            );
+            k = 0 as size_t;
+            while k < ZOPFLI_MAX_MATCH as size_t {
+                *costs.offset(j.wrapping_add(ZOPFLI_MAX_MATCH as size_t) as isize) =
+                    (*costs.offset(j as isize) as c_double + symbolcost)
+                        as c_float;
+                *length_array.offset(j.wrapping_add(ZOPFLI_MAX_MATCH as size_t) as isize) =
+                    ZOPFLI_MAX_MATCH as c_ushort;
+                i = i.wrapping_add(1);
+                j = j.wrapping_add(1);
+                ZopfliUpdateHash(in_0, i, inend, h);
+                k = k.wrapping_add(1);
+            }
+        }
+        ZopfliFindLongestMatch(
+            s,
+            h,
+            in_0,
+            i,
+            inend,
+            ZOPFLI_MAX_MATCH as size_t,
+            &raw mut sublen as *mut c_ushort,
+            &raw mut dist,
+            &raw mut leng,
+        );
+        if i.wrapping_add(1 as size_t) <= inend {
+            let mut newCost: c_double = costmodel.expect("non-null function pointer")(
+                *in_0.offset(i as isize) as c_uint,
+                0 as c_uint,
+                costcontext,
+            ) + *costs.offset(j as isize)
+                as c_double;
+            if newCost
+                < *costs.offset(j.wrapping_add(1 as size_t) as isize) as c_double
+            {
+                *costs.offset(j.wrapping_add(1 as size_t) as isize) =
+                    newCost as c_float;
+                *length_array.offset(j.wrapping_add(1 as size_t) as isize) =
+                    1 as c_ushort;
+            }
+        }
+        kend = zopfli_min(leng as size_t, inend.wrapping_sub(i));
+        mincostaddcostj = mincost + *costs.offset(j as isize) as c_double;
+        k = 3 as size_t;
+        while k <= kend {
+            let mut newCost_0: c_double = 0.;
+            if !(*costs.offset(j.wrapping_add(k) as isize) as c_double
+                <= mincostaddcostj)
+            {
+                newCost_0 = costmodel.expect("non-null function pointer")(
+                    k as c_uint,
+                    sublen[k as usize] as c_uint,
+                    costcontext,
+                ) + *costs.offset(j as isize) as c_double;
+                if newCost_0 < *costs.offset(j.wrapping_add(k) as isize) as c_double {
+                    *costs.offset(j.wrapping_add(k) as isize) = newCost_0 as c_float;
+                    *length_array.offset(j.wrapping_add(k) as isize) = k as c_ushort;
+                }
+            }
+            k = k.wrapping_add(1);
+        }
+        i = i.wrapping_add(1);
+    }
+    result = *costs.offset(blocksize as isize) as c_double;
+    return result;
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct ZopfliBlockState {
+    pub options: *const ZopfliOptions,
+    pub lmc: *mut ZopfliLongestMatchCache,
+    pub blockstart: size_t,
+    pub blockend: size_t,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct ZopfliHash {
+    pub head: *mut c_int,
+    pub prev: *mut c_ushort,
+    pub hashval: *mut c_int,
+    pub val: c_int,
+    pub head2: *mut c_int,
+    pub prev2: *mut c_ushort,
+    pub hashval2: *mut c_int,
+    pub val2: c_int,
+    pub same: *mut c_ushort,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct ZopfliOptions {
+    pub verbose: c_int,
+    pub verbose_more: c_int,
+    pub numiterations: c_int,
+    pub blocksplitting: c_int,
+    pub blocksplittinglast: c_int,
+    pub blocksplittingmax: c_int,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct ZopfliLongestMatchCache {
+    pub length: *mut c_ushort,
+    pub dist: *mut c_ushort,
+    pub sublen: *mut c_uchar,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+unsafe fn GetBestLengths(
+    mut s: *mut ZopfliBlockState,
+    mut in_0: *const c_uchar,
+    mut instart: size_t,
+    mut inend: size_t,
+    mut costmodel: Option<CostModelFun>,
+    mut costcontext: *mut c_void,
+    mut length_array: *mut c_ushort,
+    mut h: *mut ZopfliHash,
+    mut costs: *mut c_float,
+) -> c_double {
+    let blocksize: size_t = inend.wrapping_sub(instart);
+    let mut sublen: [c_ushort; 259] = [0; 259];
+    let windowstart: size_t = if instart > ZOPFLI_WINDOW_SIZE as size_t {
+        instart.wrapping_sub(ZOPFLI_WINDOW_SIZE as size_t)
+    } else {
+        0 as size_t
+    };
+    let mincost: c_double = GetCostModelMinCost(costmodel, costcontext);
+
+    if instart == inend {
+        return 0 as c_int as c_double;
+    }
+
+    let costfn = costmodel.expect("non-null function pointer");
+
+    ZopfliResetHash(ZOPFLI_WINDOW_SIZE as size_t, h);
+    ZopfliWarmupHash(in_0, windowstart, inend, h);
+
+    let mut i = windowstart;
+    while i < instart {
+        ZopfliUpdateHash(in_0, i, inend, h);
+        i = i.wrapping_add(1);
+    }
+
+    i = 1 as size_t;
+    while i < blocksize.wrapping_add(1) {
+        // SAFETY: caller provides costs with at least blocksize + 1 elements; i is in 1..=blocksize here.
+        unsafe { *costs.add(i) = ZOPFLI_LARGE_FLOAT as c_float; }
+        i = i.wrapping_add(1);
+    }
+    // SAFETY: caller provides costs and length_array with at least 1 element.
+    unsafe {
+        *costs.add(0) = 0 as c_int as c_float;
+        *length_array.add(0) = 0 as c_ushort;
+    }
+
+    let h_same = (*h).same;
+    let window_mask = ZOPFLI_WINDOW_MASK as size_t;
+    let max_match_usize = ZOPFLI_MAX_MATCH as size_t;
+    let max_match_ushort = ZOPFLI_MAX_MATCH as c_ushort;
+
+    i = instart;
+    while i < inend {
+        let mut j: size_t = i.wrapping_sub(instart);
+        ZopfliUpdateHash(in_0, i, inend, h);
+
+        // SAFETY: h_same points to the same ring buffer used by the original code; masked indices stay in range.
+        let same_i = unsafe { *h_same.add(i & window_mask) as c_int };
+        if same_i > ZOPFLI_MAX_MATCH * 2 as c_int
+            && i > instart.wrapping_add(max_match_usize).wrapping_add(1)
+            && i.wrapping_add((ZOPFLI_MAX_MATCH * 2 as c_int) as size_t)
+                .wrapping_add(1)
+                < inend
+            // SAFETY: same as above; masked index stays in range.
+            && unsafe {
+                *h_same.add(i.wrapping_sub(max_match_usize) & window_mask) as c_int
+            } > ZOPFLI_MAX_MATCH
+        {
+            let symbolcost: c_double = costfn(ZOPFLI_MAX_MATCH as c_uint, 1 as c_uint, costcontext);
+            // SAFETY: j is within block, so costs[j] is valid.
+            let base_cost = unsafe { *costs.add(j) as c_double };
+            let fill_cost = (base_cost + symbolcost) as c_float;
+            let target = j.wrapping_add(max_match_usize);
+
+            // SAFETY: target is within 0..=blocksize as in original logic.
+            unsafe {
+                *costs.add(target) = fill_cost;
+                *length_array.add(target) = max_match_ushort;
+            }
+
+            let mut k = 0usize;
+            while k < max_match_usize {
+                i = i.wrapping_add(1);
+                j = j.wrapping_add(1);
+                ZopfliUpdateHash(in_0, i, inend, h);
+                // SAFETY: target remains within initialized DP arrays during this fast-forward path.
+                unsafe {
+                    *costs.add(j.wrapping_add(max_match_usize)) = fill_cost;
+                    *length_array.add(j.wrapping_add(max_match_usize)) = max_match_ushort;
+                }
+                k = k.wrapping_add(1);
+            }
+        }
+
+        let mut dist: c_ushort = 0;
+        let mut leng: c_ushort = 0;
+        ZopfliFindLongestMatch(
+            s,
+            h,
+            in_0,
+            i,
+            inend,
+            max_match_usize,
+            &raw mut sublen as *mut c_ushort,
+            &raw mut dist,
+            &raw mut leng,
+        );
+
+        // SAFETY: j is within block, so costs[j] is valid.
+        let cost_j = unsafe { *costs.add(j) as c_double };
+
+        if i.wrapping_add(1) <= inend {
+            let new_cost: c_double =
+                costfn(
+                    // SAFETY: i < inend in loop condition, so input byte is valid.
+                    unsafe { *in_0.add(i) as c_uint },
+                    0 as c_uint,
+                    costcontext,
+                ) + cost_j;
+            let next = j.wrapping_add(1);
+            // SAFETY: next is within 1..=blocksize.
+            unsafe {
+                if new_cost < *costs.add(next) as c_double {
+                    *costs.add(next) = new_cost as c_float;
+                    *length_array.add(next) = 1 as c_ushort;
+                }
+            }
+        }
+
+        let kend = zopfli_min(leng as size_t, inend.wrapping_sub(i));
+        let mincostaddcostj: c_double = mincost + cost_j;
+        let mut k = 3usize;
+        while k <= kend {
+            let idx = j.wrapping_add(k);
+            // SAFETY: idx is within DP array bounds by construction.
+            let old_cost = unsafe { *costs.add(idx) as c_double };
+            if !(old_cost <= mincostaddcostj) {
+                let new_cost =
+                    costfn(k as c_uint, sublen[k as usize] as c_uint, costcontext) + cost_j;
+                if new_cost < old_cost {
+                    // SAFETY: idx is within DP array bounds by construction.
+                    unsafe {
+                        *costs.add(idx) = new_cost as c_float;
+                        *length_array.add(idx) = k as c_ushort;
+                    }
+                }
+            }
+            k = k.wrapping_add(1);
+        }
+
+        i = i.wrapping_add(1);
+    }
+
+    // SAFETY: blocksize is within the allocated DP arrays.
+    unsafe { *costs.add(blocksize) as c_double }
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-11 12:48:19
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : ZopfliFindLongestMatch
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/zopfli/3_perf_opt_freeform/crate/src/lz77.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 6093
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/lz77.rs
+symbol: ZopfliFindLongestMatch
+signature: #[inline]
+pub unsafe fn ZopfliFindLongestMatch(
+    mut s: *mut ZopfliBlockState,
+    mut h: *const ZopfliHash,
+    mut array: *const c_uchar,
+    mut pos: size_t,
+    mut size: size_t,
+    mut limit: size_t,
+    mut sublen: *mut c_ushort,
+    mut distance: *mut c_ushort,
+    mut length: *mut c_ushort,
+)
+location: 664..798  (attrs included)
+
+```rust
+#[inline]
+pub unsafe fn ZopfliFindLongestMatch(
+    mut s: *mut ZopfliBlockState,
+    mut h: *const ZopfliHash,
+    mut array: *const c_uchar,
+    mut pos: size_t,
+    mut size: size_t,
+    mut limit: size_t,
+    mut sublen: *mut c_ushort,
+    mut distance: *mut c_ushort,
+    mut length: *mut c_ushort,
+) {
+    let h_view: &ZopfliHash = unsafe { &*h };
+    let mut hpos: c_ushort =
+        (pos & ZOPFLI_WINDOW_MASK as size_t) as c_ushort;
+    let mut p: c_ushort = 0;
+    let mut pp: c_ushort = 0;
+    let mut bestdist: c_ushort = 0 as c_ushort;
+    let mut bestlength: c_ushort = 1 as c_ushort;
+    let mut scan: *const c_uchar = ::core::ptr::null::<c_uchar>();
+    let mut match_0: *const c_uchar = ::core::ptr::null::<c_uchar>();
+    let mut arrayend: *const c_uchar = ::core::ptr::null::<c_uchar>();
+    let mut arrayend_safe: *const c_uchar =
+        ::core::ptr::null::<c_uchar>();
+    let mut chain_counter: c_int = ZOPFLI_MAX_CHAIN_HITS;
+    let mut dist: c_uint = 0 as c_uint;
+    let mut hhead: *mut c_int = h_view.head;
+    let mut hprev: *mut c_ushort = h_view.prev;
+    let mut hhashval: *mut c_int = h_view.hashval;
+    let mut hval: c_int = h_view.val;
+    if TryGetFromLongestMatchCache(s, pos, &raw mut limit, sublen, distance, length) != 0 {
+        return;
+    }
+    if size.wrapping_sub(pos) < ZOPFLI_MIN_MATCH as size_t {
+        *length = 0 as c_ushort;
+        *distance = 0 as c_ushort;
+        return;
+    }
+    if pos.wrapping_add(limit) > size {
+        limit = size.wrapping_sub(pos);
+    }
+    arrayend = (array.offset(pos as isize) as *const c_uchar).offset(limit as isize);
+    arrayend_safe = arrayend.offset(-(8 as c_int as isize));
+    pp = *hhead.offset(hval as isize) as c_ushort;
+    p = *hprev.offset(pp as isize);
+    dist = (if (p as c_int) < pp as c_int {
+        pp as c_int - p as c_int
+    } else {
+        ZOPFLI_WINDOW_SIZE - p as c_int + pp as c_int
+    }) as c_uint;
+    while dist < ZOPFLI_WINDOW_SIZE as c_uint {
+        let mut currentlength: c_ushort = 0 as c_ushort;
+        if dist > 0 as c_uint {
+            scan = array.offset(pos as isize) as *const c_uchar;
+            match_0 = array.offset(pos.wrapping_sub(dist as size_t) as isize)
+                as *const c_uchar;
+            if pos.wrapping_add(bestlength as size_t) >= size
+                || *scan.offset(bestlength as c_int as isize) as c_int
+                    == *match_0.offset(bestlength as c_int as isize)
+                        as c_int
+            {
+                let mut same0: c_ushort = *h_view
+                    .same
+                    .offset((pos & ZOPFLI_WINDOW_MASK as size_t) as isize);
+                if same0 as c_int > 2 as c_int
+                    && *scan as c_int == *match_0 as c_int
+                {
+                    let mut same1: c_ushort = *h_view.same.offset(
+                        (pos.wrapping_sub(dist as size_t) & ZOPFLI_WINDOW_MASK as size_t) as isize,
+                    );
+                    let mut same: c_ushort =
+                        (if (same0 as c_int) < same1 as c_int {
+                            same0 as c_int
+                        } else {
+                            same1 as c_int
+                        }) as c_ushort;
+                    if same as size_t > limit {
+                        same = limit as c_ushort;
+                    }
+                    scan = scan.offset(same as c_int as isize);
+                    match_0 = match_0.offset(same as c_int as isize);
+                }
+                scan = GetMatch(scan, match_0, arrayend, arrayend_safe);
+                currentlength = scan
+                    .offset_from(array.offset(pos as isize) as *const c_uchar)
+                    as c_long as c_ushort;
+            }
+            if currentlength as c_int > bestlength as c_int {
+                if !sublen.is_null() {
+                    let mut j: c_ushort = 0;
+                    j = (bestlength as c_int + 1 as c_int)
+                        as c_ushort;
+                    while j as c_int <= currentlength as c_int {
+                        *sublen.offset(j as isize) = dist as c_ushort;
+                        j = j.wrapping_add(1);
+                    }
+                }
+                bestdist = dist as c_ushort;
+                bestlength = currentlength;
+                if currentlength as size_t >= limit {
+                    break;
+                }
+            }
+        }
+        if hhead != h_view.head2
+            && bestlength as c_int
+                >= *h_view.same.offset(hpos as isize) as c_int
+            && h_view.val2 == *h_view.hashval2.offset(p as isize)
+        {
+            hhead = h_view.head2;
+            hprev = h_view.prev2;
+            hhashval = h_view.hashval2;
+            hval = h_view.val2;
+        }
+        pp = p;
+        p = *hprev.offset(p as isize);
+        if p as c_int == pp as c_int {
+            break;
+        }
+        dist = dist.wrapping_add(
+            (if (p as c_int) < pp as c_int {
+                pp as c_int - p as c_int
+            } else {
+                ZOPFLI_WINDOW_SIZE - p as c_int + pp as c_int
+            }) as c_uint,
+        );
+        chain_counter -= 1;
+        if chain_counter <= 0 as c_int {
+            break;
+        }
+    }
+    StoreInLongestMatchCache(s, pos, limit, sublen, bestdist, bestlength);
+    *distance = bestdist;
+    *length = bestlength;
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct ZopfliBlockState {
+    pub options: *const ZopfliOptions,
+    pub lmc: *mut ZopfliLongestMatchCache,
+    pub blockstart: size_t,
+    pub blockend: size_t,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct ZopfliHash {
+    pub head: *mut c_int,
+    pub prev: *mut c_ushort,
+    pub hashval: *mut c_int,
+    pub val: c_int,
+    pub head2: *mut c_int,
+    pub prev2: *mut c_ushort,
+    pub hashval2: *mut c_int,
+    pub val2: c_int,
+    pub same: *mut c_ushort,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct ZopfliOptions {
+    pub verbose: c_int,
+    pub verbose_more: c_int,
+    pub numiterations: c_int,
+    pub blocksplitting: c_int,
+    pub blocksplittinglast: c_int,
+    pub blocksplittingmax: c_int,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct ZopfliLongestMatchCache {
+    pub length: *mut c_ushort,
+    pub dist: *mut c_ushort,
+    pub sublen: *mut c_uchar,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+pub unsafe fn ZopfliFindLongestMatch(
+    mut s: *mut ZopfliBlockState,
+    mut h: *const ZopfliHash,
+    mut array: *const c_uchar,
+    mut pos: size_t,
+    mut size: size_t,
+    mut limit: size_t,
+    mut sublen: *mut c_ushort,
+    mut distance: *mut c_ushort,
+    mut length: *mut c_ushort,
+) {
+    let h_view: &ZopfliHash = unsafe { &*h }; // SAFETY: caller guarantees `h` points to a valid `ZopfliHash` for the duration of this call.
+
+    let hpos: c_ushort = (pos & ZOPFLI_WINDOW_MASK as size_t) as c_ushort;
+    let mut p: c_ushort;
+    let mut pp: c_ushort;
+    let mut bestdist: c_ushort = 0;
+    let mut bestlength: c_ushort = 1;
+    let mut chain_counter: c_int = ZOPFLI_MAX_CHAIN_HITS;
+
+    let mut hhead: *mut c_int = h_view.head;
+    let mut hprev: *mut c_ushort = h_view.prev;
+    let mut hval: c_int = h_view.val;
+
+    if TryGetFromLongestMatchCache(s, pos, &raw mut limit, sublen, distance, length) != 0 {
+        return;
+    }
+    if size.wrapping_sub(pos) < ZOPFLI_MIN_MATCH as size_t {
+        unsafe {
+            // SAFETY: caller provides valid output pointers.
+            *length = 0;
+            *distance = 0;
+        }
+        return;
+    }
+    if pos.wrapping_add(limit) > size {
+        limit = size.wrapping_sub(pos);
+    }
+
+    let base = unsafe { array.add(pos) }; // SAFETY: `pos < size` here because `size - pos >= ZOPFLI_MIN_MATCH`.
+    let arrayend = unsafe { base.add(limit) }; // SAFETY: `limit <= size - pos`, so this stays within/one-past the input buffer.
+    let arrayend_safe = unsafe { arrayend.offset(-8) }; // SAFETY: original code relies on `GetMatch`'s contract and valid caller inputs; preserved exactly.
+
+    pp = unsafe { *hhead.add(hval as usize) as c_ushort }; // SAFETY: hash tables are valid and indexed exactly as in the original.
+    p = unsafe { *hprev.add(pp as usize) }; // SAFETY: hash tables are valid and indexed exactly as in the original.
+    let mut dist: c_uint = if (p as c_int) < pp as c_int {
+        (pp as c_int - p as c_int) as c_uint
+    } else {
+        (ZOPFLI_WINDOW_SIZE - p as c_int + pp as c_int) as c_uint
+    };
+
+    let same_arr = h_view.same;
+    let head2 = h_view.head2;
+    let prev2 = h_view.prev2;
+    let hashval2 = h_view.hashval2;
+    let val2 = h_view.val2;
+
+    while dist < ZOPFLI_WINDOW_SIZE as c_uint {
+        let mut currentlength: c_ushort = 0;
+
+        if dist != 0 {
+            let scan0 = base;
+            let match0 = unsafe { array.add(pos.wrapping_sub(dist as size_t)) }; // SAFETY: `dist > 0` and chain guarantees a previous window position exactly as in the original.
+
+            let best_idx = bestlength as usize;
+            let can_try = pos.wrapping_add(bestlength as size_t) >= size
+                || unsafe { *scan0.add(best_idx) == *match0.add(best_idx) }; // SAFETY: guarded exactly as in the original logic.
+
+            if can_try {
+                let mut scan = scan0;
+                let mut match_0 = match0;
+
+                let same0 = unsafe { *same_arr.add((pos & ZOPFLI_WINDOW_MASK as size_t) as usize) }; // SAFETY: ring-buffer index is masked into range.
+                if same0 > 2 && unsafe { *scan == *match_0 } {
+                    let same1 = unsafe {
+                        *same_arr.add(
+                            (pos.wrapping_sub(dist as size_t) & ZOPFLI_WINDOW_MASK as size_t)
+                                as usize,
+                        )
+                    }; // SAFETY: ring-buffer index is masked into range.
+                    let mut same = if same0 < same1 { same0 } else { same1 };
+                    if same as size_t > limit {
+                        same = limit as c_ushort;
+                    }
+                    scan = unsafe { scan.add(same as usize) }; // SAFETY: `same <= limit`, so still within current match range.
+                    match_0 = unsafe { match_0.add(same as usize) }; // SAFETY: mirrors original pointer advance for the candidate match.
+                }
+
+                scan = GetMatch(scan, match_0, arrayend, arrayend_safe);
+                currentlength = unsafe { scan.offset_from(base) as c_ushort }; // SAFETY: both pointers derive from the same allocation.
+            }
+
+            if currentlength > bestlength {
+                if !sublen.is_null() {
+                    let mut j = bestlength.wrapping_add(1);
+                    while j <= currentlength {
+                        unsafe {
+                            // SAFETY: caller provides a valid `sublen` buffer large enough for all written lengths, same as original.
+                            *sublen.add(j as usize) = dist as c_ushort;
+                        }
+                        j = j.wrapping_add(1);
+                    }
+                }
+                bestdist = dist as c_ushort;
+                bestlength = currentlength;
+                if currentlength as size_t >= limit {
+                    break;
+                }
+            }
+        }
+
+        if hhead != head2
+            && bestlength as c_int >= unsafe { *same_arr.add(hpos as usize) as c_int } // SAFETY: `hpos` is masked into the ring-buffer range.
+            && val2 == unsafe { *hashval2.add(p as usize) }
+        {
+            // SAFETY: `p` is a valid hash chain index, same as original.
+            hhead = head2;
+            hprev = prev2;
+            hval = val2;
+            let _ = hval;
+        }
+
+        pp = p;
+        p = unsafe { *hprev.add(p as usize) }; // SAFETY: hash chain index is valid by construction, same as original.
+        if p == pp {
+            break;
+        }
+
+        dist = dist.wrapping_add(if (p as c_int) < pp as c_int {
+            (pp as c_int - p as c_int) as c_uint
+        } else {
+            (ZOPFLI_WINDOW_SIZE - p as c_int + pp as c_int) as c_uint
+        });
+
+        chain_counter -= 1;
+        if chain_counter <= 0 {
+            break;
+        }
+    }
+
+    StoreInLongestMatchCache(s, pos, limit, sublen, bestdist, bestlength);
+    unsafe {
+        // SAFETY: caller provides valid output pointers.
+        *distance = bestdist;
+        *length = bestlength;
+    }
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-11 14:03:07
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : ZopfliSublenToCache
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/zopfli/3_perf_opt_freeform/crate/src/cache.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 2947
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/cache.rs
+symbol: ZopfliSublenToCache
+signature: #[inline]
+pub unsafe fn ZopfliSublenToCache(
+    mut sublen: *const c_ushort,
+    mut pos: size_t,
+    mut length: size_t,
+    mut lmc: *mut ZopfliLongestMatchCache,
+)
+location: 63..110  (attrs included)
+
+```rust
+#[inline]
+pub unsafe fn ZopfliSublenToCache(
+    mut sublen: *const c_ushort,
+    mut pos: size_t,
+    mut length: size_t,
+    mut lmc: *mut ZopfliLongestMatchCache,
+) {
+    let lmc_view: &ZopfliLongestMatchCache = unsafe { &*lmc };
+    let mut i: size_t = 0;
+    let mut j: size_t = 0 as size_t;
+    let mut bestlength: c_uint = 0 as c_uint;
+    let mut cache: *mut c_uchar = ::core::ptr::null_mut::<c_uchar>();
+    cache = lmc_view.sublen.offset(
+        (ZOPFLI_CACHE_LENGTH as size_t)
+            .wrapping_mul(pos)
+            .wrapping_mul(3 as size_t) as isize,
+    ) as *mut c_uchar;
+    if length < 3 as size_t {
+        return;
+    }
+    i = 3 as size_t;
+    while i <= length {
+        if i == length
+            || *sublen.offset(i as isize) as c_int
+                != *sublen.offset(i.wrapping_add(1 as size_t) as isize) as c_int
+        {
+            *cache.offset(j.wrapping_mul(3 as size_t) as isize) =
+                i.wrapping_sub(3 as size_t) as c_uchar;
+            *cache.offset(j.wrapping_mul(3 as size_t).wrapping_add(1 as size_t) as isize) =
+                (*sublen.offset(i as isize) as c_int % 256 as c_int)
+                    as c_uchar;
+            *cache.offset(j.wrapping_mul(3 as size_t).wrapping_add(2 as size_t) as isize) =
+                ((*sublen.offset(i as isize) as c_int >> 8 as c_int)
+                    % 256 as c_int) as c_uchar;
+            bestlength = i as c_uint;
+            j = j.wrapping_add(1);
+            if j >= ZOPFLI_CACHE_LENGTH as size_t {
+                break;
+            }
+        }
+        i = i.wrapping_add(1);
+    }
+    if j < ZOPFLI_CACHE_LENGTH as size_t {
+        *cache.offset(
+            ((ZOPFLI_CACHE_LENGTH - 1 as c_int) * 3 as c_int) as isize,
+        ) = bestlength.wrapping_sub(3 as c_uint) as c_uchar;
+    }
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct ZopfliLongestMatchCache {
+    pub length: *mut c_ushort,
+    pub dist: *mut c_ushort,
+    pub sublen: *mut c_uchar,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+pub unsafe fn ZopfliSublenToCache(
+    mut sublen: *const c_ushort,
+    mut pos: size_t,
+    mut length: size_t,
+    mut lmc: *mut ZopfliLongestMatchCache,
+) {
+    if length < 3 as size_t {
+        return;
+    }
+
+    let cache = unsafe {
+        // SAFETY: `lmc` is assumed valid by the original function contract, and `sublen`
+        // points to a buffer large enough for the computed cache slice for `pos`.
+        (*lmc).sublen.add(
+            (ZOPFLI_CACHE_LENGTH as size_t)
+                .wrapping_mul(pos)
+                .wrapping_mul(3 as size_t),
+        )
+    };
+
+    let mut j: size_t = 0;
+    let mut bestlength: c_uint = 0 as c_uint;
+    let mut i: size_t = 3 as size_t;
+
+    while i < length {
+        let v = unsafe {
+            // SAFETY: same preconditions as the original function; `i` stays within the
+            // range accessed by the original loop.
+            *sublen.add(i)
+        };
+        let next = unsafe {
+            // SAFETY: same preconditions as the original function; for `i < length`,
+            // accessing `sublen[i + 1]` matches the original behavior.
+            *sublen.add(i.wrapping_add(1 as size_t))
+        };
+
+        if v != next {
+            let base = j.wrapping_mul(3 as size_t);
+            unsafe {
+                // SAFETY: `base..base+2` is within the fixed-size cache region as long as
+                // `j < ZOPFLI_CACHE_LENGTH`, which is maintained before increment/break.
+                *cache.add(base) = i.wrapping_sub(3 as size_t) as c_uchar;
+                *cache.add(base.wrapping_add(1 as size_t)) = (v as c_int % 256 as c_int) as c_uchar;
+                *cache.add(base.wrapping_add(2 as size_t)) =
+                    ((v as c_int >> 8 as c_int) % 256 as c_int) as c_uchar;
+            }
+            bestlength = i as c_uint;
+            j = j.wrapping_add(1);
+            if j >= ZOPFLI_CACHE_LENGTH as size_t {
+                break;
+            }
+        }
+        i = i.wrapping_add(1);
+    }
+
+    if j < ZOPFLI_CACHE_LENGTH as size_t {
+        let v = unsafe {
+            // SAFETY: `length >= 3` and accessing `sublen[length]` is performed by the
+            // original function in the final iteration handling.
+            *sublen.add(length)
+        };
+        let base = j.wrapping_mul(3 as size_t);
+        unsafe {
+            // SAFETY: `j < ZOPFLI_CACHE_LENGTH` guarantees these writes stay inside the
+            // cache region for this position.
+            *cache.add(base) = length.wrapping_sub(3 as size_t) as c_uchar;
+            *cache.add(base.wrapping_add(1 as size_t)) = (v as c_int % 256 as c_int) as c_uchar;
+            *cache.add(base.wrapping_add(2 as size_t)) =
+                ((v as c_int >> 8 as c_int) % 256 as c_int) as c_uchar;
+            *cache.add(((ZOPFLI_CACHE_LENGTH - 1 as c_int) * 3 as c_int) as usize) =
+                (length as c_uint).wrapping_sub(3 as c_uint) as c_uchar;
+        }
+    }
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-11 14:51:36
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : ZopfliInitCache
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/zopfli/3_perf_opt_freeform/crate/src/cache.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 1844
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/cache.rs
+symbol: ZopfliInitCache
+signature: #[inline]
+pub unsafe fn ZopfliInitCache(
+    mut blocksize: size_t,
+    mut lmc: *mut ZopfliLongestMatchCache,
+)
+location: 9..55  (attrs included)
+
+```rust
+#[inline]
+pub unsafe fn ZopfliInitCache(
+    mut blocksize: size_t,
+    mut lmc: *mut ZopfliLongestMatchCache,
+) {
+    let lmc_view: &mut ZopfliLongestMatchCache = unsafe { &mut *lmc };
+    let mut i: size_t = 0;
+    lmc_view.length =
+        malloc((::core::mem::size_of::<c_ushort>() as size_t).wrapping_mul(blocksize))
+            as *mut c_ushort;
+    lmc_view.dist =
+        malloc((::core::mem::size_of::<c_ushort>() as size_t).wrapping_mul(blocksize))
+            as *mut c_ushort;
+    lmc_view.sublen =
+        malloc(((ZOPFLI_CACHE_LENGTH * 3 as c_int) as size_t).wrapping_mul(blocksize))
+            as *mut c_uchar;
+    if lmc_view.sublen.is_null() {
+        fprintf(
+            stderr,
+            b"Error: Out of memory. Tried allocating %lu bytes of memory.\n\0" as *const u8
+                as *const c_char,
+            (ZOPFLI_CACHE_LENGTH as size_t)
+                .wrapping_mul(3 as size_t)
+                .wrapping_mul(blocksize),
+        );
+        exit(EXIT_FAILURE);
+    }
+    i = 0 as size_t;
+    while i < blocksize {
+        *lmc_view.length.offset(i as isize) = 1 as c_ushort;
+        i = i.wrapping_add(1);
+    }
+    i = 0 as size_t;
+    while i < blocksize {
+        *lmc_view.dist.offset(i as isize) = 0 as c_ushort;
+        i = i.wrapping_add(1);
+    }
+    i = 0 as size_t;
+    while i
+        < (ZOPFLI_CACHE_LENGTH as size_t)
+            .wrapping_mul(blocksize)
+            .wrapping_mul(3 as size_t)
+    {
+        *lmc_view.sublen.offset(i as isize) = 0 as c_uchar;
+        i = i.wrapping_add(1);
+    }
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct ZopfliLongestMatchCache {
+    pub length: *mut c_ushort,
+    pub dist: *mut c_ushort,
+    pub sublen: *mut c_uchar,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+pub unsafe fn ZopfliInitCache(
+    mut blocksize: size_t,
+    mut lmc: *mut ZopfliLongestMatchCache,
+) {
+    let lmc_view: &mut ZopfliLongestMatchCache = unsafe { &mut *lmc }; // SAFETY: caller provided a valid, writable pointer to ZopfliLongestMatchCache.
+
+    let ushort_bytes =
+        (::core::mem::size_of::<c_ushort>() as size_t).wrapping_mul(blocksize);
+    let sublen_bytes =
+        ((ZOPFLI_CACHE_LENGTH * 3 as c_int) as size_t).wrapping_mul(blocksize);
+
+    lmc_view.length = malloc(ushort_bytes) as *mut c_ushort;
+    lmc_view.dist = malloc(ushort_bytes) as *mut c_ushort;
+    lmc_view.sublen = malloc(sublen_bytes) as *mut c_uchar;
+
+    if lmc_view.sublen.is_null() {
+        fprintf(
+            stderr,
+            b"Error: Out of memory. Tried allocating %lu bytes of memory.\n\0" as *const u8
+                as *const c_char,
+            (ZOPFLI_CACHE_LENGTH as size_t)
+                .wrapping_mul(3 as size_t)
+                .wrapping_mul(blocksize),
+        );
+        exit(EXIT_FAILURE);
+    }
+
+    if !lmc_view.dist.is_null() && blocksize != 0 {
+        unsafe { ::core::ptr::write_bytes(lmc_view.dist, 0, blocksize) }; // SAFETY: dist points to an allocation of at least blocksize c_ushort elements when non-null.
+    }
+
+    if !lmc_view.sublen.is_null() && sublen_bytes != 0 {
+        unsafe { ::core::ptr::write_bytes(lmc_view.sublen, 0, sublen_bytes) }; // SAFETY: sublen points to an allocation of at least sublen_bytes bytes when non-null.
+    }
+
+    if !lmc_view.length.is_null() && blocksize != 0 {
+        let mut i: size_t = 0;
+        while i < blocksize {
+            unsafe { *lmc_view.length.add(i) = 1 as c_ushort }; // SAFETY: length points to an allocation of at least blocksize c_ushort elements when non-null; i is in-bounds.
+            i = i.wrapping_add(1);
+        }
+    }
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-11 15:38:39
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : ZopfliCacheToSublen
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/zopfli/3_perf_opt_freeform/crate/src/cache.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 1810
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/cache.rs
+symbol: ZopfliCacheToSublen
+signature: #[inline]
+pub unsafe fn ZopfliCacheToSublen(
+    mut lmc: *const ZopfliLongestMatchCache,
+    mut pos: size_t,
+    mut length: size_t,
+    mut sublen: *mut c_ushort,
+)
+location: 111..154  (attrs included)
+
+```rust
+#[inline]
+pub unsafe fn ZopfliCacheToSublen(
+    mut lmc: *const ZopfliLongestMatchCache,
+    mut pos: size_t,
+    mut length: size_t,
+    mut sublen: *mut c_ushort,
+) {
+    let lmc_view: &ZopfliLongestMatchCache = unsafe { &*lmc };
+    let mut i: size_t = 0;
+    let mut j: size_t = 0;
+    let mut maxlength: c_uint = ZopfliMaxCachedSublen(lmc, pos, length);
+    let mut prevlength: c_uint = 0 as c_uint;
+    let mut cache: *mut c_uchar = ::core::ptr::null_mut::<c_uchar>();
+    if length < 3 as size_t {
+        return;
+    }
+    cache = lmc_view.sublen.offset(
+        (ZOPFLI_CACHE_LENGTH as size_t)
+            .wrapping_mul(pos)
+            .wrapping_mul(3 as size_t) as isize,
+    ) as *mut c_uchar;
+    j = 0 as size_t;
+    while j < ZOPFLI_CACHE_LENGTH as size_t {
+        let mut length_0: c_uint =
+            (*cache.offset(j.wrapping_mul(3 as size_t) as isize) as c_int
+                + 3 as c_int) as c_uint;
+        let mut dist: c_uint =
+            (*cache.offset(j.wrapping_mul(3 as size_t).wrapping_add(1 as size_t) as isize)
+                as c_int
+                + 256 as c_int
+                    * *cache.offset(j.wrapping_mul(3 as size_t).wrapping_add(2 as size_t) as isize)
+                        as c_int) as c_uint;
+        i = prevlength as size_t;
+        while i <= length_0 as size_t {
+            *sublen.offset(i as isize) = dist as c_ushort;
+            i = i.wrapping_add(1);
+        }
+        if length_0 == maxlength {
+            break;
+        }
+        prevlength = length_0.wrapping_add(1 as c_uint);
+        j = j.wrapping_add(1);
+    }
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct ZopfliLongestMatchCache {
+    pub length: *mut c_ushort,
+    pub dist: *mut c_ushort,
+    pub sublen: *mut c_uchar,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+pub unsafe fn ZopfliCacheToSublen(
+    mut lmc: *const ZopfliLongestMatchCache,
+    mut pos: size_t,
+    mut length: size_t,
+    mut sublen: *mut c_ushort,
+) {
+    if length < 3 as size_t {
+        return;
+    }
+
+    let maxlength: c_uint = ZopfliMaxCachedSublen(lmc, pos, length);
+    let lmc_view: &ZopfliLongestMatchCache = unsafe { &*lmc }; // SAFETY: caller provides a valid pointer to ZopfliLongestMatchCache as required by the original function.
+    let cache = unsafe {
+        lmc_view.sublen.add(
+            (ZOPFLI_CACHE_LENGTH as size_t)
+                .wrapping_mul(pos)
+                .wrapping_mul(3 as size_t),
+        )
+    }; // SAFETY: pointer arithmetic matches the original offset computation and relies on the same allocation/layout guarantees.
+
+    let mut prevlength: usize = 0;
+    let mut j: usize = 0;
+    let max_j: usize = ZOPFLI_CACHE_LENGTH as usize;
+
+    while j < max_j {
+        let base = j * 3;
+        let length_0 = unsafe { *cache.add(base) as c_uint + 3 as c_uint }; // SAFETY: base is within the same cache row bounds under the same preconditions as the original code.
+        let dist = unsafe {
+            *cache.add(base + 1) as c_uint + ((*cache.add(base + 2) as c_uint) << 8)
+        }; // SAFETY: base+1 and base+2 are within the same cache row bounds under the same preconditions as the original code.
+
+        let mut i = prevlength;
+        let end = length_0 as usize;
+        while i <= end {
+            unsafe {
+                *sublen.add(i) = dist as c_ushort;
+            } // SAFETY: writes use the same index range and destination pointer assumptions as the original function.
+            i += 1;
+        }
+
+        if length_0 == maxlength {
+            break;
+        }
+        prevlength = end + 1;
+        j += 1;
+    }
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-11 16:51:38
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : ZopfliUpdateHash
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/zopfli/3_perf_opt_freeform/crate/src/hash.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 3510
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/hash.rs
+symbol: ZopfliUpdateHash
+signature: #[inline]
+pub unsafe fn ZopfliUpdateHash(
+    mut array: *const c_uchar,
+    mut pos: size_t,
+    mut end: size_t,
+    mut h: *mut ZopfliHash,
+)
+location: 85..156  (attrs included)
+
+```rust
+#[inline]
+pub unsafe fn ZopfliUpdateHash(
+    mut array: *const c_uchar,
+    mut pos: size_t,
+    mut end: size_t,
+    mut h: *mut ZopfliHash,
+) {
+    let mut hpos: c_ushort =
+        (pos & ZOPFLI_WINDOW_MASK as size_t) as c_ushort;
+    let mut amount: size_t = 0 as size_t;
+    UpdateHashValue(
+        h,
+        (if pos.wrapping_add(ZOPFLI_MIN_MATCH as size_t) <= end {
+            *array.offset(
+                pos.wrapping_add(ZOPFLI_MIN_MATCH as size_t)
+                    .wrapping_sub(1 as size_t) as isize,
+            ) as c_int
+        } else {
+            0 as c_int
+        }) as c_uchar,
+    );
+    *(*h).hashval.offset(hpos as isize) = (*h).val;
+    if *(*h).head.offset((*h).val as isize) != -(1 as c_int)
+        && *(*h)
+            .hashval
+            .offset(*(*h).head.offset((*h).val as isize) as isize)
+            == (*h).val
+    {
+        *(*h).prev.offset(hpos as isize) =
+            *(*h).head.offset((*h).val as isize) as c_ushort;
+    } else {
+        *(*h).prev.offset(hpos as isize) = hpos;
+    }
+    *(*h).head.offset((*h).val as isize) = hpos as c_int;
+    if *(*h)
+        .same
+        .offset((pos.wrapping_sub(1 as size_t) & ZOPFLI_WINDOW_MASK as size_t) as isize)
+        as c_int
+        > 1 as c_int
+    {
+        amount = (*(*h)
+            .same
+            .offset((pos.wrapping_sub(1 as size_t) & ZOPFLI_WINDOW_MASK as size_t) as isize)
+            as c_int
+            - 1 as c_int) as size_t;
+    }
+    while pos.wrapping_add(amount).wrapping_add(1 as size_t) < end
+        && *array.offset(pos as isize) as c_int
+            == *array.offset(pos.wrapping_add(amount).wrapping_add(1 as size_t) as isize)
+                as c_int
+        && amount < -(1 as c_int) as c_ushort as size_t
+    {
+        amount = amount.wrapping_add(1);
+    }
+    *(*h).same.offset(hpos as isize) = amount as c_ushort;
+    (*h).val2 = *(*h).same.offset(hpos as isize) as c_int - ZOPFLI_MIN_MATCH
+        & 255 as c_int
+        ^ (*h).val;
+    *(*h).hashval2.offset(hpos as isize) = (*h).val2;
+    if *(*h).head2.offset((*h).val2 as isize) != -(1 as c_int)
+        && *(*h)
+            .hashval2
+            .offset(*(*h).head2.offset((*h).val2 as isize) as isize)
+            == (*h).val2
+    {
+        *(*h).prev2.offset(hpos as isize) =
+            *(*h).head2.offset((*h).val2 as isize) as c_ushort;
+    } else {
+        *(*h).prev2.offset(hpos as isize) = hpos;
+    }
+    *(*h).head2.offset((*h).val2 as isize) = hpos as c_int;
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct ZopfliHash {
+    pub head: *mut c_int,
+    pub prev: *mut c_ushort,
+    pub hashval: *mut c_int,
+    pub val: c_int,
+    pub head2: *mut c_int,
+    pub prev2: *mut c_ushort,
+    pub hashval2: *mut c_int,
+    pub val2: c_int,
+    pub same: *mut c_ushort,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+pub unsafe fn ZopfliUpdateHash(
+    mut array: *const c_uchar,
+    mut pos: size_t,
+    mut end: size_t,
+    mut h: *mut ZopfliHash,
+) {
+    let hpos = (pos & ZOPFLI_WINDOW_MASK as size_t) as c_ushort;
+    let hpos_i = hpos as isize;
+
+    let h_ref = &mut *h;
+
+    let next = if pos.wrapping_add(ZOPFLI_MIN_MATCH as size_t) <= end {
+        // SAFETY: Caller upholds that `array` is valid for reads up to `end`; the condition ensures the indexed byte is within bounds.
+        *array.add(pos.wrapping_add(ZOPFLI_MIN_MATCH as size_t).wrapping_sub(1 as size_t)) as c_uchar
+    } else {
+        0 as c_uchar
+    };
+    UpdateHashValue(h, next);
+
+    let val = h_ref.val;
+    let head = h_ref.head;
+    let prev = h_ref.prev;
+    let hashval = h_ref.hashval;
+
+    // SAFETY: `hpos` is masked to the window size and all hash table pointers are valid per caller/invariant of `ZopfliHash`.
+    *hashval.offset(hpos_i) = val;
+
+    // SAFETY: `val` is a valid hash index by construction of `UpdateHashValue`.
+    let head_idx = *head.offset(val as isize);
+    let prev_val = if head_idx != -(1 as c_int)
+        // SAFETY: `head_idx != -1` means it is a previously stored window position index into `hashval`.
+        && *hashval.offset(head_idx as isize) == val
+    {
+        head_idx as c_ushort
+    } else {
+        hpos
+    };
+    // SAFETY: `hpos` is a valid window position index.
+    *prev.offset(hpos_i) = prev_val;
+    // SAFETY: `val` is a valid hash index by construction of `UpdateHashValue`.
+    *head.offset(val as isize) = hpos as c_int;
+
+    let prev_same_idx =
+        (pos.wrapping_sub(1 as size_t) & ZOPFLI_WINDOW_MASK as size_t) as isize;
+    // SAFETY: masked window index is valid for `same`.
+    let prev_same = *h_ref.same.offset(prev_same_idx) as c_int;
+    let mut amount: size_t = if prev_same > 1 {
+        (prev_same - 1) as size_t
+    } else {
+        0 as size_t
+    };
+
+    // SAFETY: Caller guarantees `array` points to the input buffer; reading at `pos` matches original behavior.
+    let base = *array.add(pos) as c_int;
+    while pos.wrapping_add(amount).wrapping_add(1 as size_t) < end
+        // SAFETY: loop condition ensures this indexed read is within the readable prefix ending at `end`.
+        && *array.add(pos.wrapping_add(amount).wrapping_add(1 as size_t)) as c_int == base
+        && amount < -(1 as c_int) as c_ushort as size_t
+    {
+        amount = amount.wrapping_add(1);
+    }
+
+    let same = h_ref.same;
+    // SAFETY: `hpos` is a valid window position index.
+    *same.offset(hpos_i) = amount as c_ushort;
+
+    let val2 = ((*same.offset(hpos_i) as c_int - ZOPFLI_MIN_MATCH) & 255 as c_int) ^ val;
+    h_ref.val2 = val2;
+
+    let head2 = h_ref.head2;
+    let prev2 = h_ref.prev2;
+    let hashval2 = h_ref.hashval2;
+
+    // SAFETY: `hpos` is a valid window position index.
+    *hashval2.offset(hpos_i) = val2;
+
+    // SAFETY: `val2` is masked/xored into the valid secondary hash range as in the original code.
+    let head2_idx = *head2.offset(val2 as isize);
+    let prev2_val = if head2_idx != -(1 as c_int)
+        // SAFETY: `head2_idx != -1` means it is a previously stored window position index into `hashval2`.
+        && *hashval2.offset(head2_idx as isize) == val2
+    {
+        head2_idx as c_ushort
+    } else {
+        hpos
+    };
+    // SAFETY: `hpos` is a valid window position index.
+    *prev2.offset(hpos_i) = prev2_val;
+    // SAFETY: `val2` is a valid secondary hash index.
+    *head2.offset(val2 as isize) = hpos as c_int;
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-11 18:04:30
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : GetMatch
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/zopfli/3_perf_opt_freeform/crate/src/lz77.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 5459
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/lz77.rs
+symbol: GetMatch
+signature: unsafe fn GetMatch(
+    mut scan: *const c_uchar,
+    mut match_0: *const c_uchar,
+    mut end: *const c_uchar,
+    mut safe_end: *const c_uchar,
+) -> *const c_uchar
+location: 502..568  (attrs included)
+
+```rust
+unsafe fn GetMatch(
+    mut scan: *const c_uchar,
+    mut match_0: *const c_uchar,
+    mut end: *const c_uchar,
+    mut safe_end: *const c_uchar,
+) -> *const c_uchar {
+    if ::core::mem::size_of::<size_t>() as usize == 8 as usize {
+        while scan < safe_end && *(scan as *mut size_t) == *(match_0 as *mut size_t) {
+            scan = scan.offset(8 as c_int as isize);
+            match_0 = match_0.offset(8 as c_int as isize);
+        }
+    } else if ::core::mem::size_of::<c_uint>() as usize == 4 as usize {
+        while scan < safe_end
+            && *(scan as *mut c_uint) == *(match_0 as *mut c_uint)
+        {
+            scan = scan.offset(4 as c_int as isize);
+            match_0 = match_0.offset(4 as c_int as isize);
+        }
+    } else {
+        while scan < safe_end
+            && *scan as c_int == *match_0 as c_int
+            && {
+                scan = scan.offset(1);
+                match_0 = match_0.offset(1);
+                *scan as c_int == *match_0 as c_int
+            }
+            && {
+                scan = scan.offset(1);
+                match_0 = match_0.offset(1);
+                *scan as c_int == *match_0 as c_int
+            }
+            && {
+                scan = scan.offset(1);
+                match_0 = match_0.offset(1);
+                *scan as c_int == *match_0 as c_int
+            }
+            && {
+                scan = scan.offset(1);
+                match_0 = match_0.offset(1);
+                *scan as c_int == *match_0 as c_int
+            }
+            && {
+                scan = scan.offset(1);
+                match_0 = match_0.offset(1);
+                *scan as c_int == *match_0 as c_int
+            }
+            && {
+                scan = scan.offset(1);
+                match_0 = match_0.offset(1);
+                *scan as c_int == *match_0 as c_int
+            }
+            && {
+                scan = scan.offset(1);
+                match_0 = match_0.offset(1);
+                *scan as c_int == *match_0 as c_int
+            }
+        {
+            scan = scan.offset(1);
+            match_0 = match_0.offset(1);
+        }
+    }
+    while scan != end && *scan as c_int == *match_0 as c_int {
+        scan = scan.offset(1);
+        match_0 = match_0.offset(1);
+    }
+    return scan;
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+unsafe fn GetMatch(
+    mut scan: *const c_uchar,
+    mut match_0: *const c_uchar,
+    mut end: *const c_uchar,
+    mut safe_end: *const c_uchar,
+) -> *const c_uchar {
+    if ::core::mem::size_of::<size_t>() as usize == 8usize {
+        while scan < safe_end {
+            let sv = unsafe { *(scan as *const size_t) }; // SAFETY: caller/original code guarantees reads of size_t up to safe_end are valid here.
+            let mv = unsafe { *(match_0 as *const size_t) }; // SAFETY: caller/original code guarantees corresponding reads from match_0 are valid here.
+            if sv != mv {
+                break;
+            }
+            scan = unsafe { scan.offset(8) }; // SAFETY: advancing by 8 stays within the same validated matching window as in the original code.
+            match_0 = unsafe { match_0.offset(8) }; // SAFETY: advancing by 8 mirrors scan and preserves the original function's pointer progression.
+        }
+    } else if ::core::mem::size_of::<c_uint>() as usize == 4usize {
+        while scan < safe_end {
+            let sv = unsafe { *(scan as *const c_uint) }; // SAFETY: caller/original code guarantees reads of c_uint up to safe_end are valid here.
+            let mv = unsafe { *(match_0 as *const c_uint) }; // SAFETY: caller/original code guarantees corresponding reads from match_0 are valid here.
+            if sv != mv {
+                break;
+            }
+            scan = unsafe { scan.offset(4) }; // SAFETY: advancing by 4 stays within the same validated matching window as in the original code.
+            match_0 = unsafe { match_0.offset(4) }; // SAFETY: advancing by 4 mirrors scan and preserves the original function's pointer progression.
+        }
+    } else {
+        while scan < safe_end {
+            if unsafe { *scan } != unsafe { *match_0 } {
+                break;
+            } // SAFETY: original code dereferences both pointers here under the same preconditions.
+            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.
+            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.
+
+            if unsafe { *scan } != unsafe { *match_0 } {
+                break;
+            } // SAFETY: original code dereferences both pointers here under the same preconditions.
+            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.
+            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.
+
+            if unsafe { *scan } != unsafe { *match_0 } {
+                break;
+            } // SAFETY: original code dereferences both pointers here under the same preconditions.
+            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.
+            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.
+
+            if unsafe { *scan } != unsafe { *match_0 } {
+                break;
+            } // SAFETY: original code dereferences both pointers here under the same preconditions.
+            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.
+            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.
+
+            if unsafe { *scan } != unsafe { *match_0 } {
+                break;
+            } // SAFETY: original code dereferences both pointers here under the same preconditions.
+            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.
+            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.
+
+            if unsafe { *scan } != unsafe { *match_0 } {
+                break;
+            } // SAFETY: original code dereferences both pointers here under the same preconditions.
+            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.
+            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.
+
+            if unsafe { *scan } != unsafe { *match_0 } {
+                break;
+            } // SAFETY: original code dereferences both pointers here under the same preconditions.
+            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.
+            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.
+
+            if unsafe { *scan } != unsafe { *match_0 } {
+                break;
+            } // SAFETY: original code dereferences both pointers here under the same preconditions.
+            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.
+            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.
+        }
+    }
+
+    while scan != end && unsafe { *scan } == unsafe { *match_0 } {
+        // SAFETY: original code performs the same byte dereferences while scan != end.
+        scan = unsafe { scan.offset(1) }; // SAFETY: advancing by one byte matches the original tail loop.
+        match_0 = unsafe { match_0.offset(1) }; // SAFETY: advancing by one byte matches the original tail loop.
+    }
+    scan
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-11 19:17:14
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : OptimizeHuffmanForRle
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/zopfli/3_perf_opt_freeform/crate/src/deflate.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 4561
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/deflate.rs
+symbol: OptimizeHuffmanForRle
+signature: #[inline]
+pub unsafe fn OptimizeHuffmanForRle(
+    mut length: c_int,
+    mut counts: *mut size_t,
+)
+location: 843..946  (attrs included)
+
+```rust
+#[inline]
+pub unsafe fn OptimizeHuffmanForRle(
+    mut length: c_int,
+    mut counts: *mut size_t,
+) {
+    let mut i: c_int = 0;
+    let mut k: c_int = 0;
+    let mut stride: c_int = 0;
+    let mut symbol: size_t = 0;
+    let mut sum: size_t = 0;
+    let mut limit: size_t = 0;
+    let mut good_for_rle: *mut c_int = ::core::ptr::null_mut::<c_int>();
+    while length >= 0 as c_int {
+        if length == 0 as c_int {
+            return;
+        }
+        if *counts.offset((length - 1 as c_int) as isize) != 0 as size_t {
+            break;
+        }
+        length -= 1;
+    }
+    good_for_rle = malloc(
+        (length as c_uint as size_t)
+            .wrapping_mul(::core::mem::size_of::<c_int>() as size_t),
+    ) as *mut c_int;
+    i = 0 as c_int;
+    while i < length {
+        *good_for_rle.offset(i as isize) = 0 as c_int;
+        i += 1;
+    }
+    symbol = *counts.offset(0 as c_int as isize);
+    stride = 0 as c_int;
+    i = 0 as c_int;
+    while i < length + 1 as c_int {
+        if i == length || *counts.offset(i as isize) != symbol {
+            if symbol == 0 as size_t && stride >= 5 as c_int
+                || symbol != 0 as size_t && stride >= 7 as c_int
+            {
+                k = 0 as c_int;
+                while k < stride {
+                    *good_for_rle.offset((i - k - 1 as c_int) as isize) =
+                        1 as c_int;
+                    k += 1;
+                }
+            }
+            stride = 1 as c_int;
+            if i != length {
+                symbol = *counts.offset(i as isize);
+            }
+        } else {
+            stride += 1;
+        }
+        i += 1;
+    }
+    stride = 0 as c_int;
+    limit = *counts.offset(0 as c_int as isize);
+    sum = 0 as size_t;
+    i = 0 as c_int;
+    while i < length + 1 as c_int {
+        if i == length
+            || *good_for_rle.offset(i as isize) != 0
+            || AbsDiff(*counts.offset(i as isize), limit) >= 4 as size_t
+        {
+            if stride >= 4 as c_int
+                || stride >= 3 as c_int && sum == 0 as size_t
+            {
+                let mut count: c_int =
+                    sum.wrapping_add((stride / 2 as c_int) as size_t)
+                        .wrapping_div(stride as size_t) as c_int;
+                if count < 1 as c_int {
+                    count = 1 as c_int;
+                }
+                if sum == 0 as size_t {
+                    count = 0 as c_int;
+                }
+                k = 0 as c_int;
+                while k < stride {
+                    *counts.offset((i - k - 1 as c_int) as isize) = count as size_t;
+                    k += 1;
+                }
+            }
+            stride = 0 as c_int;
+            sum = 0 as size_t;
+            if i < length - 3 as c_int {
+                limit = (*counts.offset(i as isize))
+                    .wrapping_add(*counts.offset((i + 1 as c_int) as isize))
+                    .wrapping_add(*counts.offset((i + 2 as c_int) as isize))
+                    .wrapping_add(*counts.offset((i + 3 as c_int) as isize))
+                    .wrapping_add(2 as size_t)
+                    .wrapping_div(4 as size_t);
+            } else if i < length {
+                limit = *counts.offset(i as isize);
+            } else {
+                limit = 0 as size_t;
+            }
+        }
+        stride += 1;
+        if i != length {
+            sum = sum.wrapping_add(*counts.offset(i as isize));
+        }
+        i += 1;
+    }
+    free(good_for_rle as *mut c_void);
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+pub unsafe fn OptimizeHuffmanForRle(
+    mut length: c_int,
+    mut counts: *mut size_t,
+) {
+    while length >= 0 {
+        if length == 0 {
+            return;
+        }
+        // SAFETY: `counts` points to an array with at least `length` elements per caller contract.
+        if unsafe { *counts.add((length - 1) as usize) } != 0 {
+            break;
+        }
+        length -= 1;
+    }
+
+    let good_for_rle = malloc(
+        (length as c_uint as size_t)
+            .wrapping_mul(::core::mem::size_of::<c_int>() as size_t),
+    ) as *mut c_int;
+
+    // SAFETY: `good_for_rle` is either null or points to `length * size_of::<c_int>()` bytes from `malloc`;
+    // writing zero bytes over that exact allocation matches the original initialization loop.
+    unsafe {
+        libc::memset(
+            good_for_rle as *mut c_void,
+            0,
+            (length as usize).wrapping_mul(::core::mem::size_of::<c_int>()),
+        );
+    }
+
+    // SAFETY: `counts` has at least one element when we reach here (`length > 0` due to early return above).
+    let mut symbol: size_t = unsafe { *counts };
+    let mut stride: c_int = 0;
+    let mut i: c_int = 0;
+
+    while i < length + 1 {
+        let at_end = i == length;
+        // SAFETY: when `at_end` is false, `i < length`, so `counts.add(i)` is in-bounds.
+        let cur = if at_end { symbol } else { unsafe { *counts.add(i as usize) } };
+        if at_end || cur != symbol {
+            if (symbol == 0 && stride >= 5) || (symbol != 0 && stride >= 7) {
+                let start = i - stride;
+                let mut k = start;
+                while k < i {
+                    // SAFETY: `start >= 0`, `k < i <= length`, and this block only runs for completed runs within the allocated marker array.
+                    unsafe { *good_for_rle.add(k as usize) = 1 };
+                    k += 1;
+                }
+            }
+            stride = 1;
+            if !at_end {
+                symbol = cur;
+            }
+        } else {
+            stride += 1;
+        }
+        i += 1;
+    }
+
+    stride = 0;
+    // SAFETY: `length > 0` here, so first element exists.
+    let mut limit: size_t = unsafe { *counts };
+    let mut sum: size_t = 0;
+    i = 0;
+
+    while i < length + 1 {
+        let at_end = i == length;
+        let trigger =
+            if at_end {
+                true
+            } else {
+                // SAFETY: `i < length` in this branch, so both accesses are in-bounds.
+                unsafe {
+                    *good_for_rle.add(i as usize) != 0
+                        || AbsDiff(*counts.add(i as usize), limit) >= 4
+                }
+            };
+
+        if trigger {
+            if stride >= 4 || (stride >= 3 && sum == 0) {
+                let mut count: c_int = sum
+                    .wrapping_add((stride / 2) as size_t)
+                    .wrapping_div(stride as size_t) as c_int;
+                if count < 1 {
+                    count = 1;
+                }
+                if sum == 0 {
+                    count = 0;
+                }
+                let start = i - stride;
+                let mut k = start;
+                while k < i {
+                    // SAFETY: `start >= 0`, `k < i <= length`, and these writes target the just-completed run in `counts`.
+                    unsafe { *counts.add(k as usize) = count as size_t };
+                    k += 1;
+                }
+            }
+            stride = 0;
+            sum = 0;
+            if i < length - 3 {
+                // SAFETY: `i + 3 < length` in this branch, so the four reads are in-bounds.
+                unsafe {
+                    limit = (*counts.add(i as usize))
+                        .wrapping_add(*counts.add((i + 1) as usize))
+                        .wrapping_add(*counts.add((i + 2) as usize))
+                        .wrapping_add(*counts.add((i + 3) as usize))
+                        .wrapping_add(2)
+                        .wrapping_div(4);
+                }
+            } else if i < length {
+                // SAFETY: `i < length` in this branch, so the read is in-bounds.
+                unsafe {
+                    limit = *counts.add(i as usize);
+                }
+            } else {
+                limit = 0;
+            }
+        }
+
+        stride += 1;
+        if !at_end {
+            // SAFETY: `i < length` in this branch, so the read is in-bounds.
+            unsafe {
+                sum = sum.wrapping_add(*counts.add(i as usize));
+            }
+        }
+        i += 1;
+    }
+
+    free(good_for_rle as *mut c_void);
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-11 19:17:28
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : OptimizeHuffmanForRle
+TARGET    : freeform_retry2
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/zopfli/3_perf_opt_freeform/crate/src/deflate.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 4195
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/deflate.rs
+symbol: OptimizeHuffmanForRle
+signature: #[inline]
+pub unsafe fn OptimizeHuffmanForRle(
+    mut length: c_int,
+    mut counts: *mut size_t,
+)
+location: 843..946  (attrs included)
+
+```rust
+#[inline]
+pub unsafe fn OptimizeHuffmanForRle(
+    mut length: c_int,
+    mut counts: *mut size_t,
+) {
+    let mut i: c_int = 0;
+    let mut k: c_int = 0;
+    let mut stride: c_int = 0;
+    let mut symbol: size_t = 0;
+    let mut sum: size_t = 0;
+    let mut limit: size_t = 0;
+    let mut good_for_rle: *mut c_int = ::core::ptr::null_mut::<c_int>();
+    while length >= 0 as c_int {
+        if length == 0 as c_int {
+            return;
+        }
+        if *counts.offset((length - 1 as c_int) as isize) != 0 as size_t {
+            break;
+        }
+        length -= 1;
+    }
+    good_for_rle = malloc(
+        (length as c_uint as size_t)
+            .wrapping_mul(::core::mem::size_of::<c_int>() as size_t),
+    ) as *mut c_int;
+    i = 0 as c_int;
+    while i < length {
+        *good_for_rle.offset(i as isize) = 0 as c_int;
+        i += 1;
+    }
+    symbol = *counts.offset(0 as c_int as isize);
+    stride = 0 as c_int;
+    i = 0 as c_int;
+    while i < length + 1 as c_int {
+        if i == length || *counts.offset(i as isize) != symbol {
+            if symbol == 0 as size_t && stride >= 5 as c_int
+                || symbol != 0 as size_t && stride >= 7 as c_int
+            {
+                k = 0 as c_int;
+                while k < stride {
+                    *good_for_rle.offset((i - k - 1 as c_int) as isize) =
+                        1 as c_int;
+                    k += 1;
+                }
+            }
+            stride = 1 as c_int;
+            if i != length {
+                symbol = *counts.offset(i as isize);
+            }
+        } else {
+            stride += 1;
+        }
+        i += 1;
+    }
+    stride = 0 as c_int;
+    limit = *counts.offset(0 as c_int as isize);
+    sum = 0 as size_t;
+    i = 0 as c_int;
+    while i < length + 1 as c_int {
+        if i == length
+            || *good_for_rle.offset(i as isize) != 0
+            || AbsDiff(*counts.offset(i as isize), limit) >= 4 as size_t
+        {
+            if stride >= 4 as c_int
+                || stride >= 3 as c_int && sum == 0 as size_t
+            {
+                let mut count: c_int =
+                    sum.wrapping_add((stride / 2 as c_int) as size_t)
+                        .wrapping_div(stride as size_t) as c_int;
+                if count < 1 as c_int {
+                    count = 1 as c_int;
+                }
+                if sum == 0 as size_t {
+                    count = 0 as c_int;
+                }
+                k = 0 as c_int;
+                while k < stride {
+                    *counts.offset((i - k - 1 as c_int) as isize) = count as size_t;
+                    k += 1;
+                }
+            }
+            stride = 0 as c_int;
+            sum = 0 as size_t;
+            if i < length - 3 as c_int {
+                limit = (*counts.offset(i as isize))
+                    .wrapping_add(*counts.offset((i + 1 as c_int) as isize))
+                    .wrapping_add(*counts.offset((i + 2 as c_int) as isize))
+                    .wrapping_add(*counts.offset((i + 3 as c_int) as isize))
+                    .wrapping_add(2 as size_t)
+                    .wrapping_div(4 as size_t);
+            } else if i < length {
+                limit = *counts.offset(i as isize);
+            } else {
+                limit = 0 as size_t;
+            }
+        }
+        stride += 1;
+        if i != length {
+            sum = sum.wrapping_add(*counts.offset(i as isize));
+        }
+        i += 1;
+    }
+    free(good_for_rle as *mut c_void);
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+## Previous attempt failed to compile
+cargo stderr:
+```
+
+```
+
+Your previous output was:
+```
+```rust
+#[inline]
+pub unsafe fn OptimizeHuffmanForRle(
+    mut length: c_int,
+    mut counts: *mut size_t,
+) {
+    while length >= 0 {
+        if length == 0 {
+            return;
+        }
+        // SAFETY: `counts` points to an array with at least `length` elements per caller contract.
+        if unsafe { *counts.add((length - 1) as usize) } != 0 {
+            break;
+        }
+        length -= 1;
+    }
+
+    let good_for_rle = malloc(
+        (length as c_uint as size_t)
+            .wrapping_mul(::core::mem::size_of::<c_int>() as size_t),
+    ) as *mut c_int;
+
+    // SAFETY: `good_for_rle` is either null or points to `length * size_of::<c_int>()` bytes from `malloc`;
+    // writing zero bytes over that exact allocation matches the original initialization loop.
+    unsafe {
+        libc::memset(
+            good_for_rle as *mut c_void,
+            0,
+            (length as usize).wrapping_mul(::core::mem::size_of::<c_int>()),
+        );
+    }
+
+    // SAFETY: `counts` has at least one element when we reach here (`length > 0` due to early return above).
+    let mut symbol: size_t = unsafe { *counts };
+    let mut stride: c_int = 0;
+    let mut i: c_int = 0;
+
+    while i < length + 1 {
+        let at_end = i == length;
+        // SAFETY: when `at_end` is false, `i < length`, so `counts.add(i)` is in-bounds.
+        let cur = if at_end { symbol } else { unsafe { *counts.add(i as usize) } };
+        if at_end || cur != symbol {
+            if (symbol == 0 && stride >= 5) || (symbol != 0 && stride >= 7) {
+                let start = i - stride;
+                let mut k = start;
+                while k < i {
+                    // SAFETY: `start >= 0`, `k < i <= length`, and this block only runs for completed runs within the allocated marker array.
+                    unsafe { *good_for_rle.add(k as usize) = 1 };
+                    k += 1;
+                }
+            }
+            stride = 1;
+            if !at_end {
+                symbol = cur;
+            }
+        } else {
+            stride += 1;
+        }
+        i += 1;
+    }
+
+    stride = 0;
+    // SAFETY: `length > 0` here, so first element exists.
+    let mut limit: size_t = unsafe { *counts };
+    let mut sum: size_t = 0;
+    i = 0;
+
+    while i < length + 1 {
+        let at_end = i == length;
+        let trigger =
+            if at_end {
+                true
+            } else {
+                // SAFETY: `i < length` in this branch, so both accesses are in-bounds.
+                unsafe {
+                    *good_for_rle.add(i as usize) != 0
+                        || AbsDiff(*counts.add(i as usize), limit) >= 4
+                }
+            };
+
+        if trigger {
+            if stride >= 4 || (stride >= 3 && sum == 0) {
+                let mut count: c_int = sum
+                    .wrapping_add((stride / 2) as size_t)
+                    .wrapping_div(stride as size_t) as c_int;
+                if count < 1 {
+                    count = 1;
+                }
+                if sum == 0 {
+                    count = 0;
+                }
+                let start = i - stride;
+                let mut k = start;
+                while k < i {
+                    // SAFETY: `start >= 0`, `k < i <= length`, and these writes target the just-completed run in `counts`.
+                    unsafe { *counts.add(k as usize) = count as size_t };
+                    k += 1;
+                }
+            }
+            stride = 0;
+            sum = 0;
+            if i < length - 3 {
+                // SAFETY: `i + 3 < length` in this branch, so the four reads are in-bounds.
+                unsafe {
+                    limit = (*counts.add(i as usize))
+                        .wrapping_add(*counts.add((i + 1) as usize))
+                        .wrapping_add(*counts.add((i + 2) as usize))
+                        .wrapping_add(*counts.add((i + 3) as usize))
+                        .wrapping_add(2)
+                        .wrapping_div(4);
+                }
+            } else if i < length {
+                // SAFETY: `i < length` in this branch, so the read is in-bounds.
+                unsafe {
+                    limit = *counts.add(i as usize);
+                }
+            } else {
+                limit = 0;
+            }
+        }
+
+        stride += 1;
+        if !at_end {
+            // SAFETY: `i < length` in this branch, so the read is in-bounds.
+            unsafe {
+                sum = sum.wrapping_add(*counts.add(i as usize));
+            }
+        }
+        i += 1;
+    }
+
+    free(good_for_rle as *mut c_void);
+}
+```
+```
+
+Fix the compile error and output the corrected function (same format contract).
+
+----- OUTPUT -----
+```rust
+#[inline]
+pub unsafe fn OptimizeHuffmanForRle(
+    mut length: c_int,
+    mut counts: *mut size_t,
+) {
+    while length >= 0 {
+        if length == 0 {
+            return;
+        }
+        // SAFETY: `counts` points to an array with at least `length` elements per caller contract.
+        if unsafe { *counts.add((length - 1) as usize) } != 0 {
+            break;
+        }
+        length -= 1;
+    }
+
+    let good_for_rle = malloc(
+        (length as c_uint as size_t)
+            .wrapping_mul(::core::mem::size_of::<c_int>() as size_t),
+    ) as *mut c_int;
+
+    let mut i: c_int = 0;
+    while i < length {
+        // SAFETY: `good_for_rle` points to an allocation of at least `length` `c_int`s, and `i < length`.
+        unsafe { *good_for_rle.add(i as usize) = 0 };
+        i += 1;
+    }
+
+    // SAFETY: `length > 0` here due to the early return above, so `counts[0]` exists.
+    let mut symbol: size_t = unsafe { *counts };
+    let mut stride: c_int = 0;
+    i = 0;
+
+    while i < length + 1 {
+        let at_end = i == length;
+        // SAFETY: when `at_end` is false, `i < length`, so `counts[i]` is in-bounds.
+        let cur = if at_end { symbol } else { unsafe { *counts.add(i as usize) } };
+        if at_end || cur != symbol {
+            if (symbol == 0 && stride >= 5) || (symbol != 0 && stride >= 7) {
+                let start = i - stride;
+                let mut k = start;
+                while k < i {
+                    // SAFETY: `k` ranges over `[i - stride, i)`, which is within `[0, length)`.
+                    unsafe { *good_for_rle.add(k as usize) = 1 };
+                    k += 1;
+                }
+            }
+            stride = 1;
+            if !at_end {
+                symbol = cur;
+            }
+        } else {
+            stride += 1;
+        }
+        i += 1;
+    }
+
+    stride = 0;
+    // SAFETY: `length > 0` here, so `counts[0]` exists.
+    let mut limit: size_t = unsafe { *counts };
+    let mut sum: size_t = 0;
+    i = 0;
+
+    while i < length + 1 {
+        let at_end = i == length;
+        let trigger = if at_end {
+            true
+        } else {
+            // SAFETY: `i < length` in this branch, so both accesses are in-bounds.
+            unsafe { *good_for_rle.add(i as usize) != 0 || AbsDiff(*counts.add(i as usize), limit) >= 4 }
+        };
+
+        if trigger {
+            if stride >= 4 || (stride >= 3 && sum == 0) {
+                let mut count: c_int = sum
+                    .wrapping_add((stride / 2) as size_t)
+                    .wrapping_div(stride as size_t) as c_int;
+                if count < 1 {
+                    count = 1;
+                }
+                if sum == 0 {
+                    count = 0;
+                }
+                let start = i - stride;
+                let mut k = start;
+                while k < i {
+                    // SAFETY: `k` ranges over `[i - stride, i)`, which is within `[0, length)`.
+                    unsafe { *counts.add(k as usize) = count as size_t };
+                    k += 1;
+                }
+            }
+            stride = 0;
+            sum = 0;
+            if i < length - 3 {
+                // SAFETY: `i + 3 < length` in this branch, so the four reads are in-bounds.
+                unsafe {
+                    limit = (*counts.add(i as usize))
+                        .wrapping_add(*counts.add((i + 1) as usize))
+                        .wrapping_add(*counts.add((i + 2) as usize))
+                        .wrapping_add(*counts.add((i + 3) as usize))
+                        .wrapping_add(2)
+                        .wrapping_div(4);
+                }
+            } else if i < length {
+                // SAFETY: `i < length` in this branch, so the read is in-bounds.
+                unsafe {
+                    limit = *counts.add(i as usize);
+                }
+            } else {
+                limit = 0;
+            }
+        }
+
+        stride += 1;
+        if !at_end {
+            // SAFETY: `i < length` in this branch, so the read is in-bounds.
+            unsafe {
+                sum = sum.wrapping_add(*counts.add(i as usize));
+            }
+        }
+        i += 1;
+    }
+
+    free(good_for_rle as *mut c_void);
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-11 20:31:09
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : EncodeTree
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/zopfli/3_perf_opt_freeform/crate/src/deflate.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 12313
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/deflate.rs
+symbol: EncodeTree
+signature: unsafe fn EncodeTree(
+    mut ll_lengths: *const c_uint,
+    mut d_lengths: *const c_uint,
+    mut use_16: c_int,
+    mut use_17: c_int,
+    mut use_18: c_int,
+    mut bp: *mut c_uchar,
+    mut out: *mut *mut c_uchar,
+    mut outsize: *mut size_t,
+) -> size_t
+location: 159..557  (attrs included)
+
+```rust
+unsafe fn EncodeTree(
+    mut ll_lengths: *const c_uint,
+    mut d_lengths: *const c_uint,
+    mut use_16: c_int,
+    mut use_17: c_int,
+    mut use_18: c_int,
+    mut bp: *mut c_uchar,
+    mut out: *mut *mut c_uchar,
+    mut outsize: *mut size_t,
+) -> size_t {
+    let mut lld_total: c_uint = 0;
+    let mut rle: *mut c_uint = ::core::ptr::null_mut::<c_uint>();
+    let mut rle_bits: *mut c_uint = ::core::ptr::null_mut::<c_uint>();
+    let mut rle_size: size_t = 0 as size_t;
+    let mut rle_bits_size: size_t = 0 as size_t;
+    let mut hlit: c_uint = 29 as c_uint;
+    let mut hdist: c_uint = 29 as c_uint;
+    let mut hclen: c_uint = 0;
+    let mut hlit2: c_uint = 0;
+    let mut i: size_t = 0;
+    let mut j: size_t = 0;
+    let mut clcounts: [size_t; 19] = [0; 19];
+    let mut clcl: [c_uint; 19] = [0; 19];
+    let mut clsymbols: [c_uint; 19] = [0; 19];
+    static mut order: [c_uint; 19] = [
+        16 as c_int as c_uint,
+        17 as c_int as c_uint,
+        18 as c_int as c_uint,
+        0 as c_int as c_uint,
+        8 as c_int as c_uint,
+        7 as c_int as c_uint,
+        9 as c_int as c_uint,
+        6 as c_int as c_uint,
+        10 as c_int as c_uint,
+        5 as c_int as c_uint,
+        11 as c_int as c_uint,
+        4 as c_int as c_uint,
+        12 as c_int as c_uint,
+        3 as c_int as c_uint,
+        13 as c_int as c_uint,
+        2 as c_int as c_uint,
+        14 as c_int as c_uint,
+        1 as c_int as c_uint,
+        15 as c_int as c_uint,
+    ];
+    let mut size_only: c_int = out.is_null() as c_int;
+    let mut result_size: size_t = 0 as size_t;
+    i = 0 as size_t;
+    while i < 19 as size_t {
+        clcounts[i as usize] = 0 as size_t;
+        i = i.wrapping_add(1);
+    }
+    while hlit > 0 as c_uint
+        && *ll_lengths.offset(
+            (257 as c_uint)
+                .wrapping_add(hlit)
+                .wrapping_sub(1 as c_uint) as isize,
+        ) == 0 as c_uint
+    {
+        hlit = hlit.wrapping_sub(1);
+    }
+    while hdist > 0 as c_uint
+        && *d_lengths.offset(
+            (1 as c_uint)
+                .wrapping_add(hdist)
+                .wrapping_sub(1 as c_uint) as isize,
+        ) == 0 as c_uint
+    {
+        hdist = hdist.wrapping_sub(1);
+    }
+    hlit2 = hlit.wrapping_add(257 as c_uint);
+    lld_total = hlit2
+        .wrapping_add(hdist)
+        .wrapping_add(1 as c_uint);
+    i = 0 as size_t;
+    while i < lld_total as size_t {
+        let mut symbol: c_uchar = (if i < hlit2 as size_t {
+            *ll_lengths.offset(i as isize)
+        } else {
+            *d_lengths.offset(i.wrapping_sub(hlit2 as size_t) as isize)
+        }) as c_uchar;
+        let mut count: c_uint = 1 as c_uint;
+        if use_16 != 0
+            || symbol as c_int == 0 as c_int
+                && (use_17 != 0 || use_18 != 0)
+        {
+            j = i.wrapping_add(1 as size_t);
+            while j < lld_total as size_t
+                && symbol as c_uint
+                    == (if j < hlit2 as size_t {
+                        *ll_lengths.offset(j as isize)
+                    } else {
+                        *d_lengths.offset(j.wrapping_sub(hlit2 as size_t) as isize)
+                    })
+            {
+                count = count.wrapping_add(1);
+                j = j.wrapping_add(1);
+            }
+        }
+        i = i.wrapping_add(count.wrapping_sub(1 as c_uint) as size_t);
+        if symbol as c_int == 0 as c_int
+            && count >= 3 as c_uint
+        {
+            if use_18 != 0 {
+                while count >= 11 as c_uint {
+                    let mut count2: c_uint = if count > 138 as c_uint {
+                        138 as c_uint
+                    } else {
+                        count
+                    };
+                    if size_only == 0 {
+                        if rle_size & rle_size.wrapping_sub(1 as size_t) == 0 {
+                            rle = (if rle_size == 0 as size_t {
+                                malloc(::core::mem::size_of::<c_uint>() as size_t)
+                            } else {
+                                realloc(
+                                    rle as *mut c_void,
+                                    rle_size.wrapping_mul(2 as size_t).wrapping_mul(
+                                        ::core::mem::size_of::<c_uint>() as size_t,
+                                    ),
+                                )
+                            }) as *mut c_uint;
+                        }
+                        *rle.offset(rle_size as isize) = 18 as c_uint;
+                        rle_size = rle_size.wrapping_add(1);
+                        if rle_bits_size & rle_bits_size.wrapping_sub(1 as size_t) == 0 {
+                            rle_bits = (if rle_bits_size == 0 as size_t {
+                                malloc(::core::mem::size_of::<c_uint>() as size_t)
+                            } else {
+                                realloc(
+                                    rle_bits as *mut c_void,
+                                    rle_bits_size.wrapping_mul(2 as size_t).wrapping_mul(
+                                        ::core::mem::size_of::<c_uint>() as size_t,
+                                    ),
+                                )
+                            }) as *mut c_uint;
+                        }
+                        *rle_bits.offset(rle_bits_size as isize) =
+                            count2.wrapping_sub(11 as c_uint);
+                        rle_bits_size = rle_bits_size.wrapping_add(1);
+                    }
+                    clcounts[18 as c_int as usize] =
+                        clcounts[18 as c_int as usize].wrapping_add(1);
+                    count = count.wrapping_sub(count2);
+                }
+            }
+            if use_17 != 0 {
+                while count >= 3 as c_uint {
+                    let mut count2_0: c_uint = if count > 10 as c_uint {
+                        10 as c_uint
+                    } else {
+                        count
+                    };
+                    if size_only == 0 {
+                        if rle_size & rle_size.wrapping_sub(1 as size_t) == 0 {
+                            rle = (if rle_size == 0 as size_t {
+                                malloc(::core::mem::size_of::<c_uint>() as size_t)
+                            } else {
+                                realloc(
+                                    rle as *mut c_void,
+                                    rle_size.wrapping_mul(2 as size_t).wrapping_mul(
+                                        ::core::mem::size_of::<c_uint>() as size_t,
+                                    ),
+                                )
+                            }) as *mut c_uint;
+                        }
+                        *rle.offset(rle_size as isize) = 17 as c_uint;
+                        rle_size = rle_size.wrapping_add(1);
+                        if rle_bits_size & rle_bits_size.wrapping_sub(1 as size_t) == 0 {
+                            rle_bits = (if rle_bits_size == 0 as size_t {
+                                malloc(::core::mem::size_of::<c_uint>() as size_t)
+                            } else {
+                                realloc(
+                                    rle_bits as *mut c_void,
+                                    rle_bits_size.wrapping_mul(2 as size_t).wrapping_mul(
+                                        ::core::mem::size_of::<c_uint>() as size_t,
+                                    ),
+                                )
+                            }) as *mut c_uint;
+                        }
+                        *rle_bits.offset(rle_bits_size as isize) =
+                            count2_0.wrapping_sub(3 as c_uint);
+                        rle_bits_size = rle_bits_size.wrapping_add(1);
+                    }
+                    clcounts[17 as c_int as usize] =
+                        clcounts[17 as c_int as usize].wrapping_add(1);
+                    count = count.wrapping_sub(count2_0);
+                }
+            }
+        }
+        if use_16 != 0 && count >= 4 as c_uint {
+            count = count.wrapping_sub(1);
+            clcounts[symbol as usize] = clcounts[symbol as usize].wrapping_add(1);
+            if size_only == 0 {
+                if rle_size & rle_size.wrapping_sub(1 as size_t) == 0 {
+                    rle = (if rle_size == 0 as size_t {
+                        malloc(::core::mem::size_of::<c_uint>() as size_t)
+                    } else {
+                        realloc(
+                            rle as *mut c_void,
+                            rle_size.wrapping_mul(2 as size_t).wrapping_mul(
+                                ::core::mem::size_of::<c_uint>() as size_t,
+                            ),
+                        )
+                    }) as *mut c_uint;
+                }
+                *rle.offset(rle_size as isize) = symbol as c_uint;
+                rle_size = rle_size.wrapping_add(1);
+                if rle_bits_size & rle_bits_size.wrapping_sub(1 as size_t) == 0 {
+                    rle_bits = (if rle_bits_size == 0 as size_t {
+                        malloc(::core::mem::size_of::<c_uint>() as size_t)
+                    } else {
+                        realloc(
+                            rle_bits as *mut c_void,
+                            rle_bits_size.wrapping_mul(2 as size_t).wrapping_mul(
+                                ::core::mem::size_of::<c_uint>() as size_t,
+                            ),
+                        )
+                    }) as *mut c_uint;
+                }
+                *rle_bits.offset(rle_bits_size as isize) = 0 as c_uint;
+                rle_bits_size = rle_bits_size.wrapping_add(1);
+            }
+            while count >= 3 as c_uint {
+                let mut count2_1: c_uint = if count > 6 as c_uint {
+                    6 as c_uint
+                } else {
+                    count
+                };
+                if size_only == 0 {
+                    if rle_size & rle_size.wrapping_sub(1 as size_t) == 0 {
+                        rle = (if rle_size == 0 as size_t {
+                            malloc(::core::mem::size_of::<c_uint>() as size_t)
+                        } else {
+                            realloc(
+                                rle as *mut c_void,
+                                rle_size.wrapping_mul(2 as size_t).wrapping_mul(
+                                    ::core::mem::size_of::<c_uint>() as size_t,
+                                ),
+                            )
+                        }) as *mut c_uint;
+                    }
+                    *rle.offset(rle_size as isize) = 16 as c_uint;
+                    rle_size = rle_size.wrapping_add(1);
+                    if rle_bits_size & rle_bits_size.wrapping_sub(1 as size_t) == 0 {
+                        rle_bits = (if rle_bits_size == 0 as size_t {
+                            malloc(::core::mem::size_of::<c_uint>() as size_t)
+                        } else {
+                            realloc(
+                                rle_bits as *mut c_void,
+                                rle_bits_size.wrapping_mul(2 as size_t).wrapping_mul(
+                                    ::core::mem::size_of::<c_uint>() as size_t,
+                                ),
+                            )
+                        }) as *mut c_uint;
+                    }
+                    *rle_bits.offset(rle_bits_size as isize) =
+                        count2_1.wrapping_sub(3 as c_uint);
+                    rle_bits_size = rle_bits_size.wrapping_add(1);
+                }
+                clcounts[16 as c_int as usize] =
+                    clcounts[16 as c_int as usize].wrapping_add(1);
+                count = count.wrapping_sub(count2_1);
+            }
+        }
+        clcounts[symbol as usize] = clcounts[symbol as usize].wrapping_add(count as size_t);
+        while count > 0 as c_uint {
+            if size_only == 0 {
+                if rle_size & rle_size.wrapping_sub(1 as size_t) == 0 {
+                    rle = (if rle_size == 0 as size_t {
+                        malloc(::core::mem::size_of::<c_uint>() as size_t)
+                    } else {
+                        realloc(
+                            rle as *mut c_void,
+                            rle_size.wrapping_mul(2 as size_t).wrapping_mul(
+                                ::core::mem::size_of::<c_uint>() as size_t,
+                            ),
+                        )
+                    }) as *mut c_uint;
+                }
+                *rle.offset(rle_size as isize) = symbol as c_uint;
+                rle_size = rle_size.wrapping_add(1);
+                if rle_bits_size & rle_bits_size.wrapping_sub(1 as size_t) == 0 {
+                    rle_bits = (if rle_bits_size == 0 as size_t {
+                        malloc(::core::mem::size_of::<c_uint>() as size_t)
+                    } else {
+                        realloc(
+                            rle_bits as *mut c_void,
+                            rle_bits_size.wrapping_mul(2 as size_t).wrapping_mul(
+                                ::core::mem::size_of::<c_uint>() as size_t,
+                            ),
+                        )
+                    }) as *mut c_uint;
+                }
+                *rle_bits.offset(rle_bits_size as isize) = 0 as c_uint;
+                rle_bits_size = rle_bits_size.wrapping_add(1);
+            }
+            count = count.wrapping_sub(1);
+        }
+        i = i.wrapping_add(1);
+    }
+    ZopfliCalculateBitLengths(
+        &raw mut clcounts as *mut size_t,
+        19 as size_t,
+        7 as c_int,
+        &raw mut clcl as *mut c_uint,
+    );
+    if size_only == 0 {
+        ZopfliLengthsToSymbols(
+            &raw mut clcl as *mut c_uint,
+            19 as size_t,
+            7 as c_uint,
+            &raw mut clsymbols as *mut c_uint,
+        );
+    }
+    hclen = 15 as c_uint;
+    while hclen > 0 as c_uint
+        && clcounts[order[hclen
+            .wrapping_add(4 as c_uint)
+            .wrapping_sub(1 as c_uint) as usize] as usize]
+            == 0 as size_t
+    {
+        hclen = hclen.wrapping_sub(1);
+    }
+    if size_only == 0 {
+        AddBits(hlit, 5 as c_uint, bp, out, outsize);
+        AddBits(hdist, 5 as c_uint, bp, out, outsize);
+        AddBits(hclen, 4 as c_uint, bp, out, outsize);
+        i = 0 as size_t;
+        while i < hclen.wrapping_add(4 as c_uint) as size_t {
+            AddBits(
+                clcl[order[i as usize] as usize],
+                3 as c_uint,
+                bp,
+                out,
+                outsize,
+            );
+            i = i.wrapping_add(1);
+        }
+        i = 0 as size_t;
+        while i < rle_size {
+            let mut symbol_0: c_uint = clsymbols[*rle.offset(i as isize) as usize];
+            AddHuffmanBits(
+                symbol_0,
+                clcl[*rle.offset(i as isize) as usize],
+                bp,
+                out,
+                outsize,
+            );
+            if *rle.offset(i as isize) == 16 as c_uint {
+                AddBits(
+                    *rle_bits.offset(i as isize),
+                    2 as c_uint,
+                    bp,
+                    out,
+                    outsize,
+                );
+            } else if *rle.offset(i as isize) == 17 as c_uint {
+                AddBits(
+                    *rle_bits.offset(i as isize),
+                    3 as c_uint,
+                    bp,
+                    out,
+                    outsize,
+                );
+            } else if *rle.offset(i as isize) == 18 as c_uint {
+                AddBits(
+                    *rle_bits.offset(i as isize),
+                    7 as c_uint,
+                    bp,
+                    out,
+                    outsize,
+                );
+            }
+            i = i.wrapping_add(1);
+        }
+    }
+    result_size = result_size.wrapping_add(14 as size_t);
+    result_size = result_size.wrapping_add(
+        hclen
+            .wrapping_add(4 as c_uint)
+            .wrapping_mul(3 as c_uint) as size_t,
+    );
+    i = 0 as size_t;
+    while i < 19 as size_t {
+        result_size = result_size
+            .wrapping_add((clcl[i as usize] as size_t).wrapping_mul(clcounts[i as usize]));
+        i = i.wrapping_add(1);
+    }
+    result_size = result_size
+        .wrapping_add(clcounts[16 as c_int as usize].wrapping_mul(2 as size_t));
+    result_size = result_size
+        .wrapping_add(clcounts[17 as c_int as usize].wrapping_mul(3 as size_t));
+    result_size = result_size
+        .wrapping_add(clcounts[18 as c_int as usize].wrapping_mul(7 as size_t));
+    free(rle as *mut c_void);
+    free(rle_bits as *mut c_void);
+    return result_size;
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+unsafe fn EncodeTree(
+    mut ll_lengths: *const c_uint,
+    mut d_lengths: *const c_uint,
+    mut use_16: c_int,
+    mut use_17: c_int,
+    mut use_18: c_int,
+    mut bp: *mut c_uchar,
+    mut out: *mut *mut c_uchar,
+    mut outsize: *mut size_t,
+) -> size_t {
+    #[inline(always)]
+    unsafe fn ensure_capacity_u32(
+        buf: &mut *mut c_uint,
+        len: size_t,
+    ) {
+        if len & len.wrapping_sub(1) == 0 {
+            *buf = (if len == 0 {
+                malloc(::core::mem::size_of::<c_uint>() as size_t)
+            } else {
+                realloc(
+                    *buf as *mut c_void,
+                    len.wrapping_mul(2).wrapping_mul(::core::mem::size_of::<c_uint>() as size_t),
+                )
+            }) as *mut c_uint;
+        }
+    }
+
+    let mut lld_total: c_uint;
+    let mut rle: *mut c_uint = ::core::ptr::null_mut::<c_uint>();
+    let mut rle_bits: *mut c_uint = ::core::ptr::null_mut::<c_uint>();
+    let mut rle_size: size_t = 0;
+    let mut rle_bits_size: size_t = 0;
+    let mut hlit: c_uint = 29;
+    let mut hdist: c_uint = 29;
+    let mut hclen: c_uint;
+    let mut hlit2: c_uint;
+    let mut i: size_t;
+    let mut clcounts: [size_t; 19] = [0; 19];
+    let mut clcl: [c_uint; 19] = [0; 19];
+    let mut clsymbols: [c_uint; 19] = [0; 19];
+    static mut order: [c_uint; 19] = [
+        16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15,
+    ];
+    let size_only: c_int = out.is_null() as c_int;
+    let mut result_size: size_t = 0;
+
+    while hlit > 0
+        && {
+            // SAFETY: caller provides valid ll_lengths with at least 286 entries as required by deflate tree encoding.
+            unsafe { *ll_lengths.add((257u32.wrapping_add(hlit).wrapping_sub(1)) as usize) == 0 }
+        }
+    {
+        hlit = hlit.wrapping_sub(1);
+    }
+    while hdist > 0
+        && {
+            // SAFETY: caller provides valid d_lengths with at least 30 entries as required by deflate tree encoding.
+            unsafe { *d_lengths.add((1u32.wrapping_add(hdist).wrapping_sub(1)) as usize) == 0 }
+        }
+    {
+        hdist = hdist.wrapping_sub(1);
+    }
+
+    hlit2 = hlit.wrapping_add(257);
+    lld_total = hlit2.wrapping_add(hdist).wrapping_add(1);
+
+    i = 0;
+    while i < lld_total as size_t {
+        let symbol: c_uchar;
+        if i < hlit2 as size_t {
+            // SAFETY: i < hlit2 <= 286, ll_lengths points to that many entries.
+            symbol = unsafe { *ll_lengths.add(i) as c_uchar };
+        } else {
+            // SAFETY: i - hlit2 < hdist + 1 <= 30, d_lengths points to that many entries.
+            symbol = unsafe { *d_lengths.add(i.wrapping_sub(hlit2 as size_t)) as c_uchar };
+        }
+
+        let mut count: c_uint = 1;
+        if use_16 != 0 || (symbol == 0 && (use_17 != 0 || use_18 != 0)) {
+            let mut j = i.wrapping_add(1);
+            if i < hlit2 as size_t {
+                while j < lld_total as size_t {
+                    let same = if j < hlit2 as size_t {
+                        // SAFETY: j < hlit2 <= 286, ll_lengths points to that many entries.
+                        unsafe { *ll_lengths.add(j) == symbol as c_uint }
+                    } else {
+                        // SAFETY: j - hlit2 < hdist + 1 <= 30, d_lengths points to that many entries.
+                        unsafe { *d_lengths.add(j.wrapping_sub(hlit2 as size_t)) == symbol as c_uint }
+                    };
+                    if !same {
+                        break;
+                    }
+                    count = count.wrapping_add(1);
+                    j = j.wrapping_add(1);
+                }
+            } else {
+                while j < lld_total as size_t {
+                    // SAFETY: both indices are within d_lengths tail range.
+                    let same = unsafe {
+                        *d_lengths.add(j.wrapping_sub(hlit2 as size_t)) == symbol as c_uint
+                    };
+                    if !same {
+                        break;
+                    }
+                    count = count.wrapping_add(1);
+                    j = j.wrapping_add(1);
+                }
+            }
+        }
+
+        i = i.wrapping_add(count.wrapping_sub(1) as size_t);
+
+        if symbol == 0 && count >= 3 {
+            if use_18 != 0 {
+                while count >= 11 {
+                    let count2 = if count > 138 { 138 } else { count };
+                    if size_only == 0 {
+                        // SAFETY: capacity growth preserves previous allocation semantics.
+                        unsafe { ensure_capacity_u32(&mut rle, rle_size) };
+                        // SAFETY: ensure_capacity_u32 guarantees space for write at current index.
+                        unsafe { *rle.add(rle_size) = 18 };
+                        rle_size = rle_size.wrapping_add(1);
+
+                        // SAFETY: capacity growth preserves previous allocation semantics.
+                        unsafe { ensure_capacity_u32(&mut rle_bits, rle_bits_size) };
+                        // SAFETY: ensure_capacity_u32 guarantees space for write at current index.
+                        unsafe { *rle_bits.add(rle_bits_size) = count2.wrapping_sub(11) };
+                        rle_bits_size = rle_bits_size.wrapping_add(1);
+                    }
+                    clcounts[18] = clcounts[18].wrapping_add(1);
+                    count = count.wrapping_sub(count2);
+                }
+            }
+            if use_17 != 0 {
+                while count >= 3 {
+                    let count2 = if count > 10 { 10 } else { count };
+                    if size_only == 0 {
+                        // SAFETY: capacity growth preserves previous allocation semantics.
+                        unsafe { ensure_capacity_u32(&mut rle, rle_size) };
+                        // SAFETY: ensure_capacity_u32 guarantees space for write at current index.
+                        unsafe { *rle.add(rle_size) = 17 };
+                        rle_size = rle_size.wrapping_add(1);
+
+                        // SAFETY: capacity growth preserves previous allocation semantics.
+                        unsafe { ensure_capacity_u32(&mut rle_bits, rle_bits_size) };
+                        // SAFETY: ensure_capacity_u32 guarantees space for write at current index.
+                        unsafe { *rle_bits.add(rle_bits_size) = count2.wrapping_sub(3) };
+                        rle_bits_size = rle_bits_size.wrapping_add(1);
+                    }
+                    clcounts[17] = clcounts[17].wrapping_add(1);
+                    count = count.wrapping_sub(count2);
+                }
+            }
+        }
+
+        if use_16 != 0 && count >= 4 {
+            count = count.wrapping_sub(1);
+            clcounts[symbol as usize] = clcounts[symbol as usize].wrapping_add(1);
+            if size_only == 0 {
+                // SAFETY: capacity growth preserves previous allocation semantics.
+                unsafe { ensure_capacity_u32(&mut rle, rle_size) };
+                // SAFETY: ensure_capacity_u32 guarantees space for write at current index.
+                unsafe { *rle.add(rle_size) = symbol as c_uint };
+                rle_size = rle_size.wrapping_add(1);
+
+                // SAFETY: capacity growth preserves previous allocation semantics.
+                unsafe { ensure_capacity_u32(&mut rle_bits, rle_bits_size) };
+                // SAFETY: ensure_capacity_u32 guarantees space for write at current index.
+                unsafe { *rle_bits.add(rle_bits_size) = 0 };
+                rle_bits_size = rle_bits_size.wrapping_add(1);
+            }
+            while count >= 3 {
+                let count2 = if count > 6 { 6 } else { count };
+                if size_only == 0 {
+                    // SAFETY: capacity growth preserves previous allocation semantics.
+                    unsafe { ensure_capacity_u32(&mut rle, rle_size) };
+                    // SAFETY: ensure_capacity_u32 guarantees space for write at current index.
+                    unsafe { *rle.add(rle_size) = 16 };
+                    rle_size = rle_size.wrapping_add(1);
+
+                    // SAFETY: capacity growth preserves previous allocation semantics.
+                    unsafe { ensure_capacity_u32(&mut rle_bits, rle_bits_size) };
+                    // SAFETY: ensure_capacity_u32 guarantees space for write at current index.
+                    unsafe { *rle_bits.add(rle_bits_size) = count2.wrapping_sub(3) };
+                    rle_bits_size = rle_bits_size.wrapping_add(1);
+                }
+                clcounts[16] = clcounts[16].wrapping_add(1);
+                count = count.wrapping_sub(count2);
+            }
+        }
+
+        clcounts[symbol as usize] = clcounts[symbol as usize].wrapping_add(count as size_t);
+        while count > 0 {
+            if size_only == 0 {
+                // SAFETY: capacity growth preserves previous allocation semantics.
+                unsafe { ensure_capacity_u32(&mut rle, rle_size) };
+                // SAFETY: ensure_capacity_u32 guarantees space for write at current index.
+                unsafe { *rle.add(rle_size) = symbol as c_uint };
+                rle_size = rle_size.wrapping_add(1);
+
+                // SAFETY: capacity growth preserves previous allocation semantics.
+                unsafe { ensure_capacity_u32(&mut rle_bits, rle_bits_size) };
+                // SAFETY: ensure_capacity_u32 guarantees space for write at current index.
+                unsafe { *rle_bits.add(rle_bits_size) = 0 };
+                rle_bits_size = rle_bits_size.wrapping_add(1);
+            }
+            count = count.wrapping_sub(1);
+        }
+
+        i = i.wrapping_add(1);
+    }
+
+    ZopfliCalculateBitLengths(
+        &raw mut clcounts as *mut size_t,
+        19,
+        7,
+        &raw mut clcl as *mut c_uint,
+    );
+    if size_only == 0 {
+        ZopfliLengthsToSymbols(
+            &raw mut clcl as *mut c_uint,
+            19,
+            7,
+            &raw mut clsymbols as *mut c_uint,
+        );
+    }
+
+    hclen = 15;
+    while hclen > 0
+        && clcounts[
+            // SAFETY: order has 19 entries and hclen is at most 15, so index is within bounds.
+            unsafe { order[hclen.wrapping_add(4).wrapping_sub(1) as usize] as usize }
+        ] == 0
+    {
+        hclen = hclen.wrapping_sub(1);
+    }
+
+    if size_only == 0 {
+        AddBits(hlit, 5, bp, out, outsize);
+        AddBits(hdist, 5, bp, out, outsize);
+        AddBits(hclen, 4, bp, out, outsize);
+
+        let hclen4 = hclen.wrapping_add(4) as usize;
+        i = 0;
+        while i < hclen4 {
+            // SAFETY: i < hclen+4 <= 19, order is length 19.
+            let ord = unsafe { order[i] as usize };
+            AddBits(clcl[ord], 3, bp, out, outsize);
+            i = i.wrapping_add(1);
+        }
+
+        i = 0;
+        while i < rle_size {
+            // SAFETY: i < rle_size, both arrays were grown and written together.
+            let code = unsafe { *rle.add(i) };
+            let symbol = clsymbols[code as usize];
+            AddHuffmanBits(symbol, clcl[code as usize], bp, out, outsize);
+            if code == 16 {
+                // SAFETY: i < rle_bits_size and entry exists corresponding to rle entry.
+                AddBits(unsafe { *rle_bits.add(i) }, 2, bp, out, outsize);
+            } else if code == 17 {
+                // SAFETY: i < rle_bits_size and entry exists corresponding to rle entry.
+                AddBits(unsafe { *rle_bits.add(i) }, 3, bp, out, outsize);
+            } else if code == 18 {
+                // SAFETY: i < rle_bits_size and entry exists corresponding to rle entry.
+                AddBits(unsafe { *rle_bits.add(i) }, 7, bp, out, outsize);
+            }
+            i = i.wrapping_add(1);
+        }
+    }
+
+    result_size = result_size.wrapping_add(14);
+    result_size = result_size.wrapping_add(hclen.wrapping_add(4).wrapping_mul(3) as size_t);
+
+    i = 0;
+    while i < 19 {
+        result_size =
+            result_size.wrapping_add((clcl[i] as size_t).wrapping_mul(clcounts[i]));
+        i = i.wrapping_add(1);
+    }
+    result_size = result_size.wrapping_add(clcounts[16].wrapping_mul(2));
+    result_size = result_size.wrapping_add(clcounts[17].wrapping_mul(3));
+    result_size = result_size.wrapping_add(clcounts[18].wrapping_mul(7));
+
+    free(rle as *mut c_void);
+    free(rle_bits as *mut c_void);
+    result_size
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-11 20:31:26
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : ZopfliCalculateEntropy
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/zopfli/3_perf_opt_freeform/crate/src/tree.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 1186
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/tree.rs
+symbol: ZopfliCalculateEntropy
+signature: #[inline]
+pub unsafe fn ZopfliCalculateEntropy(
+    mut count: *const size_t,
+    mut n: size_t,
+    mut bitlengths: *mut c_double,
+)
+location: 63..99  (attrs included)
+
+```rust
+#[inline]
+pub unsafe fn ZopfliCalculateEntropy(
+    mut count: *const size_t,
+    mut n: size_t,
+    mut bitlengths: *mut c_double,
+) {
+    static mut kInvLog2: c_double = 1.4426950408889f64;
+    let mut sum: c_uint = 0 as c_uint;
+    let mut i: c_uint = 0;
+    let mut log2sum: c_double = 0.;
+    i = 0 as c_uint;
+    while (i as size_t) < n {
+        sum = (sum as size_t).wrapping_add(*count.offset(i as isize)) as c_uint
+            as c_uint;
+        i = i.wrapping_add(1);
+    }
+    log2sum = (if sum == 0 as c_uint {
+        log(n as c_double)
+    } else {
+        log(sum as c_double)
+    }) * kInvLog2;
+    i = 0 as c_uint;
+    while (i as size_t) < n {
+        if *count.offset(i as isize) == 0 as size_t {
+            *bitlengths.offset(i as isize) = log2sum;
+        } else {
+            *bitlengths.offset(i as isize) =
+                log2sum - log(*count.offset(i as isize) as c_double) * kInvLog2;
+        }
+        if *bitlengths.offset(i as isize) < 0 as c_int as c_double
+            && *bitlengths.offset(i as isize) > -1e-5f64
+        {
+            *bitlengths.offset(i as isize) = 0 as c_int as c_double;
+        }
+        i = i.wrapping_add(1);
+    }
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+#[inline]
+pub unsafe fn ZopfliCalculateEntropy(
+    mut count: *const size_t,
+    mut n: size_t,
+    mut bitlengths: *mut c_double,
+) {
+    static mut kInvLog2: c_double = 1.4426950408889f64;
+    let mut sum: c_uint = 0 as c_uint;
+    let mut i: size_t = 0;
+    let inv_log2 = kInvLog2;
+
+    while i < n {
+        // SAFETY: caller provides `count` valid for reads of `n` consecutive elements.
+        sum = (sum as size_t).wrapping_add(unsafe { *count.add(i) }) as c_uint;
+        i += 1;
+    }
+
+    let log2sum: c_double = (if sum == 0 as c_uint {
+        log(n as c_double)
+    } else {
+        log(sum as c_double)
+    }) * inv_log2;
+
+    i = 0;
+    while i < n {
+        // SAFETY: caller provides `count` valid for reads of `n` consecutive elements.
+        let c = unsafe { *count.add(i) };
+        let mut v = if c == 0 as size_t {
+            log2sum
+        } else {
+            log2sum - log(c as c_double) * inv_log2
+        };
+        if v < 0.0f64 && v > -1e-5f64 {
+            v = 0.0f64;
+        }
+        // SAFETY: caller provides `bitlengths` valid for writes of `n` consecutive elements.
+        unsafe { *bitlengths.add(i) = v };
+        i += 1;
+    }
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-11 22:42:18
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : GetCostStat
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/zopfli/3_perf_opt_freeform/crate/src/squeeze.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 997
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/squeeze.rs
+symbol: GetCostStat
+signature: unsafe extern "C" fn GetCostStat(
+    mut litlen: c_uint,
+    mut dist: c_uint,
+    mut context: *mut c_void,
+) -> c_double
+location: 204..221  (attrs included)
+
+```rust
+unsafe extern "C" fn GetCostStat(
+    mut litlen: c_uint,
+    mut dist: c_uint,
+    mut context: *mut c_void,
+) -> c_double {
+    let mut stats: *mut SymbolStats = context as *mut SymbolStats;
+    if dist == 0 as c_uint {
+        return (*stats).ll_symbols[litlen as usize];
+    } else {
+        let mut lsym: c_int = ZopfliGetLengthSymbol(litlen as c_int);
+        let mut lbits: c_int = ZopfliGetLengthExtraBits(litlen as c_int);
+        let mut dsym: c_int = ZopfliGetDistSymbol(dist as c_int);
+        let mut dbits: c_int = ZopfliGetDistExtraBits(dist as c_int);
+        return (lbits + dbits) as c_double
+            + (*stats).ll_symbols[lsym as usize]
+            + (*stats).d_symbols[dsym as usize];
+    };
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct SymbolStats {
+    pub litlens: [size_t; 288],
+    pub dists: [size_t; 32],
+    pub ll_symbols: [c_double; 288],
+    pub d_symbols: [c_double; 32],
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+unsafe extern "C" fn GetCostStat(
+    mut litlen: c_uint,
+    mut dist: c_uint,
+    mut context: *mut c_void,
+) -> c_double {
+    let stats = context as *mut SymbolStats;
+    if dist == 0 {
+        // SAFETY: `context` is expected by the caller to be a valid `*mut SymbolStats`,
+        // and `litlen` is used exactly as in the original code to index `ll_symbols`.
+        unsafe { (*stats).ll_symbols[litlen as usize] }
+    } else {
+        let lit = litlen as c_int;
+        let dst = dist as c_int;
+        let lsym = ZopfliGetLengthSymbol(lit) as usize;
+        let dsym = ZopfliGetDistSymbol(dst) as usize;
+        let extra = (ZopfliGetLengthExtraBits(lit) + ZopfliGetDistExtraBits(dst)) as c_double;
+        // SAFETY: `context` is expected by the caller to be a valid `*mut SymbolStats`,
+        // and the symbol indices are produced by the same helper functions as in the original code.
+        unsafe { extra + (*stats).ll_symbols[lsym] + (*stats).d_symbols[dsym] }
+    }
+}
+```
+================================================================================
+
+================================================================================
+TIMESTAMP : 2026-09-11 23:54:31
+MODEL     : gpt-5.4
+PHASE     : -
+CLUSTER   : -
+FUNCTION  : TryGetFromLongestMatchCache
+TARGET    : freeform
+RULE      : freeform
+FILE      : /home/anonymous/artifact/PerfTrans/dataset_trans/zopfli/3_perf_opt_freeform/crate/src/lz77.rs
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 2275
+FINISH    : stop
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are a Rust performance optimization agent. You receive one function
+that profiling has shown to be hot. Make it faster.
+
+Contract:
+  * OUTPUT: the rewritten function wrapped in a single ```rust fenced
+    block, and nothing else. No prose before or after.
+  * Keep the function's name and signature. Keep ALL original attributes
+    (#[inline], #[cold], #[no_mangle], ...).
+  * The rewrite MUST preserve observable behaviour exactly. It is checked
+    against a byte-for-byte replay of the original program's output.
+  * Every `unsafe { ... }` you write must carry an inline `// SAFETY: ...`
+    comment stating the precondition you are relying on.
+  * If you see no worthwhile optimization, output exactly:
+      abstain: <one-line reason>
+    and STOP.
+
+You are free to use any technique you judge appropriate. No further
+guidance is given.
+
+----- USER PROMPT -----
+## Target function
+file: src/lz77.rs
+symbol: TryGetFromLongestMatchCache
+signature: unsafe fn TryGetFromLongestMatchCache(
+    mut s: *mut ZopfliBlockState,
+    mut pos: size_t,
+    mut limit: *mut size_t,
+    mut sublen: *mut c_ushort,
+    mut distance: *mut c_ushort,
+    mut length: *mut c_ushort,
+) -> c_int
+location: 569..626  (attrs included)
+
+```rust
+unsafe fn TryGetFromLongestMatchCache(
+    mut s: *mut ZopfliBlockState,
+    mut pos: size_t,
+    mut limit: *mut size_t,
+    mut sublen: *mut c_ushort,
+    mut distance: *mut c_ushort,
+    mut length: *mut c_ushort,
+) -> c_int {
+    let s_view: &ZopfliBlockState = unsafe { &*s };
+    let mut lmcpos: size_t = pos.wrapping_sub(s_view.blockstart);
+    let mut cache_available: c_uchar = (!s_view.lmc.is_null()
+        && (*(*s_view.lmc).length.offset(lmcpos as isize) as c_int
+            == 0 as c_int
+            || *(*s_view.lmc).dist.offset(lmcpos as isize) as c_int
+                != 0 as c_int))
+        as c_int
+        as c_uchar;
+    let mut limit_ok_for_cache: c_uchar =
+        (cache_available as c_int != 0
+            && (*limit == ZOPFLI_MAX_MATCH as size_t
+                || *(*s_view.lmc).length.offset(lmcpos as isize) as size_t <= *limit
+                || !sublen.is_null()
+                    && ZopfliMaxCachedSublen(
+                        s_view.lmc,
+                        lmcpos,
+                        *(*s_view.lmc).length.offset(lmcpos as isize) as size_t,
+                    ) as size_t
+                        >= *limit)) as c_int as c_uchar;
+    if !s_view.lmc.is_null()
+        && limit_ok_for_cache as c_int != 0
+        && cache_available as c_int != 0
+    {
+        if sublen.is_null()
+            || *(*s_view.lmc).length.offset(lmcpos as isize) as c_uint
+                <= ZopfliMaxCachedSublen(
+                    s_view.lmc,
+                    lmcpos,
+                    *(*s_view.lmc).length.offset(lmcpos as isize) as size_t,
+                )
+        {
+            *length = *(*s_view.lmc).length.offset(lmcpos as isize);
+            if *length as size_t > *limit {
+                *length = *limit as c_ushort;
+            }
+            if !sublen.is_null() {
+                ZopfliCacheToSublen(s_view.lmc, lmcpos, *length as size_t, sublen);
+                *distance = *sublen.offset(*length as isize);
+                *limit == ZOPFLI_MAX_MATCH as size_t
+                    && *length as c_int >= ZOPFLI_MIN_MATCH;
+            } else {
+                *distance = *(*s_view.lmc).dist.offset(lmcpos as isize);
+            }
+            return 1 as c_int;
+        }
+        *limit = *(*s_view.lmc).length.offset(lmcpos as isize) as size_t;
+    }
+    return 0 as c_int;
+}
+```
+
+## Type definitions reachable from this function (read-only)
+Nearest first. A field's element type is often several definitions away and named nowhere in the function above — use these names as written; do not infer one from a field's role.
+
+```rust
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct ZopfliBlockState {
+    pub options: *const ZopfliOptions,
+    pub lmc: *mut ZopfliLongestMatchCache,
+    pub blockstart: size_t,
+    pub blockend: size_t,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct ZopfliOptions {
+    pub verbose: c_int,
+    pub verbose_more: c_int,
+    pub numiterations: c_int,
+    pub blocksplitting: c_int,
+    pub blocksplittinglast: c_int,
+    pub blocksplittingmax: c_int,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct ZopfliLongestMatchCache {
+    pub length: *mut c_ushort,
+    pub dist: *mut c_ushort,
+    pub sublen: *mut c_uchar,
+}
+```
+
+## Instruction
+Rewrite this function to run faster, preserving behaviour exactly. Output the full rewritten function in one ```rust block, or `abstain: <reason>`.
+
+----- OUTPUT -----
+```rust
+unsafe fn TryGetFromLongestMatchCache(
+    mut s: *mut ZopfliBlockState,
+    mut pos: size_t,
+    mut limit: *mut size_t,
+    mut sublen: *mut c_ushort,
+    mut distance: *mut c_ushort,
+    mut length: *mut c_ushort,
+) -> c_int {
+    // SAFETY: Caller provides a valid pointer to ZopfliBlockState as required by the original function contract.
+    let s_ref = unsafe { &*s };
+    let lmc = s_ref.lmc;
+    if lmc.is_null() {
+        return 0 as c_int;
+    }
+
+    let lmcpos: size_t = pos.wrapping_sub(s_ref.blockstart);
+    let idx = lmcpos as isize;
+
+    // SAFETY: lmc is non-null and lmcpos indexes the same cache entry as in the original implementation.
+    let cached_len: c_ushort = unsafe { *(*lmc).length.offset(idx) };
+    // SAFETY: lmc is non-null and lmcpos indexes the same cache entry as in the original implementation.
+    let cached_dist: c_ushort = unsafe { *(*lmc).dist.offset(idx) };
+
+    let cache_available = cached_len as c_int == 0 || cached_dist as c_int != 0;
+    if !cache_available {
+        return 0 as c_int;
+    }
+
+    let limit_val = *limit;
+    let cached_len_size = cached_len as size_t;
+
+    let limit_ok_for_cache = if limit_val == ZOPFLI_MAX_MATCH as size_t || cached_len_size <= limit_val {
+        true
+    } else if !sublen.is_null() {
+        ZopfliMaxCachedSublen(lmc, lmcpos, cached_len_size) as size_t >= limit_val
+    } else {
+        false
+    };
+
+    if !limit_ok_for_cache {
+        return 0 as c_int;
+    }
+
+    if sublen.is_null()
+        || cached_len as c_uint <= ZopfliMaxCachedSublen(lmc, lmcpos, cached_len_size)
+    {
+        let out_len: c_ushort = if cached_len_size > limit_val {
+            limit_val as c_ushort
+        } else {
+            cached_len
+        };
+        *length = out_len;
+
+        if !sublen.is_null() {
+            ZopfliCacheToSublen(lmc, lmcpos, out_len as size_t, sublen);
+            // SAFETY: sublen points to a buffer compatible with the original code's indexing by out_len.
+            *distance = unsafe { *sublen.offset(out_len as isize) };
+            *limit == ZOPFLI_MAX_MATCH as size_t && *length as c_int >= ZOPFLI_MIN_MATCH;
+        } else {
+            *distance = cached_dist;
+        }
+        return 1 as c_int;
+    }
+
+    *limit = cached_len_size;
+    0 as c_int
+}
+```
+================================================================================
+

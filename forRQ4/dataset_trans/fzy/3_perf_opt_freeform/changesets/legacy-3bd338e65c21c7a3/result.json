@@ -1,0 +1,94 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "7304eb112acd23f8d73a3456b7965ddcf748bd3e",
+      "changeset_id": "legacy-3bd338e65c21c7a3",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-5443f6c7e524c44f",
+          "replacement_function_source": "unsafe fn precompute_bonus(\n    mut haystack: *const c_char,\n    mut match_bonus: *mut score_t,\n) {\n    let mut last_ch: c_char = '/' as i32 as c_char;\n    loop {\n        let ch = unsafe { *haystack }; // SAFETY: caller guarantees `haystack` points to a valid NUL-terminated byte string; we read one byte at the current position.\n        if ch == 0 {\n            break;\n        }\n        let idx = bonus_index[ch as c_uchar as usize] as usize;\n        unsafe {\n            *match_bonus = bonus_states[idx][last_ch as c_uchar as usize];\n        } // SAFETY: caller guarantees `match_bonus` has space for each non-NUL byte in `haystack`; indices are derived from `u8` values and stay within the lookup tables as in the original code.\n        last_ch = ch;\n        haystack = unsafe { haystack.add(1) }; // SAFETY: advancing within the same valid NUL-terminated string by one byte after a successful read.\n        match_bonus = unsafe { match_bonus.add(1) }; // SAFETY: advancing the output pointer in lockstep with processed input bytes; caller guarantees sufficient capacity.\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "c8b3d0e0ea46b615b7e14fbe0b366d01be89284968c34091e9b800b0785ff97b",
+            "file_hint": "src/match.rs",
+            "qualified_name": "crate::precompute_bonus",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "precompute_bonus-4b0e51cb65d5",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "precompute_bonus",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "b1181cb5c8730b65be90541fd044694c4fb662dd02e53d774a3e44a58c4b02f3",
+            "edit_id": "edit-replace-5443f6c7e524c44f",
+            "end_byte": 2881,
+            "operation_id": "replace-5443f6c7e524c44f",
+            "relative_path": "src/match.rs",
+            "replacement_text": "unsafe fn precompute_bonus(\n    mut haystack: *const c_char,\n    mut match_bonus: *mut score_t,\n) {\n    let mut last_ch: c_char = '/' as i32 as c_char;\n    loop {\n        let ch = unsafe { *haystack }; // SAFETY: caller guarantees `haystack` points to a valid NUL-terminated byte string; we read one byte at the current position.\n        if ch == 0 {\n            break;\n        }\n        let idx = bonus_index[ch as c_uchar as usize] as usize;\n        unsafe {\n            *match_bonus = bonus_states[idx][last_ch as c_uchar as usize];\n        } // SAFETY: caller guarantees `match_bonus` has space for each non-NUL byte in `haystack`; indices are derived from `u8` values and stay within the lookup tables as in the original code.\n        last_ch = ch;\n        haystack = unsafe { haystack.add(1) }; // SAFETY: advancing within the same valid NUL-terminated string by one byte after a successful read.\n        match_bonus = unsafe { match_bonus.add(1) }; // SAFETY: advancing the output pointer in lockstep with processed input bytes; caller guarantees sufficient capacity.\n    }\n}",
+            "start_byte": 2387
+          }
+        ],
+        "facts": {
+          "fn_name": "precompute_bonus",
+          "target_span_hash": "c8b3d0e0ea46b615b7e14fbe0b366d01be89284968c34091e9b800b0785ff97b"
+        },
+        "operation_id": "replace-5443f6c7e524c44f"
+      }
+    ],
+    "resolved_head": "7304eb112acd23f8d73a3456b7965ddcf748bd3e"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_post_validation",
+  "touched_paths": [
+    "src/match.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "added_bounds_check_in_loop",
+      "detail": "rewrite adds a bounds check inside a loop the original indexed unchecked (1 site(s)): bonus_index[ch as c_uchar as usize]",
+      "ok": false
+    }
+  ]
+}

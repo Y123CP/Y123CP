@@ -1,0 +1,85 @@
+# ============================================================================
+                                                                               
+                                                                           
+# ============================================================================
+
+[study]
+project     = "http-parser"
+compare     = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+report_mode = "per_input"
+
+[builds.c]
+binary_path = "dataset_trans/http-parser/validation_workload/purebin/bin/http_parser_c"
+[builds.raw]
+binary_path = "dataset_trans/http-parser/validation_workload/purebin/bin/http_parser_raw"
+[builds.stage_a]
+binary_path = "dataset_trans/http-parser/validation_workload/purebin/bin/http_parser_stage_a"
+
+[builds.codex]
+binary_path = "dataset_trans/http-parser/validation_workload/purebin/bin/http_parser_codex"
+[builds.freeform]
+binary_path = "dataset_trans/http-parser/validation_workload/purebin/bin/http_parser_freeform"
+[builds.full]                                  # full arm = 3_perf_opt (rule-guided)
+binary_path = "dataset_trans/http-parser/validation_workload/purebin/bin/http_parser_full"
+
+[measure]
+warmup_runs  = 5
+measure_runs = 30
+required_cv  = 0.03
+max_load     = 1.0
+cv_retries   = 2
+pin_cpu      = 16
+order        = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+
+[gates]
+equivalence = "stdout_sha256"
+
+[[operations]]
+name = "parse_requests"           # pipelined request log (9600 messages)
+args = ["parse_requests", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "requests.log"
+  path = "dataset_trans/http-parser/validation_workload/inputs/requests.log"
+  iters = 60
+  stdout_sha256 = "188225b49dc27c92a9d74bc104183eeb18ad2061736b6241ce69d75225a9518b"
+
+[[operations]]
+name = "parse_responses"          # pipelined response log (9000 messages)
+args = ["parse_responses", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "responses.log"
+  path = "dataset_trans/http-parser/validation_workload/inputs/responses.log"
+  iters = 60
+  stdout_sha256 = "30bcb6f78b5190bd53b3a61fab49be55c58dd51f120f0d2d0fa94e9849b6ecea"
+
+[[operations]]
+name = "parse_incremental"        # 7-byte chunks + pause/resume per message
+args = ["parse_incremental", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "requests.log"
+  path = "dataset_trans/http-parser/validation_workload/inputs/requests.log"
+  iters = 30
+  stdout_sha256 = "54b96f616d04b5c4bf57d656e07bc15ce61ce765b4512d2bf9051e1185a2bc9a"
+
+[[operations]]
+name = "parse_url"                # http_parser_parse_url over 32000 URLs
+args = ["parse_url", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "urls.txt"
+  path = "dataset_trans/http-parser/validation_workload/inputs/urls.txt"
+  iters = 30
+  stdout_sha256 = "986cb72e2c30e606a23f54e55022939ec273c7ba85c9c4e9d95c06ceced946f1"
+
+[[operations]]
+name = "proto_utils"              # method/status/errno tables + header clamp
+args = ["proto_utils", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "urls.txt"
+  path = "dataset_trans/http-parser/validation_workload/inputs/urls.txt"
+  iters = 100
+  stdout_sha256 = "9cca2dd5d00ea449d9cd02aef2c33a86c5f266647ce523467eebc74e451544c1"

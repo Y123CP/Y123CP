@@ -1,0 +1,507 @@
+{
+  "hot_function": {
+    "symbol": "xmlHashUpdateInternal",
+    "location": "src/hash.rs:539-738",
+    "workload": "schema_suite",
+    "hot_region": "src/hash.rs:539-738",
+    "rust_source": "unsafe fn xmlHashUpdateInternal(\n    mut hash: xmlHashTablePtr,\n    mut key: *const xmlChar,\n    mut key2: *const xmlChar,\n    mut key3: *const xmlChar,\n    mut payload: *mut c_void,\n    mut dealloc: xmlHashDeallocator,\n    mut update: c_int,\n) -> c_int {\n    let mut copy: *mut xmlChar = ::core::ptr::null_mut::<xmlChar>();\n    let mut copy2: *mut xmlChar = ::core::ptr::null_mut::<xmlChar>();\n    let mut copy3: *mut xmlChar = ::core::ptr::null_mut::<xmlChar>();\n    let mut entry: *mut xmlHashEntry = ::core::ptr::null_mut::<xmlHashEntry>();\n    let mut lengths: [size_t; 3] = [0; 3];\n    let mut hashValue: c_uint = 0;\n    let mut found: c_int = 0 as c_int;\n    if hash.is_null() || key.is_null() {\n        return -(1 as c_int);\n    }\n    hashValue = xmlHashValue(\n        (*hash).randomSeed,\n        key,\n        key2,\n        key3,\n        &raw mut lengths as *mut size_t,\n    );\n    if (*hash).size > 0 as c_uint {\n        entry = xmlHashFindEntry(\n            hash as *const xmlHashTable,\n            key,\n            key2,\n            key3,\n            hashValue,\n            &raw mut found,\n        );\n    }\n    if found != 0 {\n        if update != 0 {\n            if dealloc.is_some() {\n                dealloc.expect(\"non-null function pointer\")((*entry).payload, (*entry).key);\n            }\n            (*entry).payload = payload;\n            return 0 as c_int;\n        } else {\n            return -(1 as c_int);\n        }\n    }\n    if (*hash).nbElems.wrapping_add(1 as c_uint)\n        > (*hash)\n            .size\n            .wrapping_div(MAX_FILL_DENOM as c_uint)\n            .wrapping_mul(MAX_FILL_NUM as c_uint)\n    {\n        let mut newSize: c_uint = 0;\n        let mut mask: c_uint = 0;\n        let mut displ: c_uint = 0;\n        let mut pos: c_uint = 0;\n        if (*hash).size == 0 as c_uint {\n            newSize = MIN_HASH_SIZE as c_uint;\n        } else {\n            if (*hash).size >= MAX_HASH_SIZE {\n                return -(1 as c_int);\n            }\n            newSize = (*hash).size.wrapping_mul(2 as c_uint);\n        }\n        if xmlHashGrow(hash, newSize) != 0 as c_int {\n            return -(1 as c_int);\n        }\n        mask = (*hash).size.wrapping_sub(1 as c_uint);\n        displ = 0 as c_uint;\n        pos = hashValue & mask;\n        entry = (*hash).table.offset(pos as isize) as *mut xmlHashEntry;\n        if (*entry).hashValue != 0 as c_uint {\n            loop {\n                displ = displ.wrapping_add(1);\n                pos = pos.wrapping_add(1);\n                entry = entry.offset(1);\n                if pos & mask == 0 as c_uint {\n                    entry = (*hash).table;\n                }\n                if !((*entry).hashValue != 0 as c_uint\n                    && pos.wrapping_sub((*entry).hashValue) & mask >= displ)\n                {\n                    break;\n                }\n            }\n        }\n    }\n    if !(*hash).dict.is_null() {\n        if xmlDictOwns((*hash).dict, key) != 0 {\n            copy = key as *mut xmlChar;\n        } else {\n            copy = xmlDictLookup((*hash).dict, key, -(1 as c_int)) as *mut xmlChar;\n            if copy.is_null() {\n                return -(1 as c_int);\n            }\n        }\n        if key2.is_null() || xmlDictOwns((*hash).dict, key2) != 0 {\n            copy2 = key2 as *mut xmlChar;\n        } else {\n            copy2 = xmlDictLookup((*hash).dict, key2, -(1 as c_int)) as *mut xmlChar;\n            if copy2.is_null() {\n                return -(1 as c_int);\n            }\n        }\n        if key3.is_null() || xmlDictOwns((*hash).dict, key3) != 0 {\n            copy3 = key3 as *mut xmlChar;\n        } else {\n            copy3 = xmlDictLookup((*hash).dict, key3, -(1 as c_int)) as *mut xmlChar;\n            if copy3.is_null() {\n                return -(1 as c_int);\n            }\n        }\n    } else {\n        copy = xmlMalloc.expect(\"non-null function pointer\")(\n            lengths[0 as c_int as usize].wrapping_add(1 as size_t),\n        ) as *mut xmlChar;\n        if copy.is_null() {\n            return -(1 as c_int);\n        }\n        memcpy(\n            copy as *mut c_void,\n            key as *const c_void,\n            lengths[0 as c_int as usize].wrapping_add(1 as size_t),\n        );\n        if !key2.is_null() {\n            copy2 = xmlMalloc.expect(\"non-null function pointer\")(\n                lengths[1 as c_int as usize].wrapping_add(1 as size_t),\n            ) as *mut xmlChar;\n            if copy2.is_null() {\n                xmlFree.expect(\"non-null function pointer\")(copy as *mut c_void);\n                return -(1 as c_int);\n            }\n            memcpy(\n                copy2 as *mut c_void,\n                key2 as *const c_void,\n                lengths[1 as c_int as usize].wrapping_add(1 as size_t),\n            );\n        } else {\n            copy2 = ::core::ptr::null_mut::<xmlChar>();\n        }\n        if !key3.is_null() {\n            copy3 = xmlMalloc.expect(\"non-null function pointer\")(\n                lengths[2 as c_int as usize].wrapping_add(1 as size_t),\n            ) as *mut xmlChar;\n            if copy3.is_null() {\n                xmlFree.expect(\"non-null function pointer\")(copy as *mut c_void);\n                xmlFree.expect(\"non-null function pointer\")(copy2 as *mut c_void);\n                return -(1 as c_int);\n            }\n            memcpy(\n                copy3 as *mut c_void,\n                key3 as *const c_void,\n                lengths[2 as c_int as usize].wrapping_add(1 as size_t),\n            );\n        } else {\n            copy3 = ::core::ptr::null_mut::<xmlChar>();\n        }\n    }\n    if (*entry).hashValue != 0 as c_uint {\n        let mut end: *const xmlHashEntry =\n            (*hash).table.offset((*hash).size as isize) as *mut xmlHashEntry;\n        let mut cur: *const xmlHashEntry = entry;\n        loop {\n            cur = cur.offset(1);\n            if cur >= end {\n                cur = (*hash).table;\n            }\n            if !((*cur).hashValue != 0 as c_uint) {\n                break;\n            }\n        }\n        if cur < entry as *const xmlHashEntry {\n            memmove(\n                (*hash).table.offset(1 as c_int as isize) as *mut xmlHashEntry\n                    as *mut c_void,\n                (*hash).table as *const c_void,\n                (cur as *mut c_char)\n                    .offset_from((*hash).table as *mut c_char)\n                    as c_long as size_t,\n            );\n            cur = end.offset(-(1 as c_int as isize));\n            *(*hash).table.offset(0 as c_int as isize) = *cur;\n        }\n        memmove(\n            entry.offset(1 as c_int as isize) as *mut xmlHashEntry\n                as *mut c_void,\n            entry as *const c_void,\n            (cur as *mut c_char).offset_from(entry as *mut c_char)\n                as c_long as size_t,\n        );\n    }\n    (*entry).key = copy;\n    (*entry).key2 = copy2;\n    (*entry).key3 = copy3;\n    (*entry).payload = payload;\n    (*entry).hashValue = hashValue | MAX_HASH_SIZE;\n    (*hash).nbElems = (*hash).nbElems.wrapping_add(1);\n    return 0 as c_int;\n}",
+    "signature": "unsafe fn xmlHashUpdateInternal(\n    mut hash: xmlHashTablePtr,\n    mut key: *const xmlChar,\n    mut key2: *const xmlChar,\n    mut key3: *const xmlChar,\n    mut payload: *mut c_void,\n    mut dealloc: xmlHashDeallocator,\n    mut update: c_int,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.0301,
+      "call_count": null,
+      "retired_instructions": 687178619,
+      "instructions_per_call": null,
+      "cpi": 0.522,
+      "tma": {
+        "scope": "process",
+        "retiring": 40.90777088778057,
+        "frontend_bound": 44.447962074417134,
+        "bad_speculation": 5.872614848902449,
+        "backend_bound": 8.771652188899845,
+        "memory_bound": 3.7274769017627145,
+        "core_bound": 5.04417528713713,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0149
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "frontend_bound",
+    "class_i_hits": {
+      "C1": 6,
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_inl": {
+        "TooCostly": 3
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 558,
+        "message": "'_ZN15libxml2_cleaned3src4hash12xmlHashValue17he14016681a672b7aE' not inlined into '_ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E' because too costly to inline (cost=270, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 566,
+        "message": "'_ZN15libxml2_cleaned3src4hash16xmlHashFindEntry17he5ffd3e3ca8dbb9bE' not inlined into '_ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E' because too costly to inline (cost=335, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 604,
+        "message": "'_ZN15libxml2_cleaned3src4hash11xmlHashGrow17h50311cd980269af4E' not inlined into '_ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E' because too costly to inline (cost=315, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 628,
+        "message": "'_ZN15libxml2_cleaned3src4dict11xmlDictOwns17ha0d7acd9252e2626E' inlined into '_ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E' with (cost=50, threshold=325) at callsite _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E:89:12;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 631,
+        "message": "'_ZN15libxml2_cleaned3src4dict13xmlDictLookup17h4aa113a80f0aa0b8E' inlined into '_ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E' with (cost=25, threshold=325) at callsite _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E:92:20;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 636,
+        "message": "'_ZN15libxml2_cleaned3src4dict11xmlDictOwns17ha0d7acd9252e2626E' inlined into '_ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E' with (cost=40, threshold=325) at callsite _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E:97:30;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 639,
+        "message": "'_ZN15libxml2_cleaned3src4dict13xmlDictLookup17h4aa113a80f0aa0b8E' inlined into '_ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E' with (cost=25, threshold=45) at callsite _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E:100:21;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 644,
+        "message": "'_ZN15libxml2_cleaned3src4dict11xmlDictOwns17ha0d7acd9252e2626E' inlined into '_ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E' with (cost=40, threshold=325) at callsite _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E:105:30;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 647,
+        "message": "'_ZN15libxml2_cleaned3src4dict13xmlDictLookup17h4aa113a80f0aa0b8E' inlined into '_ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E' with (cost=25, threshold=45) at callsite _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E:108:21;"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 575,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 575,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 607,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 610,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 627,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 636,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 644,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 653,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 654,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 662,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 665,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 666,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 675,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 669,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 681,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 682,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 692,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 685,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 686,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 698,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 700,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 700,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 721,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 736,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 539,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E: MI Instruction count changed from 0 to 526; Delta: 526"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 539,
+        "message": "Early Tail Duplication: Function: _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E: MI Instruction count changed from 526 to 522; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 539,
+        "message": "Merge disjoint stack slots: Function: _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E: MI Instruction count changed from 522 to 518; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 539,
+        "message": "Remove dead machine instructions: Function: _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E: MI Instruction count changed from 518 to 513; Delta: -5"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 539,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E: MI Instruction count changed from 513 to 500; Delta: -13"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 539,
+        "message": "Peephole Optimizations: Function: _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E: MI Instruction count changed from 500 to 495; Delta: -5"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 539,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E: MI Instruction count changed from 495 to 572; Delta: 77"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 539,
+        "message": "Two-Address instruction pass: Function: _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E: MI Instruction count changed from 572 to 598; Delta: 26"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 539,
+        "message": "Register Coalescer: Function: _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E: MI Instruction count changed from 598 to 458; Delta: -140"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 539,
+        "message": "11 spills 1.997712e+00 total spills cost 18 reloads 1.335617e+00 total reloads cost 72 virtual registers copies 1.367230e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 539,
+        "message": "Greedy Register Allocator: Function: _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E: MI Instruction count changed from 458 to 520; Delta: 62"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 539,
+        "message": "Virtual Register Rewriter: Function: _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E: MI Instruction count changed from 520 to 485; Delta: -35"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 539,
+        "message": "136 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 539,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E: MI Instruction count changed from 485 to 471; Delta: -14"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 539,
+        "message": "Control Flow Optimizer: Function: _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E: MI Instruction count changed from 471 to 422; Delta: -49"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 539,
+        "message": "Machine Copy Propagation Pass: Function: _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E: MI Instruction count changed from 422 to 420; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 539,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E: MI Instruction count changed from 420 to 417; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 539,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN15libxml2_cleaned3src4hash21xmlHashUpdateInternal17h6ea92efb7eabb951E: MI Instruction count changed from 417 to 418; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 552,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 576,
+        "message": "BasicBlock: bb10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 578,
+        "message": "BasicBlock: bb105"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 586,
+        "message": "BasicBlock: bb17"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 599,
+        "message": "BasicBlock: bb20"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 604,
+        "message": "BasicBlock: bb23"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 619,
+        "message": "BasicBlock: bb28.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 627,
+        "message": "BasicBlock: bb40"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 636,
+        "message": "BasicBlock: bb49"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 636,
+        "message": "BasicBlock: bb51"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 654,
+        "message": "BasicBlock: bb107"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 665,
+        "message": "BasicBlock: bb72"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 644,
+        "message": "BasicBlock: bb58"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 644,
+        "message": "BasicBlock: bb60"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 680,
+        "message": "BasicBlock: bb78"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 681,
+        "message": "BasicBlock: bb80"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 698,
+        "message": "BasicBlock: bb87"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 731,
+        "message": "BasicBlock: bb101"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 738,
+        "message": "BasicBlock: bb103"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 669,
+        "message": "BasicBlock: bb74"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 669,
+        "message": "BasicBlock: bb111"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 685,
+        "message": "BasicBlock: bb82"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 685,
+        "message": "BasicBlock: bb115"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 686,
+        "message": "BasicBlock: bb117"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 539,
+        "message": "397 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

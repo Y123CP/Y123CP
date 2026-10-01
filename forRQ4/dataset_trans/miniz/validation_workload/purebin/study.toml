@@ -1,0 +1,160 @@
+# ============================================================================
+                                                      
+                                                                         
+                                                        
+                                                                         
+                                                                     
+                                                       
+#       dataset_trans/run_validation.py dataset_trans/miniz/validation_workload/purebin/study.toml
+# ============================================================================
+
+[study]
+project     = "miniz"
+compare     = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+report_mode = "per_input"
+
+[builds.c]
+binary_path = "dataset_trans/miniz/validation_workload/purebin/bin/miniz_c"
+[builds.raw]
+binary_path = "dataset_trans/miniz/validation_workload/purebin/bin/miniz_raw"
+[builds.stage_a]
+binary_path = "dataset_trans/miniz/validation_workload/purebin/bin/miniz_stage_a"
+
+[builds.codex]
+binary_path = "dataset_trans/miniz/validation_workload/purebin/bin/miniz_codex"
+[builds.freeform]
+binary_path = "dataset_trans/miniz/validation_workload/purebin/bin/miniz_freeform"
+[builds.full]                                  # full arm = 3_perf_opt (rule-guided)
+binary_path = "dataset_trans/miniz/validation_workload/purebin/bin/miniz_full"
+
+[measure]
+warmup_runs  = 5
+measure_runs = 30
+required_cv  = 0.03
+max_load     = 1.0
+cv_retries   = 2
+pin_cpu      = 16
+order        = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+
+[gates]
+equivalence = "stdout_sha256"
+
+[[operations]]
+name = "compress"                 # zlib one-shot (mz_compress2 / mz_compress)
+args = ["compress", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "dataset_trans/miniz/validation_workload/inputs/silesia-xml"
+  iters = 5
+  stdout_sha256 = "7ae0eaf242340de3078188f133eff7d8a48624c463ad63d67af70e29b68f116b"
+  [[operations.inputs]]
+  name = "silesia-dickens"
+  path = "dataset_trans/miniz/validation_workload/inputs/silesia-dickens"
+  iters = 2
+  stdout_sha256 = "a26d85b33ff59990a0d14f929fb1243d5278338ed48bd3c681d9087060bca2c9"
+
+[[operations]]
+name = "uncompress"               # zlib one-shot decode
+args = ["uncompress", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml.z"
+  path = "dataset_trans/miniz/validation_workload/inputs/silesia-xml.z"
+  iters = 40
+  stdout_sha256 = "faa39e00375f27bbdc865b0ee9cba94b8df7b644bfa6fbc975717f10adc104da"
+  [[operations.inputs]]
+  name = "silesia-dickens.z"
+  path = "dataset_trans/miniz/validation_workload/inputs/silesia-dickens.z"
+  iters = 12
+  stdout_sha256 = "d39ec7256ce0af942045b6746794cd033d5f07027daf45b7456d76f0300c593d"
+
+[[operations]]
+name = "deflate_stream"           # chunked mz_deflate (+ deflateReset reuse)
+args = ["deflate_stream", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "dataset_trans/miniz/validation_workload/inputs/silesia-xml"
+  iters = 5
+  stdout_sha256 = "288ac30e8ae255d29852ed60da72af10326412325cb83bead8ad6c53df57b78c"
+  [[operations.inputs]]
+  name = "silesia-dickens"
+  path = "dataset_trans/miniz/validation_workload/inputs/silesia-dickens"
+  iters = 2
+  stdout_sha256 = "e2bd5ffe9039d8a661dd1c3bf3d131045e5b8712987f8628eb34ab433738e35e"
+
+[[operations]]
+name = "inflate_stream"           # chunked mz_inflate (+ inflateReset reuse)
+args = ["inflate_stream", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml.z"
+  path = "dataset_trans/miniz/validation_workload/inputs/silesia-xml.z"
+  iters = 60
+  stdout_sha256 = "4a616431f67b118fff380827e75f700e294cf535f4bf036b1e03b2812ad84018"
+  [[operations.inputs]]
+  name = "silesia-dickens.z"
+  path = "dataset_trans/miniz/validation_workload/inputs/silesia-dickens.z"
+  iters = 15
+  stdout_sha256 = "645280aae2bfbaba5fb4d39879d5e7450cd19d38ddeb66b9734c93c759f13c25"
+
+[[operations]]
+name = "tdefl_matrix"             # low-level flag matrix + mem_to_mem + PNG writer
+args = ["tdefl_matrix", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "xml-48k.bin"
+  path = "dataset_trans/miniz/validation_workload/inputs/xml-48k.bin"
+  iters = 200
+  stdout_sha256 = "b5c9135fd4003e0452c38f2449e0e95a4edf46e40df9cc8e062024bce4c547b9"
+
+[[operations]]
+name = "tinfl_lowlevel"           # tinfl heap/mem/callback decode
+args = ["tinfl_lowlevel", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml.defl"
+  path = "dataset_trans/miniz/validation_workload/inputs/silesia-xml.defl"
+  iters = 70
+  stdout_sha256 = "4f58d4a197ee3a92d67542acb4ec7c96d0272728ba1a70cc3bc7e4b27b3874ee"
+
+[[operations]]
+name = "checksums"                # mz_crc32 + mz_adler32
+args = ["checksums", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "dataset_trans/miniz/validation_workload/inputs/silesia-xml"
+  iters = 35
+  stdout_sha256 = "f3d9b5c0cec1d9fdfa2b50b7624591c8cb444692a614abd2f0e6f129844ad8d4"
+
+[[operations]]
+name = "zip_write"                # in-memory archive build (fixed timestamps)
+args = ["zip_write", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "dataset_trans/miniz/validation_workload/inputs/silesia-xml"
+  iters = 6
+  stdout_sha256 = "c7592f60037f3c65db0b0a4adbc067b0db303af3e71257b17638b16174af38c5"
+
+[[operations]]
+name = "zip_read"                 # stat/locate/extract all + query + iter variants
+args = ["zip_read", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml.zip"
+  path = "dataset_trans/miniz/validation_workload/inputs/silesia-xml.zip"
+  iters = 15
+  stdout_sha256 = "c23478a18e8d3d7af08fbe0f713c3fc669336b7393bad3c22e861b303bf64c0f"
+
+[[operations]]
+name = "zip_file"                 # file/cfile/in-place/append entry points
+args = ["zip_file", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "xml-48k.bin"
+  path = "dataset_trans/miniz/validation_workload/inputs/xml-48k.bin"
+  iters = 180
+  stdout_sha256 = "9cf0b6033600c52c2bc616c53ad9940147daaa7a4cb3cb46089647d998608ace"

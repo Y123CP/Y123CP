@@ -1,0 +1,23 @@
+# Workload harness for json-c (W1/W2/W3 in json-c/workloads/*.toml).
+#
+# Reads a .json file, parses it via json_tokener_parse(), reports the
+# top-level object's key count and a tokenized-then-serialized length.
+# Output format matches dataset_source/json-c/exhaustive_driver.c's
+# canonical-print path so W1 stdout_hash applies to all three builds.
+#
+# Path-dep is rewired by Stage A to point at 2_stage_a/.
+[package]
+name = "json_roundtrip"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+json_c_cleaned = { path = "../rust_raw", package = "json_c_raw" }
+
+[profile.release]
+opt-level     = 3
+lto           = "fat"
+codegen-units = 1
+panic         = "abort"
+debug         = false

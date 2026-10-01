@@ -1,0 +1,204 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.6108985667876883,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -0.4076711396453362,
+            "aggregate_ci_low_pct": -0.8141259939300404,
+            "aggregate_pct": -0.6108985667876883,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -2.2859,
+                "ci_low_pct": -2.731,
+                "insns_delta_pct": 0.5763,
+                "mean_delta_pct": -2.5085,
+                "op": "builtin_script_matrix",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.7862,
+                "ci_low_pct": -0.0907,
+                "insns_delta_pct": 0.0629,
+                "mean_delta_pct": 0.3478,
+                "op": "expr_embedded_builtins",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.1418,
+                "ci_low_pct": -1.5383,
+                "insns_delta_pct": 0.5439,
+                "mean_delta_pct": -0.84,
+                "op": "native_call_state",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.75,
+                "ci_low_pct": 0.3643,
+                "insns_delta_pct": -0.5954,
+                "mean_delta_pct": 0.5571,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -0.9889581217662238,
+            "aggregate_ci_low_pct": -1.2249352409696288,
+            "aggregate_pct": -1.1069466813679263,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -2.488,
+                "ci_low_pct": -2.794,
+                "insns_delta_pct": 0.3696,
+                "mean_delta_pct": -2.641,
+                "op": "builtin_script_matrix",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.6272,
+                "ci_low_pct": 0.227,
+                "insns_delta_pct": -0.7263,
+                "mean_delta_pct": 0.4271,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "builtin_script_matrix",
+          "subst_list_pipeline"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "subst_list_pipeline"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "3fc6eb04c82f4e5e37dd4a8552d95248112a62e7",
+      "changeset_id": "legacy-629a6de3add49800",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-befa8cf2fdf5f573",
+          "replacement_function_source": "#[inline]\npub fn lil_list_to_value(\n    mut list: lil_list_t,\n    mut do_escape: c_int,\n) -> lil_value_t { unsafe {\n    let val: lil_value_t = alloc_value(::core::ptr::null::<c_char>());\n    let count = (*list).c;\n    let items = (*list).v;\n    let escape_enabled = do_escape != 0;\n\n    let mut i: size_t = 0;\n    while i < count {\n        let item = *items.add(i as usize);\n        if i != 0 {\n            lil_append_char(val, ' ' as i32 as c_char);\n        }\n\n        let escape: c_int = if escape_enabled {\n            needs_escape(lil_to_string(item))\n        } else {\n            0 as c_int\n        };\n\n        if escape != 0 {\n            lil_append_char(val, '{' as i32 as c_char);\n\n            let item_ref = &*item;\n            let len = item_ref.l;\n            let data = item_ref.d;\n\n            let mut j: size_t = 0;\n            while j < len {\n                let ch = *data.add(j as usize);\n                if ch as c_int == '{' as i32 {\n                    lil_append_string(val, b\"}\\\"\\\\o\\\"{\\0\" as *const u8 as *const c_char);\n                } else if ch as c_int == '}' as i32 {\n                    lil_append_string(val, b\"}\\\"\\\\c\\\"{\\0\" as *const u8 as *const c_char);\n                } else {\n                    lil_append_char(val, ch);\n                }\n                j = j.wrapping_add(1);\n            }\n\n            lil_append_char(val, '}' as i32 as c_char);\n        } else {\n            lil_append_val(val, item);\n        }\n\n        i = i.wrapping_add(1);\n    }\n\n    return val;\n} }",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "928ef7aaf82db44237f50fc948ca66e3f60c342c8da35608acc3afad31cd0006",
+            "file_hint": "src/lil.rs",
+            "qualified_name": "crate::lil_list_to_value",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "lil_list_to_value-d30ae5635943",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "lil_list_to_value",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "a1175c4553361b0b4ac3fa10966c24e10f242ea7ecfb3615a8263e74e4434cae",
+            "edit_id": "edit-replace-befa8cf2fdf5f573",
+            "end_byte": 18092,
+            "operation_id": "replace-befa8cf2fdf5f573",
+            "relative_path": "src/lil.rs",
+            "replacement_text": "#[inline]\npub fn lil_list_to_value(\n    mut list: lil_list_t,\n    mut do_escape: c_int,\n) -> lil_value_t { unsafe {\n    let val: lil_value_t = alloc_value(::core::ptr::null::<c_char>());\n    let count = (*list).c;\n    let items = (*list).v;\n    let escape_enabled = do_escape != 0;\n\n    let mut i: size_t = 0;\n    while i < count {\n        let item = *items.add(i as usize);\n        if i != 0 {\n            lil_append_char(val, ' ' as i32 as c_char);\n        }\n\n        let escape: c_int = if escape_enabled {\n            needs_escape(lil_to_string(item))\n        } else {\n            0 as c_int\n        };\n\n        if escape != 0 {\n            lil_append_char(val, '{' as i32 as c_char);\n\n            let item_ref = &*item;\n            let len = item_ref.l;\n            let data = item_ref.d;\n\n            let mut j: size_t = 0;\n            while j < len {\n                let ch = *data.add(j as usize);\n                if ch as c_int == '{' as i32 {\n                    lil_append_string(val, b\"}\\\"\\\\o\\\"{\\0\" as *const u8 as *const c_char);\n                } else if ch as c_int == '}' as i32 {\n                    lil_append_string(val, b\"}\\\"\\\\c\\\"{\\0\" as *const u8 as *const c_char);\n                } else {\n                    lil_append_char(val, ch);\n                }\n                j = j.wrapping_add(1);\n            }\n\n            lil_append_char(val, '}' as i32 as c_char);\n        } else {\n            lil_append_val(val, item);\n        }\n\n        i = i.wrapping_add(1);\n    }\n\n    return val;\n} }",
+            "start_byte": 16355
+          }
+        ],
+        "facts": {
+          "fn_name": "lil_list_to_value",
+          "target_span_hash": "928ef7aaf82db44237f50fc948ca66e3f60c342c8da35608acc3afad31cd0006"
+        },
+        "operation_id": "replace-befa8cf2fdf5f573"
+      }
+    ],
+    "resolved_head": "3fc6eb04c82f4e5e37dd4a8552d95248112a62e7"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/lil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

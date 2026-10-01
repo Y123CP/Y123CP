@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.82169078363678,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 1.2402631097268293,
+            "aggregate_ci_low_pct": 0.40311845754673087,
+            "aggregate_pct": 0.82169078363678,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 1.2403,
+                "ci_low_pct": 0.4031,
+                "insns_delta_pct": -0.0614,
+                "mean_delta_pct": 0.8217,
+                "op": "regexp_pattern",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "regexp_pattern"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "regexp_pattern"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "71a2558c6645e83ae6eadbe656765c9ce0f21a29",
+      "changeset_id": "legacy-416e65f6ae3020f4",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-9da8a8ecb4090463",
+          "replacement_function_source": "// Applied rules: [C3, III④]\n// Skipped rules: [C1: The only concrete C1 hit listed is [0] at line 894, outside the target function range 2623..2656. No in-function concrete C1 hit is available, so F6 forbids applying C1 here. Any bounds-check effects introduced by III④ will be handled by choosing a form that preserves proof structure, but not claimed as a direct C1 rewrite.; C3.S1: Changing `xmlRegStatePush` from raw pointer parameter to reference-based signature would affect callers and is unnecessary for this short local fix; use local hoisting (S2-style) instead.]\nfn xmlRegStatePush(mut ctxt: xmlRegParserCtxtPtr) -> xmlRegStatePtr { unsafe {\n    let mut state: xmlRegStatePtr = ::core::ptr::null_mut::<xmlRegState>();\n    if (*ctxt).nbStates >= (*ctxt).maxStates {\n        let mut newSize: size_t = (if (*ctxt).maxStates != 0 {\n            (*ctxt).maxStates * 2 as c_int\n        } else {\n            4 as c_int\n        }) as size_t;\n        let mut tmp: *mut xmlRegStatePtr = ::core::ptr::null_mut::<xmlRegStatePtr>();\n        tmp = xmlRealloc.expect(\"non-null function pointer\")(\n            (*ctxt).states as *mut c_void,\n            newSize.wrapping_mul(::core::mem::size_of::<xmlRegStatePtr>() as size_t),\n        ) as *mut xmlRegStatePtr;\n        if tmp.is_null() {\n            xmlRegexpErrMemory(\n                ctxt,\n                b\"adding state\\0\" as *const u8 as *const c_char,\n            );\n            return ::core::ptr::null_mut::<xmlRegState>();\n        }\n        (*ctxt).states = tmp;\n        (*ctxt).maxStates = newSize as c_int;\n    }\n    state = xmlRegNewState(ctxt);\n    if state.is_null() {\n        return ::core::ptr::null_mut::<xmlRegState>();\n    }\n    let nb_states = (*ctxt).nbStates;\n    (*state).no = nb_states;\n    (*ctxt).nbStates = nb_states + 1;\n    let states = (*ctxt).states;\n    let max_states = (*ctxt).maxStates as usize;\n    let states_slice = unsafe {\n        // SAFETY: `states` is the current backing allocation for `(*ctxt).states`,\n        // `max_states` is the stable post-growth capacity from `ctxt`, and the\n        // insertion path above ensures `nb_states < (*ctxt).maxStates`, so writing\n        // index `nb_states as usize` is within bounds for this unique mutable view.\n        ::core::slice::from_raw_parts_mut(states, max_states)\n    };\n    *states_slice.get_unchecked_mut(nb_states as usize) = state;\n    return state;\n} }",
+          "rule_id": "C3,III④",
+          "target": {
+            "declaration_hash": "b5af4ece3fa7362be26d3cc3f5402bbab203358b4d442d6bd83809ddc37eca85",
+            "file_hint": "src/xmlregexp.rs",
+            "qualified_name": "crate::xmlRegStatePush",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "xmlRegStatePush-729e78e5d82f",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "xmlRegStatePush",
+        "rule_id": "C3,III④"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "c178aa5a97a53da935b11585b40187c07663c51dda0d16bba06ce87556cccc1d",
+            "edit_id": "edit-replace-9da8a8ecb4090463",
+            "end_byte": 117649,
+            "operation_id": "replace-9da8a8ecb4090463",
+            "relative_path": "src/xmlregexp.rs",
+            "replacement_text": "// Applied rules: [C3, III④]\n// Skipped rules: [C1: The only concrete C1 hit listed is [0] at line 894, outside the target function range 2623..2656. No in-function concrete C1 hit is available, so F6 forbids applying C1 here. Any bounds-check effects introduced by III④ will be handled by choosing a form that preserves proof structure, but not claimed as a direct C1 rewrite.; C3.S1: Changing `xmlRegStatePush` from raw pointer parameter to reference-based signature would affect callers and is unnecessary for this short local fix; use local hoisting (S2-style) instead.]\nfn xmlRegStatePush(mut ctxt: xmlRegParserCtxtPtr) -> xmlRegStatePtr { unsafe {\n    let mut state: xmlRegStatePtr = ::core::ptr::null_mut::<xmlRegState>();\n    if (*ctxt).nbStates >= (*ctxt).maxStates {\n        let mut newSize: size_t = (if (*ctxt).maxStates != 0 {\n            (*ctxt).maxStates * 2 as c_int\n        } else {\n            4 as c_int\n        }) as size_t;\n        let mut tmp: *mut xmlRegStatePtr = ::core::ptr::null_mut::<xmlRegStatePtr>();\n        tmp = xmlRealloc.expect(\"non-null function pointer\")(\n            (*ctxt).states as *mut c_void,\n            newSize.wrapping_mul(::core::mem::size_of::<xmlRegStatePtr>() as size_t),\n        ) as *mut xmlRegStatePtr;\n        if tmp.is_null() {\n            xmlRegexpErrMemory(\n                ctxt,\n                b\"adding state\\0\" as *const u8 as *const c_char,\n            );\n            return ::core::ptr::null_mut::<xmlRegState>();\n        }\n        (*ctxt).states = tmp;\n        (*ctxt).maxStates = newSize as c_int;\n    }\n    state = xmlRegNewState(ctxt);\n    if state.is_null() {\n        return ::core::ptr::null_mut::<xmlRegState>();\n    }\n    let nb_states = (*ctxt).nbStates;\n    (*state).no = nb_states;\n    (*ctxt).nbStates = nb_states + 1;\n    let states = (*ctxt).states;\n    let max_states = (*ctxt).maxStates as usize;\n    let states_slice = unsafe {\n        // SAFETY: `states` is the current backing allocation for `(*ctxt).states`,\n        // `max_states` is the stable post-growth capacity from `ctxt`, and the\n        // insertion path above ensures `nb_states < (*ctxt).maxStates`, so writing\n        // index `nb_states as usize` is within bounds for this unique mutable view.\n        ::core::slice::from_raw_parts_mut(states, max_states)\n    };\n    *states_slice.get_unchecked_mut(nb_states as usize) = state;\n    return state;\n} }",
+            "start_byte": 116312
+          }
+        ],
+        "facts": {
+          "fn_name": "xmlRegStatePush",
+          "target_span_hash": "b5af4ece3fa7362be26d3cc3f5402bbab203358b4d442d6bd83809ddc37eca85"
+        },
+        "operation_id": "replace-9da8a8ecb4090463"
+      }
+    ],
+    "resolved_head": "71a2558c6645e83ae6eadbe656765c9ce0f21a29"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/xmlregexp.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

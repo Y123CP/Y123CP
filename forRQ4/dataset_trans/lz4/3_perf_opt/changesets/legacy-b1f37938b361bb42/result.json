@@ -1,0 +1,101 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": "attach_dictionary:71a21ab5: sha256 6acb54aa785c… ≠ 996af28c255c…"
+      },
+      "gate": "w1",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "8f5489a9bf026ddbb2b60c9c71dde7b8cff2d004",
+      "changeset_id": "legacy-b1f37938b361bb42",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-1b37bc3445ba5550",
+          "replacement_function_source": "// Applied rules: [II_vec]\n// Skipped rules: [III④: Hits [12, 13] are a backward, data-dependent paired read in a hot inner loop of an LZ-style backmatch routine. Although an L4-style bound exists via `min`, the access pattern cannot be expressed as a forward iterator/zip over slices; a slice rewrite would devolve to naive indexing with per-iteration bounds checks and would not improve alias information meaningfully for this pattern. Per rule III④ §5, abstain on backward/data-dependent hot-loop cursor accesses.]\n#[inline(always)]\nunsafe fn LZ4HC_countBack(\n    ip_0: *const BYTE,\n    match_0: *const BYTE,\n    iMin: *const BYTE,\n    mMin: *const BYTE,\n) -> c_int {\n    let min: c_int = (if iMin.offset_from(ip_0) as c_long > mMin.offset_from(match_0) as c_long {\n        iMin.offset_from(ip_0) as c_long\n    } else {\n        mMin.offset_from(match_0) as c_long\n    }) as c_int;\n\n    let mut back: c_int = 0 as c_int;\n\n    let mut steps4: c_int = ((-min) - 4 as c_int) / 4 as c_int;\n    while steps4 >= 0 {\n        let cur_back = -(steps4 * 4 as c_int + 4 as c_int);\n        let v: U32 = LZ4_read32(\n            ip_0.offset(cur_back as isize) as *const c_void,\n        ) as U32\n            ^ LZ4_read32(\n                match_0.offset(cur_back as isize) as *const c_void,\n            ) as U32;\n        if v != 0 {\n            return cur_back + 4 as c_int - LZ4HC_NbCommonBytes32(v) as c_int;\n        }\n        steps4 -= 1;\n    }\n\n    back = if min < 0 {\n        let rem = (-min) & 3 as c_int;\n        -rem\n    } else {\n        0 as c_int\n    };\n\n    let mut remaining: c_int = back - min;\n    while remaining > 0\n        && *ip_0.offset((back - 1 as c_int) as isize) as c_int\n            == *match_0.offset((back - 1 as c_int) as isize) as c_int\n    {\n        back -= 1;\n        remaining -= 1;\n    }\n    back\n}",
+          "rule_id": "II_vec",
+          "target": {
+            "declaration_hash": "6fb4b4530258da6c572af9f569bbee060df01a3c5b0e6d4f46fc5387baa2935f",
+            "file_hint": "src/lz4hc.rs",
+            "qualified_name": "crate::LZ4HC_countBack",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "LZ4HC_countBack-f4cc9628e583",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "LZ4HC_countBack",
+        "rule_id": "II_vec"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "888c0495028c15daa103051ad88a1812bc5084ecb84def834a2215440c165eae",
+            "edit_id": "edit-replace-1b37bc3445ba5550",
+            "end_byte": 11434,
+            "operation_id": "replace-1b37bc3445ba5550",
+            "relative_path": "src/lz4hc.rs",
+            "replacement_text": "// Applied rules: [II_vec]\n// Skipped rules: [III④: Hits [12, 13] are a backward, data-dependent paired read in a hot inner loop of an LZ-style backmatch routine. Although an L4-style bound exists via `min`, the access pattern cannot be expressed as a forward iterator/zip over slices; a slice rewrite would devolve to naive indexing with per-iteration bounds checks and would not improve alias information meaningfully for this pattern. Per rule III④ §5, abstain on backward/data-dependent hot-loop cursor accesses.]\n#[inline(always)]\nunsafe fn LZ4HC_countBack(\n    ip_0: *const BYTE,\n    match_0: *const BYTE,\n    iMin: *const BYTE,\n    mMin: *const BYTE,\n) -> c_int {\n    let min: c_int = (if iMin.offset_from(ip_0) as c_long > mMin.offset_from(match_0) as c_long {\n        iMin.offset_from(ip_0) as c_long\n    } else {\n        mMin.offset_from(match_0) as c_long\n    }) as c_int;\n\n    let mut back: c_int = 0 as c_int;\n\n    let mut steps4: c_int = ((-min) - 4 as c_int) / 4 as c_int;\n    while steps4 >= 0 {\n        let cur_back = -(steps4 * 4 as c_int + 4 as c_int);\n        let v: U32 = LZ4_read32(\n            ip_0.offset(cur_back as isize) as *const c_void,\n        ) as U32\n            ^ LZ4_read32(\n                match_0.offset(cur_back as isize) as *const c_void,\n            ) as U32;\n        if v != 0 {\n            return cur_back + 4 as c_int - LZ4HC_NbCommonBytes32(v) as c_int;\n        }\n        steps4 -= 1;\n    }\n\n    back = if min < 0 {\n        let rem = (-min) & 3 as c_int;\n        -rem\n    } else {\n        0 as c_int\n    };\n\n    let mut remaining: c_int = back - min;\n    while remaining > 0\n        && *ip_0.offset((back - 1 as c_int) as isize) as c_int\n            == *match_0.offset((back - 1 as c_int) as isize) as c_int\n    {\n        back -= 1;\n        remaining -= 1;\n    }\n    back\n}",
+            "start_byte": 10257
+          }
+        ],
+        "facts": {
+          "fn_name": "LZ4HC_countBack",
+          "target_span_hash": "6fb4b4530258da6c572af9f569bbee060df01a3c5b0e6d4f46fc5387baa2935f"
+        },
+        "operation_id": "replace-1b37bc3445ba5550"
+      }
+    ],
+    "resolved_head": "8f5489a9bf026ddbb2b60c9c71dde7b8cff2d004"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w1",
+  "touched_paths": [
+    "src/lz4hc.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

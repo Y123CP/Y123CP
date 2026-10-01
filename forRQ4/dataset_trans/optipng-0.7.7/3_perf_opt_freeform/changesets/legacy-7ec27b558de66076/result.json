@@ -1,0 +1,101 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": "png_palette_roundtrip:d2fb8be1: exit -6 ≠ 0\nstderr: libpng error: IDAT: incorrect data check"
+      },
+      "gate": "w1",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "5a37a4b1ab464f92ead6ffe81f6bd88220b44dec",
+      "changeset_id": "legacy-7ec27b558de66076",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-90fa45759e296335",
+          "replacement_function_source": "unsafe fn longest_match(mut s: *mut deflate_state, mut cur_match: IPos) -> uInt {\n    // Applied rules:\n    // - Hoist frequently used fields and base pointers out of the loop.\n    // - Preserve original pointer progression and guard ordering exactly.\n    // Skipped rules:\n    // - No wider/word-at-a-time loads, since the original's exact overread pattern must be preserved.\n\n    let s_view: &mut deflate_state = unsafe { &mut *s }; // SAFETY: caller provides a valid mutable pointer to `deflate_state`.\n    let mut chain_length: c_uint = s_view.max_chain_length as c_uint;\n    let scan_base: *mut Bytef = unsafe { s_view.window.offset(s_view.strstart as isize) }; // SAFETY: same preconditions as the original function; `strstart` indexes the valid window.\n    let mut best_len: c_int = s_view.prev_length as c_int;\n    let mut nice_match: c_int = s_view.nice_match;\n    let limit: IPos = if s_view.strstart\n        > (s_view.w_size as c_uint).wrapping_sub(MIN_LOOKAHEAD as c_uint)\n    {\n        (s_view.strstart as IPos)\n            .wrapping_sub((s_view.w_size as c_uint).wrapping_sub(MIN_LOOKAHEAD as c_uint))\n    } else {\n        NIL as IPos\n    };\n    let prev: *mut Posf = s_view.prev;\n    let wmask: uInt = s_view.w_mask;\n    let strend: *mut Bytef = unsafe { scan_base.offset(MAX_MATCH as isize) }; // SAFETY: original function forms the same pointer; zlib invariants guarantee the compare region is accessible.\n    let mut scan_end1: Byte = unsafe { *scan_base.offset((best_len - 1) as isize) as Byte }; // SAFETY: identical access pattern to the original.\n    let mut scan_end: Byte = unsafe { *scan_base.offset(best_len as isize) as Byte }; // SAFETY: identical access pattern to the original.\n\n    if s_view.prev_length >= s_view.good_match {\n        chain_length >>= 2;\n    }\n    if nice_match as uInt > s_view.lookahead {\n        nice_match = s_view.lookahead as c_int;\n    }\n\n    loop {\n        let mut match_0: *mut Bytef = unsafe { s_view.window.offset(cur_match as isize) }; // SAFETY: `cur_match` comes from the maintained hash chain exactly as in the original.\n\n        let reject = unsafe {\n            // SAFETY: these are the same byte probes and offsets as the original quick filter.\n            *match_0.offset(best_len as isize) as c_int != scan_end as c_int\n                || *match_0.offset((best_len - 1) as isize) as c_int != scan_end1 as c_int\n                || *match_0 as c_int != *scan_base as c_int\n                || {\n                    match_0 = match_0.offset(1);\n                    *match_0 as c_int != *scan_base.offset(1) as c_int\n                }\n        };\n\n        if !reject {\n            let mut scan: *mut Bytef = unsafe { scan_base.offset(2) }; // SAFETY: matches original advancement after checking bytes 0 and 1.\n\n            loop {\n                let cont = unsafe {\n                    // SAFETY: this exactly reproduces the original unrolled compare sequence and evaluation order.\n                    scan = scan.offset(1);\n                    match_0 = match_0.offset(1);\n                    *scan as c_int == *match_0 as c_int\n                        && {\n                            scan = scan.offset(1);\n                            match_0 = match_0.offset(1);\n                            *scan as c_int == *match_0 as c_int\n                        }\n                        && {\n                            scan = scan.offset(1);\n                            match_0 = match_0.offset(1);\n                            *scan as c_int == *match_0 as c_int\n                        }\n                        && {\n                            scan = scan.offset(1);\n                            match_0 = match_0.offset(1);\n                            *scan as c_int == *match_0 as c_int\n                        }\n                        && {\n                            scan = scan.offset(1);\n                            match_0 = match_0.offset(1);\n                            *scan as c_int == *match_0 as c_int\n                        }\n                        && {\n                            scan = scan.offset(1);\n                            match_0 = match_0.offset(1);\n                            *scan as c_int == *match_0 as c_int\n                        }\n                        && {\n                            scan = scan.offset(1);\n                            match_0 = match_0.offset(1);\n                            *scan as c_int == *match_0 as c_int\n                        }\n                        && {\n                            scan = scan.offset(1);\n                            match_0 = match_0.offset(1);\n                            *scan as c_int == *match_0 as c_int\n                        }\n                        && scan < strend\n                };\n                if !cont {\n                    break;\n                }\n            }\n\n            let len: c_int = MAX_MATCH - unsafe { strend.offset_from(scan) as c_long as c_int }; // SAFETY: `scan` and `strend` are within the same allocation, just as in the original.\n            if len > best_len {\n                s_view.match_start = cur_match as uInt;\n                best_len = len;\n                if len >= nice_match {\n                    break;\n                }\n                scan_end1 = unsafe { *scan_base.offset((best_len - 1) as isize) as Byte }; // SAFETY: identical access pattern to the original.\n                scan_end = unsafe { *scan_base.offset(best_len as isize) as Byte }; // SAFETY: identical access pattern to the original.\n            }\n        }\n\n        cur_match = unsafe { *prev.offset((cur_match as uInt & wmask) as isize) as IPos }; // SAFETY: masked index stays within the circular prev table exactly as in the original.\n        if !(cur_match > limit && {\n            chain_length = chain_length.wrapping_sub(1);\n            chain_length != 0 as c_uint\n        }) {\n            break;\n        }\n    }\n\n    if best_len as uInt <= s_view.lookahead {\n        best_len as uInt\n    } else {\n        s_view.lookahead\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "5d9068e0afff423357d2ab7c6a9213db038216bb653847e101446b70c7be5fe1",
+            "file_hint": "src/zlib/deflate.rs",
+            "qualified_name": "crate::longest_match",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "longest_match-e7dd66a60a7a",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "longest_match",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "ba0cec8dcca41044883fce8c4abea54b0512a43950f92d0110f6b5d44f677616",
+            "edit_id": "edit-replace-90fa45759e296335",
+            "end_byte": 46983,
+            "operation_id": "replace-90fa45759e296335",
+            "relative_path": "src/zlib/deflate.rs",
+            "replacement_text": "unsafe fn longest_match(mut s: *mut deflate_state, mut cur_match: IPos) -> uInt {\n    // Applied rules:\n    // - Hoist frequently used fields and base pointers out of the loop.\n    // - Preserve original pointer progression and guard ordering exactly.\n    // Skipped rules:\n    // - No wider/word-at-a-time loads, since the original's exact overread pattern must be preserved.\n\n    let s_view: &mut deflate_state = unsafe { &mut *s }; // SAFETY: caller provides a valid mutable pointer to `deflate_state`.\n    let mut chain_length: c_uint = s_view.max_chain_length as c_uint;\n    let scan_base: *mut Bytef = unsafe { s_view.window.offset(s_view.strstart as isize) }; // SAFETY: same preconditions as the original function; `strstart` indexes the valid window.\n    let mut best_len: c_int = s_view.prev_length as c_int;\n    let mut nice_match: c_int = s_view.nice_match;\n    let limit: IPos = if s_view.strstart\n        > (s_view.w_size as c_uint).wrapping_sub(MIN_LOOKAHEAD as c_uint)\n    {\n        (s_view.strstart as IPos)\n            .wrapping_sub((s_view.w_size as c_uint).wrapping_sub(MIN_LOOKAHEAD as c_uint))\n    } else {\n        NIL as IPos\n    };\n    let prev: *mut Posf = s_view.prev;\n    let wmask: uInt = s_view.w_mask;\n    let strend: *mut Bytef = unsafe { scan_base.offset(MAX_MATCH as isize) }; // SAFETY: original function forms the same pointer; zlib invariants guarantee the compare region is accessible.\n    let mut scan_end1: Byte = unsafe { *scan_base.offset((best_len - 1) as isize) as Byte }; // SAFETY: identical access pattern to the original.\n    let mut scan_end: Byte = unsafe { *scan_base.offset(best_len as isize) as Byte }; // SAFETY: identical access pattern to the original.\n\n    if s_view.prev_length >= s_view.good_match {\n        chain_length >>= 2;\n    }\n    if nice_match as uInt > s_view.lookahead {\n        nice_match = s_view.lookahead as c_int;\n    }\n\n    loop {\n        let mut match_0: *mut Bytef = unsafe { s_view.window.offset(cur_match as isize) }; // SAFETY: `cur_match` comes from the maintained hash chain exactly as in the original.\n\n        let reject = unsafe {\n            // SAFETY: these are the same byte probes and offsets as the original quick filter.\n            *match_0.offset(best_len as isize) as c_int != scan_end as c_int\n                || *match_0.offset((best_len - 1) as isize) as c_int != scan_end1 as c_int\n                || *match_0 as c_int != *scan_base as c_int\n                || {\n                    match_0 = match_0.offset(1);\n                    *match_0 as c_int != *scan_base.offset(1) as c_int\n                }\n        };\n\n        if !reject {\n            let mut scan: *mut Bytef = unsafe { scan_base.offset(2) }; // SAFETY: matches original advancement after checking bytes 0 and 1.\n\n            loop {\n                let cont = unsafe {\n                    // SAFETY: this exactly reproduces the original unrolled compare sequence and evaluation order.\n                    scan = scan.offset(1);\n                    match_0 = match_0.offset(1);\n                    *scan as c_int == *match_0 as c_int\n                        && {\n                            scan = scan.offset(1);\n                            match_0 = match_0.offset(1);\n                            *scan as c_int == *match_0 as c_int\n                        }\n                        && {\n                            scan = scan.offset(1);\n                            match_0 = match_0.offset(1);\n                            *scan as c_int == *match_0 as c_int\n                        }\n                        && {\n                            scan = scan.offset(1);\n                            match_0 = match_0.offset(1);\n                            *scan as c_int == *match_0 as c_int\n                        }\n                        && {\n                            scan = scan.offset(1);\n                            match_0 = match_0.offset(1);\n                            *scan as c_int == *match_0 as c_int\n                        }\n                        && {\n                            scan = scan.offset(1);\n                            match_0 = match_0.offset(1);\n                            *scan as c_int == *match_0 as c_int\n                        }\n                        && {\n                            scan = scan.offset(1);\n                            match_0 = match_0.offset(1);\n                            *scan as c_int == *match_0 as c_int\n                        }\n                        && {\n                            scan = scan.offset(1);\n                            match_0 = match_0.offset(1);\n                            *scan as c_int == *match_0 as c_int\n                        }\n                        && scan < strend\n                };\n                if !cont {\n                    break;\n                }\n            }\n\n            let len: c_int = MAX_MATCH - unsafe { strend.offset_from(scan) as c_long as c_int }; // SAFETY: `scan` and `strend` are within the same allocation, just as in the original.\n            if len > best_len {\n                s_view.match_start = cur_match as uInt;\n                best_len = len;\n                if len >= nice_match {\n                    break;\n                }\n                scan_end1 = unsafe { *scan_base.offset((best_len - 1) as isize) as Byte }; // SAFETY: identical access pattern to the original.\n                scan_end = unsafe { *scan_base.offset(best_len as isize) as Byte }; // SAFETY: identical access pattern to the original.\n            }\n        }\n\n        cur_match = unsafe { *prev.offset((cur_match as uInt & wmask) as isize) as IPos }; // SAFETY: masked index stays within the circular prev table exactly as in the original.\n        if !(cur_match > limit && {\n            chain_length = chain_length.wrapping_sub(1);\n            chain_length != 0 as c_uint\n        }) {\n            break;\n        }\n    }\n\n    if best_len as uInt <= s_view.lookahead {\n        best_len as uInt\n    } else {\n        s_view.lookahead\n    }\n}",
+            "start_byte": 42404
+          }
+        ],
+        "facts": {
+          "fn_name": "longest_match",
+          "target_span_hash": "5d9068e0afff423357d2ab7c6a9213db038216bb653847e101446b70c7be5fe1"
+        },
+        "operation_id": "replace-90fa45759e296335"
+      }
+    ],
+    "resolved_head": "5a37a4b1ab464f92ead6ffe81f6bd88220b44dec"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w1",
+  "touched_paths": [
+    "src/zlib/deflate.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

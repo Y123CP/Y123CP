@@ -1,0 +1,718 @@
+{
+  "hot_function": {
+    "symbol": "mz_adler32",
+    "location": "src/miniz.rs:108-157",
+    "workload": "tinfl_decode_blob",
+    "hot_region": "src/miniz.rs:108-157",
+    "rust_source": "pub unsafe fn mz_adler32(\n    mut adler: mz_ulong,\n    mut ptr: *const c_uchar,\n    mut buf_len: size_t,\n) -> mz_ulong {\n    let mut i: mz_uint32 = 0;\n    let mut s1: mz_uint32 = (adler & 0xffff as mz_ulong) as mz_uint32;\n    let mut s2: mz_uint32 = (adler >> 16 as c_int) as mz_uint32;\n    let mut block_len: size_t = buf_len.wrapping_rem(5552 as size_t);\n    if ptr.is_null() {\n        return MZ_ADLER32_INIT as mz_ulong;\n    }\n    while buf_len != 0 {\n        i = 0 as mz_uint32;\n        while (i.wrapping_add(7 as mz_uint32) as size_t) < block_len {\n            s1 = s1.wrapping_add(*ptr.offset(0 as c_int as isize) as mz_uint32);\n            s2 = s2.wrapping_add(s1);\n            s1 = s1.wrapping_add(*ptr.offset(1 as c_int as isize) as mz_uint32);\n            s2 = s2.wrapping_add(s1);\n            s1 = s1.wrapping_add(*ptr.offset(2 as c_int as isize) as mz_uint32);\n            s2 = s2.wrapping_add(s1);\n            s1 = s1.wrapping_add(*ptr.offset(3 as c_int as isize) as mz_uint32);\n            s2 = s2.wrapping_add(s1);\n            s1 = s1.wrapping_add(*ptr.offset(4 as c_int as isize) as mz_uint32);\n            s2 = s2.wrapping_add(s1);\n            s1 = s1.wrapping_add(*ptr.offset(5 as c_int as isize) as mz_uint32);\n            s2 = s2.wrapping_add(s1);\n            s1 = s1.wrapping_add(*ptr.offset(6 as c_int as isize) as mz_uint32);\n            s2 = s2.wrapping_add(s1);\n            s1 = s1.wrapping_add(*ptr.offset(7 as c_int as isize) as mz_uint32);\n            s2 = s2.wrapping_add(s1);\n            i = i.wrapping_add(8 as mz_uint32);\n            ptr = ptr.offset(8 as c_int as isize);\n        }\n        while (i as size_t) < block_len {\n            let fresh0 = ptr;\n            ptr = ptr.offset(1);\n            s1 = s1.wrapping_add(*fresh0 as mz_uint32);\n            s2 = s2.wrapping_add(s1);\n            i = i.wrapping_add(1);\n        }\n        s1 = (s1 as c_uint).wrapping_rem(65521 as c_uint) as mz_uint32\n            as mz_uint32;\n        s2 = (s2 as c_uint).wrapping_rem(65521 as c_uint) as mz_uint32\n            as mz_uint32;\n        buf_len = buf_len.wrapping_sub(block_len);\n        block_len = 5552 as size_t;\n    }\n    return (s2 << 16 as c_int).wrapping_add(s1) as mz_ulong;\n}",
+    "signature": "pub unsafe fn mz_adler32(\n    mut adler: mz_ulong,\n    mut ptr: *const c_uchar,\n    mut buf_len: size_t,\n) -> mz_ulong",
+    "profile": {
+      "self_time_ratio": 0.0611,
+      "call_count": null,
+      "retired_instructions": 795144743,
+      "instructions_per_call": null,
+      "cpi": 0.354,
+      "tma": {
+        "scope": "process",
+        "retiring": 43.891762243857244,
+        "frontend_bound": 9.59636858616475,
+        "bad_speculation": 2.827564494416929,
+        "backend_bound": 43.68430467556109,
+        "memory_bound": 37.64646232248845,
+        "core_bound": 6.037842353072635,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0084
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 123,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 145,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 108,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN13miniz_cleaned3src5miniz10mz_adler3217h6bbe2b6bf4a9d2e4E: MI Instruction count changed from 0 to 173; Delta: 173"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 108,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN13miniz_cleaned3src5miniz10mz_adler3217h6bbe2b6bf4a9d2e4E: MI Instruction count changed from 173 to 171; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 108,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN13miniz_cleaned3src5miniz10mz_adler3217h6bbe2b6bf4a9d2e4E: MI Instruction count changed from 171 to 170; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 108,
+        "message": "Peephole Optimizations: Function: _ZN13miniz_cleaned3src5miniz10mz_adler3217h6bbe2b6bf4a9d2e4E: MI Instruction count changed from 170 to 169; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 108,
+        "message": "Process Implicit Definitions: Function: _ZN13miniz_cleaned3src5miniz10mz_adler3217h6bbe2b6bf4a9d2e4E: MI Instruction count changed from 169 to 168; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 108,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN13miniz_cleaned3src5miniz10mz_adler3217h6bbe2b6bf4a9d2e4E: MI Instruction count changed from 168 to 234; Delta: 66"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 108,
+        "message": "Two-Address instruction pass: Function: _ZN13miniz_cleaned3src5miniz10mz_adler3217h6bbe2b6bf4a9d2e4E: MI Instruction count changed from 234 to 289; Delta: 55"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 108,
+        "message": "Register Coalescer: Function: _ZN13miniz_cleaned3src5miniz10mz_adler3217h6bbe2b6bf4a9d2e4E: MI Instruction count changed from 289 to 130; Delta: -159"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 122,
+        "message": "7 virtual registers copies 5.566666e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 108,
+        "message": "12 virtual registers copies 5.990476e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 108,
+        "message": "Virtual Register Rewriter: Function: _ZN13miniz_cleaned3src5miniz10mz_adler3217h6bbe2b6bf4a9d2e4E: MI Instruction count changed from 130 to 126; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 108,
+        "message": "Shrink Wrapping analysis: Function: _ZN13miniz_cleaned3src5miniz10mz_adler3217h6bbe2b6bf4a9d2e4E: MI Instruction count changed from 126 to 127; Delta: 1"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 108,
+        "message": "40 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 108,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN13miniz_cleaned3src5miniz10mz_adler3217h6bbe2b6bf4a9d2e4E: MI Instruction count changed from 127 to 157; Delta: 30"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 108,
+        "message": "Control Flow Optimizer: Function: _ZN13miniz_cleaned3src5miniz10mz_adler3217h6bbe2b6bf4a9d2e4E: MI Instruction count changed from 157 to 147; Delta: -10"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 108,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN13miniz_cleaned3src5miniz10mz_adler3217h6bbe2b6bf4a9d2e4E: MI Instruction count changed from 147 to 156; Delta: 9"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb10.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb5.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb6.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 123,
+        "message": "BasicBlock: bb6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb8.preheader.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.prol.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb9.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.preheader3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb9"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 156,
+        "message": "BasicBlock: bb12"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 108,
+        "message": "136 instructions in function"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 122,
+        "message": "7 virtual registers copies 1.099742e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb10.loopexit.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb5.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb6.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 123,
+        "message": "BasicBlock: bb6.i317"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb8.preheader.i.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i316.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i316.prol.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb9.i316.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i316.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i316.preheader121"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb9.i316"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb10.loopexit.i400"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb5.preheader.i363"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb6.preheader.i402"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 123,
+        "message": "BasicBlock: bb6.i403"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb8.preheader.i370.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i388.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i388.prol.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb9.i388.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i388.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i388.preheader120"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb9.i388"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 122,
+        "message": "7 virtual registers copies 8.799269e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 122,
+        "message": "7 virtual registers copies 1.099909e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 122,
+        "message": "1 spills 3.999667e+02 total spills cost 2 reloads 5.999501e+02 total reloads cost 7 virtual registers copies 1.099909e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb10.loopexit.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 123,
+        "message": "BasicBlock: bb6.i161"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb8.preheader.i156.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i160.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i160.prol.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb9.i160.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i160.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i160.preheader106"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb9.i160"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb10.loopexit.i274"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb5.preheader.i237"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb6.preheader.i276"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 123,
+        "message": "BasicBlock: bb6.i277"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb8.preheader.i244.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i262.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i262.prol.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb9.i262.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i262.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i262.preheader105"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb9.i262"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 156,
+        "message": "BasicBlock: bb11.loopexit.i258"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb10.loopexit.i421"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb5.preheader.i384"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb6.preheader.i423"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 123,
+        "message": "BasicBlock: bb6.i424"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb8.preheader.i391.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i409.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i409.prol.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb9.i409.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i409.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i409.preheader104"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb9.i409"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 156,
+        "message": "BasicBlock: bb11.loopexit.i405"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 122,
+        "message": "1 reloads 1.953034e+01 total reloads cost 7 virtual registers copies 1.074169e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 122,
+        "message": "7 virtual registers copies 3.356776e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb10.loopexit.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 123,
+        "message": "BasicBlock: bb6.i388"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb8.preheader.i380.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i384.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i384.prol.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb9.i384.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i384.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i384.preheader230"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb9.i384"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb10.loopexit.i553"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb5.preheader.i516"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb6.preheader.i555"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 123,
+        "message": "BasicBlock: bb6.i556"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 122,
+        "message": "BasicBlock: bb8.preheader.i523.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i541.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i541.prol.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb9.i541.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i541.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 142,
+        "message": "BasicBlock: bb9.i541.preheader229"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 145,
+        "message": "BasicBlock: bb9.i541"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

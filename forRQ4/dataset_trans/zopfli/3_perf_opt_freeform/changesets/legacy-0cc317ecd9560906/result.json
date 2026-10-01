@@ -1,0 +1,173 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.6517792790834827,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.8035715689445079,
+            "aggregate_ci_low_pct": 0.49998698922245743,
+            "aggregate_pct": 0.6517792790834827,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -5.9275,
+                "ci_low_pct": -7.1052,
+                "insns_delta_pct": -4.0012,
+                "mean_delta_pct": -6.5164,
+                "op": "cache_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.657,
+                "ci_low_pct": -0.997,
+                "insns_delta_pct": -0.6401,
+                "mean_delta_pct": -0.827,
+                "op": "lz77_blocksplit_analysis",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 5.0908,
+                "ci_low_pct": 4.9389,
+                "insns_delta_pct": 0.9322,
+                "mean_delta_pct": 5.0149,
+                "op": "raw_deflate",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              },
+              {
+                "ci_high_pct": 5.0292,
+                "ci_low_pct": 4.842,
+                "insns_delta_pct": 0.9034,
+                "mean_delta_pct": 4.9356,
+                "op": "zlib_compress",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "cache_roundtrip",
+          "lz77_blocksplit_analysis",
+          "raw_deflate",
+          "zlib_compress"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "raw_deflate"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "c9ba14c1c583d70e8cf1189754a3eba439ddbc4d",
+      "changeset_id": "legacy-0cc317ecd9560906",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-05c1bd10ad1ceb32",
+          "replacement_function_source": "#[inline]\npub unsafe fn ZopfliSublenToCache(\n    mut sublen: *const c_ushort,\n    mut pos: size_t,\n    mut length: size_t,\n    mut lmc: *mut ZopfliLongestMatchCache,\n) {\n    if length < 3 as size_t {\n        return;\n    }\n\n    let cache = unsafe {\n        // SAFETY: `lmc` is assumed valid by the original function contract, and `sublen`\n        // points to a buffer large enough for the computed cache slice for `pos`.\n        (*lmc).sublen.add(\n            (ZOPFLI_CACHE_LENGTH as size_t)\n                .wrapping_mul(pos)\n                .wrapping_mul(3 as size_t),\n        )\n    };\n\n    let mut j: size_t = 0;\n    let mut bestlength: c_uint = 0 as c_uint;\n    let mut i: size_t = 3 as size_t;\n\n    while i < length {\n        let v = unsafe {\n            // SAFETY: same preconditions as the original function; `i` stays within the\n            // range accessed by the original loop.\n            *sublen.add(i)\n        };\n        let next = unsafe {\n            // SAFETY: same preconditions as the original function; for `i < length`,\n            // accessing `sublen[i + 1]` matches the original behavior.\n            *sublen.add(i.wrapping_add(1 as size_t))\n        };\n\n        if v != next {\n            let base = j.wrapping_mul(3 as size_t);\n            unsafe {\n                // SAFETY: `base..base+2` is within the fixed-size cache region as long as\n                // `j < ZOPFLI_CACHE_LENGTH`, which is maintained before increment/break.\n                *cache.add(base) = i.wrapping_sub(3 as size_t) as c_uchar;\n                *cache.add(base.wrapping_add(1 as size_t)) = (v as c_int % 256 as c_int) as c_uchar;\n                *cache.add(base.wrapping_add(2 as size_t)) =\n                    ((v as c_int >> 8 as c_int) % 256 as c_int) as c_uchar;\n            }\n            bestlength = i as c_uint;\n            j = j.wrapping_add(1);\n            if j >= ZOPFLI_CACHE_LENGTH as size_t {\n                break;\n            }\n        }\n        i = i.wrapping_add(1);\n    }\n\n    if j < ZOPFLI_CACHE_LENGTH as size_t {\n        let v = unsafe {\n            // SAFETY: `length >= 3` and accessing `sublen[length]` is performed by the\n            // original function in the final iteration handling.\n            *sublen.add(length)\n        };\n        let base = j.wrapping_mul(3 as size_t);\n        unsafe {\n            // SAFETY: `j < ZOPFLI_CACHE_LENGTH` guarantees these writes stay inside the\n            // cache region for this position.\n            *cache.add(base) = length.wrapping_sub(3 as size_t) as c_uchar;\n            *cache.add(base.wrapping_add(1 as size_t)) = (v as c_int % 256 as c_int) as c_uchar;\n            *cache.add(base.wrapping_add(2 as size_t)) =\n                ((v as c_int >> 8 as c_int) % 256 as c_int) as c_uchar;\n            *cache.add(((ZOPFLI_CACHE_LENGTH - 1 as c_int) * 3 as c_int) as usize) =\n                (length as c_uint).wrapping_sub(3 as c_uint) as c_uchar;\n        }\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "09140b5925f304cf2163a6f476be2051ad4db917852ba022f933360122293def",
+            "file_hint": "src/cache.rs",
+            "qualified_name": "crate::ZopfliSublenToCache",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "ZopfliSublenToCache-cd6746fabf8c",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "ZopfliSublenToCache",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "bace5cad464e576b033646cf5f9327916baaf6dff16a911df364d0164fef78c8",
+            "edit_id": "edit-replace-05c1bd10ad1ceb32",
+            "end_byte": 3868,
+            "operation_id": "replace-05c1bd10ad1ceb32",
+            "relative_path": "src/cache.rs",
+            "replacement_text": "#[inline]\npub unsafe fn ZopfliSublenToCache(\n    mut sublen: *const c_ushort,\n    mut pos: size_t,\n    mut length: size_t,\n    mut lmc: *mut ZopfliLongestMatchCache,\n) {\n    if length < 3 as size_t {\n        return;\n    }\n\n    let cache = unsafe {\n        // SAFETY: `lmc` is assumed valid by the original function contract, and `sublen`\n        // points to a buffer large enough for the computed cache slice for `pos`.\n        (*lmc).sublen.add(\n            (ZOPFLI_CACHE_LENGTH as size_t)\n                .wrapping_mul(pos)\n                .wrapping_mul(3 as size_t),\n        )\n    };\n\n    let mut j: size_t = 0;\n    let mut bestlength: c_uint = 0 as c_uint;\n    let mut i: size_t = 3 as size_t;\n\n    while i < length {\n        let v = unsafe {\n            // SAFETY: same preconditions as the original function; `i` stays within the\n            // range accessed by the original loop.\n            *sublen.add(i)\n        };\n        let next = unsafe {\n            // SAFETY: same preconditions as the original function; for `i < length`,\n            // accessing `sublen[i + 1]` matches the original behavior.\n            *sublen.add(i.wrapping_add(1 as size_t))\n        };\n\n        if v != next {\n            let base = j.wrapping_mul(3 as size_t);\n            unsafe {\n                // SAFETY: `base..base+2` is within the fixed-size cache region as long as\n                // `j < ZOPFLI_CACHE_LENGTH`, which is maintained before increment/break.\n                *cache.add(base) = i.wrapping_sub(3 as size_t) as c_uchar;\n                *cache.add(base.wrapping_add(1 as size_t)) = (v as c_int % 256 as c_int) as c_uchar;\n                *cache.add(base.wrapping_add(2 as size_t)) =\n                    ((v as c_int >> 8 as c_int) % 256 as c_int) as c_uchar;\n            }\n            bestlength = i as c_uint;\n            j = j.wrapping_add(1);\n            if j >= ZOPFLI_CACHE_LENGTH as size_t {\n                break;\n            }\n        }\n        i = i.wrapping_add(1);\n    }\n\n    if j < ZOPFLI_CACHE_LENGTH as size_t {\n        let v = unsafe {\n            // SAFETY: `length >= 3` and accessing `sublen[length]` is performed by the\n            // original function in the final iteration handling.\n            *sublen.add(length)\n        };\n        let base = j.wrapping_mul(3 as size_t);\n        unsafe {\n            // SAFETY: `j < ZOPFLI_CACHE_LENGTH` guarantees these writes stay inside the\n            // cache region for this position.\n            *cache.add(base) = length.wrapping_sub(3 as size_t) as c_uchar;\n            *cache.add(base.wrapping_add(1 as size_t)) = (v as c_int % 256 as c_int) as c_uchar;\n            *cache.add(base.wrapping_add(2 as size_t)) =\n                ((v as c_int >> 8 as c_int) % 256 as c_int) as c_uchar;\n            *cache.add(((ZOPFLI_CACHE_LENGTH - 1 as c_int) * 3 as c_int) as usize) =\n                (length as c_uint).wrapping_sub(3 as c_uint) as c_uchar;\n        }\n    }\n}",
+            "start_byte": 2075
+          }
+        ],
+        "facts": {
+          "fn_name": "ZopfliSublenToCache",
+          "target_span_hash": "09140b5925f304cf2163a6f476be2051ad4db917852ba022f933360122293def"
+        },
+        "operation_id": "replace-05c1bd10ad1ceb32"
+      }
+    ],
+    "resolved_head": "c9ba14c1c583d70e8cf1189754a3eba439ddbc4d"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/cache.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,215 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -12.290466685370433,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -11.602078710173458,
+            "aggregate_ci_low_pct": -12.978854660567407,
+            "aggregate_pct": -12.290466685370433,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -45.9421,
+                "ci_low_pct": -46.0388,
+                "insns_delta_pct": -56.7533,
+                "mean_delta_pct": -45.9905,
+                "op": "builtin_script_matrix",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.7196,
+                "ci_low_pct": -0.2013,
+                "insns_delta_pct": -0.0688,
+                "mean_delta_pct": 0.2592,
+                "op": "expr_embedded_builtins",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.6962,
+                "ci_low_pct": -1.2667,
+                "insns_delta_pct": -0.4199,
+                "mean_delta_pct": -0.9815,
+                "op": "native_call_state",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2502,
+                "ci_low_pct": -5.1484,
+                "insns_delta_pct": -12.5758,
+                "mean_delta_pct": -2.4491,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.2268197505856817,
+            "aggregate_ci_low_pct": -0.03771208352384621,
+            "aggregate_pct": 0.09455383353091774,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.1776,
+                "ci_low_pct": -0.0454,
+                "insns_delta_pct": 0.049,
+                "mean_delta_pct": 0.0661,
+                "op": "expr_embedded_builtins",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.2935,
+                "ci_low_pct": -0.2674,
+                "insns_delta_pct": -0.0056,
+                "mean_delta_pct": 0.0131,
+                "op": "native_call_state",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.4799,
+                "ci_low_pct": -0.0708,
+                "insns_delta_pct": -0.0019,
+                "mean_delta_pct": 0.2045,
+                "op": "subst_list_pipeline",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "expr_embedded_builtins",
+          "native_call_state",
+          "subst_list_pipeline"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "expr_embedded_builtins"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "ea427d903f7bc34a203513985256cde8ba382447",
+      "changeset_id": "legacy-54ae56516fa4a389",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-c43d5bd9121f6cdd",
+          "replacement_function_source": "// Applied rules: [III④]\n// Skipped rules: [C3: No profitable in-function S2 hoist is evidenced inside `add_func`: the target function has no loop and does not repeatedly read the same invariant field enough to justify local caching. The reported C3 hits are outside the target location or are likely subsumed if III② converts the command table to typed ownership and removes raw-pointer alias opacity around the append path.; III②: cross_fn_v1_defer_v2]\nunsafe fn add_func(mut lil: lil_t, mut name: *const c_char) -> lil_func_t {\n    let mut cmd: lil_func_t = ::core::ptr::null_mut::<_lil_func_t>();\n    let mut ncmd: *mut lil_func_t = ::core::ptr::null_mut::<lil_func_t>();\n    cmd = find_cmd(lil, name);\n    if !cmd.is_null() {\n        if !(*cmd).argnames.is_null() {\n            lil_free_list((*cmd).argnames);\n        }\n        lil_free_value((*cmd).code);\n        (*cmd).argnames = ::core::ptr::null_mut::<_lil_list_t>();\n        (*cmd).code = ::core::ptr::null_mut::<_lil_value_t>();\n        (*cmd).proc_0 = None;\n        return cmd;\n    }\n    cmd = calloc(1 as size_t, ::core::mem::size_of::<_lil_func_t>() as size_t) as lil_func_t;\n    (*cmd).name = strclone(name);\n    ncmd = realloc(\n        (*lil).cmd as *mut c_void,\n        (::core::mem::size_of::<lil_func_t>() as size_t)\n            .wrapping_mul((*lil).cmds.wrapping_add(1 as size_t)),\n    ) as *mut lil_func_t;\n    if ncmd.is_null() {\n        free(cmd as *mut c_void);\n        return ::core::ptr::null_mut::<_lil_func_t>();\n    }\n    (*lil).cmd = ncmd;\n    let fresh16 = (*lil).cmds;\n    (*lil).cmds = (*lil).cmds.wrapping_add(1);\n    // SAFETY: `ncmd` is the result of reallocating `(*lil).cmd` to hold `(*lil).cmds`\n    // elements after the increment above, so `fresh16` is the last valid index in that\n    // allocation; `ncmd` is non-null due to the check above; this temporary mutable slice\n    // is the only mutable view created for this storage in this region.\n    let ncmd_slice = unsafe { ::core::slice::from_raw_parts_mut(ncmd, (*lil).cmds) };\n    *ncmd_slice.get_unchecked_mut(fresh16) = cmd;\n    hm_put(&raw mut (*lil).cmdmap, name, cmd as *mut c_void);\n    return cmd;\n}",
+          "rule_id": "III④",
+          "target": {
+            "declaration_hash": "b9ff6543122e8dcca1bc71b96bd4de5c4c34addea73065568f64531c16a76ed2",
+            "file_hint": "src/lil.rs",
+            "qualified_name": "crate::add_func",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "add_func-a67232e8bcae",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "add_func",
+        "rule_id": "III④"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "4b6f257cfdbc81ac6a0c411639d64b2f71bdecf779bc55b21c1f8cc184d9d015",
+            "edit_id": "edit-replace-c43d5bd9121f6cdd",
+            "end_byte": 23884,
+            "operation_id": "replace-c43d5bd9121f6cdd",
+            "relative_path": "src/lil.rs",
+            "replacement_text": "// Applied rules: [III④]\n// Skipped rules: [C3: No profitable in-function S2 hoist is evidenced inside `add_func`: the target function has no loop and does not repeatedly read the same invariant field enough to justify local caching. The reported C3 hits are outside the target location or are likely subsumed if III② converts the command table to typed ownership and removes raw-pointer alias opacity around the append path.; III②: cross_fn_v1_defer_v2]\nunsafe fn add_func(mut lil: lil_t, mut name: *const c_char) -> lil_func_t {\n    let mut cmd: lil_func_t = ::core::ptr::null_mut::<_lil_func_t>();\n    let mut ncmd: *mut lil_func_t = ::core::ptr::null_mut::<lil_func_t>();\n    cmd = find_cmd(lil, name);\n    if !cmd.is_null() {\n        if !(*cmd).argnames.is_null() {\n            lil_free_list((*cmd).argnames);\n        }\n        lil_free_value((*cmd).code);\n        (*cmd).argnames = ::core::ptr::null_mut::<_lil_list_t>();\n        (*cmd).code = ::core::ptr::null_mut::<_lil_value_t>();\n        (*cmd).proc_0 = None;\n        return cmd;\n    }\n    cmd = calloc(1 as size_t, ::core::mem::size_of::<_lil_func_t>() as size_t) as lil_func_t;\n    (*cmd).name = strclone(name);\n    ncmd = realloc(\n        (*lil).cmd as *mut c_void,\n        (::core::mem::size_of::<lil_func_t>() as size_t)\n            .wrapping_mul((*lil).cmds.wrapping_add(1 as size_t)),\n    ) as *mut lil_func_t;\n    if ncmd.is_null() {\n        free(cmd as *mut c_void);\n        return ::core::ptr::null_mut::<_lil_func_t>();\n    }\n    (*lil).cmd = ncmd;\n    let fresh16 = (*lil).cmds;\n    (*lil).cmds = (*lil).cmds.wrapping_add(1);\n    // SAFETY: `ncmd` is the result of reallocating `(*lil).cmd` to hold `(*lil).cmds`\n    // elements after the increment above, so `fresh16` is the last valid index in that\n    // allocation; `ncmd` is non-null due to the check above; this temporary mutable slice\n    // is the only mutable view created for this storage in this region.\n    let ncmd_slice = unsafe { ::core::slice::from_raw_parts_mut(ncmd, (*lil).cmds) };\n    *ncmd_slice.get_unchecked_mut(fresh16) = cmd;\n    hm_put(&raw mut (*lil).cmdmap, name, cmd as *mut c_void);\n    return cmd;\n}",
+            "start_byte": 22552
+          }
+        ],
+        "facts": {
+          "fn_name": "add_func",
+          "target_span_hash": "b9ff6543122e8dcca1bc71b96bd4de5c4c34addea73065568f64531c16a76ed2"
+        },
+        "operation_id": "replace-c43d5bd9121f6cdd"
+      }
+    ],
+    "resolved_head": "ea427d903f7bc34a203513985256cde8ba382447"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/lil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

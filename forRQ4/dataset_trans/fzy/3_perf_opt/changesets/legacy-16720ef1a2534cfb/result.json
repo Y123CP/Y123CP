@@ -1,0 +1,162 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -1.7257465234706562,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": -1.4457168438445838,
+            "aggregate_ci_low_pct": -2.0057762030967283,
+            "aggregate_pct": -1.7257465234706562,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -2.5847,
+                "ci_low_pct": -3.3327,
+                "insns_delta_pct": -1.4868,
+                "mean_delta_pct": -2.9587,
+                "op": "choices_add_search",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -5.7281,
+                "ci_low_pct": -7.2521,
+                "insns_delta_pct": -2.3523,
+                "mean_delta_pct": -6.4901,
+                "op": "choices_fread_search",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 4.5455,
+                "ci_low_pct": 3.9977,
+                "insns_delta_pct": 0.0276,
+                "mean_delta_pct": 4.2716,
+                "op": "match_primitives",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "choices_add_search",
+          "choices_fread_search",
+          "match_primitives"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "match_primitives"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "80b68ab1d2a7d280f454b41df8dc3636c9e8322a",
+      "changeset_id": "legacy-16720ef1a2534cfb",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-cc7d22059e4e5891",
+          "replacement_function_source": "// Applied rules: [C12]\n// Skipped rules: []\n#[export_name = \"match\"]\npub unsafe extern \"C\" fn match_0(\n    mut needle: *const c_char,\n    mut haystack: *const c_char,\n) -> score_t {\n    if *needle == 0 {\n        return -::core::f32::INFINITY as score_t;\n    }\n\n    let mut match_1: match_struct = match_struct {\n        needle_len: 0,\n        haystack_len: 0,\n        lower_needle: [0; 1024],\n        lower_haystack: [0; 1024],\n        match_bonus: [0.; 1024],\n    };\n    setup_match_struct(&raw mut match_1, needle, haystack);\n\n    let n: c_int = match_1.needle_len;\n    let m: c_int = match_1.haystack_len;\n    if m > MATCH_MAX_LEN || n > m {\n        return -::core::f32::INFINITY as score_t;\n    } else if n == m {\n        return ::core::f32::INFINITY as score_t;\n    }\n\n    let mut d_store = [::core::mem::MaybeUninit::<score_t>::uninit(); 1024];\n    let mut m_store = [::core::mem::MaybeUninit::<score_t>::uninit(); 1024];\n    let (D, M): (&mut [score_t], &mut [score_t]) = unsafe {\n        // SAFETY: `m <= MATCH_MAX_LEN <= 1024` was checked above. `write_bytes`\n        // initializes exactly the prefix `..m` of each backing array with the\n        // same all-zero bit pattern the original `[0.; 1024]` produced, and\n        // `score_t` is an f32-compatible scalar where all-zero is valid. The\n        // only reads/writes performed by `match_row` and the final return are\n        // within `0..m`.\n        let d_ptr = d_store.as_mut_ptr() as *mut score_t;\n        let m_ptr = m_store.as_mut_ptr() as *mut score_t;\n        ::core::ptr::write_bytes(d_ptr, 0, m as usize);\n        ::core::ptr::write_bytes(m_ptr, 0, m as usize);\n        (\n            ::core::slice::from_raw_parts_mut(d_ptr, m as usize),\n            ::core::slice::from_raw_parts_mut(m_ptr, m as usize),\n        )\n    };\n\n    let mut i: c_int = 0;\n    while i < n {\n        match_row(\n            &raw mut match_1,\n            i,\n            D.as_mut_ptr(),\n            M.as_mut_ptr(),\n            D.as_mut_ptr(),\n            M.as_mut_ptr(),\n        );\n        i += 1;\n    }\n\n    unsafe {\n        // SAFETY: `m > n` here because the `n == m` case returned above, and\n        // `n >= 0`, so `m >= 1`. Therefore `m - 1` is a valid index into `M`,\n        // whose length is exactly `m`.\n        *M.get_unchecked((m - 1) as usize)\n    }\n}",
+          "rule_id": "C12",
+          "target": {
+            "declaration_hash": "97c94591d345ed921ef569011c1464bc51d8b59ccd356cd161fa045e98acb5d8",
+            "file_hint": "src/match.rs",
+            "qualified_name": "crate::match_0",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "match-f10d4ca27e86",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "match_0",
+        "rule_id": "C12"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "a5aee822067990edd9540f876964e4ad081f297d6d79db149d3193ef87a1a86a",
+            "edit_id": "edit-replace-cc7d22059e4e5891",
+            "end_byte": 8990,
+            "operation_id": "replace-cc7d22059e4e5891",
+            "relative_path": "src/match.rs",
+            "replacement_text": "// Applied rules: [C12]\n// Skipped rules: []\n#[export_name = \"match\"]\npub unsafe extern \"C\" fn match_0(\n    mut needle: *const c_char,\n    mut haystack: *const c_char,\n) -> score_t {\n    if *needle == 0 {\n        return -::core::f32::INFINITY as score_t;\n    }\n\n    let mut match_1: match_struct = match_struct {\n        needle_len: 0,\n        haystack_len: 0,\n        lower_needle: [0; 1024],\n        lower_haystack: [0; 1024],\n        match_bonus: [0.; 1024],\n    };\n    setup_match_struct(&raw mut match_1, needle, haystack);\n\n    let n: c_int = match_1.needle_len;\n    let m: c_int = match_1.haystack_len;\n    if m > MATCH_MAX_LEN || n > m {\n        return -::core::f32::INFINITY as score_t;\n    } else if n == m {\n        return ::core::f32::INFINITY as score_t;\n    }\n\n    let mut d_store = [::core::mem::MaybeUninit::<score_t>::uninit(); 1024];\n    let mut m_store = [::core::mem::MaybeUninit::<score_t>::uninit(); 1024];\n    let (D, M): (&mut [score_t], &mut [score_t]) = unsafe {\n        // SAFETY: `m <= MATCH_MAX_LEN <= 1024` was checked above. `write_bytes`\n        // initializes exactly the prefix `..m` of each backing array with the\n        // same all-zero bit pattern the original `[0.; 1024]` produced, and\n        // `score_t` is an f32-compatible scalar where all-zero is valid. The\n        // only reads/writes performed by `match_row` and the final return are\n        // within `0..m`.\n        let d_ptr = d_store.as_mut_ptr() as *mut score_t;\n        let m_ptr = m_store.as_mut_ptr() as *mut score_t;\n        ::core::ptr::write_bytes(d_ptr, 0, m as usize);\n        ::core::ptr::write_bytes(m_ptr, 0, m as usize);\n        (\n            ::core::slice::from_raw_parts_mut(d_ptr, m as usize),\n            ::core::slice::from_raw_parts_mut(m_ptr, m as usize),\n        )\n    };\n\n    let mut i: c_int = 0;\n    while i < n {\n        match_row(\n            &raw mut match_1,\n            i,\n            D.as_mut_ptr(),\n            M.as_mut_ptr(),\n            D.as_mut_ptr(),\n            M.as_mut_ptr(),\n        );\n        i += 1;\n    }\n\n    unsafe {\n        // SAFETY: `m > n` here because the `n == m` case returned above, and\n        // `n >= 0`, so `m >= 1`. Therefore `m - 1` is a valid index into `M`,\n        // whose length is exactly `m`.\n        *M.get_unchecked((m - 1) as usize)\n    }\n}",
+            "start_byte": 7813
+          }
+        ],
+        "facts": {
+          "fn_name": "match_0",
+          "target_span_hash": "97c94591d345ed921ef569011c1464bc51d8b59ccd356cd161fa045e98acb5d8"
+        },
+        "operation_id": "replace-cc7d22059e4e5891"
+      }
+    ],
+    "resolved_head": "80b68ab1d2a7d280f454b41df8dc3636c9e8322a"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/match.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

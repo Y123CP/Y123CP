@@ -1,0 +1,162 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.18558757211298343,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.33918961277394266,
+            "aggregate_ci_low_pct": 0.031985531452024235,
+            "aggregate_pct": 0.18558757211298343,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.6389,
+                "ci_low_pct": -0.1198,
+                "insns_delta_pct": 0.2341,
+                "mean_delta_pct": 0.2595,
+                "op": "entities_tree_valid",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.4037,
+                "ci_low_pct": 0.0196,
+                "insns_delta_pct": 0.4799,
+                "mean_delta_pct": 0.2117,
+                "op": "html_push_parse",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.2818,
+                "ci_low_pct": -0.1106,
+                "insns_delta_pct": 0.0753,
+                "mean_delta_pct": 0.0856,
+                "op": "writer_save",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "entities_tree_valid",
+          "html_push_parse",
+          "writer_save"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "entities_tree_valid"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "f641ddb542886e9de485798667a5f27c342ab788",
+      "changeset_id": "legacy-d59f2086a539927e",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-6e1db8a22355951a",
+          "replacement_function_source": "fn htmlParseHTMLName(mut ctxt: htmlParserCtxtPtr) -> *const xmlChar { unsafe {\n    let mut i: c_int = 0;\n    let mut loc: [xmlChar; 100] = [0; 100];\n\n    let input = (*ctxt).input;\n    let mut cur = (*input).cur;\n\n    let c0 = *cur as c_int;\n    if !((c0 >= 0x41 && c0 <= 0x5a)\n        || (c0 >= 0x61 && c0 <= 0x7a)\n        || c0 == '_' as i32\n        || c0 == ':' as i32\n        || c0 == '.' as i32)\n    {\n        return ::core::ptr::null::<xmlChar>();\n    }\n\n    while i < HTML_PARSER_BUFFER_SIZE {\n        let c = *cur as c_int;\n        if !((c >= 0x41 && c <= 0x5a)\n            || (c >= 0x61 && c <= 0x7a)\n            || (c >= 0x30 && c <= 0x39)\n            || c == ':' as i32\n            || c == '-' as i32\n            || c == '_' as i32\n            || c == '.' as i32)\n        {\n            break;\n        }\n\n        loc[i as usize] = if c >= 'A' as i32 && c <= 'Z' as i32 {\n            (c + 0x20) as xmlChar\n        } else {\n            *cur\n        };\n\n        i += 1;\n        xmlNextChar(ctxt as xmlParserCtxtPtr);\n        cur = (*(*ctxt).input).cur;\n    }\n\n    let ret = xmlDictLookup((*ctxt).dict, loc.as_mut_ptr(), i);\n    if ret.is_null() {\n        htmlErrMemory(\n            ctxt as xmlParserCtxtPtr,\n            ::core::ptr::null::<c_char>(),\n        );\n    }\n    ret\n} }",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "5f048e0c2b9609751ebcfabc8fda27a5a75fd09801a6d6aede6bf4d5357f7a54",
+            "file_hint": "src/HTMLparser.rs",
+            "qualified_name": "crate::htmlParseHTMLName",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "htmlParseHTMLName-9b7aa5f2f88b",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "htmlParseHTMLName",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "4d5f456647edd13f988823e39bbffd67d57ea31353a4fc711ab98ba7423d9f58",
+            "edit_id": "edit-replace-6e1db8a22355951a",
+            "end_byte": 367562,
+            "operation_id": "replace-6e1db8a22355951a",
+            "relative_path": "src/HTMLparser.rs",
+            "replacement_text": "fn htmlParseHTMLName(mut ctxt: htmlParserCtxtPtr) -> *const xmlChar { unsafe {\n    let mut i: c_int = 0;\n    let mut loc: [xmlChar; 100] = [0; 100];\n\n    let input = (*ctxt).input;\n    let mut cur = (*input).cur;\n\n    let c0 = *cur as c_int;\n    if !((c0 >= 0x41 && c0 <= 0x5a)\n        || (c0 >= 0x61 && c0 <= 0x7a)\n        || c0 == '_' as i32\n        || c0 == ':' as i32\n        || c0 == '.' as i32)\n    {\n        return ::core::ptr::null::<xmlChar>();\n    }\n\n    while i < HTML_PARSER_BUFFER_SIZE {\n        let c = *cur as c_int;\n        if !((c >= 0x41 && c <= 0x5a)\n            || (c >= 0x61 && c <= 0x7a)\n            || (c >= 0x30 && c <= 0x39)\n            || c == ':' as i32\n            || c == '-' as i32\n            || c == '_' as i32\n            || c == '.' as i32)\n        {\n            break;\n        }\n\n        loc[i as usize] = if c >= 'A' as i32 && c <= 'Z' as i32 {\n            (c + 0x20) as xmlChar\n        } else {\n            *cur\n        };\n\n        i += 1;\n        xmlNextChar(ctxt as xmlParserCtxtPtr);\n        cur = (*(*ctxt).input).cur;\n    }\n\n    let ret = xmlDictLookup((*ctxt).dict, loc.as_mut_ptr(), i);\n    if ret.is_null() {\n        htmlErrMemory(\n            ctxt as xmlParserCtxtPtr,\n            ::core::ptr::null::<c_char>(),\n        );\n    }\n    ret\n} }",
+            "start_byte": 365587
+          }
+        ],
+        "facts": {
+          "fn_name": "htmlParseHTMLName",
+          "target_span_hash": "5f048e0c2b9609751ebcfabc8fda27a5a75fd09801a6d6aede6bf4d5357f7a54"
+        },
+        "operation_id": "replace-6e1db8a22355951a"
+      }
+    ],
+    "resolved_head": "f641ddb542886e9de485798667a5f27c342ab788"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/HTMLparser.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

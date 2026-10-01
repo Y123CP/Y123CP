@@ -1,0 +1,89 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": "error[E0425]: cannot find function `memchr` in this scope\n   --> /perf-build/crate/src/choices.rs:406:35\n    |\n406 |         let mut nl: *mut c_char = memchr(\n    |                                   ^^^^^^ not found in this scope\n    |\nhelp: consider importing this function\n    |\n1   + use core::slice::memchr::memchr;\n    |\nerror: could not compile `fzy_cleaned` (lib) due to 1 previous error; 11 warnings emitted"
+      },
+      "gate": "build",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "c2b0c073d04e3bf88c0c86c16cbb8cbd04b76a55",
+      "changeset_id": "legacy-c7e4ecf0d6c216ab",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-d98155970a937a6a",
+          "replacement_function_source": "// Applied rules: [III③]\n// Skipped rules: [III④: per user instruction to apply III③ alone this time and not reproduce the previous rewrite; C3: per user instruction to apply III③ alone this time and not reproduce the previous rewrite; II_vec: per user instruction to apply III③ alone this time and not reproduce the previous rewrite]\n#[inline]\npub unsafe fn choices_fread(\n    mut c: *mut choices_t,\n    mut file: *mut FILE,\n    mut input_delimiter: c_char,\n) {\n    let mut buffer_start: size_t = (*c).buffer_size;\n    let mut capacity: size_t = INITIAL_BUFFER_CAPACITY as size_t;\n    while capacity <= (*c).buffer_size {\n        capacity = capacity.wrapping_mul(2 as size_t);\n    }\n    (*c).buffer =\n        safe_realloc((*c).buffer as *mut c_void, capacity) as *mut c_char;\n    loop {\n        let bytes_read = fread(\n            (*c).buffer.offset((*c).buffer_size as isize) as *mut c_void,\n            1 as size_t,\n            capacity.wrapping_sub((*c).buffer_size),\n            file,\n        );\n        (*c).buffer_size = ((*c).buffer_size as c_ulong).wrapping_add(bytes_read) as size_t\n            as size_t;\n        if !((*c).buffer_size == capacity) {\n            break;\n        }\n        capacity = capacity.wrapping_mul(2 as size_t);\n        (*c).buffer = safe_realloc((*c).buffer as *mut c_void, capacity)\n            as *mut c_char;\n    }\n    (*c).buffer = safe_realloc(\n        (*c).buffer as *mut c_void,\n        (*c).buffer_size.wrapping_add(1 as size_t),\n    ) as *mut c_char;\n    let fresh0 = (*c).buffer_size;\n    (*c).buffer_size = (*c).buffer_size.wrapping_add(1);\n    *(*c).buffer.offset(fresh0 as isize) = '\\0' as i32 as c_char;\n    let mut line_end: *const c_char = (*c).buffer.offset((*c).buffer_size as isize);\n    let mut line: *mut c_char = (*c).buffer.offset(buffer_start as isize);\n    loop {\n        let mut nl: *mut c_char = memchr(\n            line as *const c_void,\n            input_delimiter as c_int,\n            line_end.offset_from(line as *const c_char) as size_t,\n        ) as *mut c_char;\n        if !nl.is_null() {\n            let fresh1 = nl;\n            nl = nl.offset(1);\n            *fresh1 = '\\0' as i32 as c_char;\n        }\n        if *line != 0 {\n            choices_add(c, line);\n        }\n        line = nl;\n        if !(!line.is_null() && line < line_end as *mut c_char) {\n            break;\n        }\n    }\n}",
+          "rule_id": "III④,C3,II_vec",
+          "target": {
+            "declaration_hash": "c9981cf53a56936794cbdf41a0d47bf876cc3bab80aee48c900ee1c50e048cb9",
+            "file_hint": "src/choices.rs",
+            "qualified_name": "crate::choices_fread",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "choices_fread-33cbdc2476c2",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "choices_fread",
+        "rule_id": "III④,C3,II_vec"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "f819b8f900a5edafa096099c9d1446d12512d166db00764c0fb772b71c066cd6",
+            "edit_id": "edit-replace-d98155970a937a6a",
+            "end_byte": 16203,
+            "operation_id": "replace-d98155970a937a6a",
+            "relative_path": "src/choices.rs",
+            "replacement_text": "// Applied rules: [III③]\n// Skipped rules: [III④: per user instruction to apply III③ alone this time and not reproduce the previous rewrite; C3: per user instruction to apply III③ alone this time and not reproduce the previous rewrite; II_vec: per user instruction to apply III③ alone this time and not reproduce the previous rewrite]\n#[inline]\npub unsafe fn choices_fread(\n    mut c: *mut choices_t,\n    mut file: *mut FILE,\n    mut input_delimiter: c_char,\n) {\n    let mut buffer_start: size_t = (*c).buffer_size;\n    let mut capacity: size_t = INITIAL_BUFFER_CAPACITY as size_t;\n    while capacity <= (*c).buffer_size {\n        capacity = capacity.wrapping_mul(2 as size_t);\n    }\n    (*c).buffer =\n        safe_realloc((*c).buffer as *mut c_void, capacity) as *mut c_char;\n    loop {\n        let bytes_read = fread(\n            (*c).buffer.offset((*c).buffer_size as isize) as *mut c_void,\n            1 as size_t,\n            capacity.wrapping_sub((*c).buffer_size),\n            file,\n        );\n        (*c).buffer_size = ((*c).buffer_size as c_ulong).wrapping_add(bytes_read) as size_t\n            as size_t;\n        if !((*c).buffer_size == capacity) {\n            break;\n        }\n        capacity = capacity.wrapping_mul(2 as size_t);\n        (*c).buffer = safe_realloc((*c).buffer as *mut c_void, capacity)\n            as *mut c_char;\n    }\n    (*c).buffer = safe_realloc(\n        (*c).buffer as *mut c_void,\n        (*c).buffer_size.wrapping_add(1 as size_t),\n    ) as *mut c_char;\n    let fresh0 = (*c).buffer_size;\n    (*c).buffer_size = (*c).buffer_size.wrapping_add(1);\n    *(*c).buffer.offset(fresh0 as isize) = '\\0' as i32 as c_char;\n    let mut line_end: *const c_char = (*c).buffer.offset((*c).buffer_size as isize);\n    let mut line: *mut c_char = (*c).buffer.offset(buffer_start as isize);\n    loop {\n        let mut nl: *mut c_char = memchr(\n            line as *const c_void,\n            input_delimiter as c_int,\n            line_end.offset_from(line as *const c_char) as size_t,\n        ) as *mut c_char;\n        if !nl.is_null() {\n            let fresh1 = nl;\n            nl = nl.offset(1);\n            *fresh1 = '\\0' as i32 as c_char;\n        }\n        if *line != 0 {\n            choices_add(c, line);\n        }\n        line = nl;\n        if !(!line.is_null() && line < line_end as *mut c_char) {\n            break;\n        }\n    }\n}",
+            "start_byte": 14359
+          }
+        ],
+        "facts": {
+          "fn_name": "choices_fread",
+          "target_span_hash": "c9981cf53a56936794cbdf41a0d47bf876cc3bab80aee48c900ee1c50e048cb9"
+        },
+        "operation_id": "replace-d98155970a937a6a"
+      }
+    ],
+    "resolved_head": "c2b0c073d04e3bf88c0c86c16cbb8cbd04b76a55"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_build",
+  "touched_paths": [
+    "src/choices.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

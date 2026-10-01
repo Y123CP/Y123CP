@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 4.152417811276577,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 5.871727957198605,
+            "aggregate_ci_low_pct": 2.4331076653545494,
+            "aggregate_pct": 4.152417811276577,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 5.8717,
+                "ci_low_pct": 2.4331,
+                "insns_delta_pct": -1.9866,
+                "mean_delta_pct": 4.1524,
+                "op": "png_write_read_roundtrip",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "png_write_read_roundtrip"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "png_write_read_roundtrip"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "7b674297e5fd1f4e2634af15882e955f617da983",
+      "changeset_id": "legacy-9e651c1b0c14816a",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-365ef3e673a1c66c",
+          "replacement_function_source": "extern \"C\" fn png_read_filter_row_sub(\n    mut row_info: png_row_infop,\n    mut row: png_bytep,\n    mut prev_row: png_const_bytep,\n) { unsafe {\n    let istop: png_size_t = (*row_info).rowbytes;\n    let bpp: usize = (((*row_info).pixel_depth as c_int + 7 as c_int) >> 3 as c_int) as usize;\n\n    if (istop as usize) <= bpp {\n        return;\n    }\n\n    let mut rp = row.add(bpp);\n    let mut left = row;\n\n    let mut remaining = (istop as usize) - bpp;\n\n    while remaining >= 8 {\n        *rp = ((*rp as c_int + *left as c_int) & 0xff) as png_byte;\n        *rp.add(1) = ((*rp.add(1) as c_int + *left.add(1) as c_int) & 0xff) as png_byte;\n        *rp.add(2) = ((*rp.add(2) as c_int + *left.add(2) as c_int) & 0xff) as png_byte;\n        *rp.add(3) = ((*rp.add(3) as c_int + *left.add(3) as c_int) & 0xff) as png_byte;\n        *rp.add(4) = ((*rp.add(4) as c_int + *left.add(4) as c_int) & 0xff) as png_byte;\n        *rp.add(5) = ((*rp.add(5) as c_int + *left.add(5) as c_int) & 0xff) as png_byte;\n        *rp.add(6) = ((*rp.add(6) as c_int + *left.add(6) as c_int) & 0xff) as png_byte;\n        *rp.add(7) = ((*rp.add(7) as c_int + *left.add(7) as c_int) & 0xff) as png_byte;\n\n        rp = rp.add(8);\n        left = left.add(8);\n        remaining -= 8;\n    }\n\n    while remaining != 0 {\n        *rp = ((*rp as c_int + *left as c_int) & 0xff) as png_byte;\n        rp = rp.add(1);\n        left = left.add(1);\n        remaining -= 1;\n    }\n\n    let _ = prev_row;\n} }",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "148c75cb09124865ca56c25b33ccda90db40dd1577e626f8ec3e55fb3b2c3cba",
+            "file_hint": "src/libpng/pngrutil.rs",
+            "qualified_name": "crate::png_read_filter_row_sub",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "png_read_filter_row_sub-00f983eb18e9",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "png_read_filter_row_sub",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "1ee65fdf815665959224ca0ed9fced4da31933489e0fb28a15a74bf0038c28ae",
+            "edit_id": "edit-replace-365ef3e673a1c66c",
+            "end_byte": 74477,
+            "operation_id": "replace-365ef3e673a1c66c",
+            "relative_path": "src/libpng/pngrutil.rs",
+            "replacement_text": "extern \"C\" fn png_read_filter_row_sub(\n    mut row_info: png_row_infop,\n    mut row: png_bytep,\n    mut prev_row: png_const_bytep,\n) { unsafe {\n    let istop: png_size_t = (*row_info).rowbytes;\n    let bpp: usize = (((*row_info).pixel_depth as c_int + 7 as c_int) >> 3 as c_int) as usize;\n\n    if (istop as usize) <= bpp {\n        return;\n    }\n\n    let mut rp = row.add(bpp);\n    let mut left = row;\n\n    let mut remaining = (istop as usize) - bpp;\n\n    while remaining >= 8 {\n        *rp = ((*rp as c_int + *left as c_int) & 0xff) as png_byte;\n        *rp.add(1) = ((*rp.add(1) as c_int + *left.add(1) as c_int) & 0xff) as png_byte;\n        *rp.add(2) = ((*rp.add(2) as c_int + *left.add(2) as c_int) & 0xff) as png_byte;\n        *rp.add(3) = ((*rp.add(3) as c_int + *left.add(3) as c_int) & 0xff) as png_byte;\n        *rp.add(4) = ((*rp.add(4) as c_int + *left.add(4) as c_int) & 0xff) as png_byte;\n        *rp.add(5) = ((*rp.add(5) as c_int + *left.add(5) as c_int) & 0xff) as png_byte;\n        *rp.add(6) = ((*rp.add(6) as c_int + *left.add(6) as c_int) & 0xff) as png_byte;\n        *rp.add(7) = ((*rp.add(7) as c_int + *left.add(7) as c_int) & 0xff) as png_byte;\n\n        rp = rp.add(8);\n        left = left.add(8);\n        remaining -= 8;\n    }\n\n    while remaining != 0 {\n        *rp = ((*rp as c_int + *left as c_int) & 0xff) as png_byte;\n        rp = rp.add(1);\n        left = left.add(1);\n        remaining -= 1;\n    }\n\n    let _ = prev_row;\n} }",
+            "start_byte": 73854
+          }
+        ],
+        "facts": {
+          "fn_name": "png_read_filter_row_sub",
+          "target_span_hash": "148c75cb09124865ca56c25b33ccda90db40dd1577e626f8ec3e55fb3b2c3cba"
+        },
+        "operation_id": "replace-365ef3e673a1c66c"
+      }
+    ],
+    "resolved_head": "7b674297e5fd1f4e2634af15882e955f617da983"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/libpng/pngrutil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

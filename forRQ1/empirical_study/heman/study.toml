@@ -1,0 +1,120 @@
+# =============================================================================
+# Empirical-study measurement manifest — heman  (LIBRARY project, image stencil)
+# =============================================================================
+# C vs c2rust_raw(0_raw). Pipeline: import_u8 → distance_create_df →
+# color_create_gradient → color_apply_gradient → export_u8 (RGB). Both harnesses
+# emit the RAW RGB buffer to stdout; the driver hashes stdout for equivalence.
+#   C  side : heman_pipeline_c.c + src/*.c + kazmath/*.c   (single-shot clang-17 LTO)
+#   raw side: workloads/harness/heman_pipeline (main.rs) → path-dep 0_raw (heman_raw)
+# Equivalence VERIFIED 2026-07-01: both = 3,145,728 B, sha 33a44af7.. on seed_1024_B.
+#
+# ★ HARNESS FIX (2026-07-01, PREFLIGHT ④): the original harness sha256'd the RGB
+# buffer INSIDE the timed region and printed the hash. That was removed on BOTH
+# sides — it (a) diluted heman's compute (~21% self-time) and (b) used a different
+# impl per side (C OpenSSL SHA256 vs Rust sha2 crate), an UNFAIR non-cancelling
+# cost. Now both fwrite/write_all the raw RGB; the driver hashes stdout. C build
+# drops -lcrypto; a 4-fn omp stub (empirical_study/heman/shim/omp.h) replaces OpenMP
+# (single-threaded fair compare; heman only calls omp_get_max_threads).
+#
+# EXPECTATION (PREFLIGHT ④): heman may show "preserved" — LLVM auto-vectorizes the
+# stencil loops on BOTH sides. Report honestly whichever way it lands.
+# =============================================================================
+
+[study]
+project      = "heman"
+binary       = "heman_pipeline"
+compare      = ["c", "c2rust_raw"]
+report_mode  = "per_input"
+
+[builds.c]
+kind        = "c_reference"
+compiler    = "clang-17"
+source_dir  = "empirical_study/heman/c_ref"     # self-contained (copied from dataset_source/heman; omp shim in ../shim)
+build_cmd   = "bash empirical_study/heman/c_ref/build.sh"
+binary_path = "empirical_study/heman/bin/heman_cref17"
+
+[builds.c2rust_raw]
+kind        = "cargo_harness"
+crate_dir   = "empirical_study/heman/rust_harness"          # self-contained; path-dep -> ../rust_raw (0_raw snapshot)
+build_cmd   = "( cd empirical_study/heman/rust_harness && cargo build --release )"
+flags       = "opt-level=3, lto=fat, codegen-units=1, target-cpu=native (harness Cargo.toml + .cargo/config)"
+binary_path = "empirical_study/heman/rust_harness/target/release/heman_pipeline"
+
+[measure]
+warmup_runs    = 5
+measure_runs   = 30
+metric         = "median"
+outlier_rule   = "drop >1.5*IQR"
+required_cv    = 0.03
+min_runtime_ms = 100
+timeout_s      = 300
+pin_cpu        = 16
+order          = ["c", "c2rust_raw"]
+paired         = true
+freq_pin       = true
+
+[profile]
+call_graph_mode = "dwarf"
+frequency       = 99
+
+# PIPELINE size sweep (1024²/2048²). Looped PIPE_N=3 (export last, digest
+# loop-independent) to clear the 100ms floor. The 256² seed was DROPPED: even
+# ×3 it is ~11ms (startup-noise-dominated), below the floor and unfixable without
+# per-input iters; 1024/2048 cover the size trend.
+# OPERATION 1 — PIPELINE: import → distance-field → gradient colorize → export.
+[[operations]]
+name = "pipeline"
+args = ["$INPUT"]
+
+  [[operations.inputs]]
+  name = "seed_1024_B"
+  path = "empirical_study/heman/inputs/seed_1024_B.bin"
+  size = "1024x1024"
+  stdout_sha256 = "33a44af7bdedb8a2a669ba826b0fb9ef06d27c168094f2c16cd5117bd8de9877"
+
+  [[operations.inputs]]
+  name = "seed_2048_C"
+  path = "empirical_study/heman/inputs/seed_2048_C.bin"
+  size = "2048x2048"
+  stdout_sha256 = "6c61de95612e8d5c78fcdbb57b36278ee2caaeb48b684008dd7e4b30bc4c4de3"
+
+# OPERATION 2 — LIGHTING: pipeline + heman_lighting_apply (surface normals + ambient
+# occlusion + diffuse shading, all of lighting.c). args=["$INPUT","lighting"]. New
+# module → coverage lift over the pipeline-only 5% line / 12% fn.
+# NOTE: only seed_256 kept as a TIMED workload — at 1024/2048 the c2rust lighting
+# output diverges from C by exactly 1 on 5/3.1M bytes (benign FP last-bit rounding in
+# the occlusion/normal math), which the strict sha256 gate rejects. That ≤1-ULP
+# divergence at scale is itself a finding (lighting is FP-sensitive); seed_256 is bit-
+# exact and gives a valid perf number + full lighting.c coverage.
+[[operations]]
+name = "lighting"
+args = ["$INPUT", "lighting"]
+
+  [[operations.inputs]]
+  name = "seed_256_A"
+  path = "empirical_study/heman/inputs/seed_256_A.bin"
+  size = "256x256 + lighting"
+  stdout_sha256 = "d98ee50abfa823aba931e756e2582f3b57d9da1139dde9edf84f439ef6e0ca92"
+
+# OPERATION 3 — GENERATE: island heightmap from OpenSimplex noise (generate.c + noise.c,
+# both 0% before). args=["generate"]; self-contained (no seed file — synthesizes from
+# fixed params 512x512/seed=42, x40 iters). Bit-exact C==Rust at 512 (no FP divergence
+# unlike lighting). heman's headline feature + heaviest FP kernel.
+[[operations]]
+name = "generate"
+args = ["generate"]
+
+  [[operations.inputs]]
+  name = "island512"
+  path = "empirical_study/heman/inputs/seed_256_A.bin"
+  size = "512x512 island heightmap x40 (simplex noise + distance field)"
+  stdout_sha256 = "f7b11308559d7713724e8083ed9d9ec09f9a186e5cadc532b2e5e8487de3f4df"
+
+[oracle]
+exit_code = 0
+correctness_manifests = []
+
+[gates]
+coverage_line_min = 50   # heman narrowed scope (kazmath excluded from coverage)
+coverage_fn_min   = 65
+self_time_own_min = 70   # should now pass (sha256 removed); hot = distance/gradient loops

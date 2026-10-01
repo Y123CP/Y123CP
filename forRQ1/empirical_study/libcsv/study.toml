@@ -1,0 +1,89 @@
+# =============================================================================
+# Empirical-study measurement manifest — libcsv  (LIBRARY project)
+# =============================================================================
+# C vs c2rust_raw(0_raw). libcsv is a library, so both sides are driven by an
+# EQUIVALENT harness that calls the parser and counts rows/fields:
+#   C  side : gap_analyze/harness/libcsv/c/main.c  +  libcsv.c   (clang-17 LTO)
+#   raw side: workloads/harness/csv_count_raw (main.rs) → path-dep 0_raw crate
+# Both emit "rows=N fields=M"; identical stdout sha256 = functional equivalence.
+# Fair build: C clang-17 -O3 -flto -march=native -DNDEBUG ; Rust harness carries
+# [profile.release] lto=fat/cgu=1 + .cargo/config target-cpu=native (verified).
+# See GUIDELINES.md + PREFLIGHT.md ②. bottleneck is memory/gather (NOT indirect-call).
+# =============================================================================
+
+[study]
+project      = "libcsv"
+binary       = "csv_count"
+compare      = ["c", "c2rust_raw"]
+report_mode  = "per_input"
+
+[builds.c]
+kind        = "c_reference"
+compiler    = "clang-17"
+source_dir  = "empirical_study/libcsv/c_ref"     # self-contained (main.c = former gap_analyze driver; libcsv.c/csv.h from dataset_source/libcsv)
+build_cmd   = "bash empirical_study/libcsv/c_ref/build.sh"
+binary_path = "empirical_study/libcsv/bin/csv_count_cref17"
+
+[builds.c2rust_raw]
+kind        = "cargo_harness"          # harness crate path-deps 0_raw (libcsv_raw)
+crate_dir   = "empirical_study/libcsv/rust_harness"
+build_cmd   = "( cd empirical_study/libcsv/rust_harness && cargo build --release --features op_write )"
+flags       = "opt-level=3, lto=fat, codegen-units=1, target-cpu=native (harness Cargo.toml + .cargo/config)"
+binary_path = "empirical_study/libcsv/rust_harness/target/release/csv_count"
+
+[measure]
+warmup_runs    = 5
+measure_runs   = 30
+metric         = "median"
+outlier_rule   = "drop >1.5*IQR"
+required_cv    = 0.03
+min_runtime_ms = 100          # synth.csv ~356ms on dev host; > floor
+timeout_s      = 300
+pin_cpu        = 16
+order          = ["c", "c2rust_raw"]
+paired         = true
+freq_pin       = true
+
+[profile]
+call_graph_mode = "dwarf"
+frequency       = 99
+
+# OPERATION 1 — PARSE (read). Held-out synthetic input (1M rows, 4-field schema).
+[[operations]]
+name = "parse"
+args = ["$INPUT"]
+
+  [[operations.inputs]]
+  name = "synth"
+  path = "empirical_study/libcsv/inputs/synth.csv"
+  size = "1M rows / 4 fields"
+  character = "quoted+escaped CSV"
+  stdout_sha256 = "66e455587604322f8524bb508c458a3ce7ab71e41a883c4c7fe660921f8fe894"
+
+# OPERATION 2 — WRITE (field escaping/quoting via csv_write). 10k fields × 300 iters,
+# each forced to need quoting + quote-doubling. args=["write"]; self-contained.
+# Adds libcsv's WRITE path (was parse-only → 41% line / 22% fn coverage).
+[[operations]]
+name = "write"
+args = ["write"]
+
+  [[operations.inputs]]
+  name = "escape10k"
+  path = "empirical_study/libcsv/inputs/synth.csv"
+  size = "10k fields x 300 iters (csv_write escaping)"
+  character = "field quoting + quote-doubling (csv_write/csv_write2)"
+  stdout_sha256 = "3a10f204398e57083724e7d5bc7ed8acb6f56972e7e8463672f9e392f1490758"
+
+[oracle]
+exit_code = 0
+correctness_manifests = []   # those were PIPELINE W1 gates (dataset_trans_process/.../workloads,
+                             # "invoked after every fn lift inside stage 2-6") — not empirical-study
+                             # assets and not read by run_study.py; equivalence is gated per-input
+                             # via stdout_sha256 above. Consistent with the other 7 projects.
+
+[gates]
+coverage_line_min = 60
+coverage_fn_min   = 70
+self_time_own_min = 70   # NOTE: harness atomic-counter (cb_field) may take a chunk;
+                         # it's identical in both builds so it cancels in the divergence,
+                         # but flag if csv_parse itself isn't clearly dominant.

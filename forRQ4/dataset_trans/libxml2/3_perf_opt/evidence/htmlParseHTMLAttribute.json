@@ -1,0 +1,861 @@
+{
+  "hot_function": {
+    "symbol": "htmlParseHTMLAttribute",
+    "location": "src/HTMLparser.rs:9254-9579",
+    "workload": "html_push_parse",
+    "hot_region": "src/HTMLparser.rs:9254-9579",
+    "rust_source": "fn htmlParseHTMLAttribute(\n    mut ctxt: htmlParserCtxtPtr,\n    stop: xmlChar,\n) -> *mut xmlChar { unsafe {\n    let mut buffer: *mut xmlChar = ::core::ptr::null_mut::<xmlChar>();\n    let mut buffer_size: c_int = 0 as c_int;\n    let mut maxLength: c_int =\n        if (*ctxt).options & XML_PARSE_HUGE as c_int != 0 {\n            XML_MAX_HUGE_LENGTH\n        } else {\n            XML_MAX_TEXT_LENGTH\n        };\n    let mut out: *mut xmlChar = ::core::ptr::null_mut::<xmlChar>();\n    let mut name: *const xmlChar = ::core::ptr::null::<xmlChar>();\n    let mut cur: *const xmlChar = ::core::ptr::null::<xmlChar>();\n    let mut ent: *const htmlEntityDesc = ::core::ptr::null::<htmlEntityDesc>();\n    buffer_size = HTML_PARSER_BUFFER_SIZE;\n    buffer =\n        xmlMallocAtomic.expect(\"non-null function pointer\")(buffer_size as size_t) as *mut xmlChar;\n    if buffer.is_null() {\n        htmlErrMemory(\n            ctxt as xmlParserCtxtPtr,\n            b\"buffer allocation failed\\n\\0\" as *const u8 as *const c_char,\n        );\n        return ::core::ptr::null_mut::<xmlChar>();\n    }\n    out = buffer;\n    while *(*(*ctxt).input).cur as c_int != 0 as c_int\n        && *(*(*ctxt).input).cur as c_int != stop as c_int\n    {\n        if stop as c_int == 0 as c_int\n            && *(*(*ctxt).input).cur as c_int == '>' as i32\n        {\n            break;\n        }\n        if stop as c_int == 0 as c_int\n            && (*(*(*ctxt).input).cur as c_int == 0x20 as c_int\n                || 0x9 as c_int <= *(*(*ctxt).input).cur as c_int\n                    && *(*(*ctxt).input).cur as c_int <= 0xa as c_int\n                || *(*(*ctxt).input).cur as c_int == 0xd as c_int)\n        {\n            break;\n        }\n        if *(*(*ctxt).input).cur as c_int == '&' as i32 {\n            if *(*(*ctxt).input)\n                .cur\n                .offset(1 as c_int as isize) as c_int\n                == '#' as i32\n            {\n                let mut c: c_uint = 0;\n                let mut bits: c_int = 0;\n                c = htmlParseCharRef(ctxt) as c_uint;\n                if c < 0x80 as c_uint {\n                    let fresh27 = out;\n                    out = out.offset(1);\n                    *fresh27 = c as xmlChar;\n                    bits = -(6 as c_int);\n                } else if c < 0x800 as c_uint {\n                    let fresh28 = out;\n                    out = out.offset(1);\n                    *fresh28 = (c >> 6 as c_int & 0x1f as c_uint\n                        | 0xc0 as c_uint) as xmlChar;\n                    bits = 0 as c_int;\n                } else if c < 0x10000 as c_int as c_uint {\n                    let fresh29 = out;\n                    out = out.offset(1);\n                    *fresh29 = (c >> 12 as c_int & 0xf as c_uint\n                        | 0xe0 as c_uint) as xmlChar;\n                    bits = 6 as c_int;\n                } else {\n                    let fresh30 = out;\n                    out = out.offset(1);\n                    *fresh30 = (c >> 18 as c_int & 0x7 as c_uint\n                        | 0xf0 as c_uint) as xmlChar;\n                    bits = 12 as c_int;\n                }\n                while bits >= 0 as c_int {\n                    let fresh31 = out;\n                    out = out.offset(1);\n                    *fresh31 = (c >> bits & 0x3f as c_uint\n                        | 0x80 as c_uint) as xmlChar;\n                    bits -= 6 as c_int;\n                }\n                if out.offset_from(buffer) as c_long\n                    > (buffer_size - 100 as c_int) as c_long\n                {\n                    let mut indx: c_int =\n                        out.offset_from(buffer) as c_long as c_int;\n                    let mut tmp: *mut xmlChar = ::core::ptr::null_mut::<xmlChar>();\n                    buffer_size *= 2 as c_int;\n                    tmp = xmlRealloc.expect(\"non-null function pointer\")(\n                        buffer as *mut c_void,\n                        buffer_size as size_t,\n                    ) as *mut xmlChar;\n                    if tmp.is_null() {\n                        htmlErrMemory(\n                            ctxt as xmlParserCtxtPtr,\n                            b\"growing buffer\\n\\0\" as *const u8 as *const c_char,\n                        );\n                        xmlFree.expect(\"non-null function pointer\")(\n                            buffer as *mut c_void,\n                        );\n                        return ::core::ptr::null_mut::<xmlChar>();\n                    }\n                    buffer = tmp;\n                    out = buffer.offset(indx as isize) as *mut xmlChar;\n                }\n            } else {\n                ent = htmlParseEntityRef(ctxt, &raw mut name);\n                if name.is_null() {\n                    let fresh32 = out;\n                    out = out.offset(1);\n                    *fresh32 = '&' as i32 as xmlChar;\n                    if out.offset_from(buffer) as c_long\n                        > (buffer_size - 100 as c_int) as c_long\n                    {\n                        let mut indx_0: c_int =\n                            out.offset_from(buffer) as c_long as c_int;\n                        let mut tmp_0: *mut xmlChar = ::core::ptr::null_mut::<xmlChar>();\n                        buffer_size *= 2 as c_int;\n                        tmp_0 = xmlRealloc.expect(\"non-null function pointer\")(\n                            buffer as *mut c_void,\n                            buffer_size as size_t,\n                        ) as *mut xmlChar;\n                        if tmp_0.is_null() {\n                            htmlErrMemory(\n                                ctxt as xmlParserCtxtPtr,\n                                b\"growing buffer\\n\\0\" as *const u8 as *const c_char,\n                            );\n                            xmlFree.expect(\"non-null function pointer\")(\n                                buffer as *mut c_void,\n                            );\n                            return ::core::ptr::null_mut::<xmlChar>();\n                        }\n                        buffer = tmp_0;\n                        out = buffer.offset(indx_0 as isize) as *mut xmlChar;\n                    }\n                } else if ent.is_null() {\n                    let fresh33 = out;\n                    out = out.offset(1);\n                    *fresh33 = '&' as i32 as xmlChar;\n                    cur = name;\n                    while *cur as c_int != 0 as c_int {\n                        if out.offset_from(buffer) as c_long\n                            > (buffer_size - 100 as c_int) as c_long\n                        {\n                            let mut indx_1: c_int = out.offset_from(buffer)\n                                as c_long\n                                as c_int;\n                            let mut tmp_1: *mut xmlChar = ::core::ptr::null_mut::<xmlChar>();\n                            buffer_size *= 2 as c_int;\n                            tmp_1 = xmlRealloc.expect(\"non-null function pointer\")(\n                                buffer as *mut c_void,\n                                buffer_size as size_t,\n                            ) as *mut xmlChar;\n                            if tmp_1.is_null() {\n                                htmlErrMemory(\n                                    ctxt as xmlParserCtxtPtr,\n                                    b\"growing buffer\\n\\0\" as *const u8\n                                        as *const c_char,\n                                );\n                                xmlFree.expect(\"non-null function pointer\")(\n                                    buffer as *mut c_void,\n                                );\n                                return ::core::ptr::null_mut::<xmlChar>();\n                            }\n                            buffer = tmp_1;\n                            out = buffer.offset(indx_1 as isize) as *mut xmlChar;\n                        }\n                        let fresh34 = cur;\n                        cur = cur.offset(1);\n                        let fresh35 = out;\n                        out = out.offset(1);\n                        *fresh35 = *fresh34;\n                    }\n                } else {\n                    let mut c_0: c_uint = 0;\n                    let mut bits_0: c_int = 0;\n                    if out.offset_from(buffer) as c_long\n                        > (buffer_size - 100 as c_int) as c_long\n                    {\n                        let mut indx_2: c_int =\n                            out.offset_from(buffer) as c_long as c_int;\n                        let mut tmp_2: *mut xmlChar = ::core::ptr::null_mut::<xmlChar>();\n                        buffer_size *= 2 as c_int;\n                        tmp_2 = xmlRealloc.expect(\"non-null function pointer\")(\n                            buffer as *mut c_void,\n                            buffer_size as size_t,\n                        ) as *mut xmlChar;\n                        if tmp_2.is_null() {\n                            htmlErrMemory(\n                                ctxt as xmlParserCtxtPtr,\n                                b\"growing buffer\\n\\0\" as *const u8 as *const c_char,\n                            );\n                            xmlFree.expect(\"non-null function pointer\")(\n                                buffer as *mut c_void,\n                            );\n                            return ::core::ptr::null_mut::<xmlChar>();\n                        }\n                        buffer = tmp_2;\n                        out = buffer.offset(indx_2 as isize) as *mut xmlChar;\n                    }\n                    c_0 = (*ent).value;\n                    if c_0 < 0x80 as c_uint {\n                        let fresh36 = out;\n                        out = out.offset(1);\n                        *fresh36 = c_0 as xmlChar;\n                        bits_0 = -(6 as c_int);\n                    } else if c_0 < 0x800 as c_uint {\n                        let fresh37 = out;\n                        out = out.offset(1);\n                        *fresh37 = (c_0 >> 6 as c_int & 0x1f as c_uint\n                            | 0xc0 as c_uint)\n                            as xmlChar;\n                        bits_0 = 0 as c_int;\n                    } else if c_0 < 0x10000 as c_int as c_uint {\n                        let fresh38 = out;\n                        out = out.offset(1);\n                        *fresh38 = (c_0 >> 12 as c_int & 0xf as c_uint\n                            | 0xe0 as c_uint)\n                            as xmlChar;\n                        bits_0 = 6 as c_int;\n                    } else {\n                        let fresh39 = out;\n                        out = out.offset(1);\n                        *fresh39 = (c_0 >> 18 as c_int & 0x7 as c_uint\n                            | 0xf0 as c_uint)\n                            as xmlChar;\n                        bits_0 = 12 as c_int;\n                    }\n                    while bits_0 >= 0 as c_int {\n                        let fresh40 = out;\n                        out = out.offset(1);\n                        *fresh40 = (c_0 >> bits_0 & 0x3f as c_uint\n                            | 0x80 as c_uint)\n                            as xmlChar;\n                        bits_0 -= 6 as c_int;\n                    }\n                }\n            }\n        } else {\n            let mut c_1: c_uint = 0;\n            let mut bits_1: c_int = 0;\n            let mut l: c_int = 0;\n            if out.offset_from(buffer) as c_long\n                > (buffer_size - 100 as c_int) as c_long\n            {\n                let mut indx_3: c_int =\n                    out.offset_from(buffer) as c_long as c_int;\n                let mut tmp_3: *mut xmlChar = ::core::ptr::null_mut::<xmlChar>();\n                buffer_size *= 2 as c_int;\n                tmp_3 = xmlRealloc.expect(\"non-null function pointer\")(\n                    buffer as *mut c_void,\n                    buffer_size as size_t,\n                ) as *mut xmlChar;\n                if tmp_3.is_null() {\n                    htmlErrMemory(\n                        ctxt as xmlParserCtxtPtr,\n                        b\"growing buffer\\n\\0\" as *const u8 as *const c_char,\n                    );\n                    xmlFree.expect(\"non-null function pointer\")(buffer as *mut c_void);\n                    return ::core::ptr::null_mut::<xmlChar>();\n                }\n                buffer = tmp_3;\n                out = buffer.offset(indx_3 as isize) as *mut xmlChar;\n            }\n            c_1 = htmlCurrentChar(ctxt as xmlParserCtxtPtr, &raw mut l) as c_uint;\n            if (*ctxt).instate as c_int == XML_PARSER_EOF as c_int {\n                xmlFree.expect(\"non-null function pointer\")(buffer as *mut c_void);\n                return ::core::ptr::null_mut::<xmlChar>();\n            }\n            if c_1 < 0x80 as c_uint {\n                let fresh41 = out;\n                out = out.offset(1);\n                *fresh41 = c_1 as xmlChar;\n                bits_1 = -(6 as c_int);\n            } else if c_1 < 0x800 as c_uint {\n                let fresh42 = out;\n                out = out.offset(1);\n                *fresh42 = (c_1 >> 6 as c_int & 0x1f as c_uint\n                    | 0xc0 as c_uint) as xmlChar;\n                bits_1 = 0 as c_int;\n            } else if c_1 < 0x10000 as c_int as c_uint {\n                let fresh43 = out;\n                out = out.offset(1);\n                *fresh43 = (c_1 >> 12 as c_int & 0xf as c_uint\n                    | 0xe0 as c_uint) as xmlChar;\n                bits_1 = 6 as c_int;\n            } else {\n                let fresh44 = out;\n                out = out.offset(1);\n                *fresh44 = (c_1 >> 18 as c_int & 0x7 as c_uint\n                    | 0xf0 as c_uint) as xmlChar;\n                bits_1 = 12 as c_int;\n            }\n            while bits_1 >= 0 as c_int {\n                let fresh45 = out;\n                out = out.offset(1);\n                *fresh45 = (c_1 >> bits_1 & 0x3f as c_uint\n                    | 0x80 as c_uint) as xmlChar;\n                bits_1 -= 6 as c_int;\n            }\n            if *(*(*ctxt).input).cur as c_int == '\\n' as i32 {\n                (*(*ctxt).input).line += 1;\n                (*(*ctxt).input).col = 1 as c_int;\n            } else {\n                (*(*ctxt).input).col += 1;\n            }\n            (*ctxt).token = 0 as c_int;\n            (*(*ctxt).input).cur = (*(*ctxt).input).cur.offset(l as isize);\n        }\n        if out.offset_from(buffer) as c_long > maxLength as c_long {\n            htmlParseErr(\n                ctxt as xmlParserCtxtPtr,\n                XML_ERR_ATTRIBUTE_NOT_FINISHED,\n                b\"attribute value too long\\n\\0\" as *const u8 as *const c_char,\n                ::core::ptr::null::<xmlChar>(),\n                ::core::ptr::null::<xmlChar>(),\n            );\n            xmlFree.expect(\"non-null function pointer\")(buffer as *mut c_void);\n            return ::core::ptr::null_mut::<xmlChar>();\n        }\n    }\n    *out = 0 as xmlChar;\n    return buffer;\n} }",
+    "signature": "fn htmlParseHTMLAttribute(\n    mut ctxt: htmlParserCtxtPtr,\n    stop: xmlChar,\n) -> *mut xmlChar",
+    "profile": {
+      "self_time_ratio": 0.0936,
+      "call_count": null,
+      "retired_instructions": 1044945604,
+      "instructions_per_call": null,
+      "cpi": 0.527,
+      "tma": {
+        "scope": "process",
+        "retiring": 54.808562443006146,
+        "frontend_bound": 30.369517990542167,
+        "bad_speculation": 4.6621107565871585,
+        "backend_bound": 10.159808809864533,
+        "memory_bound": 5.620025594600058,
+        "core_bound": 4.539783215264475,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0044
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C1": 13,
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_inl": {
+        "TooCostly": 6
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 9274,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser13htmlErrMemory17h142aaacca3c36a3eE' inlined into '_ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E' with (cost=130, threshold=250) at callsite _ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E:20:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 9305,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser16htmlParseCharRef17h403c01cb3cf0c4b0E' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E' because too costly to inline (cost=1580, threshold=325)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 9362,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser18htmlParseEntityRef17h24ee90393bfa0d7bE' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E' because too costly to inline (cost=625, threshold=325)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 9349,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser13htmlErrMemory17h142aaacca3c36a3eE' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E' because too costly to inline (cost=130, threshold=45)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 9379,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser13htmlErrMemory17h142aaacca3c36a3eE' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E' because too costly to inline (cost=130, threshold=45)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 9410,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser13htmlErrMemory17h142aaacca3c36a3eE' inlined into '_ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E' with (cost=130, threshold=250) at callsite _ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E:156:33;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 9444,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser13htmlErrMemory17h142aaacca3c36a3eE' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E' because too costly to inline (cost=130, threshold=45)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 9520,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E' because too costly to inline (cost=2125, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 9510,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser13htmlErrMemory17h142aaacca3c36a3eE' inlined into '_ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E' with (cost=130, threshold=250) at callsite _ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E:256:21;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 9566,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser12htmlParseErr17h939430b8de2cb4afE' inlined into '_ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E' with (cost=235, threshold=250) at callsite _ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E:312:13;"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 9405,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9281,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 9281,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 9363,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 9439,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 9395,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 9374,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 9344,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 9505,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 9556,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 9558,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 9563,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 9563,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9284,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9521,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 9521,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9562,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 9397,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 9281,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9281,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9363,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9439,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9456,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9448,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9395,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9396,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9405,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9427,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 9427,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9415,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9374,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9383,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9344,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9353,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9505,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9521,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9556,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9558,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9563,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9563,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9573,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9522,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9514,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 9254,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E: MI Instruction count changed from 0 to 875; Delta: 875"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 9254,
+        "message": "Merge disjoint stack slots: Function: _ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E: MI Instruction count changed from 875 to 870; Delta: -5"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 9254,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E: MI Instruction count changed from 870 to 866; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 9254,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E: MI Instruction count changed from 866 to 865; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 9254,
+        "message": "Peephole Optimizations: Function: _ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E: MI Instruction count changed from 865 to 858; Delta: -7"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 9254,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E: MI Instruction count changed from 858 to 956; Delta: 98"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 9254,
+        "message": "Two-Address instruction pass: Function: _ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E: MI Instruction count changed from 956 to 1064; Delta: 108"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 9254,
+        "message": "Register Coalescer: Function: _ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E: MI Instruction count changed from 1064 to 768; Delta: -296"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 9397,
+        "message": "6 virtual registers copies 1.503328e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 9281,
+        "message": "1 spills 4.161353e-01 total spills cost 1 reloads 4.096329e-01 total reloads cost 1 folded reloads 4.080436e+00 total folded reloads cost 56 virtual registers copies 4.648941e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 9254,
+        "message": "2 spills 1.416135e+00 total spills cost 1 reloads 4.096329e-01 total reloads cost 1 folded reloads 4.080436e+00 total folded reloads cost 78 virtual registers copies 5.215038e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 9254,
+        "message": "Greedy Register Allocator: Function: _ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E: MI Instruction count changed from 768 to 791; Delta: 23"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 9254,
+        "message": "Virtual Register Rewriter: Function: _ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E: MI Instruction count changed from 791 to 744; Delta: -47"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 9254,
+        "message": "184 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 9254,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E: MI Instruction count changed from 744 to 706; Delta: -38"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 9254,
+        "message": "Control Flow Optimizer: Function: _ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E: MI Instruction count changed from 706 to 615; Delta: -91"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 9254,
+        "message": "Tail Duplication: Function: _ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E: MI Instruction count changed from 615 to 616; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 9254,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E: MI Instruction count changed from 616 to 627; Delta: 11"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 9254,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN15libxml2_cleaned3src10HTMLparser22htmlParseHTMLAttribute17h233940311246b592E: MI Instruction count changed from 627 to 628; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9261,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9560,
+        "message": "BasicBlock: bb120"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9562,
+        "message": "BasicBlock: bb121"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9281,
+        "message": "BasicBlock: bb8"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9281,
+        "message": "BasicBlock: bb8"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9297,
+        "message": "BasicBlock: bb25"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9285,
+        "message": "BasicBlock: bb11"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9291,
+        "message": "BasicBlock: bb17"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9293,
+        "message": "BasicBlock: bb22"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9497,
+        "message": "BasicBlock: bb27"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9505,
+        "message": "BasicBlock: bb95"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9518,
+        "message": "BasicBlock: bb100"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9305,
+        "message": "BasicBlock: bb28"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9311,
+        "message": "BasicBlock: bb31"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9320,
+        "message": "BasicBlock: bb33"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9320,
+        "message": "BasicBlock: bb34"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9520,
+        "message": "BasicBlock: bb102"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9525,
+        "message": "BasicBlock: bb106"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9530,
+        "message": "BasicBlock: bb108"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9539,
+        "message": "BasicBlock: bb110"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9539,
+        "message": "BasicBlock: bb111"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9362,
+        "message": "BasicBlock: bb50"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9439,
+        "message": "BasicBlock: bb75"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9454,
+        "message": "BasicBlock: bb80"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9456,
+        "message": "BasicBlock: bb82"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9462,
+        "message": "BasicBlock: bb84"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9472,
+        "message": "BasicBlock: bb86"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9472,
+        "message": "BasicBlock: bb87"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9528,
+        "message": "BasicBlock: bb115"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9309,
+        "message": "BasicBlock: bb38"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9533,
+        "message": "BasicBlock: bb117.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9366,
+        "message": "BasicBlock: bb52"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9374,
+        "message": "BasicBlock: bb53"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9314,
+        "message": "BasicBlock: bb40.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9545,
+        "message": "BasicBlock: bb112"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9552,
+        "message": "BasicBlock: bb117.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9552,
+        "message": "BasicBlock: bb117.2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9557,
+        "message": "BasicBlock: bb119"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9394,
+        "message": "BasicBlock: bb62"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9397,
+        "message": "BasicBlock: bb64.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9421,
+        "message": "BasicBlock: bb70"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9427,
+        "message": "BasicBlock: bb72"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9405,
+        "message": "BasicBlock: bb65"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9460,
+        "message": "BasicBlock: bb91"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9326,
+        "message": "BasicBlock: bb35"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9333,
+        "message": "BasicBlock: bb40.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9333,
+        "message": "BasicBlock: bb40.2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9344,
+        "message": "BasicBlock: bb42"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9465,
+        "message": "BasicBlock: bb93.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9479,
+        "message": "BasicBlock: bb88"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9487,
+        "message": "BasicBlock: bb93.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9487,
+        "message": "BasicBlock: bb93.2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9577,
+        "message": "BasicBlock: bb129"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9573,
+        "message": "BasicBlock: _ZN15libxml2_cleaned3src10HTMLparser12htmlParseErr17h939430b8de2cb4afE.exit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9573,
+        "message": "BasicBlock: bb169"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9522,
+        "message": "BasicBlock: bb104"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9415,
+        "message": "BasicBlock: _ZN15libxml2_cleaned3src10HTMLparser13htmlErrMemory17h142aaacca3c36a3eE.exit159"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9514,
+        "message": "BasicBlock: _ZN15libxml2_cleaned3src10HTMLparser13htmlErrMemory17h142aaacca3c36a3eE.exit167"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9349,
+        "message": "BasicBlock: bb44"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9444,
+        "message": "BasicBlock: bb77"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9379,
+        "message": "BasicBlock: bb55"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9579,
+        "message": "BasicBlock: bb132"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9254,
+        "message": "607 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

@@ -1,0 +1,2674 @@
+{
+  "hot_function": {
+    "symbol": "tinfl_decompress",
+    "location": "src/miniz_tinfl.rs:51-2264",
+    "workload": "tinfl_decode_blob",
+    "hot_region": "src/miniz_tinfl.rs:51-2264",
+    "rust_source": "pub unsafe fn tinfl_decompress(\n    mut r: *mut tinfl_decompressor,\n    mut pIn_buf_next: *const mz_uint8,\n    mut pIn_buf_size: *mut size_t,\n    mut pOut_buf_start: *mut mz_uint8,\n    mut pOut_buf_next: *mut mz_uint8,\n    mut pOut_buf_size: *mut size_t,\n    decomp_flags: mz_uint32,\n) -> tinfl_status {\n    let pIn_buf_size_view: &mut size_t = unsafe { &mut *pIn_buf_size };\n    let mut s_1: mz_uint = 0;\n    let mut c_12: mz_uint = 0;\n    let mut c_11: mz_uint = 0;\n    let mut pSrc: *mut mz_uint8 = ::core::ptr::null_mut::<mz_uint8>();\n    let mut extra_bits_0: mz_uint = 0;\n    let mut c_10: mz_uint = 0;\n    let mut temp_1: c_int = 0;\n    let mut code_len_2: mz_uint = 0;\n    let mut c_9: mz_uint = 0;\n    let mut extra_bits: mz_uint = 0;\n    let mut c_8: mz_uint = 0;\n    let mut sym2: c_int = 0;\n    let mut code_len_1: mz_uint = 0;\n    let mut temp_0: c_int = 0;\n    let mut code_len_0: mz_uint = 0;\n    let mut c_7: mz_uint = 0;\n    let mut tree_next: c_int = 0;\n    let mut tree_cur: c_int = 0;\n    let mut pLookUp: *mut mz_int16 = ::core::ptr::null_mut::<mz_int16>();\n    let mut pTree: *mut mz_int16 = ::core::ptr::null_mut::<mz_int16>();\n    let mut pCode_size: *mut mz_uint8 = ::core::ptr::null_mut::<mz_uint8>();\n    let mut i_0: mz_uint = 0;\n    let mut j: mz_uint = 0;\n    let mut used_syms: mz_uint = 0;\n    let mut total: mz_uint = 0;\n    let mut sym_index: mz_uint = 0;\n    let mut next_code: [mz_uint; 17] = [0; 17];\n    let mut total_syms: [mz_uint; 16] = [0; 16];\n    let mut s_0: mz_uint = 0;\n    let mut c_6: mz_uint = 0;\n    let mut temp: c_int = 0;\n    let mut code_len: mz_uint = 0;\n    let mut c_5: mz_uint = 0;\n    let mut s: mz_uint = 0;\n    let mut c_4: mz_uint = 0;\n    let mut c_3: mz_uint = 0;\n    let mut n: size_t = 0;\n    let mut c_2: mz_uint = 0;\n    let mut c_1: mz_uint = 0;\n    let mut c_0: mz_uint = 0;\n    let mut c: mz_uint = 0;\n    let mut current_block: u64;\n    static mut s_length_base: [mz_uint16; 31] = [\n        3 as c_int as mz_uint16,\n        4 as c_int as mz_uint16,\n        5 as c_int as mz_uint16,\n        6 as c_int as mz_uint16,\n        7 as c_int as mz_uint16,\n        8 as c_int as mz_uint16,\n        9 as c_int as mz_uint16,\n        10 as c_int as mz_uint16,\n        11 as c_int as mz_uint16,\n        13 as c_int as mz_uint16,\n        15 as c_int as mz_uint16,\n        17 as c_int as mz_uint16,\n        19 as c_int as mz_uint16,\n        23 as c_int as mz_uint16,\n        27 as c_int as mz_uint16,\n        31 as c_int as mz_uint16,\n        35 as c_int as mz_uint16,\n        43 as c_int as mz_uint16,\n        51 as c_int as mz_uint16,\n        59 as c_int as mz_uint16,\n        67 as c_int as mz_uint16,\n        83 as c_int as mz_uint16,\n        99 as c_int as mz_uint16,\n        115 as c_int as mz_uint16,\n        131 as c_int as mz_uint16,\n        163 as c_int as mz_uint16,\n        195 as c_int as mz_uint16,\n        227 as c_int as mz_uint16,\n        258 as c_int as mz_uint16,\n        0 as c_int as mz_uint16,\n        0 as c_int as mz_uint16,\n    ];\n    static mut s_length_extra: [mz_uint8; 31] = [\n        0 as c_int as mz_uint8,\n        0 as c_int as mz_uint8,\n        0 as c_int as mz_uint8,\n        0 as c_int as mz_uint8,\n        0 as c_int as mz_uint8,\n        0 as c_int as mz_uint8,\n        0 as c_int as mz_uint8,\n        0 as c_int as mz_uint8,\n        1 as c_int as mz_uint8,\n        1 as c_int as mz_uint8,\n        1 as c_int as mz_uint8,\n        1 as c_int as mz_uint8,\n        2 as c_int as mz_uint8,\n        2 as c_int as mz_uint8,\n        2 as c_int as mz_uint8,\n        2 as c_int as mz_uint8,\n        3 as c_int as mz_uint8,\n        3 as c_int as mz_uint8,\n        3 as c_int as mz_uint8,\n        3 as c_int as mz_uint8,\n        4 as c_int as mz_uint8,\n        4 as c_int as mz_uint8,\n        4 as c_int as mz_uint8,\n        4 as c_int as mz_uint8,\n        5 as c_int as mz_uint8,\n        5 as c_int as mz_uint8,\n        5 as c_int as mz_uint8,\n        5 as c_int as mz_uint8,\n        0 as c_int as mz_uint8,\n        0 as c_int as mz_uint8,\n        0 as c_int as mz_uint8,\n    ];\n    static mut s_dist_base: [mz_uint16; 32] = [\n        1 as c_int as mz_uint16,\n        2 as c_int as mz_uint16,\n        3 as c_int as mz_uint16,\n        4 as c_int as mz_uint16,\n        5 as c_int as mz_uint16,\n        7 as c_int as mz_uint16,\n        9 as c_int as mz_uint16,\n        13 as c_int as mz_uint16,\n        17 as c_int as mz_uint16,\n        25 as c_int as mz_uint16,\n        33 as c_int as mz_uint16,\n        49 as c_int as mz_uint16,\n        65 as c_int as mz_uint16,\n        97 as c_int as mz_uint16,\n        129 as c_int as mz_uint16,\n        193 as c_int as mz_uint16,\n        257 as c_int as mz_uint16,\n        385 as c_int as mz_uint16,\n        513 as c_int as mz_uint16,\n        769 as c_int as mz_uint16,\n        1025 as c_int as mz_uint16,\n        1537 as c_int as mz_uint16,\n        2049 as c_int as mz_uint16,\n        3073 as c_int as mz_uint16,\n        4097 as c_int as mz_uint16,\n        6145 as c_int as mz_uint16,\n        8193 as c_int as mz_uint16,\n        12289 as c_int as mz_uint16,\n        16385 as c_int as mz_uint16,\n        24577 as c_int as mz_uint16,\n        0 as c_int as mz_uint16,\n        0 as c_int as mz_uint16,\n    ];\n    static mut s_dist_extra: [mz_uint8; 32] = [\n        0 as c_int as mz_uint8,\n        0 as c_int as mz_uint8,\n        0 as c_int as mz_uint8,\n        0 as c_int as mz_uint8,\n        1 as c_int as mz_uint8,\n        1 as c_int as mz_uint8,\n        2 as c_int as mz_uint8,\n        2 as c_int as mz_uint8,\n        3 as c_int as mz_uint8,\n        3 as c_int as mz_uint8,\n        4 as c_int as mz_uint8,\n        4 as c_int as mz_uint8,\n        5 as c_int as mz_uint8,\n        5 as c_int as mz_uint8,\n        6 as c_int as mz_uint8,\n        6 as c_int as mz_uint8,\n        7 as c_int as mz_uint8,\n        7 as c_int as mz_uint8,\n        8 as c_int as mz_uint8,\n        8 as c_int as mz_uint8,\n        9 as c_int as mz_uint8,\n        9 as c_int as mz_uint8,\n        10 as c_int as mz_uint8,\n        10 as c_int as mz_uint8,\n        11 as c_int as mz_uint8,\n        11 as c_int as mz_uint8,\n        12 as c_int as mz_uint8,\n        12 as c_int as mz_uint8,\n        13 as c_int as mz_uint8,\n        13 as c_int as mz_uint8,\n        0,\n        0,\n    ];\n    static mut s_length_dezigzag: [mz_uint8; 19] = [\n        16 as c_int as mz_uint8,\n        17 as c_int as mz_uint8,\n        18 as c_int as mz_uint8,\n        0 as c_int as mz_uint8,\n        8 as c_int as mz_uint8,\n        7 as c_int as mz_uint8,\n        9 as c_int as mz_uint8,\n        6 as c_int as mz_uint8,\n        10 as c_int as mz_uint8,\n        5 as c_int as mz_uint8,\n        11 as c_int as mz_uint8,\n        4 as c_int as mz_uint8,\n        12 as c_int as mz_uint8,\n        3 as c_int as mz_uint8,\n        13 as c_int as mz_uint8,\n        2 as c_int as mz_uint8,\n        14 as c_int as mz_uint8,\n        1 as c_int as mz_uint8,\n        15 as c_int as mz_uint8,\n    ];\n    static mut s_min_table_sizes: [mz_uint16; 3] = [\n        257 as c_int as mz_uint16,\n        1 as c_int as mz_uint16,\n        4 as c_int as mz_uint16,\n    ];\n    let mut pTrees: [*mut mz_int16; 3] = [::core::ptr::null_mut::<mz_int16>(); 3];\n    let mut pCode_sizes: [*mut mz_uint8; 3] = [::core::ptr::null_mut::<mz_uint8>(); 3];\n    let mut status: tinfl_status = TINFL_STATUS_FAILED;\n    let mut num_bits: mz_uint32 = 0;\n    let mut dist: mz_uint32 = 0;\n    let mut counter: mz_uint32 = 0;\n    let mut num_extra: mz_uint32 = 0;\n    let mut bit_buf: tinfl_bit_buf_t = 0;\n    let mut pIn_buf_cur: *const mz_uint8 = pIn_buf_next;\n    let pIn_buf_end: *const mz_uint8 = pIn_buf_next.offset(*pIn_buf_size_view as isize);\n    let mut pOut_buf_cur: *mut mz_uint8 = pOut_buf_next;\n    let pOut_buf_end: *mut mz_uint8 = if !pOut_buf_next.is_null() {\n        pOut_buf_next.offset(*pOut_buf_size as isize)\n    } else {\n        ::core::ptr::null_mut::<mz_uint8>()\n    };\n    let mut out_buf_size_mask: size_t = if decomp_flags\n        & TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF as c_int as mz_uint32\n        != 0\n    {\n        -(1 as c_int) as size_t\n    } else {\n        (pOut_buf_next.offset_from(pOut_buf_start) as c_long as size_t)\n            .wrapping_add(*pOut_buf_size)\n            .wrapping_sub(1 as size_t)\n    };\n    let mut dist_from_out_buf_start: size_t = 0;\n    if out_buf_size_mask.wrapping_add(1 as size_t) & out_buf_size_mask != 0\n        || pOut_buf_next < pOut_buf_start\n    {\n        *pOut_buf_size = 0 as size_t;\n        *pIn_buf_size_view = *pOut_buf_size;\n        return TINFL_STATUS_BAD_PARAM;\n    }\n    pTrees[0 as c_int as usize] = &raw mut (*r).m_tree_0 as *mut mz_int16;\n    pTrees[1 as c_int as usize] = &raw mut (*r).m_tree_1 as *mut mz_int16;\n    pTrees[2 as c_int as usize] = &raw mut (*r).m_tree_2 as *mut mz_int16;\n    pCode_sizes[0 as c_int as usize] = &raw mut (*r).m_code_size_0 as *mut mz_uint8;\n    pCode_sizes[1 as c_int as usize] = &raw mut (*r).m_code_size_1 as *mut mz_uint8;\n    pCode_sizes[2 as c_int as usize] = &raw mut (*r).m_code_size_2 as *mut mz_uint8;\n    num_bits = (*r).m_num_bits;\n    bit_buf = (*r).m_bit_buf;\n    dist = (*r).m_dist;\n    counter = (*r).m_counter;\n    num_extra = (*r).m_num_extra;\n    dist_from_out_buf_start = (*r).m_dist_from_out_buf_start;\n    match (*r).m_state {\n        0 => {\n            (*r).m_zhdr1 = 0 as mz_uint32;\n            (*r).m_zhdr0 = (*r).m_zhdr1;\n            num_extra = (*r).m_zhdr0;\n            counter = num_extra;\n            dist = counter;\n            num_bits = dist;\n            bit_buf = num_bits as tinfl_bit_buf_t;\n            (*r).m_check_adler32 = 1 as mz_uint32;\n            (*r).m_z_adler32 = (*r).m_check_adler32;\n            if decomp_flags & TINFL_FLAG_PARSE_ZLIB_HEADER as c_int as mz_uint32 != 0 {\n                current_block = 2370887241019905314;\n            } else {\n                current_block = 313581471991351815;\n            }\n        }\n        1 => {\n            current_block = 2370887241019905314;\n        }\n        2 => {\n            current_block = 15125582407903384992;\n        }\n        36 => {\n            current_block = 9007357115414505193;\n        }\n        3 => {\n            current_block = 5891011138178424807;\n        }\n        5 => {\n            current_block = 16779030619667747692;\n        }\n        6 => {\n            current_block = 15237655884915618618;\n        }\n        7 => {\n            current_block = 1428307939028130064;\n        }\n        39 => {\n            current_block = 10863493864285401582;\n        }\n        51 => {\n            current_block = 13014351284863956202;\n        }\n        52 => {\n            current_block = 15460309861373144675;\n        }\n        9 => {\n            current_block = 15614898248724990345;\n        }\n        38 => {\n            current_block = 5908482871227205451;\n        }\n        10 => {\n            current_block = 18316056106135622027;\n        }\n        11 => {\n            current_block = 12387625063048049585;\n        }\n        14 => {\n            current_block = 7510843268513837357;\n        }\n        35 => {\n            current_block = 14308887607299961996;\n        }\n        16 => {\n            current_block = 11990966878772509462;\n        }\n        17 => {\n            current_block = 15726232576006602401;\n        }\n        18 => {\n            current_block = 778403239630769426;\n        }\n        21 => {\n            current_block = 12060859132547941340;\n        }\n        23 => {\n            current_block = 9080448346277817863;\n        }\n        24 => {\n            current_block = 12916373135125519917;\n        }\n        40 => {\n            current_block = 17058499098102203106;\n        }\n        54 => {\n            current_block = 4979785777352049371;\n        }\n        25 => {\n            current_block = 8650459447085150701;\n        }\n        26 => {\n            current_block = 6721946588916655032;\n        }\n        27 => {\n            current_block = 1833465351478693723;\n        }\n        37 => {\n            current_block = 13286354103097804402;\n        }\n        53 => {\n            current_block = 7674033599746029549;\n        }\n        32 => {\n            current_block = 14402387155550584875;\n        }\n        41 => {\n            current_block = 12381699995462811668;\n        }\n        42 => {\n            current_block = 13250426973517230943;\n        }\n        34 => {\n            current_block = 9997576841122142810;\n        }\n        _ => {\n            current_block = 11953489883170298063;\n        }\n    }\n    match current_block {\n        2370887241019905314 => {\n            if pIn_buf_cur >= pIn_buf_end {\n                status = (if decomp_flags\n                    & TINFL_FLAG_HAS_MORE_INPUT as c_int as mz_uint32\n                    != 0\n                {\n                    TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                } else {\n                    TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                }) as tinfl_status;\n                (*r).m_state = 1 as mz_uint32;\n                current_block = 11953489883170298063;\n            } else {\n                let fresh0 = pIn_buf_cur;\n                pIn_buf_cur = pIn_buf_cur.offset(1);\n                (*r).m_zhdr0 = *fresh0 as mz_uint32;\n                current_block = 15125582407903384992;\n            }\n        }\n        _ => {}\n    }\n    match current_block {\n        15125582407903384992 => {\n            if pIn_buf_cur >= pIn_buf_end {\n                status = (if decomp_flags\n                    & TINFL_FLAG_HAS_MORE_INPUT as c_int as mz_uint32\n                    != 0\n                {\n                    TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                } else {\n                    TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                }) as tinfl_status;\n                (*r).m_state = 2 as mz_uint32;\n                current_block = 11953489883170298063;\n            } else {\n                let fresh1 = pIn_buf_cur;\n                pIn_buf_cur = pIn_buf_cur.offset(1);\n                (*r).m_zhdr1 = *fresh1 as mz_uint32;\n                counter = ((*r)\n                    .m_zhdr0\n                    .wrapping_mul(256 as mz_uint32)\n                    .wrapping_add((*r).m_zhdr1)\n                    .wrapping_rem(31 as mz_uint32)\n                    != 0 as mz_uint32\n                    || (*r).m_zhdr1 & 32 as mz_uint32 != 0\n                    || (*r).m_zhdr0 & 15 as mz_uint32 != 8 as mz_uint32)\n                    as c_int as mz_uint32;\n                if decomp_flags\n                    & TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF as c_int as mz_uint32\n                    == 0\n                {\n                    counter |= ((1 as c_uint)\n                        << (8 as mz_uint32).wrapping_add((*r).m_zhdr0 >> 4 as c_int)\n                        > 32768 as c_uint\n                        || out_buf_size_mask.wrapping_add(1 as size_t)\n                            < (1 as c_int as size_t)\n                                << (8 as mz_uint32)\n                                    .wrapping_add((*r).m_zhdr0 >> 4 as c_int))\n                        as c_int as mz_uint32;\n                }\n                if counter != 0 {\n                    current_block = 9007357115414505193;\n                } else {\n                    current_block = 313581471991351815;\n                }\n            }\n        }\n        _ => {}\n    }\n    match current_block {\n        9007357115414505193 => {\n            status = TINFL_STATUS_FAILED;\n            (*r).m_state = 36 as mz_uint32;\n            current_block = 11953489883170298063;\n        }\n        _ => {}\n    }\n    loop {\n        match current_block {\n            313581471991351815 => {\n                if num_bits < 3 as c_int as mz_uint {\n                    current_block = 13460095289871124136;\n                } else {\n                    current_block = 6545907279487748450;\n                }\n            }\n            14402387155550584875 => {\n                if pIn_buf_cur >= pIn_buf_end {\n                    status = (if decomp_flags\n                        & TINFL_FLAG_HAS_MORE_INPUT as c_int as mz_uint32\n                        != 0\n                    {\n                        TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                    } else {\n                        TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                    }) as tinfl_status;\n                    (*r).m_state = 32 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    let fresh34 = pIn_buf_cur;\n                    pIn_buf_cur = pIn_buf_cur.offset(1);\n                    c_11 = *fresh34 as mz_uint;\n                    bit_buf |= (c_11 as tinfl_bit_buf_t) << num_bits;\n                    num_bits = num_bits.wrapping_add(8 as mz_uint32);\n                    if num_bits < num_bits & 7 as mz_uint32 {\n                        current_block = 4159430576127784976;\n                    } else {\n                        current_block = 955764296456093747;\n                    }\n                }\n            }\n            7674033599746029549 => {\n                if pOut_buf_cur >= pOut_buf_end {\n                    status = TINFL_STATUS_HAS_MORE_OUTPUT;\n                    (*r).m_state = 53 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    let fresh32 = dist_from_out_buf_start;\n                    dist_from_out_buf_start = dist_from_out_buf_start.wrapping_add(1);\n                    let fresh33 = pOut_buf_cur;\n                    pOut_buf_cur = pOut_buf_cur.offset(1);\n                    *fresh33 = *pOut_buf_start.offset(\n                        (fresh32.wrapping_sub(dist as size_t) & out_buf_size_mask) as isize,\n                    );\n                }\n                current_block = 18076970406079194302;\n            }\n            13286354103097804402 => {\n                status = TINFL_STATUS_FAILED;\n                (*r).m_state = 37 as mz_uint32;\n                current_block = 11953489883170298063;\n                continue;\n            }\n            1833465351478693723 => {\n                if pIn_buf_cur >= pIn_buf_end {\n                    status = (if decomp_flags\n                        & TINFL_FLAG_HAS_MORE_INPUT as c_int as mz_uint32\n                        != 0\n                    {\n                        TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                    } else {\n                        TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                    }) as tinfl_status;\n                    (*r).m_state = 27 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    let fresh30 = pIn_buf_cur;\n                    pIn_buf_cur = pIn_buf_cur.offset(1);\n                    c_10 = *fresh30 as mz_uint;\n                    bit_buf |= (c_10 as tinfl_bit_buf_t) << num_bits;\n                    num_bits = num_bits.wrapping_add(8 as mz_uint32);\n                    if num_bits < num_extra {\n                        current_block = 14412960601270604433;\n                    } else {\n                        current_block = 18060968742384277177;\n                    }\n                }\n            }\n            6721946588916655032 => {\n                if pIn_buf_cur >= pIn_buf_end {\n                    status = (if decomp_flags\n                        & TINFL_FLAG_HAS_MORE_INPUT as c_int as mz_uint32\n                        != 0\n                    {\n                        TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                    } else {\n                        TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                    }) as tinfl_status;\n                    (*r).m_state = 26 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    let fresh28 = pIn_buf_cur;\n                    pIn_buf_cur = pIn_buf_cur.offset(1);\n                    c_9 = *fresh28 as mz_uint;\n                    bit_buf |= (c_9 as tinfl_bit_buf_t) << num_bits;\n                    num_bits = num_bits.wrapping_add(8 as mz_uint32);\n                    if num_bits < 15 as mz_uint32 {\n                        current_block = 3011706931690025809;\n                    } else {\n                        current_block = 2358125959230175008;\n                    }\n                }\n            }\n            8650459447085150701 => {\n                if pIn_buf_cur >= pIn_buf_end {\n                    status = (if decomp_flags\n                        & TINFL_FLAG_HAS_MORE_INPUT as c_int as mz_uint32\n                        != 0\n                    {\n                        TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                    } else {\n                        TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                    }) as tinfl_status;\n                    (*r).m_state = 25 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    let fresh26 = pIn_buf_cur;\n                    pIn_buf_cur = pIn_buf_cur.offset(1);\n                    c_8 = *fresh26 as mz_uint;\n                    bit_buf |= (c_8 as tinfl_bit_buf_t) << num_bits;\n                    num_bits = num_bits.wrapping_add(8 as mz_uint32);\n                    if num_bits < num_extra {\n                        current_block = 3846997171290157944;\n                    } else {\n                        current_block = 17809027598452024276;\n                    }\n                }\n            }\n            4979785777352049371 => {\n                status = TINFL_STATUS_FAILED;\n                (*r).m_state = 54 as mz_uint32;\n                current_block = 11953489883170298063;\n                continue;\n            }\n            17058499098102203106 => {\n                status = TINFL_STATUS_FAILED;\n                (*r).m_state = 40 as mz_uint32;\n                current_block = 11953489883170298063;\n                continue;\n            }\n            12916373135125519917 => {\n                if pOut_buf_cur >= pOut_buf_end {\n                    status = TINFL_STATUS_HAS_MORE_OUTPUT;\n                    (*r).m_state = 24 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    let fresh23 = pOut_buf_cur;\n                    pOut_buf_cur = pOut_buf_cur.offset(1);\n                    *fresh23 = counter as mz_uint8;\n                }\n                current_block = 18019479878307254118;\n            }\n            9080448346277817863 => {\n                if pIn_buf_cur >= pIn_buf_end {\n                    status = (if decomp_flags\n                        & TINFL_FLAG_HAS_MORE_INPUT as c_int as mz_uint32\n                        != 0\n                    {\n                        TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                    } else {\n                        TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                    }) as tinfl_status;\n                    (*r).m_state = 23 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    let fresh21 = pIn_buf_cur;\n                    pIn_buf_cur = pIn_buf_cur.offset(1);\n                    c_7 = *fresh21 as mz_uint;\n                    bit_buf |= (c_7 as tinfl_bit_buf_t) << num_bits;\n                    num_bits = num_bits.wrapping_add(8 as mz_uint32);\n                    if num_bits < 15 as mz_uint32 {\n                        current_block = 17870985093275900527;\n                    } else {\n                        current_block = 15415362524153386998;\n                    }\n                }\n            }\n            12060859132547941340 => {\n                status = TINFL_STATUS_FAILED;\n                (*r).m_state = 21 as mz_uint32;\n                current_block = 11953489883170298063;\n                continue;\n            }\n            778403239630769426 => {\n                if pIn_buf_cur >= pIn_buf_end {\n                    status = (if decomp_flags\n                        & TINFL_FLAG_HAS_MORE_INPUT as c_int as mz_uint32\n                        != 0\n                    {\n                        TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                    } else {\n                        TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                    }) as tinfl_status;\n                    (*r).m_state = 18 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    let fresh19 = pIn_buf_cur;\n                    pIn_buf_cur = pIn_buf_cur.offset(1);\n                    c_6 = *fresh19 as mz_uint;\n                    bit_buf |= (c_6 as tinfl_bit_buf_t) << num_bits;\n                    num_bits = num_bits.wrapping_add(8 as mz_uint32);\n                    if num_bits < num_extra {\n                        current_block = 3983074877498205967;\n                    } else {\n                        current_block = 8752412851861032177;\n                    }\n                }\n            }\n            15726232576006602401 => {\n                status = TINFL_STATUS_FAILED;\n                (*r).m_state = 17 as mz_uint32;\n                current_block = 11953489883170298063;\n                continue;\n            }\n            11990966878772509462 => {\n                if pIn_buf_cur >= pIn_buf_end {\n                    status = (if decomp_flags\n                        & TINFL_FLAG_HAS_MORE_INPUT as c_int as mz_uint32\n                        != 0\n                    {\n                        TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                    } else {\n                        TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                    }) as tinfl_status;\n                    (*r).m_state = 16 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    let fresh16 = pIn_buf_cur;\n                    pIn_buf_cur = pIn_buf_cur.offset(1);\n                    c_5 = *fresh16 as mz_uint;\n                    bit_buf |= (c_5 as tinfl_bit_buf_t) << num_bits;\n                    num_bits = num_bits.wrapping_add(8 as mz_uint32);\n                    if num_bits < 15 as mz_uint32 {\n                        current_block = 3179191505073644361;\n                    } else {\n                        current_block = 11867310137400648068;\n                    }\n                }\n            }\n            14308887607299961996 => {\n                status = TINFL_STATUS_FAILED;\n                (*r).m_state = 35 as mz_uint32;\n                current_block = 11953489883170298063;\n                continue;\n            }\n            7510843268513837357 => {\n                if pIn_buf_cur >= pIn_buf_end {\n                    status = (if decomp_flags\n                        & TINFL_FLAG_HAS_MORE_INPUT as c_int as mz_uint32\n                        != 0\n                    {\n                        TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                    } else {\n                        TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                    }) as tinfl_status;\n                    (*r).m_state = 14 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    let fresh13 = pIn_buf_cur;\n                    pIn_buf_cur = pIn_buf_cur.offset(1);\n                    c_4 = *fresh13 as mz_uint;\n                    bit_buf |= (c_4 as tinfl_bit_buf_t) << num_bits;\n                    num_bits = num_bits.wrapping_add(8 as mz_uint32);\n                    if num_bits < 3 as c_int as mz_uint {\n                        current_block = 11002855972428369642;\n                    } else {\n                        current_block = 9239588423676249671;\n                    }\n                }\n            }\n            12387625063048049585 => {\n                if pIn_buf_cur >= pIn_buf_end {\n                    status = (if decomp_flags\n                        & TINFL_FLAG_HAS_MORE_INPUT as c_int as mz_uint32\n                        != 0\n                    {\n                        TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                    } else {\n                        TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                    }) as tinfl_status;\n                    (*r).m_state = 11 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    let fresh12 = pIn_buf_cur;\n                    pIn_buf_cur = pIn_buf_cur.offset(1);\n                    c_3 = *fresh12 as mz_uint;\n                    bit_buf |= (c_3 as tinfl_bit_buf_t) << num_bits;\n                    num_bits = num_bits.wrapping_add(8 as mz_uint32);\n                    if num_bits\n                        < ::core::mem::transmute::<[u8; 4], [c_char; 4]>(\n                            *b\"\\x05\\x05\\x04\\0\",\n                        )[counter as usize] as mz_uint\n                    {\n                        current_block = 14535175905252782758;\n                    } else {\n                        current_block = 10882604075759663216;\n                    }\n                }\n            }\n            18316056106135622027 => {\n                status = TINFL_STATUS_FAILED;\n                (*r).m_state = 10 as mz_uint32;\n                current_block = 11953489883170298063;\n                continue;\n            }\n            5908482871227205451 => {\n                if pIn_buf_cur >= pIn_buf_end {\n                    status = (if decomp_flags\n                        & TINFL_FLAG_HAS_MORE_INPUT as c_int as mz_uint32\n                        != 0\n                    {\n                        TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                    } else {\n                        TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                    }) as tinfl_status;\n                    (*r).m_state = 38 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    n = if (if (pOut_buf_end.offset_from(pOut_buf_cur) as c_long\n                        as size_t)\n                        < pIn_buf_end.offset_from(pIn_buf_cur) as c_long as size_t\n                    {\n                        pOut_buf_end.offset_from(pOut_buf_cur) as c_long as size_t\n                    } else {\n                        pIn_buf_end.offset_from(pIn_buf_cur) as c_long as size_t\n                    }) < counter as size_t\n                    {\n                        if (pOut_buf_end.offset_from(pOut_buf_cur) as c_long as size_t)\n                            < pIn_buf_end.offset_from(pIn_buf_cur) as c_long as size_t\n                        {\n                            pOut_buf_end.offset_from(pOut_buf_cur) as c_long as size_t\n                        } else {\n                            pIn_buf_end.offset_from(pIn_buf_cur) as c_long as size_t\n                        }\n                    } else {\n                        counter as size_t\n                    };\n                    memcpy(\n                        pOut_buf_cur as *mut c_void,\n                        pIn_buf_cur as *const c_void,\n                        n,\n                    );\n                    pIn_buf_cur = pIn_buf_cur.offset(n as isize);\n                    pOut_buf_cur = pOut_buf_cur.offset(n as isize);\n                    counter = (counter as uint32_t).wrapping_sub(n as mz_uint as uint32_t)\n                        as mz_uint32 as mz_uint32;\n                }\n                current_block = 10661265453436690952;\n            }\n            15614898248724990345 => {\n                if !(pOut_buf_cur >= pOut_buf_end) {\n                    current_block = 5908482871227205451;\n                    continue;\n                }\n                status = TINFL_STATUS_HAS_MORE_OUTPUT;\n                (*r).m_state = 9 as mz_uint32;\n                current_block = 11953489883170298063;\n                continue;\n            }\n            15460309861373144675 => {\n                if pOut_buf_cur >= pOut_buf_end {\n                    status = TINFL_STATUS_HAS_MORE_OUTPUT;\n                    (*r).m_state = 52 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    let fresh7 = pOut_buf_cur;\n                    pOut_buf_cur = pOut_buf_cur.offset(1);\n                    *fresh7 = dist as mz_uint8;\n                    counter = counter.wrapping_sub(1);\n                }\n                current_block = 10041771570435381152;\n            }\n            13014351284863956202 => {\n                if pIn_buf_cur >= pIn_buf_end {\n                    status = (if decomp_flags\n                        & TINFL_FLAG_HAS_MORE_INPUT as c_int as mz_uint32\n                        != 0\n                    {\n                        TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                    } else {\n                        TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                    }) as tinfl_status;\n                    (*r).m_state = 51 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    let fresh6 = pIn_buf_cur;\n                    pIn_buf_cur = pIn_buf_cur.offset(1);\n                    c_2 = *fresh6 as mz_uint;\n                    bit_buf |= (c_2 as tinfl_bit_buf_t) << num_bits;\n                    num_bits = num_bits.wrapping_add(8 as mz_uint32);\n                    if num_bits < 8 as c_int as mz_uint {\n                        current_block = 14648249180243006330;\n                    } else {\n                        current_block = 12625034345703806147;\n                    }\n                }\n            }\n            10863493864285401582 => {\n                status = TINFL_STATUS_FAILED;\n                (*r).m_state = 39 as mz_uint32;\n                current_block = 11953489883170298063;\n                continue;\n            }\n            1428307939028130064 => {\n                if pIn_buf_cur >= pIn_buf_end {\n                    status = (if decomp_flags\n                        & TINFL_FLAG_HAS_MORE_INPUT as c_int as mz_uint32\n                        != 0\n                    {\n                        TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                    } else {\n                        TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                    }) as tinfl_status;\n                    (*r).m_state = 7 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    let fresh5 = pIn_buf_cur;\n                    pIn_buf_cur = pIn_buf_cur.offset(1);\n                    (*r).m_raw_header[counter as usize] = *fresh5;\n                }\n                current_block = 993425571616822999;\n            }\n            15237655884915618618 => {\n                if pIn_buf_cur >= pIn_buf_end {\n                    status = (if decomp_flags\n                        & TINFL_FLAG_HAS_MORE_INPUT as c_int as mz_uint32\n                        != 0\n                    {\n                        TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                    } else {\n                        TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                    }) as tinfl_status;\n                    (*r).m_state = 6 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    let fresh4 = pIn_buf_cur;\n                    pIn_buf_cur = pIn_buf_cur.offset(1);\n                    c_1 = *fresh4 as mz_uint;\n                    bit_buf |= (c_1 as tinfl_bit_buf_t) << num_bits;\n                    num_bits = num_bits.wrapping_add(8 as mz_uint32);\n                    if num_bits < 8 as c_int as mz_uint {\n                        current_block = 6838274324784804404;\n                    } else {\n                        current_block = 2467484839200770573;\n                    }\n                }\n            }\n            16779030619667747692 => {\n                if pIn_buf_cur >= pIn_buf_end {\n                    status = (if decomp_flags\n                        & TINFL_FLAG_HAS_MORE_INPUT as c_int as mz_uint32\n                        != 0\n                    {\n                        TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                    } else {\n                        TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                    }) as tinfl_status;\n                    (*r).m_state = 5 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    let fresh3 = pIn_buf_cur;\n                    pIn_buf_cur = pIn_buf_cur.offset(1);\n                    c_0 = *fresh3 as mz_uint;\n                    bit_buf |= (c_0 as tinfl_bit_buf_t) << num_bits;\n                    num_bits = num_bits.wrapping_add(8 as mz_uint32);\n                    if num_bits < num_bits & 7 as mz_uint32 {\n                        current_block = 1874315696050160458;\n                    } else {\n                        current_block = 13723035087248630346;\n                    }\n                }\n            }\n            5891011138178424807 => {\n                if pIn_buf_cur >= pIn_buf_end {\n                    status = (if decomp_flags\n                        & TINFL_FLAG_HAS_MORE_INPUT as c_int as mz_uint32\n                        != 0\n                    {\n                        TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                    } else {\n                        TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                    }) as tinfl_status;\n                    (*r).m_state = 3 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    let fresh2 = pIn_buf_cur;\n                    pIn_buf_cur = pIn_buf_cur.offset(1);\n                    c = *fresh2 as mz_uint;\n                    bit_buf |= (c as tinfl_bit_buf_t) << num_bits;\n                    num_bits = num_bits.wrapping_add(8 as mz_uint32);\n                    if num_bits < 3 as c_int as mz_uint {\n                        current_block = 13460095289871124136;\n                    } else {\n                        current_block = 6545907279487748450;\n                    }\n                }\n            }\n            13250426973517230943 => {\n                if pIn_buf_cur >= pIn_buf_end {\n                    status = (if decomp_flags\n                        & TINFL_FLAG_HAS_MORE_INPUT as c_int as mz_uint32\n                        != 0\n                    {\n                        TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                    } else {\n                        TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                    }) as tinfl_status;\n                    (*r).m_state = 42 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    let fresh36 = pIn_buf_cur;\n                    pIn_buf_cur = pIn_buf_cur.offset(1);\n                    s_1 = *fresh36 as mz_uint;\n                }\n                current_block = 12800094729615117303;\n            }\n            9997576841122142810 => {\n                status = TINFL_STATUS_DONE;\n                (*r).m_state = 34 as mz_uint32;\n                current_block = 11953489883170298063;\n                continue;\n            }\n            11953489883170298063 => {\n                if status as c_int\n                    != TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                    && status as c_int\n                        != TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                {\n                    while pIn_buf_cur > pIn_buf_next && num_bits >= 8 as mz_uint32 {\n                        pIn_buf_cur = pIn_buf_cur.offset(-1);\n                        num_bits = num_bits.wrapping_sub(8 as mz_uint32);\n                    }\n                }\n                break;\n            }\n            _ => {\n                if pIn_buf_cur >= pIn_buf_end {\n                    status = (if decomp_flags\n                        & TINFL_FLAG_HAS_MORE_INPUT as c_int as mz_uint32\n                        != 0\n                    {\n                        TINFL_STATUS_NEEDS_MORE_INPUT as c_int\n                    } else {\n                        TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS as c_int\n                    }) as tinfl_status;\n                    (*r).m_state = 41 as mz_uint32;\n                    current_block = 11953489883170298063;\n                    continue;\n                } else {\n                    let fresh35 = pIn_buf_cur;\n                    pIn_buf_cur = pIn_buf_cur.offset(1);\n                    c_12 = *fresh35 as mz_uint;\n                    bit_buf |= (c_12 as tinfl_bit_buf_t) << num_bits;\n                    num_bits = num_bits.wrapping_add(8 as mz_uint32);\n                    if num_bits < 8 as c_int as mz_uint {\n                        current_block = 8585542996221928953;\n                    } else {\n                        current_block = 2977775588433926224;\n                    }\n                }\n            }\n        }\n        match current_block {\n            6545907279487748450 => {\n                (*r).m_final = (bit_buf\n                    & (((1 as c_int) << 3 as c_int)\n                        - 1 as c_int) as tinfl_bit_buf_t)\n                    as mz_uint32;\n                bit_buf >>= 3 as c_int;\n                num_bits = num_bits.wrapping_sub(3 as mz_uint32);\n                (*r).m_type = (*r).m_final >> 1 as c_int;\n                if (*r).m_type == 0 as mz_uint32 {\n                    if num_bits < num_bits & 7 as mz_uint32 {\n                        current_block = 1874315696050160458;\n                    } else {\n                        current_block = 13723035087248630346;\n                    }\n                } else {\n                    if (*r).m_type == 3 as mz_uint32 {\n                        current_block = 18316056106135622027;\n                        continue;\n                    }\n                    if (*r).m_type == 1 as mz_uint32 {\n                        let mut p: *mut mz_uint8 = &raw mut (*r).m_code_size_0 as *mut mz_uint8;\n                        let mut i: mz_uint = 0;\n                        (*r).m_table_sizes[0 as c_int as usize] = 288 as mz_uint32;\n                        (*r).m_table_sizes[1 as c_int as usize] = 32 as mz_uint32;\n                        memset(\n                            &raw mut (*r).m_code_size_1 as *mut mz_uint8\n                                as *mut c_void,\n                            5 as c_int,\n                            32 as size_t,\n                        );\n                        i = 0 as mz_uint;\n                        while i <= 143 as mz_uint {\n                            let fresh8 = p;\n                            p = p.offset(1);\n                            *fresh8 = 8 as mz_uint8;\n                            i = i.wrapping_add(1);\n                        }\n                        while i <= 255 as mz_uint {\n                            let fresh9 = p;\n                            p = p.offset(1);\n                            *fresh9 = 9 as mz_uint8;\n                            i = i.wrapping_add(1);\n                        }\n                        while i <= 279 as mz_uint {\n                            let fresh10 = p;\n                            p = p.offset(1);\n                            *fresh10 = 7 as mz_uint8;\n                            i = i.wrapping_add(1);\n                        }\n                        while i <= 287 as mz_uint {\n                            let fresh11 = p;\n                            p = p.offset(1);\n                            *fresh11 = 8 as mz_uint8;\n                            i = i.wrapping_add(1);\n                        }\n                        current_block = 17723783950272744135;\n                    } else {\n                        counter = 0 as mz_uint32;\n                        current_block = 3414715837273685534;\n                    }\n                }\n            }\n            13460095289871124136 => {\n                c = 0;\n                current_block = 5891011138178424807;\n                continue;\n            }\n            _ => {}\n        }\n        match current_block {\n            13723035087248630346 => {\n                bit_buf >>= num_bits & 7 as mz_uint32;\n                num_bits = num_bits.wrapping_sub(num_bits & 7 as mz_uint32);\n                counter = 0 as mz_uint32;\n                current_block = 17485376261910781866;\n            }\n            1874315696050160458 => {\n                c_0 = 0;\n                current_block = 16779030619667747692;\n                continue;\n            }\n            _ => {}\n        }\n        loop {\n            match current_block {\n                6838274324784804404 => {\n                    c_1 = 0;\n                    current_block = 15237655884915618618;\n                    break;\n                }\n                955764296456093747 => {\n                    bit_buf >>= num_bits & 7 as mz_uint32;\n                    num_bits = num_bits.wrapping_sub(num_bits & 7 as mz_uint32);\n                    while pIn_buf_cur > pIn_buf_next && num_bits >= 8 as mz_uint32 {\n                        pIn_buf_cur = pIn_buf_cur.offset(-1);\n                        num_bits = num_bits.wrapping_sub(8 as mz_uint32);\n                    }\n                    bit_buf &= !(!(0 as c_int as tinfl_bit_buf_t) << num_bits);\n                    if !(decomp_flags\n                        & TINFL_FLAG_PARSE_ZLIB_HEADER as c_int as mz_uint32\n                        != 0)\n                    {\n                        current_block = 9997576841122142810;\n                        break;\n                    }\n                    counter = 0 as mz_uint32;\n                    current_block = 7757638761803742862;\n                }\n                18060968742384277177 => {\n                    extra_bits_0 = (bit_buf\n                        & (((1 as c_int) << num_extra) - 1 as c_int)\n                            as tinfl_bit_buf_t) as mz_uint;\n                    bit_buf >>= num_extra;\n                    num_bits = num_bits.wrapping_sub(num_extra);\n                    dist = (dist as uint32_t).wrapping_add(extra_bits_0 as uint32_t) as mz_uint32\n                        as mz_uint32;\n                    current_block = 14117028633286690613;\n                }\n                2358125959230175008 => {\n                    temp_1 = (*r).m_look_up[1 as c_int as usize][(bit_buf\n                        & (TINFL_FAST_LOOKUP_SIZE as c_int - 1 as c_int)\n                            as tinfl_bit_buf_t)\n                        as usize] as c_int;\n                    if temp_1 >= 0 as c_int {\n                        code_len_2 = (temp_1 >> 9 as c_int) as mz_uint;\n                        temp_1 &= 511 as c_int;\n                    } else {\n                        code_len_2 = TINFL_FAST_LOOKUP_BITS as c_int as mz_uint;\n                        loop {\n                            let fresh29 = code_len_2;\n                            code_len_2 = code_len_2.wrapping_add(1);\n                            temp_1 = (*r).m_tree_1[(!temp_1 as tinfl_bit_buf_t)\n                                .wrapping_add(bit_buf >> fresh29 & 1 as tinfl_bit_buf_t)\n                                as usize]\n                                as c_int;\n                            if !(temp_1 < 0 as c_int) {\n                                break;\n                            }\n                        }\n                    }\n                    dist = temp_1 as mz_uint32;\n                    bit_buf >>= code_len_2;\n                    num_bits = (num_bits as uint32_t).wrapping_sub(code_len_2 as uint32_t)\n                        as mz_uint32 as mz_uint32;\n                    num_extra = s_dist_extra[dist as usize] as mz_uint32;\n                    dist = s_dist_base[dist as usize] as mz_uint32;\n                    if num_extra != 0 {\n                        extra_bits_0 = 0;\n                        if num_bits < num_extra {\n                            current_block = 14412960601270604433;\n                            continue;\n                        } else {\n                            current_block = 18060968742384277177;\n                            continue;\n                        }\n                    } else {\n                        current_block = 14117028633286690613;\n                    }\n                }\n                3011706931690025809 => {\n                    temp_1 = (*r).m_look_up[1 as c_int as usize][(bit_buf\n                        & (TINFL_FAST_LOOKUP_SIZE as c_int - 1 as c_int)\n                            as tinfl_bit_buf_t)\n                        as usize] as c_int;\n                    if temp_1 >= 0 as c_int {\n                        code_len_2 = (temp_1 >> 9 as c_int) as mz_uint;\n                        if code_len_2 != 0 && num_bits >= code_len_2 {\n                            current_block = 2358125959230175008;\n                            continue;\n                        } else {\n                            current_block = 6721946588916655032;\n                            break;\n                        }\n                    } else {\n                        if !(num_bits > TINFL_FAST_LOOKUP_BITS as c_int as mz_uint32) {\n                            current_block = 6721946588916655032;\n                            break;\n                        }\n                        code_len_2 = TINFL_FAST_LOOKUP_BITS as c_int as mz_uint;\n                        loop {\n                            let fresh27 = code_len_2;\n                            code_len_2 = code_len_2.wrapping_add(1);\n                            temp_1 = (*r).m_tree_1[(!temp_1 as tinfl_bit_buf_t)\n                                .wrapping_add(bit_buf >> fresh27 & 1 as tinfl_bit_buf_t)\n                                as usize]\n                                as c_int;\n                            if !(temp_1 < 0 as c_int\n                                && num_bits >= code_len_2.wrapping_add(1 as mz_uint))\n                            {\n                                break;\n                            }\n                        }\n                        if temp_1 >= 0 as c_int {\n                            current_block = 2358125959230175008;\n                            continue;\n                        } else {\n                            current_block = 6721946588916655032;\n                            break;\n                        }\n                    }\n                }\n                17809027598452024276 => {\n                    extra_bits = (bit_buf\n                        & (((1 as c_int) << num_extra) - 1 as c_int)\n                            as tinfl_bit_buf_t) as mz_uint;\n                    bit_buf >>= num_extra;\n                    num_bits = num_bits.wrapping_sub(num_extra);\n                    counter = (counter as uint32_t).wrapping_add(extra_bits as uint32_t)\n                        as mz_uint32 as mz_uint32;\n                    current_block = 18029556747650706958;\n                }\n                18019479878307254118 => {\n                    if (pIn_buf_end.offset_from(pIn_buf_cur) as c_long)\n                        < 4 as c_long\n                        || (pOut_buf_end.offset_from(pOut_buf_cur) as c_long)\n                            < 2 as c_long\n                    {\n                        temp_0 = 0;\n                        code_len_0 = 0;\n                        c_7 = 0;\n                        if !(num_bits < 15 as mz_uint32) {\n                            current_block = 15415362524153386998;\n                            continue;\n                        }\n                        if (pIn_buf_end.offset_from(pIn_buf_cur) as c_long)\n                            < 2 as c_long\n                        {\n                            current_block = 17870985093275900527;\n                            continue;\n                        }\n                        bit_buf |= (*pIn_buf_cur.offset(0 as c_int as isize)\n                            as tinfl_bit_buf_t)\n                            << num_bits\n                            | (*pIn_buf_cur.offset(1 as c_int as isize)\n                                as tinfl_bit_buf_t)\n                                << num_bits.wrapping_add(8 as mz_uint32);\n                        pIn_buf_cur = pIn_buf_cur.offset(2 as c_int as isize);\n                        num_bits = num_bits.wrapping_add(16 as mz_uint32);\n                        current_block = 15415362524153386998;\n                        continue;\n                    } else {\n                        sym2 = 0;\n                        code_len_1 = 0;\n                        if num_bits < 30 as mz_uint32 {\n                            bit_buf |= ((*pIn_buf_cur.offset(0 as c_int as isize)\n                                as mz_uint32\n                                | (*pIn_buf_cur.offset(1 as c_int as isize)\n                                    as mz_uint32)\n                                    << 8 as c_uint\n                                | (*pIn_buf_cur.offset(2 as c_int as isize)\n                                    as mz_uint32)\n                                    << 16 as c_uint\n                                | (*pIn_buf_cur.offset(3 as c_int as isize)\n                                    as mz_uint32)\n                                    << 24 as c_uint)\n                                as tinfl_bit_buf_t)\n                                << num_bits;\n                            pIn_buf_cur = pIn_buf_cur.offset(4 as c_int as isize);\n                            num_bits = num_bits.wrapping_add(32 as mz_uint32);\n                        }\n                        sym2 = (*r).m_look_up[0 as c_int as usize][(bit_buf\n                            & (TINFL_FAST_LOOKUP_SIZE as c_int\n                                - 1 as c_int)\n                                as tinfl_bit_buf_t)\n                            as usize] as c_int;\n                        if sym2 >= 0 as c_int {\n                            code_len_1 = (sym2 >> 9 as c_int) as mz_uint;\n                        } else {\n                            code_len_1 = TINFL_FAST_LOOKUP_BITS as c_int as mz_uint;\n                            loop {\n                                let fresh24 = code_len_1;\n                                code_len_1 = code_len_1.wrapping_add(1);\n                                sym2 = (*r).m_tree_0[(!sym2 as tinfl_bit_buf_t)\n                                    .wrapping_add(bit_buf >> fresh24 & 1 as tinfl_bit_buf_t)\n                                    as usize]\n                                    as c_int;\n                                if !(sym2 < 0 as c_int) {\n                                    break;\n                                }\n                            }\n                        }\n                        counter = sym2 as mz_uint32;\n                        bit_buf >>= code_len_1;\n                        num_bits = (num_bits as uint32_t).wrapping_sub(code_len_1 as uint32_t)\n                            as mz_uint32 as mz_uint32;\n                        if code_len_1 == 0 as mz_uint {\n                            current_block = 17058499098102203106;\n                            break;\n                        }\n                        if !(counter & 256 as mz_uint32 != 0) {\n                            sym2 = (*r).m_look_up[0 as c_int as usize][(bit_buf\n                                & (TINFL_FAST_LOOKUP_SIZE as c_int\n                                    - 1 as c_int)\n                                    as tinfl_bit_buf_t)\n                                as usize] as c_int;\n                            if sym2 >= 0 as c_int {\n                                code_len_1 = (sym2 >> 9 as c_int) as mz_uint;\n                            } else {\n                                code_len_1 =\n                                    TINFL_FAST_LOOKUP_BITS as c_int as mz_uint;\n                                loop {\n                                    let fresh25 = code_len_1;\n                                    code_len_1 = code_len_1.wrapping_add(1);\n                                    sym2 = (*r).m_tree_0[(!sym2 as tinfl_bit_buf_t)\n                                        .wrapping_add(bit_buf >> fresh25 & 1 as tinfl_bit_buf_t)\n                                        as usize]\n                                        as c_int;\n                                    if !(sym2 < 0 as c_int) {\n                                        break;\n                                    }\n                                }\n                            }\n                            bit_buf >>= code_len_1;\n                            num_bits = (num_bits as uint32_t).wrapping_sub(code_len_1 as uint32_t)\n                                as mz_uint32 as mz_uint32;\n                            if code_len_1 == 0 as mz_uint {\n                                current_block = 4979785777352049371;\n                                break;\n                            }\n                            *pOut_buf_cur.offset(0 as c_int as isize) =\n                                counter as mz_uint8;\n                            if sym2 & 256 as c_int != 0 {\n                                pOut_buf_cur = pOut_buf_cur.offset(1);\n                                counter = sym2 as mz_uint32;\n                            } else {\n                                *pOut_buf_cur.offset(1 as c_int as isize) =\n                                    sym2 as mz_uint8;\n                                pOut_buf_cur =\n                                    pOut_buf_cur.offset(2 as c_int as isize);\n                                current_block = 18019479878307254118;\n                                continue;\n                            }\n                        }\n                    }\n                    current_block = 12369472161353711912;\n                }\n                15415362524153386998 => {\n                    temp_0 = (*r).m_look_up[0 as c_int as usize][(bit_buf\n                        & (TINFL_FAST_LOOKUP_SIZE as c_int - 1 as c_int)\n                            as tinfl_bit_buf_t)\n                        as usize] as c_int;\n                    if temp_0 >= 0 as c_int {\n                        code_len_0 = (temp_0 >> 9 as c_int) as mz_uint;\n                        temp_0 &= 511 as c_int;\n                    } else {\n                        code_len_0 = TINFL_FAST_LOOKUP_BITS as c_int as mz_uint;\n                        loop {\n                            let fresh22 = code_len_0;\n                            code_len_0 = code_len_0.wrapping_add(1);\n                            temp_0 = (*r).m_tree_0[(!temp_0 as tinfl_bit_buf_t)\n                                .wrapping_add(bit_buf >> fresh22 & 1 as tinfl_bit_buf_t)\n                                as usize]\n                                as c_int;\n                            if !(temp_0 < 0 as c_int) {\n                                break;\n                            }\n                        }\n                    }\n                    counter = temp_0 as mz_uint32;\n                    bit_buf >>= code_len_0;\n                    num_bits = (num_bits as uint32_t).wrapping_sub(code_len_0 as uint32_t)\n                        as mz_uint32 as mz_uint32;\n                    if !(counter >= 256 as mz_uint32) {\n                        current_block = 12916373135125519917;\n                        break;\n                    }\n                    current_block = 12369472161353711912;\n                }\n                17870985093275900527 => {\n                    temp_0 = (*r).m_look_up[0 as c_int as usize][(bit_buf\n                        & (TINFL_FAST_LOOKUP_SIZE as c_int - 1 as c_int)\n                            as tinfl_bit_buf_t)\n                        as usize] as c_int;\n                    if temp_0 >= 0 as c_int {\n                        code_len_0 = (temp_0 >> 9 as c_int) as mz_uint;\n                        if code_len_0 != 0 && num_bits >= code_len_0 {\n                            current_block = 15415362524153386998;\n                            continue;\n                        } else {\n                            current_block = 9080448346277817863;\n                            break;\n                        }\n                    } else {\n                        if !(num_bits > TINFL_FAST_LOOKUP_BITS as c_int as mz_uint32) {\n                            current_block = 9080448346277817863;\n                            break;\n                        }\n                        code_len_0 = TINFL_FAST_LOOKUP_BITS as c_int as mz_uint;\n                        loop {\n                            let fresh20 = code_len_0;\n                            code_len_0 = code_len_0.wrapping_add(1);\n                            temp_0 = (*r).m_tree_0[(!temp_0 as tinfl_bit_buf_t)\n                                .wrapping_add(bit_buf >> fresh20 & 1 as tinfl_bit_buf_t)\n                                as usize]\n                                as c_int;\n                            if !(temp_0 < 0 as c_int\n                                && num_bits >= code_len_0.wrapping_add(1 as mz_uint))\n                            {\n                                break;\n                            }\n                        }\n                        if temp_0 >= 0 as c_int {\n                            current_block = 15415362524153386998;\n                            continue;\n                        } else {\n                            current_block = 9080448346277817863;\n                            break;\n                        }\n                    }\n                }\n                8752412851861032177 => {\n                    s_0 = (bit_buf\n                        & (((1 as c_int) << num_extra) - 1 as c_int)\n                            as tinfl_bit_buf_t) as mz_uint;\n                    bit_buf >>= num_extra;\n                    num_bits = num_bits.wrapping_sub(num_extra);\n                    s_0 = s_0.wrapping_add(\n                        ::core::mem::transmute::<[u8; 4], [c_char; 4]>(\n                            *b\"\\x03\\x03\\x0B\\0\",\n                        )[dist.wrapping_sub(16 as mz_uint32) as usize]\n                            as mz_uint,\n                    );\n                    memset(\n                        (&raw mut (*r).m_len_codes as *mut mz_uint8).offset(counter as isize)\n                            as *mut c_void,\n                        if dist == 16 as mz_uint32 {\n                            (*r).m_len_codes[counter.wrapping_sub(1 as mz_uint32) as usize]\n                                as c_int\n                        } else {\n                            0 as c_int\n                        },\n                        s_0 as size_t,\n                    );\n                    counter = (counter as uint32_t).wrapping_add(s_0 as uint32_t) as mz_uint32\n                        as mz_uint32;\n                    current_block = 15712984148872257586;\n                }\n                11867310137400648068 => {\n                    temp = (*r).m_look_up[2 as c_int as usize][(bit_buf\n                        & (TINFL_FAST_LOOKUP_SIZE as c_int - 1 as c_int)\n                            as tinfl_bit_buf_t)\n                        as usize] as c_int;\n                    if temp >= 0 as c_int {\n                        code_len = (temp >> 9 as c_int) as mz_uint;\n                        temp &= 511 as c_int;\n                    } else {\n                        code_len = TINFL_FAST_LOOKUP_BITS as c_int as mz_uint;\n                        loop {\n                            let fresh17 = code_len;\n                            code_len = code_len.wrapping_add(1);\n                            temp = (*r).m_tree_2[(!temp as tinfl_bit_buf_t)\n                                .wrapping_add(bit_buf >> fresh17 & 1 as tinfl_bit_buf_t)\n                                as usize] as c_int;\n                            if !(temp < 0 as c_int) {\n                                break;\n                            }\n                        }\n                    }\n                    dist = temp as mz_uint32;\n                    bit_buf >>= code_len;\n                    num_bits = (num_bits as uint32_t).wrapping_sub(code_len as uint32_t)\n                        as mz_uint32 as mz_uint32;\n                    if dist < 16 as mz_uint32 {\n                        let fresh18 = counter;\n                        counter = counter.wrapping_add(1);\n                        (*r).m_len_codes[fresh18 as usize] = dist as mz_uint8;\n                    } else {\n                        if dist == 16 as mz_uint32 && counter == 0 {\n                            current_block = 15726232576006602401;\n                            break;\n                        }\n                        num_extra = ::core::mem::transmute::<[u8; 4], [c_char; 4]>(\n                            *b\"\\x02\\x03\\x07\\0\",\n                        )[dist.wrapping_sub(16 as mz_uint32) as usize]\n                            as mz_uint32;\n                        if num_bits < num_extra {\n                            current_block = 3983074877498205967;\n                            continue;\n                        } else {\n                            current_block = 8752412851861032177;\n                            continue;\n                        }\n                    }\n                    current_block = 15712984148872257586;\n                }\n                3179191505073644361 => {\n                    temp = (*r).m_look_up[2 as c_int as usize][(bit_buf\n                        & (TINFL_FAST_LOOKUP_SIZE as c_int - 1 as c_int)\n                            as tinfl_bit_buf_t)\n                        as usize] as c_int;\n                    if temp >= 0 as c_int {\n                        code_len = (temp >> 9 as c_int) as mz_uint;\n                        if code_len != 0 && num_bits >= code_len {\n                            current_block = 11867310137400648068;\n                            continue;\n                        } else {\n                            current_block = 11990966878772509462;\n                            break;\n                        }\n                    } else {\n                        if !(num_bits > TINFL_FAST_LOOKUP_BITS as c_int as mz_uint32) {\n                            current_block = 11990966878772509462;\n                            break;\n                        }\n                        code_len = TINFL_FAST_LOOKUP_BITS as c_int as mz_uint;\n                        loop {\n                            let fresh15 = code_len;\n                            code_len = code_len.wrapping_add(1);\n                            temp = (*r).m_tree_2[(!temp as tinfl_bit_buf_t)\n                                .wrapping_add(bit_buf >> fresh15 & 1 as tinfl_bit_buf_t)\n                                as usize] as c_int;\n                            if !(temp < 0 as c_int\n                                && num_bits >= code_len.wrapping_add(1 as mz_uint))\n                            {\n                                break;\n                            }\n                        }\n                        if temp >= 0 as c_int {\n                            current_block = 11867310137400648068;\n                            continue;\n                        } else {\n                            current_block = 11990966878772509462;\n                            break;\n                        }\n                    }\n                }\n                17723783950272744135 => {\n                    if (*r).m_type as c_int >= 0 as c_int {\n                        tree_next = 0;\n                        tree_cur = 0;\n                        pLookUp = ::core::ptr::null_mut::<mz_int16>();\n                        pTree = ::core::ptr::null_mut::<mz_int16>();\n                        pCode_size = ::core::ptr::null_mut::<mz_uint8>();\n                        i_0 = 0;\n                        j = 0;\n                        used_syms = 0;\n                        total = 0;\n                        sym_index = 0;\n                        next_code = [0; 17];\n                        total_syms = [0; 16];\n                        pLookUp = &raw mut *(&raw mut (*r).m_look_up as *mut [mz_int16; 1024])\n                            .offset((*r).m_type as isize)\n                            as *mut mz_int16;\n                        pTree = pTrees[(*r).m_type as usize];\n                        pCode_size = pCode_sizes[(*r).m_type as usize];\n                        memset(\n                            &raw mut total_syms as *mut mz_uint as *mut c_void,\n                            0 as c_int,\n                            ::core::mem::size_of::<[mz_uint; 16]>() as size_t,\n                        );\n                        memset(\n                            pLookUp as *mut c_void,\n                            0 as c_int,\n                            ::core::mem::size_of::<[mz_int16; 1024]>() as size_t,\n                        );\n                        tinfl_clear_tree(r);\n                        i_0 = 0 as mz_uint;\n                        while i_0 < ((*r).m_table_sizes[(*r).m_type as usize] as size_t).try_into().unwrap() {\n                            total_syms[*pCode_size.offset(i_0 as isize) as usize] = total_syms\n                                [*pCode_size.offset(i_0 as isize) as usize]\n                                .wrapping_add(1);\n                            i_0 = i_0.wrapping_add(1);\n                        }\n                        used_syms = 0 as mz_uint;\n                        total = 0 as mz_uint;\n                        next_code[1 as c_int as usize] = 0 as mz_uint;\n                        next_code[0 as c_int as usize] =\n                            next_code[1 as c_int as usize];\n                        i_0 = 1 as mz_uint;\n                        while i_0 <= 15 as mz_uint {\n                            used_syms = used_syms.wrapping_add(total_syms[i_0 as usize]);\n                            total = total.wrapping_add(total_syms[i_0 as usize])\n                                << 1 as c_int;\n                            next_code[i_0.wrapping_add(1 as mz_uint) as usize] = total;\n                            i_0 = i_0.wrapping_add(1);\n                        }\n                        if 65536 as mz_uint != total && used_syms > 1 as mz_uint {\n                            current_block = 14308887607299961996;\n                            break;\n                        }\n                        tree_next = -(1 as c_int);\n                        sym_index = 0 as mz_uint;\n                        while sym_index < ((*r).m_table_sizes[(*r).m_type as usize] as size_t).try_into().unwrap() {\n                            let mut rev_code: mz_uint = 0 as mz_uint;\n                            let mut l: mz_uint = 0;\n                            let mut cur_code: mz_uint = 0;\n                            let mut code_size: mz_uint =\n                                *pCode_size.offset(sym_index as isize) as mz_uint;\n                            if !(code_size == 0) {\n                                let fresh14 = next_code[code_size as usize];\n                                next_code[code_size as usize] =\n                                    next_code[code_size as usize].wrapping_add(1);\n                                cur_code = fresh14;\n                                l = code_size;\n                                while l > 0 as mz_uint {\n                                    rev_code = rev_code << 1 as c_int\n                                        | cur_code & 1 as mz_uint;\n                                    l = l.wrapping_sub(1);\n                                    cur_code >>= 1 as c_int;\n                                }\n                                if code_size\n                                    <= TINFL_FAST_LOOKUP_BITS as c_int as mz_uint\n                                {\n                                    let mut k: mz_int16 = (code_size << 9 as c_int\n                                        | sym_index)\n                                        as mz_int16;\n                                    while rev_code\n                                        < TINFL_FAST_LOOKUP_SIZE as c_int as mz_uint\n                                    {\n                                        *pLookUp.offset(rev_code as isize) = k;\n                                        rev_code = rev_code.wrapping_add(\n                                            ((1 as c_int) << code_size) as mz_uint,\n                                        );\n                                    }\n                                } else {\n                                    tree_cur = *pLookUp.offset(\n                                        (rev_code\n                                            & (TINFL_FAST_LOOKUP_SIZE as c_int\n                                                - 1 as c_int)\n                                                as mz_uint)\n                                            as isize,\n                                    )\n                                        as c_int;\n                                    if 0 as c_int == tree_cur {\n                                        *pLookUp.offset(\n                                            (rev_code\n                                                & (TINFL_FAST_LOOKUP_SIZE as c_int\n                                                    - 1 as c_int)\n                                                    as mz_uint)\n                                                as isize,\n                                        ) = tree_next as mz_int16;\n                                        tree_cur = tree_next;\n                                        tree_next -= 2 as c_int;\n                                    }\n                                    rev_code >>= TINFL_FAST_LOOKUP_BITS as c_int\n                                        - 1 as c_int;\n                                    j = code_size;\n                                    while j\n                                        > (TINFL_FAST_LOOKUP_BITS as c_int\n                                            + 1 as c_int)\n                                            as mz_uint\n                                    {\n                                        rev_code >>= 1 as c_int;\n                                        tree_cur = (tree_cur as mz_uint)\n                                            .wrapping_sub(rev_code & 1 as mz_uint)\n                                            as c_int\n                                            as c_int;\n                                        if *pTree\n                                            .offset((-tree_cur - 1 as c_int) as isize)\n                                            == 0\n                                        {\n                                            *pTree.offset(\n                                                (-tree_cur - 1 as c_int) as isize,\n                                            ) = tree_next as mz_int16;\n                                            tree_cur = tree_next;\n                                            tree_next -= 2 as c_int;\n                                        } else {\n                                            tree_cur = *pTree.offset(\n                                                (-tree_cur - 1 as c_int) as isize,\n                                            )\n                                                as c_int;\n                                        }\n                                        j = j.wrapping_sub(1);\n                                    }\n                                    rev_code >>= 1 as c_int;\n                                    tree_cur = (tree_cur as mz_uint)\n                                        .wrapping_sub(rev_code & 1 as mz_uint)\n                                        as c_int\n                                        as c_int;\n                                    *pTree.offset((-tree_cur - 1 as c_int) as isize) =\n                                        sym_index as mz_int16;\n                                }\n                            }\n                            sym_index = sym_index.wrapping_add(1);\n                        }\n                        if (*r).m_type == 2 as mz_uint32 {\n                            counter = 0 as mz_uint32;\n                            current_block = 15712984148872257586;\n                        } else {\n                            current_block = 8038949400865391589;\n                        }\n                    } else {\n                        current_block = 12926621472508904600;\n                    }\n                }\n                9239588423676249671 => {\n                    s = (bit_buf\n                        & (((1 as c_int) << 3 as c_int)\n                            - 1 as c_int) as tinfl_bit_buf_t)\n                        as mz_uint;\n                    bit_buf >>= 3 as c_int;\n                    num_bits = num_bits.wrapping_sub(3 as mz_uint32);\n                    (*r).m_code_size_2[s_length_dezigzag[counter as usize] as usize] =\n                        s as mz_uint8;\n                    counter = counter.wrapping_add(1);\n                    current_block = 5638484086777907119;\n                }\n                3414715837273685534 => {\n                    if counter < 3 as mz_uint32 {\n                        if num_bits\n                            < ::core::mem::transmute::<[u8; 4], [c_char; 4]>(\n                                *b\"\\x05\\x05\\x04\\0\",\n                            )[counter as usize] as mz_uint\n                        {\n                            current_block = 14535175905252782758;\n                            continue;\n                        } else {\n                            current_block = 10882604075759663216;\n                            continue;\n                        }\n                    } else {\n                        memset(\n                            &raw mut (*r).m_code_size_2 as *mut mz_uint8\n                                as *mut c_void,\n                            0 as c_int,\n                            ::core::mem::size_of::<[mz_uint8; 19]>() as size_t,\n                        );\n                        counter = 0 as mz_uint32;\n                    }\n                    current_block = 5638484086777907119;\n                }\n                10882604075759663216 => {\n                    (*r).m_table_sizes[counter as usize] = (bit_buf\n                        & (((1 as c_int)\n                            << ::core::mem::transmute::<[u8; 4], [c_char; 4]>(\n                                *b\"\\x05\\x05\\x04\\0\",\n                            )[counter as usize]\n                                as c_int)\n                            - 1 as c_int) as tinfl_bit_buf_t)\n                        as mz_uint32;\n                    bit_buf >>= ::core::mem::transmute::<[u8; 4], [c_char; 4]>(\n                        *b\"\\x05\\x05\\x04\\0\",\n                    )[counter as usize] as c_int;\n                    num_bits = num_bits.wrapping_sub(\n                        ::core::mem::transmute::<[u8; 4], [c_char; 4]>(\n                            *b\"\\x05\\x05\\x04\\0\",\n                        )[counter as usize] as mz_uint32,\n                    );\n                    (*r).m_table_sizes[counter as usize] = (*r).m_table_sizes[counter as usize]\n                        .wrapping_add(s_min_table_sizes[counter as usize] as mz_uint32);\n                    counter = counter.wrapping_add(1);\n                    current_block = 3414715837273685534;\n                    continue;\n                }\n                10661265453436690952 => {\n                    if counter != 0 {\n                        n = 0;\n                        current_block = 15614898248724990345;\n                        break;\n                    } else {\n                        current_block = 1345366029464561491;\n                    }\n                }\n                10041771570435381152 => {\n                    if !(counter != 0 && num_bits != 0) {\n                        current_block = 10661265453436690952;\n                        continue;\n                    }\n                    if num_bits < 8 as c_int as mz_uint {\n                        current_block = 14648249180243006330;\n                        continue;\n                    } else {\n                        current_block = 12625034345703806147;\n                        continue;\n                    }\n                }\n                2467484839200770573 => {\n                    (*r).m_raw_header[counter as usize] = (bit_buf\n                        & (((1 as c_int) << 8 as c_int)\n                            - 1 as c_int) as tinfl_bit_buf_t)\n                        as mz_uint8;\n                    bit_buf >>= 8 as c_int;\n                    num_bits = num_bits.wrapping_sub(8 as mz_uint32);\n                    current_block = 993425571616822999;\n                    continue;\n                }\n                17485376261910781866 => {\n                    if counter < 4 as mz_uint32 {\n                        if !(num_bits != 0) {\n                            current_block = 1428307939028130064;\n                            break;\n                        }\n                        if num_bits < 8 as c_int as mz_uint {\n                            current_block = 6838274324784804404;\n                            continue;\n                        } else {\n                            current_block = 2467484839200770573;\n                            continue;\n                        }\n                    } else {\n                        counter = ((*r).m_raw_header[0 as c_int as usize]\n                            as c_int\n                            | ((*r).m_raw_header[1 as c_int as usize]\n                                as c_int)\n                                << 8 as c_int)\n                            as mz_uint32;\n                        if counter\n                            != (0xffff as c_int\n                                ^ ((*r).m_raw_header[2 as c_int as usize]\n                                    as c_int\n                                    | ((*r).m_raw_header[3 as c_int as usize]\n                                        as c_int)\n                                        << 8 as c_int))\n                                as mz_uint\n                        {\n                            current_block = 10863493864285401582;\n                            break;\n                        } else {\n                            current_block = 10041771570435381152;\n                            continue;\n                        }\n                    }\n                }\n                2977775588433926224 => {\n                    s_1 = (bit_buf\n                        & (((1 as c_int) << 8 as c_int)\n                            - 1 as c_int) as tinfl_bit_buf_t)\n                        as mz_uint;\n                    bit_buf >>= 8 as c_int;\n                    num_bits = num_bits.wrapping_sub(8 as mz_uint32);\n                    current_block = 12800094729615117303;\n                    continue;\n                }\n                12800094729615117303 => {\n                    (*r).m_z_adler32 =\n                        (*r).m_z_adler32 << 8 as c_int | s_1 as mz_uint32;\n                    counter = counter.wrapping_add(1);\n                    current_block = 7757638761803742862;\n                }\n                8585542996221928953 => {\n                    c_12 = 0;\n                    current_block = 12381699995462811668;\n                    break;\n                }\n                4159430576127784976 => {\n                    c_11 = 0;\n                    current_block = 14402387155550584875;\n                    break;\n                }\n                18076970406079194302 => {\n                    let fresh31 = counter;\n                    counter = counter.wrapping_sub(1);\n                    if fresh31 != 0 {\n                        current_block = 7674033599746029549;\n                        break;\n                    }\n                    current_block = 12926621472508904600;\n                }\n                14412960601270604433 => {\n                    c_10 = 0;\n                    current_block = 1833465351478693723;\n                    break;\n                }\n                3846997171290157944 => {\n                    c_8 = 0;\n                    current_block = 8650459447085150701;\n                    break;\n                }\n                3983074877498205967 => {\n                    c_6 = 0;\n                    current_block = 778403239630769426;\n                    break;\n                }\n                11002855972428369642 => {\n                    c_4 = 0;\n                    current_block = 7510843268513837357;\n                    break;\n                }\n                14535175905252782758 => {\n                    c_3 = 0;\n                    current_block = 12387625063048049585;\n                    break;\n                }\n                14648249180243006330 => {\n                    c_2 = 0;\n                    current_block = 13014351284863956202;\n                    break;\n                }\n                993425571616822999 => {\n                    counter = counter.wrapping_add(1);\n                    current_block = 17485376261910781866;\n                    continue;\n                }\n                _ => {\n                    dist = (bit_buf\n                        & (((1 as c_int) << 8 as c_int)\n                            - 1 as c_int) as tinfl_bit_buf_t)\n                        as mz_uint32;\n                    bit_buf >>= 8 as c_int;\n                    num_bits = num_bits.wrapping_sub(8 as mz_uint32);\n                    current_block = 15460309861373144675;\n                    break;\n                }\n            }\n            match current_block {\n                7757638761803742862 => {\n                    if !(counter < 4 as mz_uint32) {\n                        current_block = 9997576841122142810;\n                        break;\n                    }\n                    s_1 = 0;\n                    if !(num_bits != 0) {\n                        current_block = 13250426973517230943;\n                        break;\n                    }\n                    if num_bits < 8 as c_int as mz_uint {\n                        current_block = 8585542996221928953;\n                        continue;\n                    } else {\n                        current_block = 2977775588433926224;\n                        continue;\n                    }\n                }\n                14117028633286690613 => {\n                    dist_from_out_buf_start =\n                        pOut_buf_cur.offset_from(pOut_buf_start) as c_long as size_t;\n                    if (dist == 0 as mz_uint32\n                        || dist as size_t > dist_from_out_buf_start\n                        || dist_from_out_buf_start == 0 as size_t)\n                        && decomp_flags\n                            & TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF as c_int\n                                as mz_uint32\n                            != 0\n                    {\n                        current_block = 13286354103097804402;\n                        break;\n                    }\n                    pSrc = pOut_buf_start.offset(\n                        (dist_from_out_buf_start.wrapping_sub(dist as size_t) & out_buf_size_mask)\n                            as isize,\n                    );\n                    if (if pOut_buf_cur > pSrc {\n                        pOut_buf_cur\n                    } else {\n                        pSrc\n                    })\n                    .offset(counter as isize)\n                        > pOut_buf_end\n                    {\n                        current_block = 18076970406079194302;\n                        continue;\n                    }\n                    while counter > 2 as mz_uint32 {\n                        *pOut_buf_cur.offset(0 as c_int as isize) =\n                            *pSrc.offset(0 as c_int as isize);\n                        *pOut_buf_cur.offset(1 as c_int as isize) =\n                            *pSrc.offset(1 as c_int as isize);\n                        *pOut_buf_cur.offset(2 as c_int as isize) =\n                            *pSrc.offset(2 as c_int as isize);\n                        pOut_buf_cur = pOut_buf_cur.offset(3 as c_int as isize);\n                        pSrc = pSrc.offset(3 as c_int as isize);\n                        counter = counter.wrapping_sub(3 as mz_uint32);\n                    }\n                    if counter > 0 as mz_uint32 {\n                        *pOut_buf_cur.offset(0 as c_int as isize) =\n                            *pSrc.offset(0 as c_int as isize);\n                        if counter > 1 as mz_uint32 {\n                            *pOut_buf_cur.offset(1 as c_int as isize) =\n                                *pSrc.offset(1 as c_int as isize);\n                        }\n                        pOut_buf_cur = pOut_buf_cur.offset(counter as isize);\n                    }\n                    current_block = 12926621472508904600;\n                }\n                12369472161353711912 => {\n                    counter &= 511 as mz_uint32;\n                    if counter == 256 as mz_uint32 {\n                        current_block = 1345366029464561491;\n                    } else {\n                        num_extra = s_length_extra[counter.wrapping_sub(257 as mz_uint32) as usize]\n                            as mz_uint32;\n                        counter = s_length_base[counter.wrapping_sub(257 as mz_uint32) as usize]\n                            as mz_uint32;\n                        if num_extra != 0 {\n                            extra_bits = 0;\n                            if num_bits < num_extra {\n                                current_block = 3846997171290157944;\n                                continue;\n                            } else {\n                                current_block = 17809027598452024276;\n                                continue;\n                            }\n                        } else {\n                            current_block = 18029556747650706958;\n                        }\n                    }\n                }\n                15712984148872257586 => {\n                    if counter\n                        < (*r).m_table_sizes[0 as c_int as usize]\n                            .wrapping_add((*r).m_table_sizes[1 as c_int as usize])\n                    {\n                        s_0 = 0;\n                        temp = 0;\n                        code_len = 0;\n                        c_5 = 0;\n                        if !(num_bits < 15 as mz_uint32) {\n                            current_block = 11867310137400648068;\n                            continue;\n                        }\n                        if (pIn_buf_end.offset_from(pIn_buf_cur) as c_long)\n                            < 2 as c_long\n                        {\n                            current_block = 3179191505073644361;\n                            continue;\n                        }\n                        bit_buf |= (*pIn_buf_cur.offset(0 as c_int as isize)\n                            as tinfl_bit_buf_t)\n                            << num_bits\n                            | (*pIn_buf_cur.offset(1 as c_int as isize)\n                                as tinfl_bit_buf_t)\n                                << num_bits.wrapping_add(8 as mz_uint32);\n                        pIn_buf_cur = pIn_buf_cur.offset(2 as c_int as isize);\n                        num_bits = num_bits.wrapping_add(16 as mz_uint32);\n                        current_block = 11867310137400648068;\n                        continue;\n                    } else {\n                        if (*r).m_table_sizes[0 as c_int as usize]\n                            .wrapping_add((*r).m_table_sizes[1 as c_int as usize])\n                            != counter\n                        {\n                            current_block = 12060859132547941340;\n                            break;\n                        }\n                        memcpy(\n                            &raw mut (*r).m_code_size_0 as *mut mz_uint8\n                                as *mut c_void,\n                            &raw mut (*r).m_len_codes as *mut mz_uint8\n                                as *const c_void,\n                            (*r).m_table_sizes[0 as c_int as usize] as size_t,\n                        );\n                        memcpy(\n                            &raw mut (*r).m_code_size_1 as *mut mz_uint8\n                                as *mut c_void,\n                            (&raw mut (*r).m_len_codes as *mut mz_uint8).offset(\n                                (*r).m_table_sizes[0 as c_int as usize] as isize,\n                            ) as *const c_void,\n                            (*r).m_table_sizes[1 as c_int as usize] as size_t,\n                        );\n                    }\n                    current_block = 8038949400865391589;\n                }\n                5638484086777907119 => {\n                    if counter < (*r).m_table_sizes[2 as c_int as usize] {\n                        s = 0;\n                        if num_bits < 3 as c_int as mz_uint {\n                            current_block = 11002855972428369642;\n                            continue;\n                        } else {\n                            current_block = 9239588423676249671;\n                            continue;\n                        }\n                    } else {\n                        (*r).m_table_sizes[2 as c_int as usize] = 19 as mz_uint32;\n                        current_block = 17723783950272744135;\n                        continue;\n                    }\n                }\n                _ => {}\n            }\n            match current_block {\n                8038949400865391589 => {\n                    (*r).m_type = (*r).m_type.wrapping_sub(1);\n                    current_block = 17723783950272744135;\n                }\n                18029556747650706958 => {\n                    temp_1 = 0;\n                    code_len_2 = 0;\n                    c_9 = 0;\n                    if !(num_bits < 15 as mz_uint32) {\n                        current_block = 2358125959230175008;\n                        continue;\n                    }\n                    if (pIn_buf_end.offset_from(pIn_buf_cur) as c_long)\n                        < 2 as c_long\n                    {\n                        current_block = 3011706931690025809;\n                        continue;\n                    }\n                    bit_buf |= (*pIn_buf_cur.offset(0 as c_int as isize)\n                        as tinfl_bit_buf_t)\n                        << num_bits\n                        | (*pIn_buf_cur.offset(1 as c_int as isize)\n                            as tinfl_bit_buf_t)\n                            << num_bits.wrapping_add(8 as mz_uint32);\n                    pIn_buf_cur = pIn_buf_cur.offset(2 as c_int as isize);\n                    num_bits = num_bits.wrapping_add(16 as mz_uint32);\n                    current_block = 2358125959230175008;\n                }\n                12926621472508904600 => {\n                    pSrc = ::core::ptr::null_mut::<mz_uint8>();\n                    current_block = 18019479878307254118;\n                }\n                _ => {\n                    if (*r).m_final & 1 as mz_uint32 == 0 {\n                        current_block = 313581471991351815;\n                        break;\n                    }\n                    if num_bits < num_bits & 7 as mz_uint32 {\n                        current_block = 4159430576127784976;\n                    } else {\n                        current_block = 955764296456093747;\n                    }\n                }\n            }\n        }\n    }\n    (*r).m_num_bits = num_bits;\n    (*r).m_bit_buf = bit_buf & !(!(0 as c_int as tinfl_bit_buf_t) << num_bits);\n    (*r).m_dist = dist;\n    (*r).m_counter = counter;\n    (*r).m_num_extra = num_extra;\n    (*r).m_dist_from_out_buf_start = dist_from_out_buf_start;\n    *pIn_buf_size_view = pIn_buf_cur.offset_from(pIn_buf_next) as c_long as size_t;\n    *pOut_buf_size = pOut_buf_cur.offset_from(pOut_buf_next) as c_long as size_t;\n    if decomp_flags\n        & (TINFL_FLAG_PARSE_ZLIB_HEADER as c_int\n            | TINFL_FLAG_COMPUTE_ADLER32 as c_int) as mz_uint32\n        != 0\n        && status as c_int >= 0 as c_int\n    {\n        let mut ptr: *const mz_uint8 = pOut_buf_next;\n        let mut buf_len: size_t = *pOut_buf_size;\n        let mut i_1: mz_uint32 = 0;\n        let mut s1: mz_uint32 = (*r).m_check_adler32 & 0xffff as mz_uint32;\n        let mut s2: mz_uint32 = (*r).m_check_adler32 >> 16 as c_int;\n        let mut block_len: size_t = buf_len.wrapping_rem(5552 as size_t);\n        while buf_len != 0 {\n            i_1 = 0 as mz_uint32;\n            while (i_1.wrapping_add(7 as mz_uint32) as size_t) < block_len {\n                s1 = s1.wrapping_add(*ptr.offset(0 as c_int as isize) as mz_uint32);\n                s2 = s2.wrapping_add(s1);\n                s1 = s1.wrapping_add(*ptr.offset(1 as c_int as isize) as mz_uint32);\n                s2 = s2.wrapping_add(s1);\n                s1 = s1.wrapping_add(*ptr.offset(2 as c_int as isize) as mz_uint32);\n                s2 = s2.wrapping_add(s1);\n                s1 = s1.wrapping_add(*ptr.offset(3 as c_int as isize) as mz_uint32);\n                s2 = s2.wrapping_add(s1);\n                s1 = s1.wrapping_add(*ptr.offset(4 as c_int as isize) as mz_uint32);\n                s2 = s2.wrapping_add(s1);\n                s1 = s1.wrapping_add(*ptr.offset(5 as c_int as isize) as mz_uint32);\n                s2 = s2.wrapping_add(s1);\n                s1 = s1.wrapping_add(*ptr.offset(6 as c_int as isize) as mz_uint32);\n                s2 = s2.wrapping_add(s1);\n                s1 = s1.wrapping_add(*ptr.offset(7 as c_int as isize) as mz_uint32);\n                s2 = s2.wrapping_add(s1);\n                i_1 = i_1.wrapping_add(8 as mz_uint32);\n                ptr = ptr.offset(8 as c_int as isize);\n            }\n            while (i_1 as size_t) < block_len {\n                let fresh37 = ptr;\n                ptr = ptr.offset(1);\n                s1 = s1.wrapping_add(*fresh37 as mz_uint32);\n                s2 = s2.wrapping_add(s1);\n                i_1 = i_1.wrapping_add(1);\n            }\n            s1 = (s1 as c_uint).wrapping_rem(65521 as c_uint) as mz_uint32\n                as mz_uint32;\n            s2 = (s2 as c_uint).wrapping_rem(65521 as c_uint) as mz_uint32\n                as mz_uint32;\n            buf_len = buf_len.wrapping_sub(block_len);\n            block_len = 5552 as size_t;\n        }\n        (*r).m_check_adler32 = (s2 << 16 as c_int).wrapping_add(s1);\n        if status as c_int == TINFL_STATUS_DONE as c_int\n            && decomp_flags & TINFL_FLAG_PARSE_ZLIB_HEADER as c_int as mz_uint32 != 0\n            && (*r).m_check_adler32 != (*r).m_z_adler32\n        {\n            status = TINFL_STATUS_ADLER32_MISMATCH;\n        }\n    }\n    return status;\n}",
+    "signature": "pub unsafe fn tinfl_decompress(\n    mut r: *mut tinfl_decompressor,\n    mut pIn_buf_next: *const mz_uint8,\n    mut pIn_buf_size: *mut size_t,\n    mut pOut_buf_start: *mut mz_uint8,\n    mut pOut_buf_next: *mut mz_uint8,\n    mut pOut_buf_size: *mut size_t,\n    decomp_flags: mz_uint32,\n) -> tinfl_status",
+    "profile": {
+      "self_time_ratio": 0.4058,
+      "call_count": null,
+      "retired_instructions": 4220677443,
+      "instructions_per_call": null,
+      "cpi": 0.443,
+      "tma": {
+        "scope": "process",
+        "retiring": 43.891762243857244,
+        "frontend_bound": 9.59636858616475,
+        "bad_speculation": 2.827564494416929,
+        "backend_bound": 43.68430467556109,
+        "memory_bound": 37.64646232248845,
+        "core_bound": 6.037842353072635,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0084
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 810,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 943,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1223,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1236,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1274,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1364,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1395,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1441,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1483,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1509,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1518,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1542,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1563,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1557,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1600,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1635,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1649,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1674,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1681,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1650,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1784,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1784,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1816,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1814,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1859,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2061,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1647,
+        "message": "'_ZN13miniz_cleaned3src11miniz_tinfl16tinfl_clear_tree17h13a4ef10cd434721E' inlined into '_ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E' with (cost=-14990, threshold=250) at callsite _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E:1596:25;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1649,
+        "message": "'_ZN4core6result19Result$LT$T$C$E$GT$6unwrap17he5382b1acc42271dE' inlined into '_ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E' with (cost=-40, threshold=787) at callsite _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E:1598:37;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1674,
+        "message": "'_ZN4core6result19Result$LT$T$C$E$GT$6unwrap17he5382b1acc42271dE' inlined into '_ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E' with (cost=-15040, threshold=787) at callsite _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E:1623:43;"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1649,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1649,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1703,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1703,
+        "message": "hoisting shl"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1674,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1917,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1917,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1882,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1882,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1884,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1884,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1890,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1890,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2135,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2135,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1619,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1619,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1632,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1657,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1515,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2081,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2081,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2082,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2082,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2119,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2154,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2154,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1461,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1429,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1352,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2186,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2186,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1190,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1190,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1027,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1027,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1027,
+        "message": "hoisting select"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1001,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1001,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1001,
+        "message": "hoisting select"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 975,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 975,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 975,
+        "message": "hoisting select"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 949,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 949,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 949,
+        "message": "hoisting select"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 929,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 929,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 929,
+        "message": "hoisting select"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 897,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 897,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 897,
+        "message": "hoisting select"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 828,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 828,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 828,
+        "message": "hoisting select"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 792,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 792,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 792,
+        "message": "hoisting select"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 766,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 766,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 766,
+        "message": "hoisting select"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 734,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 734,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 734,
+        "message": "hoisting select"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 702,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 702,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 702,
+        "message": "hoisting select"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 670,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 670,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 670,
+        "message": "hoisting select"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 619,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 619,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 619,
+        "message": "hoisting select"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 593,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 593,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 593,
+        "message": "hoisting select"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 567,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 567,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 567,
+        "message": "hoisting select"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 518,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 518,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 518,
+        "message": "hoisting select"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1093,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1099,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1114,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1115,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1066,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1066,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1066,
+        "message": "hoisting select"
+      },
+      {
+        "pass": "loop-idiom",
+        "status": "success",
+        "line": 1126,
+        "message": "Transformed loop-strided store in _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E function into a call to llvm.memset.p0.i64() intrinsic"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 1123,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "loop-idiom",
+        "status": "success",
+        "line": 1132,
+        "message": "Transformed loop-strided store in _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E function into a call to llvm.memset.p0.i64() intrinsic"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 1129,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "loop-idiom",
+        "status": "success",
+        "line": 1138,
+        "message": "Transformed loop-strided store in _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E function into a call to llvm.memset.p0.i64() intrinsic"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 1135,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "loop-idiom",
+        "status": "success",
+        "line": 1144,
+        "message": "Transformed loop-strided store in _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E function into a call to llvm.memset.p0.i64() intrinsic"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 1141,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 1661,
+        "message": "completely unrolled loop with 15 iterations"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 1185,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 445,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 467,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2216,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2222,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2244,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2258,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 810,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1917,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1882,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1884,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1890,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1816,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1822,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1826,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1792,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2135,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1619,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1651,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1662,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 1662,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1674,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1563,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1509,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2081,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2082,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2154,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 2154,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2098,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2101,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1336,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2186,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1322,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2171,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2036,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2038,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2040,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2047,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2050,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1662,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1665,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 0 to 2918; Delta: 2918"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Early Tail Duplication: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 2918 to 2916; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Merge disjoint stack slots: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 2916 to 2894; Delta: -22"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Remove dead machine instructions: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 2894 to 2888; Delta: -6"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 2888 to 2836; Delta: -52"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 2836 to 2766; Delta: -70"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Machine code sinking: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 2766 to 2764; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Peephole Optimizations: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 2764 to 2757; Delta: -7"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "X86 Fixup SetCC: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 2757 to 2758; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Process Implicit Definitions: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 2758 to 2708; Delta: -50"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 2708 to 4802; Delta: 2094"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Two-Address instruction pass: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 4802 to 5251; Delta: 449"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Register Coalescer: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 5251 to 2648; Delta: -2603"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2221,
+        "message": "1 reloads 2.206200e-01 total reloads cost 10 virtual registers copies 8.272554e-01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1057,
+        "message": "1 folded reloads 5.789485e-02 total folded reloads cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1600,
+        "message": "1 virtual registers copies 8.277113e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1274,
+        "message": "1 virtual registers copies 8.277113e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2034,
+        "message": "1 virtual registers copies 3.474415e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1483,
+        "message": "1 virtual registers copies 8.277113e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1686,
+        "message": "4 virtual registers copies 5.323616e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1686,
+        "message": "2 virtual registers copies 3.327260e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1739,
+        "message": "1 virtual registers copies 2.495445e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1674,
+        "message": "12 virtual registers copies 9.082380e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1176,
+        "message": "31 spills 1.156842e+02 total spills cost 2 folded spills 4.555705e+00 total folded spills cost 48 reloads 2.154545e+02 total reloads cost 13 folded reloads 8.092089e+01 total folded reloads cost 101 virtual registers copies 9.964897e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 508,
+        "message": "56 spills 1.243368e+02 total spills cost 15 folded spills 1.207939e+01 total folded spills cost 85 reloads 2.274501e+02 total reloads cost 21 folded reloads 8.502471e+01 total folded reloads cost 162 virtual registers copies 9.992063e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 51,
+        "message": "86 spills 1.378799e+02 total spills cost 18 folded spills 1.359365e+01 total folded spills cost 144 reloads 2.306492e+02 total reloads cost 26 folded reloads 8.615437e+01 total folded reloads cost 239 virtual registers copies 9.996592e+03 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Greedy Register Allocator: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 2648 to 3162; Delta: 514"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Virtual Register Rewriter: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 3162 to 2850; Delta: -312"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Machine Copy Propagation Pass: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 2850 to 2849; Delta: -1"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 51,
+        "message": "536 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 2849 to 2821; Delta: -28"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Machine Late Instructions Cleanup Pass: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 2821 to 2820; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Control Flow Optimizer: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 2820 to 2445; Delta: -375"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Tail Duplication: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 2445 to 2449; Delta: 4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 2449 to 2497; Delta: 48"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "X86 LEA Fixup: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 2497 to 2500; Delta: 3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 51,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h74f6f3091e18a809E: MI Instruction count changed from 2500 to 2501; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 293,
+        "message": "BasicBlock: bb9"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2264,
+        "message": "BasicBlock: bb686"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 431,
+        "message": "BasicBlock: bb49"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 453,
+        "message": "BasicBlock: bb57"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 467,
+        "message": "BasicBlock: bb62"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 482,
+        "message": "BasicBlock: bb68"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 454,
+        "message": "BasicBlock: bb58"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 432,
+        "message": "BasicBlock: bb50"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 502,
+        "message": "BasicBlock: bb77"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 526,
+        "message": "BasicBlock: bb85"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 508,
+        "message": "BasicBlock: bb78"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 561,
+        "message": "BasicBlock: bb96"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1000,
+        "message": "BasicBlock: bb236"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1015,
+        "message": "BasicBlock: bb241"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 791,
+        "message": "BasicBlock: bb168"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 806,
+        "message": "BasicBlock: bb173"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 701,
+        "message": "BasicBlock: bb139"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 716,
+        "message": "BasicBlock: bb144"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 890,
+        "message": "BasicBlock: bb200"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 923,
+        "message": "BasicBlock: bb210"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 822,
+        "message": "BasicBlock: bb178"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 517,
+        "message": "BasicBlock: bb84"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 592,
+        "message": "BasicBlock: bb106"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 607,
+        "message": "BasicBlock: bb111"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 896,
+        "message": "BasicBlock: bb201"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 911,
+        "message": "BasicBlock: bb206"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 566,
+        "message": "BasicBlock: bb97"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 581,
+        "message": "BasicBlock: bb102"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 728,
+        "message": "BasicBlock: bb148"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 669,
+        "message": "BasicBlock: bb129"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 684,
+        "message": "BasicBlock: bb134"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1093,
+        "message": "BasicBlock: bb273"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1107,
+        "message": "BasicBlock: bb278"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1114,
+        "message": "BasicBlock: bb294.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 733,
+        "message": "BasicBlock: bb149"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 748,
+        "message": "BasicBlock: bb154"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1026,
+        "message": "BasicBlock: bb245"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1041,
+        "message": "BasicBlock: bb250"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 645,
+        "message": "BasicBlock: bb124"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 696,
+        "message": "BasicBlock: bb138"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 948,
+        "message": "BasicBlock: bb218"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 963,
+        "message": "BasicBlock: bb223"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 765,
+        "message": "BasicBlock: bb159"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 780,
+        "message": "BasicBlock: bb164"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1047,
+        "message": "BasicBlock: bb251"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 974,
+        "message": "BasicBlock: bb227"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 989,
+        "message": "BasicBlock: bb297.thread1227"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1163,
+        "message": "BasicBlock: bb298"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 651,
+        "message": "BasicBlock: bb125"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 760,
+        "message": "BasicBlock: bb158"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 827,
+        "message": "BasicBlock: bb179"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 664,
+        "message": "BasicBlock: bb128"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 928,
+        "message": "BasicBlock: bb211"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 943,
+        "message": "BasicBlock: bb216"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 943,
+        "message": "BasicBlock: bb217"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 877,
+        "message": "BasicBlock: bb196"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 618,
+        "message": "BasicBlock: bb115"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 633,
+        "message": "BasicBlock: bb120"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1009,
+        "message": "BasicBlock: bb237"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 800,
+        "message": "BasicBlock: bb169"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 710,
+        "message": "BasicBlock: bb140"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 884,
+        "message": "BasicBlock: bb199"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 545,
+        "message": "BasicBlock: bb94"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 601,
+        "message": "BasicBlock: bb107"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 905,
+        "message": "BasicBlock: bb202"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 575,
+        "message": "BasicBlock: bb98"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 678,
+        "message": "BasicBlock: bb130"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 742,
+        "message": "BasicBlock: bb150"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1035,
+        "message": "BasicBlock: bb246"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 957,
+        "message": "BasicBlock: bb219"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 774,
+        "message": "BasicBlock: bb160"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 983,
+        "message": "BasicBlock: bb228"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 836,
+        "message": "BasicBlock: bb180"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 658,
+        "message": "BasicBlock: bb127"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 937,
+        "message": "BasicBlock: bb212"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 627,
+        "message": "BasicBlock: bb116"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1065,
+        "message": "BasicBlock: bb79"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1080,
+        "message": "BasicBlock: bb268"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1176,
+        "message": "BasicBlock: bb300"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1917,
+        "message": "BasicBlock: bb576"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1183,
+        "message": "BasicBlock: bb303"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1185,
+        "message": "BasicBlock: bb303"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1185,
+        "message": "BasicBlock: bb306.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1189,
+        "message": "BasicBlock: bb309"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1993,
+        "message": "BasicBlock: bb577"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1997,
+        "message": "BasicBlock: bb579"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1619,
+        "message": "BasicBlock: bb464"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1635,
+        "message": "BasicBlock: bb465"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1578,
+        "message": "BasicBlock: bb445"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1584,
+        "message": "BasicBlock: bb446"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1859,
+        "message": "BasicBlock: bb550"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1859,
+        "message": "BasicBlock: bb551"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1335,
+        "message": "BasicBlock: bb357"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1336,
+        "message": "BasicBlock: bb358"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1352,
+        "message": "BasicBlock: bb361"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1506,
+        "message": "BasicBlock: bb417"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1504,
+        "message": "BasicBlock: bb418"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1429,
+        "message": "BasicBlock: bb387"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1790,
+        "message": "BasicBlock: bb524"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2145,
+        "message": "BasicBlock: bb630"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1816,
+        "message": "BasicBlock: bb531"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1814,
+        "message": "BasicBlock: bb532"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1816,
+        "message": "BasicBlock: bb533"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1530,
+        "message": "BasicBlock: bb425"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1202,
+        "message": "BasicBlock: bb312"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1869,
+        "message": "BasicBlock: bb552"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1882,
+        "message": "BasicBlock: bb558"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1906,
+        "message": "BasicBlock: bb561"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1252,
+        "message": "BasicBlock: bb329"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1258,
+        "message": "BasicBlock: bb330"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1784,
+        "message": "BasicBlock: bb521"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1784,
+        "message": "BasicBlock: bb522"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2137,
+        "message": "BasicBlock: bb627"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1211,
+        "message": "BasicBlock: bb314"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1295,
+        "message": "BasicBlock: bb631.thread1256"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2171,
+        "message": "BasicBlock: bb638"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1461,
+        "message": "BasicBlock: bb398"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1467,
+        "message": "BasicBlock: bb399"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1322,
+        "message": "BasicBlock: bb356"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1592,
+        "message": "BasicBlock: bb452"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1600,
+        "message": "BasicBlock: bb455"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1600,
+        "message": "BasicBlock: bb456"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1603,
+        "message": "BasicBlock: bb456"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1441,
+        "message": "BasicBlock: bb390"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1451,
+        "message": "BasicBlock: bb394"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2057,
+        "message": "BasicBlock: bb606"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2186,
+        "message": "BasicBlock: bb632"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1542,
+        "message": "BasicBlock: bb428"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1551,
+        "message": "BasicBlock: bb432"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1557,
+        "message": "BasicBlock: bb433"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1266,
+        "message": "BasicBlock: bb336"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1274,
+        "message": "BasicBlock: bb339"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1274,
+        "message": "BasicBlock: bb340"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1278,
+        "message": "BasicBlock: bb340"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1223,
+        "message": "BasicBlock: bb317"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1233,
+        "message": "BasicBlock: bb321"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2009,
+        "message": "BasicBlock: bb585"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2009,
+        "message": "BasicBlock: bb585"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2034,
+        "message": "BasicBlock: bb597.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1475,
+        "message": "BasicBlock: bb405"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1483,
+        "message": "BasicBlock: bb408"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1483,
+        "message": "BasicBlock: bb409"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1487,
+        "message": "BasicBlock: bb409"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2034,
+        "message": "BasicBlock: bb598.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2036,
+        "message": "BasicBlock: bb598.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2036,
+        "message": "BasicBlock: bb598"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2047,
+        "message": "BasicBlock: bb600"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2050,
+        "message": "BasicBlock: bb602"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2052,
+        "message": "BasicBlock: bb604"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1651,
+        "message": "BasicBlock: bb474"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1650,
+        "message": "BasicBlock: bb476"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1662,
+        "message": "BasicBlock: bb477.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1658,
+        "message": "BasicBlock: bb477"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1761,
+        "message": "BasicBlock: bb513"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1674,
+        "message": "BasicBlock: bb490"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1679,
+        "message": "BasicBlock: bb492"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1681,
+        "message": "BasicBlock: bb493"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1681,
+        "message": "BasicBlock: bb494"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1686,
+        "message": "BasicBlock: bb494.new"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1687,
+        "message": "BasicBlock: bb498"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1708,
+        "message": "BasicBlock: bb501"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1726,
+        "message": "BasicBlock: bb507"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1692,
+        "message": "BasicBlock: bb499"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1698,
+        "message": "BasicBlock: bb500"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1701,
+        "message": "BasicBlock: bb503"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1716,
+        "message": "BasicBlock: bb505"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1740,
+        "message": "BasicBlock: bb509"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1743,
+        "message": "BasicBlock: bb510"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2081,
+        "message": "BasicBlock: bb615"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2098,
+        "message": "BasicBlock: bb620"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2109,
+        "message": "BasicBlock: bb621"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1364,
+        "message": "BasicBlock: bb364"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1374,
+        "message": "BasicBlock: bb368"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1381,
+        "message": "BasicBlock: bb370"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1382,
+        "message": "BasicBlock: bb373"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2061,
+        "message": "BasicBlock: bb609"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1395,
+        "message": "BasicBlock: bb376"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1404,
+        "message": "BasicBlock: bb380"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1417,
+        "message": "BasicBlock: bb384"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1792,
+        "message": "BasicBlock: bb525"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1870,
+        "message": "BasicBlock: bb553"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1874,
+        "message": "BasicBlock: bb554"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1850,
+        "message": "BasicBlock: bb544"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1559,
+        "message": "BasicBlock: bb435"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1559,
+        "message": "BasicBlock: bb435"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1563,
+        "message": "BasicBlock: bb440"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1563,
+        "message": "BasicBlock: bb441"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1074,
+        "message": "BasicBlock: bb264"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1976,
+        "message": "BasicBlock: bb301"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1674,
+        "message": "BasicBlock: panic238"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1650,
+        "message": "BasicBlock: panic277"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1441,
+        "message": "BasicBlock: panic197"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1542,
+        "message": "BasicBlock: panic220"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1223,
+        "message": "BasicBlock: panic146"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1600,
+        "message": "BasicBlock: panic231"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1274,
+        "message": "BasicBlock: panic155"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1483,
+        "message": "BasicBlock: panic204"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1681,
+        "message": "BasicBlock: panic242"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1052,
+        "message": "BasicBlock: switch.early.test"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1057,
+        "message": "BasicBlock: bb256.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1057,
+        "message": "BasicBlock: vector.ph"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1057,
+        "message": "BasicBlock: bb256"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1364,
+        "message": "BasicBlock: panic173"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2199,
+        "message": "BasicBlock: bb263"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2216,
+        "message": "BasicBlock: bb666"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2221,
+        "message": "BasicBlock: bb669.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2221,
+        "message": "BasicBlock: bb670.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2222,
+        "message": "BasicBlock: bb670"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2221,
+        "message": "BasicBlock: bb672.preheader.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2241,
+        "message": "BasicBlock: bb673.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2241,
+        "message": "BasicBlock: bb673.prol.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2244,
+        "message": "BasicBlock: bb673.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2241,
+        "message": "BasicBlock: bb673.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2241,
+        "message": "BasicBlock: bb673.preheader1700"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2244,
+        "message": "BasicBlock: bb673"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2255,
+        "message": "BasicBlock: bb675"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2258,
+        "message": "BasicBlock: bb677"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1395,
+        "message": "BasicBlock: panic180"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1859,
+        "message": "BasicBlock: panic300"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1509,
+        "message": "BasicBlock: panic210"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1816,
+        "message": "BasicBlock: panic288"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1814,
+        "message": "BasicBlock: panic289"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1784,
+        "message": "BasicBlock: panic284"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1784,
+        "message": "BasicBlock: panic285"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1236,
+        "message": "BasicBlock: panic149"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2061,
+        "message": "BasicBlock: panic325"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1635,
+        "message": "BasicBlock: panic234"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1518,
+        "message": "BasicBlock: panic213"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1557,
+        "message": "BasicBlock: panic226"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1563,
+        "message": "BasicBlock: panic224"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 810,
+        "message": "BasicBlock: panic"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 943,
+        "message": "BasicBlock: panic53"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 51,
+        "message": "2468 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

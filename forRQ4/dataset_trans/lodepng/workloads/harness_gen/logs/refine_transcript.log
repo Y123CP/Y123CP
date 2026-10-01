@@ -1,0 +1,4369 @@
+================================================================================
+TIMESTAMP : 2026-08-11 10:57:11
+MODEL     : gpt-5.4
+PHASE     : refine-0
+CLUSTER   : -
+FUNCTION  : -
+TARGET    : -
+RULE      : -
+FILE      : -
+ERRORS    : -
+ATTEMPTS  : 1
+OK        : true
+OUT_BYTES : 85323
+
+--------------------------------------------------------------------------------
+----- SYSTEM PROMPT -----
+You are an expert Rust systems engineer improving ONE function — `gen_perf` — of
+an existing c2rust workload harness. You output ONE complete `src/lib.rs` file in
+a single ```rust block and nothing else.
+
+----- USER PROMPT -----
+The harness below compiles and is a valid oracle. Its `gen_perf` produces ONE
+large input per op to make the library's hot loop dominate under perf. But a
+fuzzer explored these ops and its corpus REACHES 2 library functions
+that `gen_perf`'s large inputs never touch — i.e. `gen_perf` misses whole
+input SHAPES the fuzzer found:
+
+MISSED functions (gen_perf must learn to exercise these at scale):
+  lodepng_chunk_append
+  lodepng_chunk_create
+
+The fuzzer inputs are TINY (bytes). Your job is FORMAT-AWARE SCALE-UP: figure
+out, from these samples + the library API, what feature each missed function
+needs (e.g. multiple/typed chunks, text/exif/icc metadata, palette, a specific
+sub-format), then make `gen_perf` emit a LARGE input carrying that feature so
+the function runs many times, NOT once. Never just pad/concatenate bytes —
+that produces malformed input that hits error paths. Use the library's own
+encoders (as gen_seeds does) to build big VALID inputs.
+
+Representative fuzzer inputs per op (hex):
+
+operation `decode32_png` — representative fuzzer inputs:
+      16B: 89504e470d0a1a0a0000000d49484452
+     264B: 89504e470d0a1a0a0000000d4948445200000021006d002301fe00000145506e5f000000e44944415478010d8ebe2b07711cc65f9faf63a3cb8f32d0d749bae2188981a464fb582c77ca8fae94929301d3fb948dcec84696e31fd06d981489a2ac2c0a31a0e447790fcfd3f30cafa70770e9553f63971695d53c05aba88230a3858235e659c261802a52d21d08cee1670c6c0ccd9ba22474956158a1a713d818c55c300861817bcb1678e3e40995969a3f5efa297f51ea26aa27fbc53964ba9a …(+72B)
+     285B: 89504e470d0a1a0a0000000d494844520000002100000023010000000145506e5f000000e44944415478010d8ebf2b07711cc65f9faf63a3cb8f32d0d749bae2188981a464fb582c77ca8fae94929301d3fb948dcec84696e31fd06d981489a2ac2c0a31a0e447790fcfd3f30cafa70770e9553f63971695d53c05abc28230a3858235e659c261802a52d21d08cee1670c6c0ccd9ba22474956158a1a713d818c55c300861817bcb1678e3e40995969a3f5efa297f51ea26aa27fbc53964ba9a …(+93B)
+    1323B: 89504e470d0a1a0a0000000d4948445200000013000000111006000001180f7b12000004f249444154780185954b6c134718c767c3043621c92e09091090b10204e318e317c618db318e31c65b40b286672514870b20c1b5a0089a1b48ad109c8a2a21a31e8aa8466a85bc52a5f6009c38b41c7ae3c4811bad4451f680d44aed7cf31f5e355572f9f63fdf63fff3db19c762eca4ebffc358391c66ccf7ca0fc27798fa7bd0932c0cd043f266e14b8a375f41bfe2970a3f53e5a5a76115197b7a …(+1131B)
+
+operation `inspect_png` — representative fuzzer inputs:
+       1B: 89
+     285B: 89504e470d0a1a0a0000000d494844520000002100000023010000000145506e5f000000e44944415478010d8ebf2b07711cc65f9faf63a3cb8f32d0d749bae2188981a464fb582c77ca8fae94929301d3fb9456cec84696e31fd06d981489a2ac2c0a31a0e447790fcfd3f30cafa70770e9553f63971695d53c05abc28230a3858235e659c261802a52d21d08cee1670c6c0ccd9ba22474956158a1a713d844c55c300861817bcb1678e3e40995969a3f5efa297f51ea26aa27fbc53964ba9a …(+93B)
+     347B: 89504e470d0a1a0a0000000d494844520000002100000023010000000145506e5f000000e44944415478010d8ebf2b07711cc65f9faf63a3cb8f32d0d749bae2188981a464fb582c77ca8fae9492930110fb948dcec84696e31fd06d981489a2ac2c0a31a0e447790fcfd3f30cafa70770e9553f63971695d53c05abc28230a3858235e659c261802a52d21d08cee1670c6c0ccd9ba22474956158a1a713d818c55c300861817bcb1678e3e40995969a3f5efa297f51ea26aa27fbc53964ba9a …(+155B)
+    1028B: 89504e470d0a1a0a0000000d4948445200000013000000111006000001180f7b12000003b2494441547801b55351685b65143ebf6661e2dfb232285716ea7d904146745d4028a5503aef1eb420cd7560740d28d86119ccb2b2e985be0c72d9148b655352bb88a2290bd9ca421e046b189696d9279d74cc0dee834ec5a654ca424470483dfff9ffdb9b9bdd8cc0d6a7c377bff39def9cf39fcba06350b76113bac7a6008a43dddd63d7293e9e7bad73d70b7d46eeca17df012cf45f69833700b2 …(+836B)
+
+operation `zlib_decompress` — representative fuzzer inputs:
+       1B: 78
+      37B: 7801e0d44d6e5cd91144fdb956510bd0ad66e6e11d7831945456cba2489a22ed76afdea4dd
+     747B: 7801add44d6e5cd91144e1b956510bd0e066e6fd1d7831945456cba2489a22ed76afdea4ddc0d1c880a382403d9078ac1c043efcbbfba7dfee3e7ebabedc7dfc7af7e3c7ddc72fd7fbb7dfaf4f3fbfdd3f3e7cfce3fdc5fbe7e5b7b7e787e7c77ffea5fdf97379fbe2cfeb7ffefcf0f6f6f2f7d76f9fbf5f3ebdfdcbc3e5af8fbf5ffef6fae3e9e7e5f11fd7e7cbfbebfbbb3ffe75f9f2f8f5d222ab8fb9f6f9f55c702e3e3c5fbf5cde3f9fee5fafff7d7c7dbe5e1ffe7cfecfb7bfde4c6ee6 …(+555B)
+    2383B: 7801b5953f8c6c751dc5d542cd8d6ef2b4500bdd97a7859a8ceeccbcbf1aa37be75e27e34ceea8c9e84bd44208c3db04087950f036fc298082b7095000056c010550c0165000056c0124f328800248f651000590ec6313a000126013ce39ef56a7deb3d524bfe273f7fb3de7f32debe1a8e99493e9605c9cfdd38afe0e9fbdea7afe3c7cf3e16f1d3ad2af66f3fb1e7d66b1b3fbe5af4ffded3fd7dc72f7f3afbef3311efefeffb3b7e3e1fdcfbefb133cdc74d7834fe0e1073fffdd9ff1f0f0 …(+2191B)
+
+operation `encode_png` — representative fuzzer inputs:
+       1B: 28
+      95B: 280000001e100000001120000318200b371f2016092620210c2d202c0f342006123b20421542204d6a49dc28e700001e00280000001e000000001120000318200b371f2016092620210c2d202c0f342006123b20421542204d6a49dc28e700
+    4808B: 280000001e000000001120000318200b061f2016092620210c2d202c0f342037123b20421542204d1849dc581b50dc631e57dc6e215edc792465dc84276cdc8f2a73dc9a2d7adca5308120b0338820bb368f20c6399620d13c9d20dc3fa420e742ab20f245b220fd48b9dc084bc0dc134ec7dc1e51cedc2954d5dc3457dcdc3f5ae3dc4a5deadc5560f1206063f8206b66ff2076690620816c0d208c6f142097721b20a2752220ad0511200b081820000b1f20210e262016112d20371434202c …(+4616B)
+    9356B: 3900000029000000000010ff000210ff010410ff020610ff040810ff060a10ff090c10ff0c0e10ff101010ff141210ff191410ff1e1610ff241810ff2a1a10ff311c10ff381e10ff402010b4482210b4512410b45a2610b4642810606e2a10b4792c10b4842e10b4903010b49c321060a93410b4b63610b4c43810b4d23a10b4e13c1060f03e10b4004010b4104210b4214410b432461060444810b4564a10b4694c10b47c4e10b490501060a45210b4b95410b4ce5610b4e45810b4fa5a1060 …(+9164B)
+
+operation `chunk_ops` (its corpus reaches gap fns: lodepng_chunk_append, lodepng_chunk_create) — representative fuzzer inputs:
+       1B: 34
+      19B: 89504e470d0a1b0a0000000d49484452000000
+      55B: 89504e470d0a1a0a0000000d494844520000001300000011100600020189504e470d0a1a0a0000000d4948445200000013000000111006
+    1093B: 89504e470d0a1a0a0000000d49484452000000138b0000111006000001180f7b12000003b2494441547801b55351685b65143ebf6661e2dfb232285716ea7d904146745d4028a5503aef1eb420cd7560740d28d86119ccb2b2e985be0c72d91400655352bb88a2290bd9ca421e046b189696d9279d74aa0dee834ec5a654ca424470483dfff9ffdb9b9bdd8cc0d6a7c377bff39def9cf39fcba06350b76113bac7a6008a43dddd63d7293e9e7bad73d70b7d46eeca17df012cf45f69833700b2 …(+901B)
+
+operation `color_convert` — representative fuzzer inputs:
+       1B: 38
+      68B: 280000001e000000001120000318200b061f2016092620210c2d202c0f342037123b20421542204d1849dc581b50dc631e57dc84215edc792465dc6e276cdc8f2a73dc9a
+    4808B: 280000001e000000001120000318200b061f2016092620210c2d202c0f342037123b20421542204d1849dc581b50dc631e57dc6e215edc792465dc84276cdc8f2a73dc9a2d7adca5308120b0338820bb368f20c6399620d13c9d20dc3fa420e742ab20f245b220fd48b9dc084bc0dc134ec7dc1e51cedc2954d5dc3457dcdc3f5ae3dc4a5deadc5560f1206063f8206b66ff2076690620816c0d208c6f142097721b20a2752220ad0511200b081820000b1f20210e262016112d20371434202c …(+4616B)
+    9357B: 3900000029000000000010ff000210ff010410ff020610ff040810ff060a10ff090c10ff0c0e10ff101010ff141210ff191410ff1e1610ff241810ff2a1a10ff311c10ff381e10ff402010b4482210b4512410b45a2610b4642810606e2a10b4792c10b4842e10b4903010b49c321060a93410b4b63610b4c43810b4d23a10b4e13c1060f03e10b4004010b4104210b4214410b432461060444810b4564a10b4694c10b47c4e10b490501060a45210b4b95410b4ce5610b4e45810b4fa5a1060 …(+9165B)
+
+operation `decode24_png` — representative fuzzer inputs:
+      13B: 89504e470d0a1a0a0000000d49
+     134B: 89504e470d0a1a0a0000000d4948445200000040100000302806000000a14b7c1f000001fd494441547801ed954f6ef32000c5f93e32eac2ab2852a4a851d4de855d8f9053e45c5d7619365dfa143d05f8e2a4aee13698bff690b218117bfc068bfbfdde3fb27d21f48934e6e28dbdcf9a92f5ff81904696f8abeba6fb4109d9cbfaa2f7df25
+     213B: 89504e470d0a1a0a0000000d494844520000e240000000300806000000a14b7c1f000001fd494441547801ed954f6ef32010c5f93e32eac2ab2852a4a851d4de855d8f9053e45c5d7619365dfa143d3afb00a4ae113698bff690b218117bfc068bf8fdde3fb27d21f48934e6e28d3dcf9a92f5ff81904696f8abeba6fb4109d9cbfaa2f7df255d8bd889504e470d0a1a0a0000000d4948445200000040000000300806000000a14b7c1f000001fd494441547801ed9589504e470d0a1a0a0000 …(+21B)
+     622B: 89504e470d0a1a0a0000000d4948445200000040000000304106000000a14b7c1f000001fd494441547801ed954f6ef32010c5f93e32eac2ab2852a4a851d4de855d8f9053e45c5d7619365dfa143dedfbe2a4ae113698bff690b218117bfc068bf8fdde3fb27d21f48934e6e28dbdcf9a92f5ff81904696f8abeba6fb4109d9cbfaa2f7df255d8bd879fd01f4834a5a458a39ea17d09fce87f25b3d314cfd36d5fcca808c181005f9921990c4f3130ce0ba47b4626773af2b6ee939e9af0efb …(+430B)
+
+operation `file_codec` — representative fuzzer inputs:
+    4808B: 280000001e000000001120000318200b061f2016092620210c2d202c0f342037123b20421542204d1849dc581b50dc631e57dc6e215edc792465dc84276cdc8f2a73dc9a2d7adca5308120b0338820bb368f20c6399620d13c9d20dc3fa420e742ab20f245b220fd48b9dc084bc0dc134ec7dc1e51cedc2954d5dc3457dcdc3f5ae3dc4a5deadc5560f1206063f8206b66ff2076690620816c0d208c6f142097721b20a2752220ad0511200b081820000b1f20210e262016112d20371434202c …(+4616B)
+    9356B: 3900000029000000000010ff000210ff010410ff020610ff040810ff060a10ff090c10ff0c0e10ff101010ff141210ff191410ff1e1610ff241810ff2a1a10ff311c10ff381e10ff402010b4482210b4512410b45a2610b4642810606e2a10b4792c10b4842e10b4903010b49c321060a93410b4b63610b4c43810b4d23a10b4e13c1060f03e10b4004010b4104210b4214410b432461060444810b4564a10b4694c10b47c4e10b490501060a45210b4b95410b4ce5610b4e45810b4fa5a1060 …(+9164B)
+    9356B: 3900000029000000000010ff000210ff010410ff020610ff040810ff060a10ff090c10ff0c0e10ff101010ff141210ff191410ff1e1610ff241810ff2a1a10ff311c10ff381e10ff402010b4482210b4512410b45a2610b4642810606e2a10b4792c10b4842e10b4903010b49c321060a93410b4b63610b4c43810b4d23a10b4e13c1060f03e10b4004010b4104210b4214410b432461060444810b4564a10b4694c10b47c4e10b490501060a45210b4b95410b4ce5610b4e45810b4fa5a1060 …(+9164B)
+
+operation `raw_deflate_inflate` — representative fuzzer inputs:
+     305B: 424547494e2d424c4f434b0a723d303030303030207265703d303030207c200011223344556694a5b6c7d8e9fa28394a5b6c7d8ebccddeef0011225061728394a5b6e4f5061728394a78899aabbccdde0c1d2e3f506172a0b1c2d3e4f5063445566778899ac8d9eafb0c1d2e5c6d7e8fa0b1c2f00112233445568495a6b7c80a723d303030303030207265703d303031207c207d8ebccddeef0011225061728394a5b6e4f5061728394a7c899aabbccdde0c1d2e3f506172a0b1c2d3e4f50634 …(+113B)
+   12765B: 424547494e2d424c4f434b0a723d303030303030207265703d303030207c200011223344556694a5b6c7d8e9fa28394a5b6c7d8ebccddeef0011225061728394a5b6e4f5061728394a78899aabbccdde0c1d2e3f506172a0b1c2d3e4f5063445566778899ac8d9eafb0c1d2e5c6d7e8fa0b1c2f00112233445568495a6b7c80a723d303030303030207265703d303031207c207d8ebccddeef0011225061728394a5b6e4f5061728394a78899aabbccdde0c1d2e3f506172a0b1c2d3e4f50634 …(+12573B)
+   28724B: 424547494e2d424c4f434b0a723d303030303030207265703d303030207c200011223344556694a5b6c7d8e9fa28394a5b6c7d8ebccddeef0011225061728394a5b6e4f5061728394a78899aabbccdde0c1d2e3f506172a0b1c2d3e4f5063445566778899ac8d9eafb0c1d2e5c6d7e8fa0b1c2f00112233445568495a6b7c80a723d303030303030207265703d303031207c207d8ebccddeef0011225061728394a5b6e4f5061728394a78899aabbccdde0c1d2e3f506172a0b1c2d3e4f50634 …(+28532B)
+   28865B: 424547494e2d424c4f434b0a723d303030303030207265703d303030207c200011223344556694a5b6c7d8e9fa28394a5b6c7d8ebccddeef0011225061728394a5b6e4f5061728394a78899aabbccdde0c1d2e3f506172a0b1c2d3e4f5063445566778899ac8d9eafb0c1d2e5c6d7e8fa0b1c2f00112233445568495a6b7c80a723d303030303030207265703d303031207c207d8ebccddeef0011225061728394a5b6e4f5061728394a78899aabbccdde0c1d2e3f506172a0b1c2d3e4f50634 …(+28673B)
+
+operation `stateful_palette_encode` — representative fuzzer inputs:
+       2B: 616c
+     454B: 616c7068612c626574612c67616d6d612c64656c74612c657073696c6f6e2c7a6574612c6574612c74686574610a726f773d30303030303030302070686173653d303030300a74686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f6720303132333435363738390a726f773d30303030303030312070686173653d303030310a7265642072656420626c756520626c756520677265656e20677265656e207265642072656420626c756520 …(+262B)
+     989B: 616c7068612c626574612c67616d6d612c64656c74612c657073696c6f6e2c7a6574612c6574612c74686574610a726f773d30303030303030302070686173653d303030300a74686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f6720303132333435363738390a726f773d30303030303030312070686173653d303030310a7265642072656420626c756520626c756520677265656e20677265656e207265642072656420626c756520 …(+797B)
+    1559B: 424547494e2d424c4f434b0a723d303030303030207265703d303030207c200011223344556694a5b6c7d8e9fa28394a5b6c7d8ebccddeef0011225061728394a5b6e4f5061728394a78899aabbccdde0c1d2e3f506172a0b1c2d3e4f5063445566778899ac8d9eafb0c1d2e5c6d7e8fa0b1c2f00112233445568495a6b7c80a723d303030303030207265703d303031207c207d8ebccddeef0011225061728394a5b6e4f5061728394a78899aabbccdde0c1d2e3f506172a0b1c2d3e4f50634 …(+1367B)
+
+operation `memory_codec` — representative fuzzer inputs:
+       1B: 39
+      32B: 280000001e1f0000001120890318200b06002416092620210c2d202c0f342037
+      69B: 280000041e000000001120000318200b061f2416092620210c2d202c0f342037123b20421542204d1c49dc581b50280000041e000000001120000318200b061f2416092620
+    9410B: 3900000028000000000010ff000210ff010410ff020610ff040810ff060a10ff090c10ff0c0e10ff101010ff141210ff191410ff1e1610ff241810ff2a1a10ff311c10ff381e10ff402010b4482210b4512410b45a2610b4642810606e2a10b4792c10b4842e10b4903010b49c321060a93410b4b63610b4c43810b4d23a10b4e13c1060f03e10b4004010b4104210b4214410b432461060444810b4564a10b4694c10b47c4e10b490501060a45210b4b95410b4ce5610b4e45810b4fa5a1060 …(+9218B)
+
+CRATE API (for the module paths / encoders you may call):
+[src::lodepng] pub unsafe extern "C" fn lodepng_load_file( mut out: *mut *mut ::core::ffi::c_uchar, mut outsize: *mut size_t, mut filename: *const ::core::ffi::c_char, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_save_file( mut buffer: *const ::core::ffi::c_uchar, mut buffersize: size_t, mut filename: *const ::core::ffi::c_char, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_huffman_code_lengths( mut lengths: *mut ::core::ffi::c_uint, mut frequencies: *const ::core::ffi::c_uint, mut numcodes: size_t, mut maxbitlen: ::core::ffi::c_uint, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_inflate( mut out: *mut *mut ::core::ffi::c_uchar, mut outsize: *mut size_t, mut in_0: *const ::core::ffi::c_uchar, mut insize: size_t, mut settings: *const LodePNGDecompressSettings, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_deflate( mut out: *mut *mut ::core::ffi::c_uchar, mut outsize: *mut size_t, mut in_0: *const ::core::ffi::c_uchar, mut insize: size_t, mut settings: *const LodePNGCompressSettings, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_zlib_decompress( mut out: *mut *mut ::core::ffi::c_uchar, mut outsize: *mut size_t, mut in_0: *const ::core::ffi::c_uchar, mut insize: size_t, mut settings: *const LodePNGDecompressSettings, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_zlib_compress( mut out: *mut *mut ::core::ffi::c_uchar, mut outsize: *mut size_t, mut in_0: *const ::core::ffi::c_uchar, mut insize: size_t, mut settings: *const LodePNGCompressSettings, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_compress_settings_init( mut settings: *mut LodePNGCompressSettings, )
+[src::lodepng] pub unsafe extern "C" fn lodepng_decompress_settings_init( mut settings: *mut LodePNGDecompressSettings, )
+[src::lodepng] pub unsafe extern "C" fn lodepng_crc32( mut data: *const ::core::ffi::c_uchar, mut length: size_t, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_chunk_length( mut chunk: *const ::core::ffi::c_uchar, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_chunk_type( mut type_0: *mut ::core::ffi::c_char, mut chunk: *const ::core::ffi::c_uchar, )
+[src::lodepng] pub unsafe extern "C" fn lodepng_chunk_type_equals( mut chunk: *const ::core::ffi::c_uchar, mut type_0: *const ::core::ffi::c_char, ) -> ::core::ffi::c_uchar
+[src::lodepng] pub unsafe extern "C" fn lodepng_chunk_ancillary( mut chunk: *const ::core::ffi::c_uchar, ) -> ::core::ffi::c_uchar
+[src::lodepng] pub unsafe extern "C" fn lodepng_chunk_private( mut chunk: *const ::core::ffi::c_uchar, ) -> ::core::ffi::c_uchar
+[src::lodepng] pub unsafe extern "C" fn lodepng_chunk_safetocopy( mut chunk: *const ::core::ffi::c_uchar, ) -> ::core::ffi::c_uchar
+[src::lodepng] pub unsafe extern "C" fn lodepng_chunk_data( mut chunk: *mut ::core::ffi::c_uchar, ) -> *mut ::core::ffi::c_uchar
+[src::lodepng] pub unsafe extern "C" fn lodepng_chunk_data_const( mut chunk: *const ::core::ffi::c_uchar, ) -> *const ::core::ffi::c_uchar
+[src::lodepng] pub unsafe extern "C" fn lodepng_chunk_check_crc( mut chunk: *const ::core::ffi::c_uchar, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_chunk_generate_crc(mut chunk: *mut ::core::ffi::c_uchar)
+[src::lodepng] pub unsafe extern "C" fn lodepng_chunk_next( mut chunk: *mut ::core::ffi::c_uchar, mut end: *mut ::core::ffi::c_uchar, ) -> *mut ::core::ffi::c_uchar
+[src::lodepng] pub unsafe extern "C" fn lodepng_chunk_next_const( mut chunk: *const ::core::ffi::c_uchar, mut end: *const ::core::ffi::c_uchar, ) -> *const ::core::ffi::c_uchar
+[src::lodepng] pub unsafe extern "C" fn lodepng_chunk_find( mut chunk: *mut ::core::ffi::c_uchar, mut end: *mut ::core::ffi::c_uchar, mut type_0: *const ::core::ffi::c_char, ) -> *mut ::core::ffi::c_uchar
+[src::lodepng] pub unsafe extern "C" fn lodepng_chunk_find_const( mut chunk: *const ::core::ffi::c_uchar, mut end: *const ::core::ffi::c_uchar, mut type_0: *const ::core::ffi::c_char, ) -> *const ::core::ffi::c_uchar
+[src::lodepng] pub unsafe extern "C" fn lodepng_chunk_append( mut out: *mut *mut ::core::ffi::c_uchar, mut outsize: *mut size_t, mut chunk: *const ::core::ffi::c_uchar, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_chunk_create( mut out: *mut *mut ::core::ffi::c_uchar, mut outsize: *mut size_t, mut length: size_t, mut type_0: *const ::core::ffi::c_char, mut data: *const ::core::ffi::c_uchar, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_color_mode_init(mut info: *mut LodePNGColorMode)
+[src::lodepng] pub unsafe extern "C" fn lodepng_color_mode_cleanup(mut info: *mut LodePNGColorMode)
+[src::lodepng] pub unsafe extern "C" fn lodepng_color_mode_copy( mut dest: *mut LodePNGColorMode, mut source: *const LodePNGColorMode, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_color_mode_make( mut colortype: LodePNGColorType, mut bitdepth: ::core::ffi::c_uint, ) -> LodePNGColorMode
+[src::lodepng] pub unsafe extern "C" fn lodepng_palette_clear(mut info: *mut LodePNGColorMode)
+[src::lodepng] pub unsafe extern "C" fn lodepng_palette_add( mut info: *mut LodePNGColorMode, mut r: ::core::ffi::c_uchar, mut g: ::core::ffi::c_uchar, mut b: ::core::ffi::c_uchar, mut a: ::core::ffi::c_uchar, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_get_bpp(mut info: *const LodePNGColorMode) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_get_channels( mut info: *const LodePNGColorMode, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_is_greyscale_type( mut info: *const LodePNGColorMode, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_is_alpha_type( mut info: *const LodePNGColorMode, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_is_palette_type( mut info: *const LodePNGColorMode, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_has_palette_alpha( mut info: *const LodePNGColorMode, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_can_have_alpha( mut info: *const LodePNGColorMode, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_get_raw_size( mut w: ::core::ffi::c_uint, mut h: ::core::ffi::c_uint, mut color: *const LodePNGColorMode, ) -> size_t
+[src::lodepng] pub unsafe extern "C" fn lodepng_add_text( mut info: *mut LodePNGInfo, mut key: *const ::core::ffi::c_char, mut str: *const ::core::ffi::c_char, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_clear_text(mut info: *mut LodePNGInfo)
+[src::lodepng] pub unsafe extern "C" fn lodepng_clear_itext(mut info: *mut LodePNGInfo)
+[src::lodepng] pub unsafe extern "C" fn lodepng_add_itext( mut info: *mut LodePNGInfo, mut key: *const ::core::ffi::c_char, mut langtag: *const ::core::ffi::c_char, mut transkey: *const ::core::ffi::c_char, mut str: *const ::core::ffi::c_char, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_set_icc( mut info: *mut LodePNGInfo, mut name: *const ::core::ffi::c_char, mut profile: *const ::core::ffi::c_uchar, mut profile_size: ::core::ffi::c_uint, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_clear_icc(mut info: *mut LodePNGInfo)
+[src::lodepng] pub unsafe extern "C" fn lodepng_set_exif( mut info: *mut LodePNGInfo, mut exif: *const ::core::ffi::c_uchar, mut exif_size: ::core::ffi::c_uint, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_clear_exif(mut info: *mut LodePNGInfo)
+[src::lodepng] pub unsafe extern "C" fn lodepng_info_init(mut info: *mut LodePNGInfo)
+[src::lodepng] pub unsafe extern "C" fn lodepng_info_cleanup(mut info: *mut LodePNGInfo)
+[src::lodepng] pub unsafe extern "C" fn lodepng_info_copy( mut dest: *mut LodePNGInfo, mut source: *const LodePNGInfo, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_convert( mut out: *mut ::core::ffi::c_uchar, mut in_0: *const ::core::ffi::c_uchar, mut mode_out: *const LodePNGColorMode, mut mode_in: *const LodePNGColorMode, mut w: ::core::ffi::c_uint, mut h: ::core::ffi::c_uint, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_convert_rgb( mut r_out: *mut ::core::ffi::c_uint, mut g_out: *mut ::core::ffi::c_uint, mut b_out: *mut ::core::ffi::c_uint, mut r_in: ::core::ffi::c_uint, mut g_in: ::core::ffi::c_uint, mut b_in: ::core::ffi::c_uint, mut mode_out: *const LodePNGColorMode, mut mode_in: *const LodePNGColorMode, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_color_stats_init(mut stats: *mut LodePNGColorStats)
+[src::lodepng] pub unsafe extern "C" fn lodepng_compute_color_stats( mut stats: *mut LodePNGColorStats, mut in_0: *const ::core::ffi::c_uchar, mut w: ::core::ffi::c_uint, mut h: ::core::ffi::c_uint, mut mode_in: *const LodePNGColorMode, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_inspect( mut w: *mut ::core::ffi::c_uint, mut h: *mut ::core::ffi::c_uint, mut state: *mut LodePNGState, mut in_0: *const ::core::ffi::c_uchar, mut insize: size_t, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_inspect_chunk( mut state: *mut LodePNGState, mut pos: size_t, mut in_0: *const ::core::ffi::c_uchar, mut insize: size_t, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_decode( mut out: *mut *mut ::core::ffi::c_uchar, mut w: *mut ::core::ffi::c_uint, mut h: *mut ::core::ffi::c_uint, mut state: *mut LodePNGState, mut in_0: *const ::core::ffi::c_uchar, mut insize: size_t, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_decode_memory( mut out: *mut *mut ::core::ffi::c_uchar, mut w: *mut ::core::ffi::c_uint, mut h: *mut ::core::ffi::c_uint, mut in_0: *const ::core::ffi::c_uchar, mut insize: size_t, mut colortype: LodePNGColorType, mut bitdepth: ::core::ffi::c_uint, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_decode32( mut out: *mut *mut ::core::ffi::c_uchar, mut w: *mut ::core::ffi::c_uint, mut h: *mut ::core::ffi::c_uint, mut in_0: *const ::core::ffi::c_uchar, mut insize: size_t, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_decode24( mut out: *mut *mut ::core::ffi::c_uchar, mut w: *mut ::core::ffi::c_uint, mut h: *mut ::core::ffi::c_uint, mut in_0: *const ::core::ffi::c_uchar, mut insize: size_t, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_decode_file( mut out: *mut *mut ::core::ffi::c_uchar, mut w: *mut ::core::ffi::c_uint, mut h: *mut ::core::ffi::c_uint, mut filename: *const ::core::ffi::c_char, mut colortype: LodePNGColorType, mut bitdepth: ::core::ffi::c_uint, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_decode32_file( mut out: *mut *mut ::core::ffi::c_uchar, mut w: *mut ::core::ffi::c_uint, mut h: *mut ::core::ffi::c_uint, mut filename: *const ::core::ffi::c_char, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_decode24_file( mut out: *mut *mut ::core::ffi::c_uchar, mut w: *mut ::core::ffi::c_uint, mut h: *mut ::core::ffi::c_uint, mut filename: *const ::core::ffi::c_char, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_decoder_settings_init(mut settings: *mut LodePNGDecoderSettings)
+[src::lodepng] pub unsafe extern "C" fn lodepng_state_init(mut state: *mut LodePNGState)
+[src::lodepng] pub unsafe extern "C" fn lodepng_state_cleanup(mut state: *mut LodePNGState)
+[src::lodepng] pub unsafe extern "C" fn lodepng_state_copy( mut dest: *mut LodePNGState, mut source: *const LodePNGState, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_encode( mut out: *mut *mut ::core::ffi::c_uchar, mut outsize: *mut size_t, mut image: *const ::core::ffi::c_uchar, mut w: ::core::ffi::c_uint, mut h: ::core::ffi::c_uint, mut state: *mut LodePNGState, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_encode_memory( mut out: *mut *mut ::core::ffi::c_uchar, mut outsize: *mut size_t, mut image: *const ::core::ffi::c_uchar, mut w: ::core::ffi::c_uint, mut h: ::core::ffi::c_uint, mut colortype: LodePNGColorType, mut bitdepth: ::core::ffi::c_uint, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_encode32( mut out: *mut *mut ::core::ffi::c_uchar, mut outsize: *mut size_t, mut image: *const ::core::ffi::c_uchar, mut w: ::core::ffi::c_uint, mut h: ::core::ffi::c_uint, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_encode24( mut out: *mut *mut ::core::ffi::c_uchar, mut outsize: *mut size_t, mut image: *const ::core::ffi::c_uchar, mut w: ::core::ffi::c_uint, mut h: ::core::ffi::c_uint, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_encode_file( mut filename: *const ::core::ffi::c_char, mut image: *const ::core::ffi::c_uchar, mut w: ::core::ffi::c_uint, mut h: ::core::ffi::c_uint, mut colortype: LodePNGColorType, mut bitdepth: ::core::ffi::c_uint, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_encode32_file( mut filename: *const ::core::ffi::c_char, mut image: *const ::core::ffi::c_uchar, mut w: ::core::ffi::c_uint, mut h: ::core::ffi::c_uint, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_encode24_file( mut filename: *const ::core::ffi::c_char, mut image: *const ::core::ffi::c_uchar, mut w: ::core::ffi::c_uint, mut h: ::core::ffi::c_uint, ) -> ::core::ffi::c_uint
+[src::lodepng] pub unsafe extern "C" fn lodepng_encoder_settings_init(mut settings: *mut LodePNGEncoderSettings)
+[src::lodepng] pub unsafe extern "C" fn lodepng_error_text( mut code: ::core::ffi::c_uint, ) -> *const ::core::ffi::c_char
+
+CURRENT src/lib.rs:
+```rust
+use std::ffi::{c_char, c_uchar, c_uint, c_void, CStr, CString};
+use std::fs;
+use std::mem::MaybeUninit;
+use std::path::PathBuf;
+use std::ptr;
+
+use lodepng_bench_raw::src::lodepng::{
+    lodepng_add_itext, lodepng_add_text, lodepng_can_have_alpha, lodepng_chunk_ancillary,
+    lodepng_chunk_append, lodepng_chunk_check_crc, lodepng_chunk_create, lodepng_chunk_data,
+    lodepng_chunk_data_const, lodepng_chunk_find, lodepng_chunk_find_const,
+    lodepng_chunk_generate_crc, lodepng_chunk_length, lodepng_chunk_next,
+    lodepng_chunk_next_const, lodepng_chunk_private, lodepng_chunk_safetocopy,
+    lodepng_chunk_type, lodepng_chunk_type_equals, lodepng_clear_exif, lodepng_clear_icc,
+    lodepng_clear_itext, lodepng_clear_text, lodepng_color_mode_cleanup,
+    lodepng_color_mode_copy, lodepng_color_mode_init, lodepng_color_mode_make,
+    lodepng_compress_settings_init, lodepng_convert, lodepng_convert_rgb, lodepng_crc32,
+    lodepng_decode, lodepng_decode24, lodepng_decode24_file, lodepng_decode32,
+    lodepng_decode32_file, lodepng_decode_file, lodepng_decode_memory,
+    lodepng_decompress_settings_init, lodepng_deflate, lodepng_encode, lodepng_encode24,
+    lodepng_encode24_file, lodepng_encode32, lodepng_encode32_file, lodepng_encode_file,
+    lodepng_encode_memory, lodepng_error_text, lodepng_get_bpp, lodepng_get_channels,
+    lodepng_get_raw_size, lodepng_has_palette_alpha, lodepng_info_cleanup,
+    lodepng_info_copy, lodepng_info_init, lodepng_inflate, lodepng_inspect,
+    lodepng_inspect_chunk, lodepng_is_alpha_type, lodepng_is_greyscale_type,
+    lodepng_is_palette_type, lodepng_load_file, lodepng_palette_add, lodepng_palette_clear,
+    lodepng_save_file, lodepng_set_exif, lodepng_set_icc, lodepng_state_cleanup,
+    lodepng_state_copy, lodepng_state_init, lodepng_zlib_compress, lodepng_zlib_decompress,
+    size_t, LodePNGColorMode, LodePNGCompressSettings, LodePNGDecompressSettings, LodePNGInfo,
+    LodePNGState,
+};
+
+extern "C" {
+    fn free(ptr: *mut c_void);
+}
+
+fn fold(acc: u64, x: u64) -> u64 {
+    acc.rotate_left(7) ^ x.wrapping_mul(0x9E37_79B9_7F4A_7C15)
+}
+
+fn checksum(bytes: &[u8]) -> u64 {
+    let mut acc = 0x243F_6A88_85A3_08D3u64;
+    for &b in bytes {
+        acc = fold(acc, b as u64);
+    }
+    acc
+}
+
+fn checksum_prefix(bytes: &[u8], max_len: usize) -> u64 {
+    checksum(&bytes[..bytes.len().min(max_len)])
+}
+
+unsafe fn free_c_buffer(p: *mut c_uchar) {
+    if !p.is_null() {
+        free(p as *mut c_void);
+    }
+}
+
+fn read_u32_le_at(data: &[u8], off: usize) -> Option<u32> {
+    let end = off.checked_add(4)?;
+    let s = data.get(off..end)?;
+    Some(u32::from_le_bytes([s[0], s[1], s[2], s[3]]))
+}
+
+fn rgba_pattern_a(w: u32, h: u32) -> Vec<u8> {
+    let mut out = Vec::with_capacity((w as usize).saturating_mul(h as usize).saturating_mul(4));
+    for y in 0..h {
+        for x in 0..w {
+            let checker = (((x / 8) ^ (y / 8)) & 1) as u8;
+            let r = ((x * 3 + y * 5) & 255) as u8;
+            let g = ((x * 7 + 17) & 255) as u8;
+            let b = if checker == 0 { 32 } else { 220 };
+            let a = (((x ^ y) * 11) & 255) as u8;
+            out.extend_from_slice(&[r, g, b, a]);
+        }
+    }
+    out
+}
+
+fn rgba_pattern_b(w: u32, h: u32) -> Vec<u8> {
+    let mut out = Vec::with_capacity((w as usize).saturating_mul(h as usize).saturating_mul(4));
+    for y in 0..h {
+        for x in 0..w {
+            let band = ((y / 12) % 6) as u8;
+            let r = (((x.wrapping_mul(x) + y * 13) >> 2) & 255) as u8;
+            let g = (((y * 9 + x * 2) ^ ((band as u32) * 37)) & 255) as u8;
+            let b = match band {
+                0 => 16,
+                1 => 64,
+                2 => 112,
+                3 => 160,
+                4 => 208,
+                _ => 240,
+            };
+            let a = if (x / 16 + y / 16) % 3 == 0 {
+                255
+            } else if (x + y) % 5 == 0 {
+                96
+            } else {
+                180
+            };
+            out.extend_from_slice(&[r, g, b, a]);
+        }
+    }
+    out
+}
+
+fn rgb_from_rgba(rgba: &[u8]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(rgba.len() / 4 * 3);
+    let mut i = 0usize;
+    while i + 3 < rgba.len() {
+        out.push(rgba[i]);
+        out.push(rgba[i + 1]);
+        out.push(rgba[i + 2]);
+        i += 4;
+    }
+    out
+}
+
+fn raw_container(w: u32, h: u32, rgba: &[u8]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(8 + rgba.len());
+    out.extend_from_slice(&w.to_le_bytes());
+    out.extend_from_slice(&h.to_le_bytes());
+    out.extend_from_slice(rgba);
+    out
+}
+
+fn parse_raw_rgba(data: &[u8]) -> Option<(u32, u32, &[u8])> {
+    let w = read_u32_le_at(data, 0)?;
+    let h = read_u32_le_at(data, 4)?;
+    let px_len_u64 = (w as u64).checked_mul(h as u64)?.checked_mul(4)?;
+    let px_len = usize::try_from(px_len_u64).ok()?;
+    if data.len() != 8 + px_len {
+        return None;
+    }
+    Some((w, h, &data[8..]))
+}
+
+fn synth_plaintext_a(len: usize) -> Vec<u8> {
+    let mut out = Vec::with_capacity(len);
+    let lines = [
+        "alpha,beta,gamma,delta,epsilon,zeta,eta,theta\n",
+        "the quick brown fox jumps over the lazy dog 0123456789\n",
+        "red red blue blue green green red red blue blue green green\n",
+        "lodepng benchmark structured plaintext block\n",
+    ];
+    let mut i = 0usize;
+    while out.len() < len {
+        let s = lines[i % lines.len()].as_bytes();
+        out.extend_from_slice(s);
+        out.extend_from_slice(format!("row={:08} phase={:04}\n", i, i % 97).as_bytes());
+        i += 1;
+    }
+    out.truncate(len);
+    out
+}
+
+fn synth_plaintext_b(len: usize) -> Vec<u8> {
+    let mut out = Vec::with_capacity(len);
+    let mut block = [0u8; 256];
+    for (i, b) in block.iter_mut().enumerate() {
+        *b = ((i as u32 * 17 + (i as u32 / 7) * 29) & 255) as u8;
+    }
+    let mut row = 0u32;
+    while out.len() < len {
+        out.extend_from_slice(b"BEGIN-BLOCK\n");
+        for rep in 0..24u32 {
+            out.extend_from_slice(format!("r={:06} rep={:03} | ", row, rep).as_bytes());
+            let start = ((row.wrapping_mul(13) + rep * 19) as usize) & 127;
+            out.extend_from_slice(&block[start..start + 96]);
+            out.extend_from_slice(b"\n");
+        }
+        out.extend_from_slice(b"END-BLOCK\n");
+        row = row.wrapping_add(1);
+    }
+    out.truncate(len);
+    out
+}
+
+fn encode_png_bytes(rgba: &[u8], w: u32, h: u32) -> Vec<u8> {
+    unsafe {
+        let mut out_ptr: *mut c_uchar = ptr::null_mut();
+        let mut out_size: size_t = 0;
+        let err = lodepng_encode32(
+            &mut out_ptr,
+            &mut out_size,
+            rgba.as_ptr(),
+            w as c_uint,
+            h as c_uint,
+        );
+        if err != 0 || out_ptr.is_null() {
+            free_c_buffer(out_ptr);
+            return Vec::new();
+        }
+        let bytes = std::slice::from_raw_parts(out_ptr, out_size as usize).to_vec();
+        free_c_buffer(out_ptr);
+        bytes
+    }
+}
+
+fn compress_zlib_bytes(input: &[u8]) -> Vec<u8> {
+    unsafe {
+        let mut settings = MaybeUninit::<LodePNGCompressSettings>::zeroed();
+        lodepng_compress_settings_init(settings.as_mut_ptr());
+
+        let mut out_ptr: *mut c_uchar = ptr::null_mut();
+        let mut out_size: size_t = 0;
+        let err = lodepng_zlib_compress(
+            &mut out_ptr,
+            &mut out_size,
+            input.as_ptr(),
+            input.len() as size_t,
+            settings.as_ptr(),
+        );
+        if err != 0 || out_ptr.is_null() {
+            free_c_buffer(out_ptr);
+            return Vec::new();
+        }
+        let bytes = std::slice::from_raw_parts(out_ptr, out_size as usize).to_vec();
+        free_c_buffer(out_ptr);
+        bytes
+    }
+}
+
+fn encode_palette_png_with_features(seed: &[u8]) -> Vec<u8> {
+    unsafe {
+        let mut st = MaybeUninit::<LodePNGState>::zeroed();
+        lodepng_state_init(st.as_mut_ptr());
+        let stp = st.as_mut_ptr();
+
+        (*stp).info_raw = lodepng_color_mode_make(3 as _, 8);
+        (*stp).info_png.color = lodepng_color_mode_make(3 as _, 8);
+        (*stp).info_png.interlace_method = 1;
+        (*stp).encoder.auto_convert = 0;
+        (*stp).encoder.force_palette = 1;
+        (*stp).encoder.text_compression = 1;
+
+        for i in 0..16u8 {
+            let r = i.wrapping_mul(17);
+            let g = i.wrapping_mul(11).wrapping_add(23);
+            let b = i.wrapping_mul(29).wrapping_add(7);
+            let a = if i % 5 == 0 { 96 } else { 255 };
+            let _ = lodepng_palette_add(&mut (*stp).info_raw, r, g, b, a);
+            let _ = lodepng_palette_add(&mut (*stp).info_png.color, r, g, b, a);
+        }
+
+        let key1 = b"Comment\0";
+        let val1 = b"palette/interlace seed\0";
+        let key2 = b"LangComment\0";
+        let lang = b"en\0";
+        let tr = b"comment\0";
+        let val2 = b"international text payload\0";
+        let _ = lodepng_add_text(
+            &mut (*stp).info_png,
+            key1.as_ptr() as *const c_char,
+            val1.as_ptr() as *const c_char,
+        );
+        let _ = lodepng_add_itext(
+            &mut (*stp).info_png,
+            key2.as_ptr() as *const c_char,
+            lang.as_ptr() as *const c_char,
+            tr.as_ptr() as *const c_char,
+            val2.as_ptr() as *const c_char,
+        );
+
+        let icc_name = b"sRGB\0";
+        let icc_profile: [u8; 25] = *b"FakeICCProfileData1234567";
+        let exif_blob: [u8; 20] = [
+            0x4d, 0x4d, 0x00, 0x2a, 0, 0, 0, 8, 0, 1, 0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, 1,
+        ];
+        let _ = lodepng_set_icc(
+            &mut (*stp).info_png,
+            icc_name.as_ptr() as *const c_char,
+            icc_profile.as_ptr(),
+            icc_profile.len() as c_uint,
+        );
+        let _ = lodepng_set_exif(
+            &mut (*stp).info_png,
+            exif_blob.as_ptr(),
+            exif_blob.len() as c_uint,
+        );
+
+        let w = 64u32;
+        let h = 64u32;
+        let mut image = vec![0u8; (w * h) as usize];
+        for (i, px) in image.iter_mut().enumerate() {
+            let b = if seed.is_empty() { i as u8 } else { seed[i % seed.len()] };
+            *px = b & 15;
+        }
+
+        let mut out_ptr: *mut c_uchar = ptr::null_mut();
+        let mut out_size: size_t = 0;
+        let err = lodepng_encode(
+            &mut out_ptr,
+            &mut out_size,
+            image.as_ptr(),
+            w as c_uint,
+            h as c_uint,
+            stp,
+        );
+
+        let out = if err == 0 && !out_ptr.is_null() {
+            let v = std::slice::from_raw_parts(out_ptr, out_size as usize).to_vec();
+            free_c_buffer(out_ptr);
+            v
+        } else {
+            free_c_buffer(out_ptr);
+            Vec::new()
+        };
+
+        lodepng_state_cleanup(stp);
+        out
+    }
+}
+
+fn encode_gray1_interlaced_png(seed: &[u8]) -> Vec<u8> {
+    unsafe {
+        let mut st = MaybeUninit::<LodePNGState>::zeroed();
+        lodepng_state_init(st.as_mut_ptr());
+        let stp = st.as_mut_ptr();
+
+        (*stp).info_raw = lodepng_color_mode_make(0 as _, 1);
+        (*stp).info_png.color = lodepng_color_mode_make(0 as _, 1);
+        (*stp).info_png.interlace_method = 1;
+        (*stp).encoder.auto_convert = 0;
+
+        let w = 33u32;
+        let h = 35u32;
+        let rowbytes = ((w + 7) / 8) as usize;
+        let mut image = vec![0u8; rowbytes.saturating_mul(h as usize)];
+
+        for y in 0..h as usize {
+            for x in 0..w as usize {
+                let s = if seed.is_empty() {
+                    ((x * 13 + y * 7) & 255) as u8
+                } else {
+                    seed[(x + y * rowbytes) % seed.len()]
+                };
+                let bit = ((s.rotate_left((x & 7) as u32) ^ (y as u8).wrapping_mul(11)) >> 5) & 1;
+                if bit != 0 {
+                    let idx = y * rowbytes + x / 8;
+                    image[idx] |= 1u8 << (7 - (x & 7));
+                }
+            }
+        }
+
+        let mut out_ptr: *mut c_uchar = ptr::null_mut();
+        let mut out_size: size_t = 0;
+        let err = lodepng_encode(
+            &mut out_ptr,
+            &mut out_size,
+            image.as_ptr(),
+            w as c_uint,
+            h as c_uint,
+            stp,
+        );
+
+        let out = if err == 0 && !out_ptr.is_null() {
+            let v = std::slice::from_raw_parts(out_ptr, out_size as usize).to_vec();
+            free_c_buffer(out_ptr);
+            v
+        } else {
+            free_c_buffer(out_ptr);
+            Vec::new()
+        };
+
+        lodepng_state_cleanup(stp);
+        out
+    }
+}
+
+fn encode_rgba16_interlaced_png(seed: &[u8]) -> Vec<u8> {
+    unsafe {
+        let mut st = MaybeUninit::<LodePNGState>::zeroed();
+        lodepng_state_init(st.as_mut_ptr());
+        let stp = st.as_mut_ptr();
+
+        (*stp).info_raw = lodepng_color_mode_make(6 as _, 16);
+        (*stp).info_png.color = lodepng_color_mode_make(6 as _, 16);
+        (*stp).info_png.interlace_method = 1;
+        (*stp).encoder.auto_convert = 0;
+
+        let w = 19u32;
+        let h = 17u32;
+        let mut image = vec![0u8; (w as usize).saturating_mul(h as usize).saturating_mul(8)];
+
+        for y in 0..h {
+            for x in 0..w {
+                let i = ((y * w + x) as usize) * 8;
+                let s0 = if seed.is_empty() {
+                    (x.wrapping_mul(9) ^ y.wrapping_mul(13)) as u8
+                } else {
+                    seed[(i + 0) % seed.len()]
+                };
+                let s1 = if seed.is_empty() {
+                    (x.wrapping_mul(5) + y.wrapping_mul(7)) as u8
+                } else {
+                    seed[(i + 1) % seed.len()]
+                };
+                let s2 = if seed.is_empty() {
+                    (x.wrapping_mul(17) + y.wrapping_mul(3)) as u8
+                } else {
+                    seed[(i + 2) % seed.len()]
+                };
+                let s3 = if seed.is_empty() {
+                    (x ^ y) as u8
+                } else {
+                    seed[(i + 3) % seed.len()]
+                };
+                let r = (((s0 as u16) << 8) | (s1 as u16)).to_be_bytes();
+                let g = ((((s1 ^ 0x5a) as u16) << 8) | (s2 as u16)).to_be_bytes();
+                let b = ((((s2 ^ 0xa5) as u16) << 8) | (s3 as u16)).to_be_bytes();
+                let a = (((255u16.wrapping_sub(s3 as u16)) << 8) | (s0 as u16)).to_be_bytes();
+                image[i..i + 2].copy_from_slice(&r);
+                image[i + 2..i + 4].copy_from_slice(&g);
+                image[i + 4..i + 6].copy_from_slice(&b);
+                image[i + 6..i + 8].copy_from_slice(&a);
+            }
+        }
+
+        let mut out_ptr: *mut c_uchar = ptr::null_mut();
+        let mut out_size: size_t = 0;
+        let err = lodepng_encode(
+            &mut out_ptr,
+            &mut out_size,
+            image.as_ptr(),
+            w as c_uint,
+            h as c_uint,
+            stp,
+        );
+
+        let out = if err == 0 && !out_ptr.is_null() {
+            let v = std::slice::from_raw_parts(out_ptr, out_size as usize).to_vec();
+            free_c_buffer(out_ptr);
+            v
+        } else {
+            free_c_buffer(out_ptr);
+            Vec::new()
+        };
+
+        lodepng_state_cleanup(stp);
+        out
+    }
+}
+
+fn temp_path(op: &str, tag: &str, data: &[u8], ext: &str) -> PathBuf {
+    let mut p = std::env::temp_dir();
+    p.push("lodepng_harness_fixed");
+    let _ = fs::create_dir_all(&p);
+    p.push(format!("{}_{}_{}{}", op, tag, checksum(data), ext));
+    p
+}
+
+fn path_cstring(path: &PathBuf) -> Option<CString> {
+    CString::new(path.to_string_lossy().as_bytes()).ok()
+}
+
+fn fold_error_text(mut digest: u64, code: u32) -> u64 {
+    unsafe {
+        let p = lodepng_error_text(code as c_uint);
+        if p.is_null() {
+            return fold(digest, 0);
+        }
+        let s = CStr::from_ptr(p).to_bytes();
+        digest = fold(digest, checksum_prefix(s, 128));
+        digest
+    }
+}
+
+fn choose_distinct_nonempty_png_pair(
+    primary1: Vec<u8>,
+    primary2: Vec<u8>,
+    fallback1: Vec<u8>,
+    fallback2: Vec<u8>,
+) -> (Vec<u8>, Vec<u8>) {
+    let a = if !primary1.is_empty() {
+        primary1
+    } else if !fallback1.is_empty() {
+        fallback1.clone()
+    } else {
+        fallback2.clone()
+    };
+
+    let mut b = if !primary2.is_empty() {
+        primary2
+    } else if !fallback2.is_empty() {
+        fallback2.clone()
+    } else {
+        fallback1.clone()
+    };
+
+    if b.is_empty() {
+        b = fallback2.clone();
+    }
+    if b == a {
+        if !fallback1.is_empty() && fallback1 != a {
+            b = fallback1;
+        } else if !fallback2.is_empty() && fallback2 != a {
+            b = fallback2;
+        }
+    }
+    (a, b)
+}
+
+pub fn decode32_png(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut out_ptr: *mut c_uchar = ptr::null_mut();
+            let mut w: c_uint = 0;
+            let mut h: c_uint = 0;
+            let err = lodepng_decode32(
+                &mut out_ptr,
+                &mut w,
+                &mut h,
+                data.as_ptr(),
+                data.len() as size_t,
+            );
+            last_err = err as u32;
+
+            let mut iter_digest = 0u64;
+            iter_digest = fold(iter_digest, err as u64);
+
+            if err == 0 {
+                let size_u64 = (w as u64).wrapping_mul(h as u64).wrapping_mul(4);
+                iter_digest = fold(iter_digest, w as u64);
+                iter_digest = fold(iter_digest, h as u64);
+                iter_digest = fold(iter_digest, size_u64);
+
+                if !out_ptr.is_null() {
+                    if let Ok(sz) = usize::try_from(size_u64) {
+                        let out = std::slice::from_raw_parts(out_ptr, sz);
+                        iter_digest = fold(iter_digest, checksum(out));
+                        iter_digest = fold(iter_digest, lodepng_crc32(out.as_ptr(), out.len() as size_t) as u64);
+                    } else {
+                        iter_digest = fold(iter_digest, 0);
+                        iter_digest = fold(iter_digest, 0);
+                    }
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                }
+            } else {
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+            }
+
+            iter_digest = fold_error_text(iter_digest, err as u32);
+            free_c_buffer(out_ptr);
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=decode32_png err={} digest={:016x}", last_err, digest)
+}
+
+pub fn decode24_png(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut out_ptr: *mut c_uchar = ptr::null_mut();
+            let mut w: c_uint = 0;
+            let mut h: c_uint = 0;
+            let err = lodepng_decode24(
+                &mut out_ptr,
+                &mut w,
+                &mut h,
+                data.as_ptr(),
+                data.len() as size_t,
+            );
+            last_err = err as u32;
+
+            let mut iter_digest = 0u64;
+            iter_digest = fold(iter_digest, err as u64);
+            iter_digest = fold(iter_digest, w as u64);
+            iter_digest = fold(iter_digest, h as u64);
+
+            if err == 0 && !out_ptr.is_null() {
+                let size_u64 = (w as u64).wrapping_mul(h as u64).wrapping_mul(3);
+                if let Ok(sz) = usize::try_from(size_u64) {
+                    let out = std::slice::from_raw_parts(out_ptr, sz);
+                    iter_digest = fold(iter_digest, size_u64);
+                    iter_digest = fold(iter_digest, checksum(out));
+                    iter_digest = fold(iter_digest, lodepng_crc32(out.as_ptr(), out.len() as size_t) as u64);
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                }
+            } else {
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+            }
+
+            iter_digest = fold_error_text(iter_digest, err as u32);
+            free_c_buffer(out_ptr);
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=decode24_png err={} digest={:016x}", last_err, digest)
+}
+
+pub fn inspect_png(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut state = MaybeUninit::<LodePNGState>::zeroed();
+            lodepng_state_init(state.as_mut_ptr());
+
+            let mut w: c_uint = 0;
+            let mut h: c_uint = 0;
+            let err = lodepng_inspect(
+                &mut w,
+                &mut h,
+                state.as_mut_ptr(),
+                data.as_ptr(),
+                data.len() as size_t,
+            );
+            last_err = err as u32;
+
+            let mut iter_digest = 0u64;
+            iter_digest = fold(iter_digest, err as u64);
+            iter_digest = fold(iter_digest, w as u64);
+            iter_digest = fold(iter_digest, h as u64);
+
+            if err == 0 && data.len() >= 8 {
+                let base = data.as_ptr();
+                let end = base.add(data.len());
+                let mut cur = base.add(8);
+                let mut steps = 0usize;
+
+                let idat = b"IDAT\0";
+                let iend = b"IEND\0";
+                let text = b"tEXt\0";
+                let plte = b"PLTE\0";
+                let exif = b"eXIf\0";
+
+                let p_idat = lodepng_chunk_find_const(cur, end, idat.as_ptr() as *const c_char);
+                iter_digest = fold(iter_digest, (!p_idat.is_null()) as u64);
+                if !p_idat.is_null() {
+                    iter_digest =
+                        fold(iter_digest, (p_idat as usize).wrapping_sub(base as usize) as u64);
+                }
+
+                let p_iend = lodepng_chunk_find_const(cur, end, iend.as_ptr() as *const c_char);
+                iter_digest = fold(iter_digest, (!p_iend.is_null()) as u64);
+
+                let p_text = lodepng_chunk_find_const(cur, end, text.as_ptr() as *const c_char);
+                iter_digest = fold(iter_digest, (!p_text.is_null()) as u64);
+
+                let p_plte = lodepng_chunk_find_const(cur, end, plte.as_ptr() as *const c_char);
+                iter_digest = fold(iter_digest, (!p_plte.is_null()) as u64);
+
+                let p_exif = lodepng_chunk_find_const(cur, end, exif.as_ptr() as *const c_char);
+                iter_digest = fold(iter_digest, (!p_exif.is_null()) as u64);
+
+                let mut owned = data.to_vec();
+                let mbase = owned.as_mut_ptr();
+                let mend = mbase.add(owned.len());
+                let mcur = mbase.add(8);
+
+                let mp = lodepng_chunk_find(mcur, mend, idat.as_ptr() as *const c_char);
+                iter_digest = fold(iter_digest, (!mp.is_null()) as u64);
+                if !mp.is_null() {
+                    let d = lodepng_chunk_data(mp);
+                    iter_digest = fold(iter_digest, (!d.is_null()) as u64);
+                    let mn = lodepng_chunk_next(mp, mend);
+                    iter_digest = fold(iter_digest, (!mn.is_null()) as u64);
+                    if !mn.is_null() && mn >= mbase && mn <= mend {
+                        iter_digest =
+                            fold(iter_digest, (mn as usize).wrapping_sub(mbase as usize) as u64);
+                    }
+                }
+
+                while !cur.is_null() && cur < end && steps < data.len() {
+                    let remaining = (end as usize).wrapping_sub(cur as usize);
+                    if remaining < 12 {
+                        break;
+                    }
+
+                    let off = (cur as usize).wrapping_sub(base as usize);
+                    let chk_err = lodepng_inspect_chunk(
+                        state.as_mut_ptr(),
+                        off as size_t,
+                        base,
+                        data.len() as size_t,
+                    );
+                    iter_digest = fold(iter_digest, chk_err as u64);
+
+                    let len = lodepng_chunk_length(cur) as usize;
+                    let total = match len.checked_add(12) {
+                        Some(v) => v,
+                        None => break,
+                    };
+                    if total > remaining {
+                        break;
+                    }
+
+                    let mut tbuf = [0i8; 5];
+                    lodepng_chunk_type(tbuf.as_mut_ptr(), cur);
+
+                    iter_digest = fold(iter_digest, off as u64);
+                    iter_digest = fold(iter_digest, len as u64);
+                    for &ch in &tbuf[..4] {
+                        iter_digest = fold(iter_digest, ch as u8 as u64);
+                    }
+
+                    let is_idat =
+                        lodepng_chunk_type_equals(cur, idat.as_ptr() as *const c_char) as u64;
+                    let is_iend =
+                        lodepng_chunk_type_equals(cur, iend.as_ptr() as *const c_char) as u64;
+                    let is_plte =
+                        lodepng_chunk_type_equals(cur, plte.as_ptr() as *const c_char) as u64;
+                    iter_digest = fold(iter_digest, is_idat);
+                    iter_digest = fold(iter_digest, is_iend);
+                    iter_digest = fold(iter_digest, is_plte);
+
+                    iter_digest = fold(iter_digest, lodepng_chunk_ancillary(cur) as u64);
+                    iter_digest = fold(iter_digest, lodepng_chunk_private(cur) as u64);
+                    iter_digest = fold(iter_digest, lodepng_chunk_safetocopy(cur) as u64);
+                    iter_digest = fold(iter_digest, lodepng_chunk_check_crc(cur) as u64);
+
+                    let dptr = lodepng_chunk_data_const(cur);
+                    if !dptr.is_null() && len > 0 {
+                        let ds = std::slice::from_raw_parts(dptr, len);
+                        iter_digest = fold(iter_digest, checksum_prefix(ds, 32));
+                        iter_digest = fold(iter_digest, lodepng_crc32(ds.as_ptr(), ds.len() as size_t) as u64);
+                    } else {
+                        iter_digest = fold(iter_digest, 0);
+                        iter_digest = fold(iter_digest, 0);
+                    }
+
+                    let next = lodepng_chunk_next_const(cur, end);
+                    if next.is_null() {
+                        iter_digest = fold(iter_digest, 0);
+                        break;
+                    } else {
+                        let next_off = (next as usize).wrapping_sub(base as usize) as u64;
+                        iter_digest = fold(iter_digest, next_off);
+                    }
+
+                    if next <= cur || next > end {
+                        break;
+                    }
+                    cur = next;
+                    steps += 1;
+                }
+            }
+
+            iter_digest = fold_error_text(iter_digest, err as u32);
+            lodepng_state_cleanup(state.as_mut_ptr());
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=inspect_png err={} digest={:016x}", last_err, digest)
+}
+
+pub fn zlib_decompress(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut settings = MaybeUninit::<LodePNGDecompressSettings>::zeroed();
+            lodepng_decompress_settings_init(settings.as_mut_ptr());
+
+            let mut out_ptr: *mut c_uchar = ptr::null_mut();
+            let mut out_size: size_t = 0;
+            let err = lodepng_zlib_decompress(
+                &mut out_ptr,
+                &mut out_size,
+                data.as_ptr(),
+                data.len() as size_t,
+                settings.as_ptr(),
+            );
+            last_err = err as u32;
+
+            let mut iter_digest = 0u64;
+            iter_digest = fold(iter_digest, err as u64);
+
+            if err == 0 && !out_ptr.is_null() {
+                let out = std::slice::from_raw_parts(out_ptr, out_size as usize);
+                iter_digest = fold(iter_digest, out_size as u64);
+                iter_digest = fold(iter_digest, checksum(out));
+                iter_digest = fold(iter_digest, lodepng_crc32(out.as_ptr(), out.len() as size_t) as u64);
+            } else {
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+            }
+
+            iter_digest = fold_error_text(iter_digest, err as u32);
+            free_c_buffer(out_ptr);
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=zlib_decompress err={} digest={:016x}", last_err, digest)
+}
+
+pub fn raw_deflate_inflate(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut csettings = MaybeUninit::<LodePNGCompressSettings>::zeroed();
+            lodepng_compress_settings_init(csettings.as_mut_ptr());
+
+            let mut dsettings = MaybeUninit::<LodePNGDecompressSettings>::zeroed();
+            lodepng_decompress_settings_init(dsettings.as_mut_ptr());
+
+            let mut def_ptr: *mut c_uchar = ptr::null_mut();
+            let mut def_size: size_t = 0;
+            let def_err = lodepng_deflate(
+                &mut def_ptr,
+                &mut def_size,
+                data.as_ptr(),
+                data.len() as size_t,
+                csettings.as_ptr(),
+            );
+
+            let mut iter_digest = 0u64;
+            iter_digest = fold(iter_digest, def_err as u64);
+
+            if def_err == 0 && !def_ptr.is_null() {
+                let deflated = std::slice::from_raw_parts(def_ptr, def_size as usize);
+                iter_digest = fold(iter_digest, def_size as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(deflated, 128));
+                iter_digest = fold(iter_digest, lodepng_crc32(deflated.as_ptr(), deflated.len() as size_t) as u64);
+
+                let mut out_ptr: *mut c_uchar = ptr::null_mut();
+                let mut out_size: size_t = 0;
+                let inf_err = lodepng_inflate(
+                    &mut out_ptr,
+                    &mut out_size,
+                    def_ptr,
+                    def_size,
+                    dsettings.as_ptr(),
+                );
+                last_err = inf_err as u32;
+                iter_digest = fold(iter_digest, inf_err as u64);
+                if inf_err == 0 && !out_ptr.is_null() {
+                    let out = std::slice::from_raw_parts(out_ptr, out_size as usize);
+                    iter_digest = fold(iter_digest, out_size as u64);
+                    iter_digest = fold(iter_digest, checksum(out));
+                    iter_digest = fold(iter_digest, lodepng_crc32(out.as_ptr(), out.len() as size_t) as u64);
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                }
+                iter_digest = fold_error_text(iter_digest, inf_err as u32);
+                free_c_buffer(out_ptr);
+            } else {
+                last_err = def_err as u32;
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold_error_text(iter_digest, def_err as u32);
+            }
+
+            free_c_buffer(def_ptr);
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=raw_deflate_inflate err={} digest={:016x}", last_err, digest)
+}
+
+pub fn encode_png(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut iter_digest = 0u64;
+            let err: u32;
+
+            if let Some((w, h, rgba)) = parse_raw_rgba(data) {
+                let rgb = rgb_from_rgba(rgba);
+
+                let mut out32_ptr: *mut c_uchar = ptr::null_mut();
+                let mut out32_size: size_t = 0;
+                let err32 = lodepng_encode32(
+                    &mut out32_ptr,
+                    &mut out32_size,
+                    rgba.as_ptr(),
+                    w as c_uint,
+                    h as c_uint,
+                ) as u32;
+
+                iter_digest = fold(iter_digest, err32 as u64);
+                if err32 == 0 && !out32_ptr.is_null() {
+                    let out = std::slice::from_raw_parts(out32_ptr, out32_size as usize);
+                    iter_digest = fold(iter_digest, out32_size as u64);
+                    iter_digest = fold(iter_digest, checksum(out));
+                    iter_digest = fold(iter_digest, lodepng_crc32(out.as_ptr(), out.len() as size_t) as u64);
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                }
+                free_c_buffer(out32_ptr);
+
+                let mut out24_ptr: *mut c_uchar = ptr::null_mut();
+                let mut out24_size: size_t = 0;
+                let err24 = lodepng_encode24(
+                    &mut out24_ptr,
+                    &mut out24_size,
+                    rgb.as_ptr(),
+                    w as c_uint,
+                    h as c_uint,
+                ) as u32;
+
+                iter_digest = fold(iter_digest, err24 as u64);
+                if err24 == 0 && !out24_ptr.is_null() {
+                    let out = std::slice::from_raw_parts(out24_ptr, out24_size as usize);
+                    iter_digest = fold(iter_digest, out24_size as u64);
+                    iter_digest = fold(iter_digest, checksum_prefix(out, 256));
+                    iter_digest = fold(iter_digest, lodepng_crc32(out.as_ptr(), out.len() as size_t) as u64);
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                }
+                free_c_buffer(out24_ptr);
+
+                let g1 = encode_gray1_interlaced_png(rgba);
+                let g2 = encode_rgba16_interlaced_png(rgba);
+                iter_digest = fold(iter_digest, g1.len() as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(&g1, 128));
+                iter_digest = fold(iter_digest, g2.len() as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(&g2, 128));
+
+                err = err32 ^ err24;
+            } else {
+                err = 0xE000;
+                iter_digest = fold(iter_digest, err as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(data, 64));
+            }
+
+            last_err = err;
+            iter_digest = fold_error_text(iter_digest, err);
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=encode_png err={} digest={:016x}", last_err, digest)
+}
+
+pub fn color_convert(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut iter_digest = 0u64;
+
+            if let Some((w, h, rgba)) = parse_raw_rgba(data) {
+                let rgba_mode = lodepng_color_mode_make(6 as _, 8);
+                let rgb_mode = lodepng_color_mode_make(2 as _, 8);
+                let grey1_mode = lodepng_color_mode_make(0 as _, 1);
+                let grey8_mode = lodepng_color_mode_make(0 as _, 8);
+
+                let mut rgb_out =
+                    vec![0u8; (w as usize).saturating_mul(h as usize).saturating_mul(3)];
+                let conv_err = lodepng_convert(
+                    rgb_out.as_mut_ptr(),
+                    rgba.as_ptr(),
+                    &rgb_mode,
+                    &rgba_mode,
+                    w as c_uint,
+                    h as c_uint,
+                ) as u32;
+                last_err = conv_err;
+                iter_digest = fold(iter_digest, conv_err as u64);
+                iter_digest = fold(iter_digest, checksum(&rgb_out));
+
+                let grey1_sz = lodepng_get_raw_size(w as c_uint, h as c_uint, &grey1_mode) as usize;
+                let mut grey1_out = vec![0u8; grey1_sz];
+                let g1_err = lodepng_convert(
+                    grey1_out.as_mut_ptr(),
+                    rgba.as_ptr(),
+                    &grey1_mode,
+                    &rgba_mode,
+                    w as c_uint,
+                    h as c_uint,
+                ) as u32;
+                iter_digest = fold(iter_digest, g1_err as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(&grey1_out, 256));
+
+                let grey8_sz = lodepng_get_raw_size(w as c_uint, h as c_uint, &grey8_mode) as usize;
+                let mut grey8_out = vec![0u8; grey8_sz];
+                let g8_err = lodepng_convert(
+                    grey8_out.as_mut_ptr(),
+                    rgba.as_ptr(),
+                    &grey8_mode,
+                    &rgba_mode,
+                    w as c_uint,
+                    h as c_uint,
+                ) as u32;
+                iter_digest = fold(iter_digest, g8_err as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(&grey8_out, 256));
+
+                let mut r = 0u32;
+                let mut g = 0u32;
+                let mut b = 0u32;
+                let cr_err = lodepng_convert_rgb(
+                    &mut r,
+                    &mut g,
+                    &mut b,
+                    rgba.get(0).copied().unwrap_or(0) as u32,
+                    rgba.get(1).copied().unwrap_or(0) as u32,
+                    rgba.get(2).copied().unwrap_or(0) as u32,
+                    &rgb_mode,
+                    &rgba_mode,
+                ) as u32;
+                iter_digest = fold(iter_digest, cr_err as u64);
+                iter_digest = fold(iter_digest, r as u64);
+                iter_digest = fold(iter_digest, g as u64);
+                iter_digest = fold(iter_digest, b as u64);
+
+                iter_digest = fold(iter_digest, lodepng_get_channels(&rgba_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_get_channels(&rgb_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_get_bpp(&rgba_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_get_bpp(&rgb_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_get_bpp(&grey1_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_is_greyscale_type(&grey1_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_is_greyscale_type(&rgb_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_is_alpha_type(&rgba_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_is_alpha_type(&rgb_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_can_have_alpha(&rgba_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_can_have_alpha(&rgb_mode) as u64);
+                iter_digest = fold(
+                    iter_digest,
+                    lodepng_get_raw_size(w as c_uint, h as c_uint, &rgba_mode) as u64,
+                );
+                iter_digest = fold(
+                    iter_digest,
+                    lodepng_get_raw_size(w as c_uint, h as c_uint, &grey1_mode) as u64,
+                );
+
+                let mut pal_a = MaybeUninit::<LodePNGColorMode>::zeroed();
+                let mut pal_b = MaybeUninit::<LodePNGColorMode>::zeroed();
+                lodepng_color_mode_init(pal_a.as_mut_ptr());
+                lodepng_color_mode_init(pal_b.as_mut_ptr());
+                let pa = pal_a.as_mut_ptr();
+                let pb = pal_b.as_mut_ptr();
+
+                (*pa).colortype = 3 as _;
+                (*pa).bitdepth = 8;
+                let _ = lodepng_palette_add(pa, 255, 0, 0, 255);
+                let _ = lodepng_palette_add(pa, 0, 255, 0, 128);
+                let _ = lodepng_palette_add(pa, 0, 0, 255, 255);
+                let copy_err = lodepng_color_mode_copy(pb, pa) as u32;
+
+                iter_digest = fold(iter_digest, copy_err as u64);
+                iter_digest = fold(iter_digest, lodepng_is_palette_type(pa) as u64);
+                iter_digest = fold(iter_digest, lodepng_has_palette_alpha(pa) as u64);
+                iter_digest = fold(iter_digest, lodepng_get_channels(pa) as u64);
+                iter_digest = fold(iter_digest, lodepng_get_bpp(pa) as u64);
+                iter_digest = fold(iter_digest, lodepng_can_have_alpha(pa) as u64);
+                iter_digest = fold(iter_digest, lodepng_is_palette_type(pb) as u64);
+                iter_digest = fold(iter_digest, lodepng_has_palette_alpha(pb) as u64);
+                iter_digest = fold(iter_digest, lodepng_get_bpp(pb) as u64);
+                lodepng_palette_clear(pb);
+                iter_digest = fold(iter_digest, lodepng_has_palette_alpha(pb) as u64);
+
+                lodepng_color_mode_cleanup(pa);
+                lodepng_color_mode_cleanup(pb);
+
+                iter_digest = fold_error_text(iter_digest, conv_err);
+            } else {
+                last_err = 0xE100;
+                iter_digest = fold(iter_digest, last_err as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(data, 64));
+                iter_digest = fold_error_text(iter_digest, last_err);
+            }
+
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=color_convert err={} digest={:016x}", last_err, digest)
+}
+
+pub fn chunk_ops(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut iter_digest = 0u64;
+            let mut err = 0u32;
+
+            let payload_len = data.len().min(31);
+            let ctype = b"vpAg\0";
+
+            let mut chunk_ptr: *mut c_uchar = ptr::null_mut();
+            let mut chunk_size: size_t = 0;
+            let create_err = lodepng_chunk_create(
+                &mut chunk_ptr,
+                &mut chunk_size,
+                payload_len as size_t,
+                ctype.as_ptr() as *const c_char,
+                data.as_ptr(),
+            ) as u32;
+            iter_digest = fold(iter_digest, create_err as u64);
+
+            if create_err == 0 && !chunk_ptr.is_null() {
+                lodepng_chunk_generate_crc(chunk_ptr);
+                iter_digest = fold(iter_digest, lodepng_chunk_check_crc(chunk_ptr) as u64);
+                iter_digest = fold(iter_digest, lodepng_chunk_length(chunk_ptr) as u64);
+                let dp = lodepng_chunk_data(chunk_ptr);
+                if !dp.is_null() && payload_len > 0 {
+                    let ds = std::slice::from_raw_parts(dp, payload_len);
+                    iter_digest = fold(iter_digest, checksum(ds));
+                    iter_digest = fold(iter_digest, lodepng_crc32(ds.as_ptr(), ds.len() as size_t) as u64);
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                }
+
+                let mut tbuf = [0i8; 5];
+                lodepng_chunk_type(tbuf.as_mut_ptr(), chunk_ptr);
+                for &ch in &tbuf[..4] {
+                    iter_digest = fold(iter_digest, ch as u8 as u64);
+                }
+                iter_digest = fold(iter_digest, lodepng_chunk_ancillary(chunk_ptr) as u64);
+                iter_digest = fold(iter_digest, lodepng_chunk_private(chunk_ptr) as u64);
+                iter_digest = fold(iter_digest, lodepng_chunk_safetocopy(chunk_ptr) as u64);
+
+                let mut out_ptr: *mut c_uchar = ptr::null_mut();
+                let mut out_size: size_t = 0;
+                let append_err =
+                    lodepng_chunk_append(&mut out_ptr, &mut out_size, chunk_ptr) as u32;
+                iter_digest = fold(iter_digest, append_err as u64);
+
+                if append_err == 0 && !out_ptr.is_null() {
+                    let end = out_ptr.add(out_size as usize);
+                    let found = lodepng_chunk_find(out_ptr, end, ctype.as_ptr() as *const c_char);
+                    iter_digest = fold(iter_digest, (!found.is_null()) as u64);
+                    if !found.is_null() {
+                        iter_digest = fold(
+                            iter_digest,
+                            (found as usize).wrapping_sub(out_ptr as usize) as u64,
+                        );
+                        let next = lodepng_chunk_next(found, end);
+                        iter_digest = fold(iter_digest, (!next.is_null()) as u64);
+                        if !next.is_null() && next >= out_ptr && next <= end {
+                            iter_digest = fold(
+                                iter_digest,
+                                (next as usize).wrapping_sub(out_ptr as usize) as u64,
+                            );
+                        }
+                    }
+                    let out = std::slice::from_raw_parts(out_ptr, out_size as usize);
+                    iter_digest = fold(iter_digest, checksum(out));
+                } else {
+                    err = append_err;
+                }
+
+                free_c_buffer(out_ptr);
+            } else {
+                err = create_err;
+            }
+
+            free_c_buffer(chunk_ptr);
+            last_err = err;
+            iter_digest = fold_error_text(iter_digest, err);
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=chunk_ops err={} digest={:016x}", last_err, digest)
+}
+
+pub fn file_codec(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut iter_digest = 0u64;
+
+            if let Some((w, h, rgba)) = parse_raw_rgba(data) {
+                let rgb = rgb_from_rgba(rgba);
+                let png = encode_png_bytes(rgba, w, h);
+                let path_mem = temp_path("file_codec", "mem", data, ".png");
+                let path_32 = temp_path("file_codec", "e32", data, ".png");
+                let path_24 = temp_path("file_codec", "e24", data, ".png");
+                let path_any = temp_path("file_codec", "eany", data, ".png");
+
+                let c_mem = path_cstring(&path_mem);
+                let c32 = path_cstring(&path_32);
+                let c24 = path_cstring(&path_24);
+                let c_any = path_cstring(&path_any);
+
+                if let (Some(c_mem), Some(c32), Some(c24), Some(c_any)) =
+                    (c_mem, c32, c24, c_any)
+                {
+                    let save_err =
+                        lodepng_save_file(png.as_ptr(), png.len() as size_t, c_mem.as_ptr()) as u32;
+                    iter_digest = fold(iter_digest, save_err as u64);
+
+                    let e32 =
+                        lodepng_encode32_file(c32.as_ptr(), rgba.as_ptr(), w as c_uint, h as c_uint)
+                            as u32;
+                    let e24 =
+                        lodepng_encode24_file(c24.as_ptr(), rgb.as_ptr(), w as c_uint, h as c_uint)
+                            as u32;
+                    let eany = lodepng_encode_file(
+                        c_any.as_ptr(),
+                        rgb.as_ptr(),
+                        w as c_uint,
+                        h as c_uint,
+                        2 as _,
+                        8,
+                    ) as u32;
+                    iter_digest = fold(iter_digest, e32 as u64);
+                    iter_digest = fold(iter_digest, e24 as u64);
+                    iter_digest = fold(iter_digest, eany as u64);
+
+                    let mut load_ptr: *mut c_uchar = ptr::null_mut();
+                    let mut load_size: size_t = 0;
+                    let load_err =
+                        lodepng_load_file(&mut load_ptr, &mut load_size, c_mem.as_ptr()) as u32;
+                    iter_digest = fold(iter_digest, load_err as u64);
+                    if load_err == 0 && !load_ptr.is_null() {
+                        let loaded = std::slice::from_raw_parts(load_ptr, load_size as usize);
+                        iter_digest = fold(iter_digest, load_size as u64);
+                        iter_digest = fold(iter_digest, checksum(loaded));
+                    } else {
+                        iter_digest = fold(iter_digest, 0);
+                        iter_digest = fold(iter_digest, 0);
+                    }
+                    free_c_buffer(load_ptr);
+
+                    let mut out_ptr: *mut c_uchar = ptr::null_mut();
+                    let mut dw = 0u32;
+                    let mut dh = 0u32;
+
+                    let d32 =
+                        lodepng_decode32_file(&mut out_ptr, &mut dw, &mut dh, c32.as_ptr()) as u32;
+                    iter_digest = fold(iter_digest, d32 as u64);
+                    iter_digest = fold(iter_digest, dw as u64);
+                    iter_digest = fold(iter_digest, dh as u64);
+                    free_c_buffer(out_ptr);
+
+                    out_ptr = ptr::null_mut();
+                    dw = 0;
+                    dh = 0;
+                    let d24 =
+                        lodepng_decode24_file(&mut out_ptr, &mut dw, &mut dh, c24.as_ptr()) as u32;
+                    iter_digest = fold(iter_digest, d24 as u64);
+                    iter_digest = fold(iter_digest, dw as u64);
+                    iter_digest = fold(iter_digest, dh as u64);
+                    free_c_buffer(out_ptr);
+
+                    out_ptr = ptr::null_mut();
+                    dw = 0;
+                    dh = 0;
+                    let dany = lodepng_decode_file(
+                        &mut out_ptr,
+                        &mut dw,
+                        &mut dh,
+                        c_any.as_ptr(),
+                        6 as _,
+                        8,
+                    ) as u32;
+                    iter_digest = fold(iter_digest, dany as u64);
+                    iter_digest = fold(iter_digest, dw as u64);
+                    iter_digest = fold(iter_digest, dh as u64);
+                    if dany == 0 && !out_ptr.is_null() {
+                        let out = std::slice::from_raw_parts(
+                            out_ptr,
+                            (dw as usize).saturating_mul(dh as usize).saturating_mul(4),
+                        );
+                        iter_digest = fold(iter_digest, checksum_prefix(out, 256));
+                    } else {
+                        iter_digest = fold(iter_digest, 0);
+                    }
+                    free_c_buffer(out_ptr);
+
+                    last_err = save_err ^ e32 ^ e24 ^ eany ^ load_err ^ d32 ^ d24 ^ dany;
+                    iter_digest = fold_error_text(iter_digest, last_err);
+                } else {
+                    last_err = 0xE201;
+                    iter_digest = fold(iter_digest, last_err as u64);
+                }
+            } else {
+                last_err = 0xE200;
+                iter_digest = fold(iter_digest, last_err as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(data, 64));
+            }
+
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=file_codec err={} digest={:016x}", last_err, digest)
+}
+
+pub fn memory_codec(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut iter_digest = 0u64;
+
+            if let Some((w, h, rgba)) = parse_raw_rgba(data) {
+                iter_digest = fold(iter_digest, checksum_prefix(rgba, 256));
+                iter_digest = fold(iter_digest, lodepng_crc32(rgba.as_ptr(), rgba.len() as size_t) as u64);
+
+                let mut mem_ptr: *mut c_uchar = ptr::null_mut();
+                let mut mem_size: size_t = 0;
+                let em_err = lodepng_encode_memory(
+                    &mut mem_ptr,
+                    &mut mem_size,
+                    rgba.as_ptr(),
+                    w as c_uint,
+                    h as c_uint,
+                    6 as _,
+                    8,
+                ) as u32;
+                iter_digest = fold(iter_digest, em_err as u64);
+
+                if em_err == 0 && !mem_ptr.is_null() {
+                    let png = std::slice::from_raw_parts(mem_ptr, mem_size as usize);
+                    iter_digest = fold(iter_digest, mem_size as u64);
+                    iter_digest = fold(iter_digest, checksum_prefix(png, 256));
+
+                    let mut d32_ptr: *mut c_uchar = ptr::null_mut();
+                    let mut dw = 0u32;
+                    let mut dh = 0u32;
+                    let d32_err = lodepng_decode_memory(
+                        &mut d32_ptr,
+                        &mut dw,
+                        &mut dh,
+                        mem_ptr,
+                        mem_size,
+                        6 as _,
+                        8,
+                    ) as u32;
+                    iter_digest = fold(iter_digest, d32_err as u64);
+                    iter_digest = fold(iter_digest, dw as u64);
+                    iter_digest = fold(iter_digest, dh as u64);
+                    if d32_err == 0 && !d32_ptr.is_null() {
+                        let out = std::slice::from_raw_parts(
+                            d32_ptr,
+                            (dw as usize).saturating_mul(dh as usize).saturating_mul(4),
+                        );
+                        iter_digest = fold(iter_digest, checksum_prefix(out, 512));
+                    } else {
+                        iter_digest = fold(iter_digest, 0);
+                    }
+                    free_c_buffer(d32_ptr);
+
+                    let mut d24_ptr: *mut c_uchar = ptr::null_mut();
+                    dw = 0;
+                    dh = 0;
+                    let d24_err = lodepng_decode_memory(
+                        &mut d24_ptr,
+                        &mut dw,
+                        &mut dh,
+                        mem_ptr,
+                        mem_size,
+                        2 as _,
+                        8,
+                    ) as u32;
+                    iter_digest = fold(iter_digest, d24_err as u64);
+                    iter_digest = fold(iter_digest, dw as u64);
+                    iter_digest = fold(iter_digest, dh as u64);
+                    if d24_err == 0 && !d24_ptr.is_null() {
+                        let out = std::slice::from_raw_parts(
+                            d24_ptr,
+                            (dw as usize).saturating_mul(dh as usize).saturating_mul(3),
+                        );
+                        iter_digest = fold(iter_digest, checksum_prefix(out, 512));
+                    } else {
+                        iter_digest = fold(iter_digest, 0);
+                    }
+                    free_c_buffer(d24_ptr);
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                }
+                free_c_buffer(mem_ptr);
+
+                let gray_png = encode_gray1_interlaced_png(rgba);
+                let rgba16_png = encode_rgba16_interlaced_png(rgba);
+                iter_digest = fold(iter_digest, gray_png.len() as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(&gray_png, 128));
+                iter_digest = fold(iter_digest, rgba16_png.len() as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(&rgba16_png, 128));
+
+                let mut st1 = MaybeUninit::<LodePNGState>::zeroed();
+                lodepng_state_init(st1.as_mut_ptr());
+                (*st1.as_mut_ptr()).info_raw = lodepng_color_mode_make(0 as _, 1);
+                let mut out1_ptr: *mut c_uchar = ptr::null_mut();
+                let mut gw = 0u32;
+                let mut gh = 0u32;
+                let dg_err = lodepng_decode(
+                    &mut out1_ptr,
+                    &mut gw,
+                    &mut gh,
+                    st1.as_mut_ptr(),
+                    gray_png.as_ptr(),
+                    gray_png.len() as size_t,
+                ) as u32;
+                iter_digest = fold(iter_digest, dg_err as u64);
+                iter_digest = fold(iter_digest, gw as u64);
+                iter_digest = fold(iter_digest, gh as u64);
+                if dg_err == 0 && !out1_ptr.is_null() {
+                    let sz = lodepng_get_raw_size(gw as c_uint, gh as c_uint, &(*st1.as_mut_ptr()).info_raw) as usize;
+                    let out = std::slice::from_raw_parts(out1_ptr, sz);
+                    iter_digest = fold(iter_digest, checksum(out));
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                }
+                free_c_buffer(out1_ptr);
+                lodepng_state_cleanup(st1.as_mut_ptr());
+
+                let mut st2 = MaybeUninit::<LodePNGState>::zeroed();
+                lodepng_state_init(st2.as_mut_ptr());
+                (*st2.as_mut_ptr()).info_raw = lodepng_color_mode_make(6 as _, 16);
+                let mut out2_ptr: *mut c_uchar = ptr::null_mut();
+                let mut rw = 0u32;
+                let mut rh = 0u32;
+                let dr16_err = lodepng_decode(
+                    &mut out2_ptr,
+                    &mut rw,
+                    &mut rh,
+                    st2.as_mut_ptr(),
+                    rgba16_png.as_ptr(),
+                    rgba16_png.len() as size_t,
+                ) as u32;
+                iter_digest = fold(iter_digest, dr16_err as u64);
+                iter_digest = fold(iter_digest, rw as u64);
+                iter_digest = fold(iter_digest, rh as u64);
+                if dr16_err == 0 && !out2_ptr.is_null() {
+                    let sz = lodepng_get_raw_size(rw as c_uint, rh as c_uint, &(*st2.as_mut_ptr()).info_raw) as usize;
+                    let out = std::slice::from_raw_parts(out2_ptr, sz);
+                    iter_digest = fold(iter_digest, checksum_prefix(out, 512));
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                }
+                free_c_buffer(out2_ptr);
+                lodepng_state_cleanup(st2.as_mut_ptr());
+
+                last_err = 0;
+                iter_digest = fold_error_text(iter_digest, last_err);
+            } else {
+                last_err = 0xE300;
+                iter_digest = fold(iter_digest, last_err as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(data, 64));
+                iter_digest = fold_error_text(iter_digest, last_err);
+            }
+
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=memory_codec err={} digest={:016x}", last_err, digest)
+}
+
+pub fn stateful_palette_encode(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut iter_digest = 0u64;
+
+            iter_digest = fold(iter_digest, data.len() as u64);
+            iter_digest = fold(iter_digest, checksum_prefix(data, 256));
+            if !data.is_empty() {
+                iter_digest = fold(iter_digest, checksum(data));
+                iter_digest = fold(iter_digest, lodepng_crc32(data.as_ptr(), data.len() as size_t) as u64);
+            } else {
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+            }
+
+            let mut src = MaybeUninit::<LodePNGState>::zeroed();
+            let mut dst = MaybeUninit::<LodePNGState>::zeroed();
+            lodepng_state_init(src.as_mut_ptr());
+            lodepng_state_init(dst.as_mut_ptr());
+            let sp = src.as_mut_ptr();
+            let dp = dst.as_mut_ptr();
+
+            (*sp).info_raw = lodepng_color_mode_make(3 as _, 8);
+            (*sp).info_png.color = lodepng_color_mode_make(3 as _, 8);
+            (*sp).info_png.interlace_method = 1;
+            (*sp).encoder.auto_convert = 0;
+            (*sp).encoder.force_palette = 1;
+            (*sp).encoder.text_compression = 1;
+
+            let mut palette_digest = 0u64;
+            for i in 0..16u8 {
+                let srcb = if data.is_empty() {
+                    i
+                } else {
+                    data[(i as usize) % data.len()]
+                };
+                let r = srcb.wrapping_mul(13).wrapping_add(i);
+                let g = srcb.wrapping_mul(7).wrapping_add(41);
+                let b = srcb.wrapping_mul(19).wrapping_add(3);
+                let a = if srcb & 1 == 0 { 255 } else { 80 };
+                palette_digest = fold(palette_digest, srcb as u64);
+                palette_digest = fold(palette_digest, r as u64);
+                palette_digest = fold(palette_digest, g as u64);
+                palette_digest = fold(palette_digest, b as u64);
+                palette_digest = fold(palette_digest, a as u64);
+                let _ = lodepng_palette_add(&mut (*sp).info_raw, r, g, b, a);
+                let _ = lodepng_palette_add(&mut (*sp).info_png.color, r, g, b, a);
+            }
+            iter_digest = fold(iter_digest, palette_digest);
+
+            let key = b"Author\0";
+            let val = b"harness\0";
+            let ikey = b"Note\0";
+            let ilang = b"en\0";
+            let itr = b"note\0";
+            let ival = b"palette+interlace+metadata\0";
+            let _ = lodepng_add_text(
+                &mut (*sp).info_png,
+                key.as_ptr() as *const c_char,
+                val.as_ptr() as *const c_char,
+            );
+            let _ = lodepng_add_itext(
+                &mut (*sp).info_png,
+                ikey.as_ptr() as *const c_char,
+                ilang.as_ptr() as *const c_char,
+                itr.as_ptr() as *const c_char,
+                ival.as_ptr() as *const c_char,
+            );
+
+            let icc_name = b"sRGB\0";
+            let icc_profile: [u8; 25] = *b"FakeICCProfileData1234567";
+            let exif_blob: [u8; 20] = [
+                0x4d, 0x4d, 0x00, 0x2a, 0, 0, 0, 8, 0, 1, 0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, 2,
+            ];
+            let icc_err = lodepng_set_icc(
+                &mut (*sp).info_png,
+                icc_name.as_ptr() as *const c_char,
+                icc_profile.as_ptr(),
+                icc_profile.len() as c_uint,
+            ) as u32;
+            let exif_err =
+                lodepng_set_exif(&mut (*sp).info_png, exif_blob.as_ptr(), exif_blob.len() as c_uint)
+                    as u32;
+            iter_digest = fold(iter_digest, icc_err as u64);
+            iter_digest = fold(iter_digest, exif_err as u64);
+            lodepng_clear_icc(&mut (*sp).info_png);
+            lodepng_clear_exif(&mut (*sp).info_png);
+            let icc_err2 = lodepng_set_icc(
+                &mut (*sp).info_png,
+                icc_name.as_ptr() as *const c_char,
+                icc_profile.as_ptr(),
+                icc_profile.len() as c_uint,
+            ) as u32;
+            let exif_err2 =
+                lodepng_set_exif(&mut (*sp).info_png, exif_blob.as_ptr(), exif_blob.len() as c_uint)
+                    as u32;
+            iter_digest = fold(iter_digest, icc_err2 as u64);
+            iter_digest = fold(iter_digest, exif_err2 as u64);
+
+            let copy_err = lodepng_state_copy(dp, sp) as u32;
+            iter_digest = fold(iter_digest, copy_err as u64);
+
+            let mut info_copy = MaybeUninit::<LodePNGInfo>::zeroed();
+            lodepng_info_init(info_copy.as_mut_ptr());
+            let icopy_err = lodepng_info_copy(info_copy.as_mut_ptr(), &(*sp).info_png) as u32;
+            iter_digest = fold(iter_digest, icopy_err as u64);
+            lodepng_clear_text(info_copy.as_mut_ptr());
+            lodepng_clear_itext(info_copy.as_mut_ptr());
+            lodepng_info_cleanup(info_copy.as_mut_ptr());
+
+            iter_digest = fold(iter_digest, lodepng_is_palette_type(&(*sp).info_png.color) as u64);
+            iter_digest =
+                fold(iter_digest, lodepng_has_palette_alpha(&(*sp).info_png.color) as u64);
+            iter_digest = fold(iter_digest, lodepng_get_channels(&(*sp).info_png.color) as u64);
+            iter_digest = fold(iter_digest, lodepng_get_bpp(&(*sp).info_png.color) as u64);
+            iter_digest = fold(iter_digest, lodepng_can_have_alpha(&(*sp).info_png.color) as u64);
+
+            let w = 64u32;
+            let h = 64u32;
+            let mut image = vec![0u8; (w * h) as usize];
+            let mut image_digest = 0u64;
+            let mut hist = [0u32; 16];
+            for (i, px) in image.iter_mut().enumerate() {
+                let b = if data.is_empty() {
+                    i as u8
+                } else {
+                    let src = data[i % data.len()];
+                    let mix = data[(i.wrapping_mul(131).wrapping_add(data.len())) % data.len()];
+                    src.rotate_left((i & 7) as u32) ^ mix.wrapping_add((i as u8).wrapping_mul(17))
+                };
+                let idx = b & 15;
+                *px = idx;
+                hist[idx as usize] = hist[idx as usize].wrapping_add(1);
+                image_digest = fold(image_digest, idx as u64);
+            }
+            iter_digest = fold(iter_digest, image_digest);
+            for &count in &hist {
+                iter_digest = fold(iter_digest, count as u64);
+            }
+
+            let mut out_ptr: *mut c_uchar = ptr::null_mut();
+            let mut out_size: size_t = 0;
+            let enc_err = lodepng_encode(
+                &mut out_ptr,
+                &mut out_size,
+                image.as_ptr(),
+                w as c_uint,
+                h as c_uint,
+                dp,
+            ) as u32;
+            last_err = enc_err;
+            iter_digest = fold(iter_digest, enc_err as u64);
+
+            if enc_err == 0 && !out_ptr.is_null() {
+                let out = std::slice::from_raw_parts(out_ptr, out_size as usize);
+                iter_digest = fold(iter_digest, out_size as u64);
+                iter_digest = fold(iter_digest, checksum(out));
+
+                let mut dec_ptr: *mut c_uchar = ptr::null_mut();
+                let mut dw = 0u32;
+                let mut dh = 0u32;
+                let dec_err =
+                    lodepng_decode32(&mut dec_ptr, &mut dw, &mut dh, out_ptr, out_size) as u32;
+                iter_digest = fold(iter_digest, dec_err as u64);
+                iter_digest = fold(iter_digest, dw as u64);
+                iter_digest = fold(iter_digest, dh as u64);
+                if dec_err == 0 && !dec_ptr.is_null() {
+                    let dec_len = (dw as usize).saturating_mul(dh as usize).saturating_mul(4);
+                    let dec = std::slice::from_raw_parts(dec_ptr, dec_len);
+                    iter_digest = fold(iter_digest, dec_len as u64);
+                    iter_digest = fold(iter_digest, checksum_prefix(dec, 512));
+                    if dec_len >= 4 {
+                        iter_digest = fold(iter_digest, dec[0] as u64);
+                        iter_digest = fold(iter_digest, dec[1] as u64);
+                        iter_digest = fold(iter_digest, dec[2] as u64);
+                        iter_digest = fold(iter_digest, dec[3] as u64);
+                    } else {
+                        iter_digest = fold(iter_digest, 0);
+                        iter_digest = fold(iter_digest, 0);
+                        iter_digest = fold(iter_digest, 0);
+                        iter_digest = fold(iter_digest, 0);
+                    }
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                }
+                free_c_buffer(dec_ptr);
+            } else {
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+            }
+
+            iter_digest = fold_error_text(iter_digest, enc_err);
+
+            free_c_buffer(out_ptr);
+            lodepng_state_cleanup(dp);
+            lodepng_state_cleanup(sp);
+
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!(
+        "op=stateful_palette_encode err={} digest={:016x}",
+        last_err, digest
+    )
+}
+
+pub fn ops() -> Vec<(&'static str, fn(&[u8], u64) -> String)> {
+    vec![
+        ("decode32_png", decode32_png as fn(&[u8], u64) -> String),
+        ("decode24_png", decode24_png as fn(&[u8], u64) -> String),
+        ("inspect_png", inspect_png as fn(&[u8], u64) -> String),
+        ("zlib_decompress", zlib_decompress as fn(&[u8], u64) -> String),
+        (
+            "raw_deflate_inflate",
+            raw_deflate_inflate as fn(&[u8], u64) -> String,
+        ),
+        ("encode_png", encode_png as fn(&[u8], u64) -> String),
+        ("color_convert", color_convert as fn(&[u8], u64) -> String),
+        ("chunk_ops", chunk_ops as fn(&[u8], u64) -> String),
+        ("file_codec", file_codec as fn(&[u8], u64) -> String),
+        ("memory_codec", memory_codec as fn(&[u8], u64) -> String),
+        (
+            "stateful_palette_encode",
+            stateful_palette_encode as fn(&[u8], u64) -> String,
+        ),
+    ]
+}
+
+pub fn gen_seeds(dir: &str) -> Vec<String> {
+    let mut lines = Vec::new();
+    let _ = fs::create_dir_all(dir);
+
+    let img1 = rgba_pattern_a(64, 48);
+    let img2 = rgba_pattern_b(73, 55);
+
+    let png1 = encode_png_bytes(&img1, 64, 48);
+    let png2 = encode_png_bytes(&img2, 73, 55);
+    let rich1_raw = encode_palette_png_with_features(&img1);
+    let rich2_raw = encode_palette_png_with_features(&img2);
+    let gray1 = encode_gray1_interlaced_png(&img1);
+    let gray2 = encode_gray1_interlaced_png(&img2);
+    let rgba16_1 = encode_rgba16_interlaced_png(&img1);
+    let rgba16_2 = encode_rgba16_interlaced_png(&img2);
+
+    let (decode32_a, decode32_b) = choose_distinct_nonempty_png_pair(
+        gray1.clone(),
+        rgba16_2.clone(),
+        rich1_raw.clone(),
+        png2.clone(),
+    );
+    let (decode24_a, decode24_b) = choose_distinct_nonempty_png_pair(
+        rich2_raw.clone(),
+        gray2.clone(),
+        png1.clone(),
+        rgba16_1.clone(),
+    );
+    let (inspect_a, inspect_b) = choose_distinct_nonempty_png_pair(
+        rich1_raw.clone(),
+        rgba16_1.clone(),
+        gray1.clone(),
+        png2.clone(),
+    );
+
+    for (op, idx, bytes) in [
+        ("decode32_png", 1usize, &decode32_a),
+        ("decode32_png", 2usize, &decode32_b),
+        ("decode24_png", 1usize, &decode24_a),
+        ("decode24_png", 2usize, &decode24_b),
+        ("inspect_png", 1usize, &inspect_a),
+        ("inspect_png", 2usize, &inspect_b),
+    ] {
+        let path = format!("{}/{}.{}.bin", dir, op, idx);
+        let _ = fs::write(&path, bytes);
+        lines.push(format!("seed {} {}", op, path));
+    }
+
+    let plain1 = synth_plaintext_a(24 * 1024);
+    let plain2 = synth_plaintext_b(28 * 1024);
+    let z1 = compress_zlib_bytes(&plain1);
+    let z2 = compress_zlib_bytes(&plain2);
+
+    for (idx, bytes) in [(1usize, &z1), (2usize, &z2)] {
+        let path = format!("{}/zlib_decompress.{}.bin", dir, idx);
+        let _ = fs::write(&path, bytes);
+        lines.push(format!("seed zlib_decompress {}", path));
+    }
+
+    for (idx, bytes) in [(1usize, &plain1), (2usize, &plain2)] {
+        let path = format!("{}/raw_deflate_inflate.{}.bin", dir, idx);
+        let _ = fs::write(&path, bytes);
+        lines.push(format!("seed raw_deflate_inflate {}", path));
+    }
+
+    let raw1 = raw_container(40, 30, &rgba_pattern_a(40, 30));
+    let raw2 = raw_container(57, 41, &rgba_pattern_b(57, 41));
+    for op in ["encode_png", "color_convert", "file_codec", "memory_codec"] {
+        for (idx, bytes) in [(1usize, &raw1), (2usize, &raw2)] {
+            let path = format!("{}/{}.{}.bin", dir, op, idx);
+            let _ = fs::write(&path, bytes);
+            lines.push(format!("seed {} {}", op, path));
+        }
+    }
+
+    let chunk1 = if !png1.is_empty() {
+        png1.clone()
+    } else {
+        decode32_a.clone()
+    };
+    let chunk2 = if !inspect_b.is_empty() && inspect_b != chunk1 {
+        inspect_b.clone()
+    } else if !png2.is_empty() && png2 != chunk1 {
+        png2.clone()
+    } else {
+        decode32_b.clone()
+    };
+    for (idx, bytes) in [(1usize, &chunk1), (2usize, &chunk2)] {
+        let path = format!("{}/chunk_ops.{}.bin", dir, idx);
+        let _ = fs::write(&path, bytes);
+        lines.push(format!("seed chunk_ops {}", path));
+    }
+
+    let sp1 = synth_plaintext_a(1024);
+    let sp2 = synth_plaintext_b(1536);
+    for (idx, bytes) in [(1usize, &sp1), (2usize, &sp2)] {
+        let path = format!("{}/stateful_palette_encode.{}.bin", dir, idx);
+        let _ = fs::write(&path, bytes);
+        lines.push(format!("seed stateful_palette_encode {}", path));
+    }
+
+    lines
+}
+
+pub fn gen_perf(dir: &str) -> Vec<String> {
+    let mut lines = Vec::new();
+    let _ = fs::create_dir_all(dir);
+
+    let w = 2048u32;
+    let h = 2048u32;
+    let big_rgba = rgba_pattern_b(w, h);
+
+    let big_png = encode_png_bytes(&big_rgba, w, h);
+    let big_rich_png_raw = encode_palette_png_with_features(&big_rgba);
+    let big_rich_png = if !big_rich_png_raw.is_empty() {
+        big_rich_png_raw
+    } else {
+        big_png.clone()
+    };
+    let big_gray = {
+        let g = encode_gray1_interlaced_png(&big_rgba);
+        if g.is_empty() { big_rich_png.clone() } else { g }
+    };
+    let big_rgba16 = {
+        let g = encode_rgba16_interlaced_png(&big_rgba);
+        if g.is_empty() { big_png.clone() } else { g }
+    };
+
+    for (op, bytes) in [
+        ("decode32_png", &big_rgba16),
+        ("decode24_png", &big_gray),
+        ("inspect_png", &big_rich_png),
+    ] {
+        let path = format!("{}/{}.perf.bin", dir, op);
+        let _ = fs::write(&path, bytes);
+        lines.push(format!("perf {} {}", op, path));
+    }
+
+    let big_raw = raw_container(w, h, &big_rgba);
+    for op in ["encode_png", "color_convert", "file_codec", "memory_codec"] {
+        let path = format!("{}/{}.perf.bin", dir, op);
+        let _ = fs::write(&path, &big_raw);
+        lines.push(format!("perf {} {}", op, path));
+    }
+
+    let big_plain = synth_plaintext_b(8 * 1024 * 1024);
+    let big_z = compress_zlib_bytes(&big_plain);
+
+    let path = format!("{}/zlib_decompress.perf.bin", dir);
+    let _ = fs::write(&path, &big_z);
+    lines.push(format!("perf zlib_decompress {}", path));
+
+    let path = format!("{}/raw_deflate_inflate.perf.bin", dir);
+    let _ = fs::write(&path, &big_plain);
+    lines.push(format!("perf raw_deflate_inflate {}", path));
+
+    let stateful_seed = synth_plaintext_b(2 * 1024 * 1024);
+    let path = format!("{}/stateful_palette_encode.perf.bin", dir);
+    let _ = fs::write(&path, &stateful_seed);
+    lines.push(format!("perf stateful_palette_encode {}", path));
+
+    lines
+}
+
+```
+
+HARNESS CONTRACT (the gates verify every point below mechanically):
+
+You write ONLY `src/lib.rs`. A fixed, pre-generated `src/main.rs` CLI
+shell (and separate fuzz targets) call into it, so lib.rs MUST export
+exactly this interface:
+
+  /// (op_name, runner) registry — one entry per operation.
+  pub fn ops() -> Vec<(&'static str, fn(&[u8], u64) -> String)>
+
+  /// Write, for EVERY operation with "needs_input": true, exactly two
+  /// DISTINCT, VALID input files: <dir>/<op>.1.bin and <dir>/<op>.2.bin
+  /// (deterministic bytes — same files on every run). You may call the
+  /// library itself to synthesize them (e.g. use the encoder to produce
+  /// inputs for a decode operation). Return one line per file:
+  /// `seed <op> <path>`.
+  pub fn gen_seeds(dir: &str) -> Vec<String>
+
+  /// Write, for each operation whose work SCALES with input size, ONE input
+  /// `<dir>/<op>.perf.bin` that is LARGE and REALISTIC enough that the
+  /// operation's inner loop — not per-call setup/malloc/memset/libc —
+  /// dominates a profiled run (the library's own code should account for the
+  /// bulk of the time). This usually needs SEVERAL MEGABYTES, not a few KB.
+  ///
+  /// The data MUST be REALISTIC for the operation, NOT random/uniform bytes.
+  /// Random or degenerate data makes many kernels take a trivial path and stay
+  /// cold: compressors/matchers find no repeats, parsers/decoders hit an early
+  /// error and bail, searches find nothing. Generate data with the STRUCTURE
+  /// and REDUNDANCY that real inputs of this domain have (repeated substrings,
+  /// valid records/tokens, realistic value distributions) so the hot loop runs
+  /// to completion over the whole input.
+  ///
+  /// The input MUST be a VALID input the operation processes end-to-end — one
+  /// that is accepted, not rejected at a format/length/validation gate (a
+  /// rejected input measures error handling, not the kernel). For an operation
+  /// whose input is an ENCODED/COMPRESSED/PACKED blob (decode/decompress/
+  /// verify/inverse), PRODUCE that blob by first running the FORWARD direction
+  /// (the library's own encoder/compressor) over a large realistic buffer,
+  /// then feed the result — do NOT hand a decoder raw or random bytes.
+  ///
+  /// Rules of thumb by category: text/format parsers → a large valid document
+  /// with many records; codecs/compressors → a big buffer of realistic,
+  /// compressible content; hashers → a big realistic data block; decoders →
+  /// the encoder's output over such content; matrix/DP/search kernels → large
+  /// dimensions / a long realistic haystack. Deterministic bytes. Operations
+  /// whose work does NOT scale with input (config/option/getter/free ops)
+  /// SHOULD be omitted — functional-only, not perf targets. Return one line
+  /// per file written: `perf <op> <path>`.
+  pub fn gen_perf(dir: &str) -> Vec<String>
+
+Each runner fn takes (input_bytes, iters) and RETURNS the digest line(s)
+as a String (no trailing newline needed; the shell prints it).
+
+Hard rules:
+  1. DETERMINISM: identical (input, iters) → identical returned String.
+     Never include pointers/addresses, time, PIDs, paths, or HashMap
+     iteration order. Floating-point values must be folded into an
+     integer checksum (e.g. to_bits()), never formatted as decimals.
+     CRITICAL — a raw pointer VALUE is an address even when masked:
+     NEVER `fold(digest, some_ptr as u64)` or `as usize & 0xFF`. A
+     function returning a `*mut`/`*const` (e.g. lodepng_chunk_next) gives
+     an address — fold a CONTENT-derived fact instead: whether it is null
+     (`p.is_null() as u64`), or its OFFSET from a known base
+     (`(p as usize).wrapping_sub(base as usize) as u64`). An address low
+     byte looks stable within one build but changes across builds/hosts,
+     silently rotting the golden oracle.
+  2. INPUT-SENSITIVITY: the digest MUST depend on the input bytes
+     (<op>.1.bin and <op>.2.bin must yield different digests).
+  3. ERRORS ARE DATA — NEVER EXIT OR PANIC: these runners are also used
+     as fuzz targets fed with arbitrary malformed bytes. When the
+     library reports an error, fold the error code into the digest
+     (e.g. return "op=decode err=83 digest=0") and return normally.
+     No std::process::exit, no panics/unwrap on input-dependent values,
+     no slice indexing that can go out of bounds on short inputs.
+  4. ITERS: when iters > 1, re-run the operation each iteration and fold
+     each iteration's digest into a running wrapping checksum; return
+     the digest once at the end. Iterations must not accumulate state
+     that changes results (re-init library state each iteration).
+  5. The heavy lifting must happen INSIDE the library-under-test; the
+     harness only feeds inputs and folds outputs (checksum over output
+     buffers, counts, sizes). Do not re-implement library logic.
+  6. Free / clean up library-allocated buffers with the library's own
+     free functions where provided (also on error paths — no leaks per
+     iteration, fuzzing runs millions of executions).
+  7. Runner fns registered in ops() must be safe `fn` items (wrap the
+     unsafe FFI work inside the function body).
+  8. PER-MODULE DUPLICATE TYPES (c2rust gotcha): c2rust emits the SAME C
+     struct as a DISTINCT Rust type in EVERY module that references it —
+     e.g. `json_tokener::json_object`, `json_patch::json_object` and
+     `json_object::json_object` are three different types with IDENTICAL
+     layout. The compiler will NOT unify them: passing a pointer returned by
+     one module's fn into another module's fn is an E0308 `mismatched types`
+     (`expected *mut a::T, found *mut b::T`). To bridge, CAST THE RAW POINTER
+     at the call boundary: `foo_from_mod_b(p as *mut _)` (or
+     `p as *const _` / `p.cast()`). Pick ONE module's type as canonical per
+     struct and cast every cross-module pointer to it. Never assume two
+     same-named structs from different modules are the same type, and never
+     transmute whole values — cast the pointer.
+
+
+RULES FOR THIS EDIT:
+- Change ONLY `gen_perf` (and add private helper fns if needed). Keep `ops()`
+  and `gen_seeds` BYTE-FOR-BYTE identical — they define correctness.
+- Each op that currently has a perf input should still get one, now shaped to
+  also exercise the missed functions belonging to that op.
+- Inputs must stay VALID and LARGE (the library algorithm dominates, not libc).
+
+Output the single complete updated `src/lib.rs` in one ```rust block.
+
+----- OUTPUT -----
+```rust
+use std::ffi::{c_char, c_uchar, c_uint, c_void, CStr, CString};
+use std::fs;
+use std::mem::MaybeUninit;
+use std::path::PathBuf;
+use std::ptr;
+
+use lodepng_bench_raw::src::lodepng::{
+    lodepng_add_itext, lodepng_add_text, lodepng_can_have_alpha, lodepng_chunk_ancillary,
+    lodepng_chunk_append, lodepng_chunk_check_crc, lodepng_chunk_create, lodepng_chunk_data,
+    lodepng_chunk_data_const, lodepng_chunk_find, lodepng_chunk_find_const,
+    lodepng_chunk_generate_crc, lodepng_chunk_length, lodepng_chunk_next,
+    lodepng_chunk_next_const, lodepng_chunk_private, lodepng_chunk_safetocopy,
+    lodepng_chunk_type, lodepng_chunk_type_equals, lodepng_clear_exif, lodepng_clear_icc,
+    lodepng_clear_itext, lodepng_clear_text, lodepng_color_mode_cleanup,
+    lodepng_color_mode_copy, lodepng_color_mode_init, lodepng_color_mode_make,
+    lodepng_compress_settings_init, lodepng_convert, lodepng_convert_rgb, lodepng_crc32,
+    lodepng_decode, lodepng_decode24, lodepng_decode24_file, lodepng_decode32,
+    lodepng_decode32_file, lodepng_decode_file, lodepng_decode_memory,
+    lodepng_decompress_settings_init, lodepng_deflate, lodepng_encode, lodepng_encode24,
+    lodepng_encode24_file, lodepng_encode32, lodepng_encode32_file, lodepng_encode_file,
+    lodepng_encode_memory, lodepng_error_text, lodepng_get_bpp, lodepng_get_channels,
+    lodepng_get_raw_size, lodepng_has_palette_alpha, lodepng_info_cleanup,
+    lodepng_info_copy, lodepng_info_init, lodepng_inflate, lodepng_inspect,
+    lodepng_inspect_chunk, lodepng_is_alpha_type, lodepng_is_greyscale_type,
+    lodepng_is_palette_type, lodepng_load_file, lodepng_palette_add, lodepng_palette_clear,
+    lodepng_save_file, lodepng_set_exif, lodepng_set_icc, lodepng_state_cleanup,
+    lodepng_state_copy, lodepng_state_init, lodepng_zlib_compress, lodepng_zlib_decompress,
+    size_t, LodePNGColorMode, LodePNGCompressSettings, LodePNGDecompressSettings, LodePNGInfo,
+    LodePNGState,
+};
+
+extern "C" {
+    fn free(ptr: *mut c_void);
+}
+
+fn fold(acc: u64, x: u64) -> u64 {
+    acc.rotate_left(7) ^ x.wrapping_mul(0x9E37_79B9_7F4A_7C15)
+}
+
+fn checksum(bytes: &[u8]) -> u64 {
+    let mut acc = 0x243F_6A88_85A3_08D3u64;
+    for &b in bytes {
+        acc = fold(acc, b as u64);
+    }
+    acc
+}
+
+fn checksum_prefix(bytes: &[u8], max_len: usize) -> u64 {
+    checksum(&bytes[..bytes.len().min(max_len)])
+}
+
+unsafe fn free_c_buffer(p: *mut c_uchar) {
+    if !p.is_null() {
+        free(p as *mut c_void);
+    }
+}
+
+fn read_u32_le_at(data: &[u8], off: usize) -> Option<u32> {
+    let end = off.checked_add(4)?;
+    let s = data.get(off..end)?;
+    Some(u32::from_le_bytes([s[0], s[1], s[2], s[3]]))
+}
+
+fn rgba_pattern_a(w: u32, h: u32) -> Vec<u8> {
+    let mut out = Vec::with_capacity((w as usize).saturating_mul(h as usize).saturating_mul(4));
+    for y in 0..h {
+        for x in 0..w {
+            let checker = (((x / 8) ^ (y / 8)) & 1) as u8;
+            let r = ((x * 3 + y * 5) & 255) as u8;
+            let g = ((x * 7 + 17) & 255) as u8;
+            let b = if checker == 0 { 32 } else { 220 };
+            let a = (((x ^ y) * 11) & 255) as u8;
+            out.extend_from_slice(&[r, g, b, a]);
+        }
+    }
+    out
+}
+
+fn rgba_pattern_b(w: u32, h: u32) -> Vec<u8> {
+    let mut out = Vec::with_capacity((w as usize).saturating_mul(h as usize).saturating_mul(4));
+    for y in 0..h {
+        for x in 0..w {
+            let band = ((y / 12) % 6) as u8;
+            let r = (((x.wrapping_mul(x) + y * 13) >> 2) & 255) as u8;
+            let g = (((y * 9 + x * 2) ^ ((band as u32) * 37)) & 255) as u8;
+            let b = match band {
+                0 => 16,
+                1 => 64,
+                2 => 112,
+                3 => 160,
+                4 => 208,
+                _ => 240,
+            };
+            let a = if (x / 16 + y / 16) % 3 == 0 {
+                255
+            } else if (x + y) % 5 == 0 {
+                96
+            } else {
+                180
+            };
+            out.extend_from_slice(&[r, g, b, a]);
+        }
+    }
+    out
+}
+
+fn rgb_from_rgba(rgba: &[u8]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(rgba.len() / 4 * 3);
+    let mut i = 0usize;
+    while i + 3 < rgba.len() {
+        out.push(rgba[i]);
+        out.push(rgba[i + 1]);
+        out.push(rgba[i + 2]);
+        i += 4;
+    }
+    out
+}
+
+fn raw_container(w: u32, h: u32, rgba: &[u8]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(8 + rgba.len());
+    out.extend_from_slice(&w.to_le_bytes());
+    out.extend_from_slice(&h.to_le_bytes());
+    out.extend_from_slice(rgba);
+    out
+}
+
+fn parse_raw_rgba(data: &[u8]) -> Option<(u32, u32, &[u8])> {
+    let w = read_u32_le_at(data, 0)?;
+    let h = read_u32_le_at(data, 4)?;
+    let px_len_u64 = (w as u64).checked_mul(h as u64)?.checked_mul(4)?;
+    let px_len = usize::try_from(px_len_u64).ok()?;
+    if data.len() != 8 + px_len {
+        return None;
+    }
+    Some((w, h, &data[8..]))
+}
+
+fn synth_plaintext_a(len: usize) -> Vec<u8> {
+    let mut out = Vec::with_capacity(len);
+    let lines = [
+        "alpha,beta,gamma,delta,epsilon,zeta,eta,theta\n",
+        "the quick brown fox jumps over the lazy dog 0123456789\n",
+        "red red blue blue green green red red blue blue green green\n",
+        "lodepng benchmark structured plaintext block\n",
+    ];
+    let mut i = 0usize;
+    while out.len() < len {
+        let s = lines[i % lines.len()].as_bytes();
+        out.extend_from_slice(s);
+        out.extend_from_slice(format!("row={:08} phase={:04}\n", i, i % 97).as_bytes());
+        i += 1;
+    }
+    out.truncate(len);
+    out
+}
+
+fn synth_plaintext_b(len: usize) -> Vec<u8> {
+    let mut out = Vec::with_capacity(len);
+    let mut block = [0u8; 256];
+    for (i, b) in block.iter_mut().enumerate() {
+        *b = ((i as u32 * 17 + (i as u32 / 7) * 29) & 255) as u8;
+    }
+    let mut row = 0u32;
+    while out.len() < len {
+        out.extend_from_slice(b"BEGIN-BLOCK\n");
+        for rep in 0..24u32 {
+            out.extend_from_slice(format!("r={:06} rep={:03} | ", row, rep).as_bytes());
+            let start = ((row.wrapping_mul(13) + rep * 19) as usize) & 127;
+            out.extend_from_slice(&block[start..start + 96]);
+            out.extend_from_slice(b"\n");
+        }
+        out.extend_from_slice(b"END-BLOCK\n");
+        row = row.wrapping_add(1);
+    }
+    out.truncate(len);
+    out
+}
+
+fn encode_png_bytes(rgba: &[u8], w: u32, h: u32) -> Vec<u8> {
+    unsafe {
+        let mut out_ptr: *mut c_uchar = ptr::null_mut();
+        let mut out_size: size_t = 0;
+        let err = lodepng_encode32(
+            &mut out_ptr,
+            &mut out_size,
+            rgba.as_ptr(),
+            w as c_uint,
+            h as c_uint,
+        );
+        if err != 0 || out_ptr.is_null() {
+            free_c_buffer(out_ptr);
+            return Vec::new();
+        }
+        let bytes = std::slice::from_raw_parts(out_ptr, out_size as usize).to_vec();
+        free_c_buffer(out_ptr);
+        bytes
+    }
+}
+
+fn compress_zlib_bytes(input: &[u8]) -> Vec<u8> {
+    unsafe {
+        let mut settings = MaybeUninit::<LodePNGCompressSettings>::zeroed();
+        lodepng_compress_settings_init(settings.as_mut_ptr());
+
+        let mut out_ptr: *mut c_uchar = ptr::null_mut();
+        let mut out_size: size_t = 0;
+        let err = lodepng_zlib_compress(
+            &mut out_ptr,
+            &mut out_size,
+            input.as_ptr(),
+            input.len() as size_t,
+            settings.as_ptr(),
+        );
+        if err != 0 || out_ptr.is_null() {
+            free_c_buffer(out_ptr);
+            return Vec::new();
+        }
+        let bytes = std::slice::from_raw_parts(out_ptr, out_size as usize).to_vec();
+        free_c_buffer(out_ptr);
+        bytes
+    }
+}
+
+fn encode_palette_png_with_features(seed: &[u8]) -> Vec<u8> {
+    unsafe {
+        let mut st = MaybeUninit::<LodePNGState>::zeroed();
+        lodepng_state_init(st.as_mut_ptr());
+        let stp = st.as_mut_ptr();
+
+        (*stp).info_raw = lodepng_color_mode_make(3 as _, 8);
+        (*stp).info_png.color = lodepng_color_mode_make(3 as _, 8);
+        (*stp).info_png.interlace_method = 1;
+        (*stp).encoder.auto_convert = 0;
+        (*stp).encoder.force_palette = 1;
+        (*stp).encoder.text_compression = 1;
+
+        for i in 0..16u8 {
+            let r = i.wrapping_mul(17);
+            let g = i.wrapping_mul(11).wrapping_add(23);
+            let b = i.wrapping_mul(29).wrapping_add(7);
+            let a = if i % 5 == 0 { 96 } else { 255 };
+            let _ = lodepng_palette_add(&mut (*stp).info_raw, r, g, b, a);
+            let _ = lodepng_palette_add(&mut (*stp).info_png.color, r, g, b, a);
+        }
+
+        let key1 = b"Comment\0";
+        let val1 = b"palette/interlace seed\0";
+        let key2 = b"LangComment\0";
+        let lang = b"en\0";
+        let tr = b"comment\0";
+        let val2 = b"international text payload\0";
+        let _ = lodepng_add_text(
+            &mut (*stp).info_png,
+            key1.as_ptr() as *const c_char,
+            val1.as_ptr() as *const c_char,
+        );
+        let _ = lodepng_add_itext(
+            &mut (*stp).info_png,
+            key2.as_ptr() as *const c_char,
+            lang.as_ptr() as *const c_char,
+            tr.as_ptr() as *const c_char,
+            val2.as_ptr() as *const c_char,
+        );
+
+        let icc_name = b"sRGB\0";
+        let icc_profile: [u8; 25] = *b"FakeICCProfileData1234567";
+        let exif_blob: [u8; 20] = [
+            0x4d, 0x4d, 0x00, 0x2a, 0, 0, 0, 8, 0, 1, 0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, 1,
+        ];
+        let _ = lodepng_set_icc(
+            &mut (*stp).info_png,
+            icc_name.as_ptr() as *const c_char,
+            icc_profile.as_ptr(),
+            icc_profile.len() as c_uint,
+        );
+        let _ = lodepng_set_exif(
+            &mut (*stp).info_png,
+            exif_blob.as_ptr(),
+            exif_blob.len() as c_uint,
+        );
+
+        let w = 64u32;
+        let h = 64u32;
+        let mut image = vec![0u8; (w * h) as usize];
+        for (i, px) in image.iter_mut().enumerate() {
+            let b = if seed.is_empty() { i as u8 } else { seed[i % seed.len()] };
+            *px = b & 15;
+        }
+
+        let mut out_ptr: *mut c_uchar = ptr::null_mut();
+        let mut out_size: size_t = 0;
+        let err = lodepng_encode(
+            &mut out_ptr,
+            &mut out_size,
+            image.as_ptr(),
+            w as c_uint,
+            h as c_uint,
+            stp,
+        );
+
+        let out = if err == 0 && !out_ptr.is_null() {
+            let v = std::slice::from_raw_parts(out_ptr, out_size as usize).to_vec();
+            free_c_buffer(out_ptr);
+            v
+        } else {
+            free_c_buffer(out_ptr);
+            Vec::new()
+        };
+
+        lodepng_state_cleanup(stp);
+        out
+    }
+}
+
+fn encode_gray1_interlaced_png(seed: &[u8]) -> Vec<u8> {
+    unsafe {
+        let mut st = MaybeUninit::<LodePNGState>::zeroed();
+        lodepng_state_init(st.as_mut_ptr());
+        let stp = st.as_mut_ptr();
+
+        (*stp).info_raw = lodepng_color_mode_make(0 as _, 1);
+        (*stp).info_png.color = lodepng_color_mode_make(0 as _, 1);
+        (*stp).info_png.interlace_method = 1;
+        (*stp).encoder.auto_convert = 0;
+
+        let w = 33u32;
+        let h = 35u32;
+        let rowbytes = ((w + 7) / 8) as usize;
+        let mut image = vec![0u8; rowbytes.saturating_mul(h as usize)];
+
+        for y in 0..h as usize {
+            for x in 0..w as usize {
+                let s = if seed.is_empty() {
+                    ((x * 13 + y * 7) & 255) as u8
+                } else {
+                    seed[(x + y * rowbytes) % seed.len()]
+                };
+                let bit = ((s.rotate_left((x & 7) as u32) ^ (y as u8).wrapping_mul(11)) >> 5) & 1;
+                if bit != 0 {
+                    let idx = y * rowbytes + x / 8;
+                    image[idx] |= 1u8 << (7 - (x & 7));
+                }
+            }
+        }
+
+        let mut out_ptr: *mut c_uchar = ptr::null_mut();
+        let mut out_size: size_t = 0;
+        let err = lodepng_encode(
+            &mut out_ptr,
+            &mut out_size,
+            image.as_ptr(),
+            w as c_uint,
+            h as c_uint,
+            stp,
+        );
+
+        let out = if err == 0 && !out_ptr.is_null() {
+            let v = std::slice::from_raw_parts(out_ptr, out_size as usize).to_vec();
+            free_c_buffer(out_ptr);
+            v
+        } else {
+            free_c_buffer(out_ptr);
+            Vec::new()
+        };
+
+        lodepng_state_cleanup(stp);
+        out
+    }
+}
+
+fn encode_rgba16_interlaced_png(seed: &[u8]) -> Vec<u8> {
+    unsafe {
+        let mut st = MaybeUninit::<LodePNGState>::zeroed();
+        lodepng_state_init(st.as_mut_ptr());
+        let stp = st.as_mut_ptr();
+
+        (*stp).info_raw = lodepng_color_mode_make(6 as _, 16);
+        (*stp).info_png.color = lodepng_color_mode_make(6 as _, 16);
+        (*stp).info_png.interlace_method = 1;
+        (*stp).encoder.auto_convert = 0;
+
+        let w = 19u32;
+        let h = 17u32;
+        let mut image = vec![0u8; (w as usize).saturating_mul(h as usize).saturating_mul(8)];
+
+        for y in 0..h {
+            for x in 0..w {
+                let i = ((y * w + x) as usize) * 8;
+                let s0 = if seed.is_empty() {
+                    (x.wrapping_mul(9) ^ y.wrapping_mul(13)) as u8
+                } else {
+                    seed[(i + 0) % seed.len()]
+                };
+                let s1 = if seed.is_empty() {
+                    (x.wrapping_mul(5) + y.wrapping_mul(7)) as u8
+                } else {
+                    seed[(i + 1) % seed.len()]
+                };
+                let s2 = if seed.is_empty() {
+                    (x.wrapping_mul(17) + y.wrapping_mul(3)) as u8
+                } else {
+                    seed[(i + 2) % seed.len()]
+                };
+                let s3 = if seed.is_empty() {
+                    (x ^ y) as u8
+                } else {
+                    seed[(i + 3) % seed.len()]
+                };
+                let r = (((s0 as u16) << 8) | (s1 as u16)).to_be_bytes();
+                let g = ((((s1 ^ 0x5a) as u16) << 8) | (s2 as u16)).to_be_bytes();
+                let b = ((((s2 ^ 0xa5) as u16) << 8) | (s3 as u16)).to_be_bytes();
+                let a = (((255u16.wrapping_sub(s3 as u16)) << 8) | (s0 as u16)).to_be_bytes();
+                image[i..i + 2].copy_from_slice(&r);
+                image[i + 2..i + 4].copy_from_slice(&g);
+                image[i + 4..i + 6].copy_from_slice(&b);
+                image[i + 6..i + 8].copy_from_slice(&a);
+            }
+        }
+
+        let mut out_ptr: *mut c_uchar = ptr::null_mut();
+        let mut out_size: size_t = 0;
+        let err = lodepng_encode(
+            &mut out_ptr,
+            &mut out_size,
+            image.as_ptr(),
+            w as c_uint,
+            h as c_uint,
+            stp,
+        );
+
+        let out = if err == 0 && !out_ptr.is_null() {
+            let v = std::slice::from_raw_parts(out_ptr, out_size as usize).to_vec();
+            free_c_buffer(out_ptr);
+            v
+        } else {
+            free_c_buffer(out_ptr);
+            Vec::new()
+        };
+
+        lodepng_state_cleanup(stp);
+        out
+    }
+}
+
+fn temp_path(op: &str, tag: &str, data: &[u8], ext: &str) -> PathBuf {
+    let mut p = std::env::temp_dir();
+    p.push("lodepng_harness_fixed");
+    let _ = fs::create_dir_all(&p);
+    p.push(format!("{}_{}_{}{}", op, tag, checksum(data), ext));
+    p
+}
+
+fn path_cstring(path: &PathBuf) -> Option<CString> {
+    CString::new(path.to_string_lossy().as_bytes()).ok()
+}
+
+fn fold_error_text(mut digest: u64, code: u32) -> u64 {
+    unsafe {
+        let p = lodepng_error_text(code as c_uint);
+        if p.is_null() {
+            return fold(digest, 0);
+        }
+        let s = CStr::from_ptr(p).to_bytes();
+        digest = fold(digest, checksum_prefix(s, 128));
+        digest
+    }
+}
+
+fn choose_distinct_nonempty_png_pair(
+    primary1: Vec<u8>,
+    primary2: Vec<u8>,
+    fallback1: Vec<u8>,
+    fallback2: Vec<u8>,
+) -> (Vec<u8>, Vec<u8>) {
+    let a = if !primary1.is_empty() {
+        primary1
+    } else if !fallback1.is_empty() {
+        fallback1.clone()
+    } else {
+        fallback2.clone()
+    };
+
+    let mut b = if !primary2.is_empty() {
+        primary2
+    } else if !fallback2.is_empty() {
+        fallback2.clone()
+    } else {
+        fallback1.clone()
+    };
+
+    if b.is_empty() {
+        b = fallback2.clone();
+    }
+    if b == a {
+        if !fallback1.is_empty() && fallback1 != a {
+            b = fallback1;
+        } else if !fallback2.is_empty() && fallback2 != a {
+            b = fallback2;
+        }
+    }
+    (a, b)
+}
+
+pub fn decode32_png(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut out_ptr: *mut c_uchar = ptr::null_mut();
+            let mut w: c_uint = 0;
+            let mut h: c_uint = 0;
+            let err = lodepng_decode32(
+                &mut out_ptr,
+                &mut w,
+                &mut h,
+                data.as_ptr(),
+                data.len() as size_t,
+            );
+            last_err = err as u32;
+
+            let mut iter_digest = 0u64;
+            iter_digest = fold(iter_digest, err as u64);
+
+            if err == 0 {
+                let size_u64 = (w as u64).wrapping_mul(h as u64).wrapping_mul(4);
+                iter_digest = fold(iter_digest, w as u64);
+                iter_digest = fold(iter_digest, h as u64);
+                iter_digest = fold(iter_digest, size_u64);
+
+                if !out_ptr.is_null() {
+                    if let Ok(sz) = usize::try_from(size_u64) {
+                        let out = std::slice::from_raw_parts(out_ptr, sz);
+                        iter_digest = fold(iter_digest, checksum(out));
+                        iter_digest =
+                            fold(iter_digest, lodepng_crc32(out.as_ptr(), out.len() as size_t) as u64);
+                    } else {
+                        iter_digest = fold(iter_digest, 0);
+                        iter_digest = fold(iter_digest, 0);
+                    }
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                }
+            } else {
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+            }
+
+            iter_digest = fold_error_text(iter_digest, err as u32);
+            free_c_buffer(out_ptr);
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=decode32_png err={} digest={:016x}", last_err, digest)
+}
+
+pub fn decode24_png(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut out_ptr: *mut c_uchar = ptr::null_mut();
+            let mut w: c_uint = 0;
+            let mut h: c_uint = 0;
+            let err = lodepng_decode24(
+                &mut out_ptr,
+                &mut w,
+                &mut h,
+                data.as_ptr(),
+                data.len() as size_t,
+            );
+            last_err = err as u32;
+
+            let mut iter_digest = 0u64;
+            iter_digest = fold(iter_digest, err as u64);
+            iter_digest = fold(iter_digest, w as u64);
+            iter_digest = fold(iter_digest, h as u64);
+
+            if err == 0 && !out_ptr.is_null() {
+                let size_u64 = (w as u64).wrapping_mul(h as u64).wrapping_mul(3);
+                if let Ok(sz) = usize::try_from(size_u64) {
+                    let out = std::slice::from_raw_parts(out_ptr, sz);
+                    iter_digest = fold(iter_digest, size_u64);
+                    iter_digest = fold(iter_digest, checksum(out));
+                    iter_digest =
+                        fold(iter_digest, lodepng_crc32(out.as_ptr(), out.len() as size_t) as u64);
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                }
+            } else {
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+            }
+
+            iter_digest = fold_error_text(iter_digest, err as u32);
+            free_c_buffer(out_ptr);
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=decode24_png err={} digest={:016x}", last_err, digest)
+}
+
+pub fn inspect_png(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut state = MaybeUninit::<LodePNGState>::zeroed();
+            lodepng_state_init(state.as_mut_ptr());
+
+            let mut w: c_uint = 0;
+            let mut h: c_uint = 0;
+            let err = lodepng_inspect(
+                &mut w,
+                &mut h,
+                state.as_mut_ptr(),
+                data.as_ptr(),
+                data.len() as size_t,
+            );
+            last_err = err as u32;
+
+            let mut iter_digest = 0u64;
+            iter_digest = fold(iter_digest, err as u64);
+            iter_digest = fold(iter_digest, w as u64);
+            iter_digest = fold(iter_digest, h as u64);
+
+            if err == 0 && data.len() >= 8 {
+                let base = data.as_ptr();
+                let end = base.add(data.len());
+                let mut cur = base.add(8);
+                let mut steps = 0usize;
+
+                let idat = b"IDAT\0";
+                let iend = b"IEND\0";
+                let text = b"tEXt\0";
+                let plte = b"PLTE\0";
+                let exif = b"eXIf\0";
+
+                let p_idat = lodepng_chunk_find_const(cur, end, idat.as_ptr() as *const c_char);
+                iter_digest = fold(iter_digest, (!p_idat.is_null()) as u64);
+                if !p_idat.is_null() {
+                    iter_digest =
+                        fold(iter_digest, (p_idat as usize).wrapping_sub(base as usize) as u64);
+                }
+
+                let p_iend = lodepng_chunk_find_const(cur, end, iend.as_ptr() as *const c_char);
+                iter_digest = fold(iter_digest, (!p_iend.is_null()) as u64);
+
+                let p_text = lodepng_chunk_find_const(cur, end, text.as_ptr() as *const c_char);
+                iter_digest = fold(iter_digest, (!p_text.is_null()) as u64);
+
+                let p_plte = lodepng_chunk_find_const(cur, end, plte.as_ptr() as *const c_char);
+                iter_digest = fold(iter_digest, (!p_plte.is_null()) as u64);
+
+                let p_exif = lodepng_chunk_find_const(cur, end, exif.as_ptr() as *const c_char);
+                iter_digest = fold(iter_digest, (!p_exif.is_null()) as u64);
+
+                let mut owned = data.to_vec();
+                let mbase = owned.as_mut_ptr();
+                let mend = mbase.add(owned.len());
+                let mcur = mbase.add(8);
+
+                let mp = lodepng_chunk_find(mcur, mend, idat.as_ptr() as *const c_char);
+                iter_digest = fold(iter_digest, (!mp.is_null()) as u64);
+                if !mp.is_null() {
+                    let d = lodepng_chunk_data(mp);
+                    iter_digest = fold(iter_digest, (!d.is_null()) as u64);
+                    let mn = lodepng_chunk_next(mp, mend);
+                    iter_digest = fold(iter_digest, (!mn.is_null()) as u64);
+                    if !mn.is_null() && mn >= mbase && mn <= mend {
+                        iter_digest =
+                            fold(iter_digest, (mn as usize).wrapping_sub(mbase as usize) as u64);
+                    }
+                }
+
+                while !cur.is_null() && cur < end && steps < data.len() {
+                    let remaining = (end as usize).wrapping_sub(cur as usize);
+                    if remaining < 12 {
+                        break;
+                    }
+
+                    let off = (cur as usize).wrapping_sub(base as usize);
+                    let chk_err = lodepng_inspect_chunk(
+                        state.as_mut_ptr(),
+                        off as size_t,
+                        base,
+                        data.len() as size_t,
+                    );
+                    iter_digest = fold(iter_digest, chk_err as u64);
+
+                    let len = lodepng_chunk_length(cur) as usize;
+                    let total = match len.checked_add(12) {
+                        Some(v) => v,
+                        None => break,
+                    };
+                    if total > remaining {
+                        break;
+                    }
+
+                    let mut tbuf = [0i8; 5];
+                    lodepng_chunk_type(tbuf.as_mut_ptr(), cur);
+
+                    iter_digest = fold(iter_digest, off as u64);
+                    iter_digest = fold(iter_digest, len as u64);
+                    for &ch in &tbuf[..4] {
+                        iter_digest = fold(iter_digest, ch as u8 as u64);
+                    }
+
+                    let is_idat =
+                        lodepng_chunk_type_equals(cur, idat.as_ptr() as *const c_char) as u64;
+                    let is_iend =
+                        lodepng_chunk_type_equals(cur, iend.as_ptr() as *const c_char) as u64;
+                    let is_plte =
+                        lodepng_chunk_type_equals(cur, plte.as_ptr() as *const c_char) as u64;
+                    iter_digest = fold(iter_digest, is_idat);
+                    iter_digest = fold(iter_digest, is_iend);
+                    iter_digest = fold(iter_digest, is_plte);
+
+                    iter_digest = fold(iter_digest, lodepng_chunk_ancillary(cur) as u64);
+                    iter_digest = fold(iter_digest, lodepng_chunk_private(cur) as u64);
+                    iter_digest = fold(iter_digest, lodepng_chunk_safetocopy(cur) as u64);
+                    iter_digest = fold(iter_digest, lodepng_chunk_check_crc(cur) as u64);
+
+                    let dptr = lodepng_chunk_data_const(cur);
+                    if !dptr.is_null() && len > 0 {
+                        let ds = std::slice::from_raw_parts(dptr, len);
+                        iter_digest = fold(iter_digest, checksum_prefix(ds, 32));
+                        iter_digest =
+                            fold(iter_digest, lodepng_crc32(ds.as_ptr(), ds.len() as size_t) as u64);
+                    } else {
+                        iter_digest = fold(iter_digest, 0);
+                        iter_digest = fold(iter_digest, 0);
+                    }
+
+                    let next = lodepng_chunk_next_const(cur, end);
+                    if next.is_null() {
+                        iter_digest = fold(iter_digest, 0);
+                        break;
+                    } else {
+                        let next_off = (next as usize).wrapping_sub(base as usize) as u64;
+                        iter_digest = fold(iter_digest, next_off);
+                    }
+
+                    if next <= cur || next > end {
+                        break;
+                    }
+                    cur = next;
+                    steps += 1;
+                }
+            }
+
+            iter_digest = fold_error_text(iter_digest, err as u32);
+            lodepng_state_cleanup(state.as_mut_ptr());
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=inspect_png err={} digest={:016x}", last_err, digest)
+}
+
+pub fn zlib_decompress(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut settings = MaybeUninit::<LodePNGDecompressSettings>::zeroed();
+            lodepng_decompress_settings_init(settings.as_mut_ptr());
+
+            let mut out_ptr: *mut c_uchar = ptr::null_mut();
+            let mut out_size: size_t = 0;
+            let err = lodepng_zlib_decompress(
+                &mut out_ptr,
+                &mut out_size,
+                data.as_ptr(),
+                data.len() as size_t,
+                settings.as_ptr(),
+            );
+            last_err = err as u32;
+
+            let mut iter_digest = 0u64;
+            iter_digest = fold(iter_digest, err as u64);
+
+            if err == 0 && !out_ptr.is_null() {
+                let out = std::slice::from_raw_parts(out_ptr, out_size as usize);
+                iter_digest = fold(iter_digest, out_size as u64);
+                iter_digest = fold(iter_digest, checksum(out));
+                iter_digest =
+                    fold(iter_digest, lodepng_crc32(out.as_ptr(), out.len() as size_t) as u64);
+            } else {
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+            }
+
+            iter_digest = fold_error_text(iter_digest, err as u32);
+            free_c_buffer(out_ptr);
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=zlib_decompress err={} digest={:016x}", last_err, digest)
+}
+
+pub fn raw_deflate_inflate(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut csettings = MaybeUninit::<LodePNGCompressSettings>::zeroed();
+            lodepng_compress_settings_init(csettings.as_mut_ptr());
+
+            let mut dsettings = MaybeUninit::<LodePNGDecompressSettings>::zeroed();
+            lodepng_decompress_settings_init(dsettings.as_mut_ptr());
+
+            let mut def_ptr: *mut c_uchar = ptr::null_mut();
+            let mut def_size: size_t = 0;
+            let def_err = lodepng_deflate(
+                &mut def_ptr,
+                &mut def_size,
+                data.as_ptr(),
+                data.len() as size_t,
+                csettings.as_ptr(),
+            );
+
+            let mut iter_digest = 0u64;
+            iter_digest = fold(iter_digest, def_err as u64);
+
+            if def_err == 0 && !def_ptr.is_null() {
+                let deflated = std::slice::from_raw_parts(def_ptr, def_size as usize);
+                iter_digest = fold(iter_digest, def_size as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(deflated, 128));
+                iter_digest = fold(
+                    iter_digest,
+                    lodepng_crc32(deflated.as_ptr(), deflated.len() as size_t) as u64,
+                );
+
+                let mut out_ptr: *mut c_uchar = ptr::null_mut();
+                let mut out_size: size_t = 0;
+                let inf_err = lodepng_inflate(
+                    &mut out_ptr,
+                    &mut out_size,
+                    def_ptr,
+                    def_size,
+                    dsettings.as_ptr(),
+                );
+                last_err = inf_err as u32;
+                iter_digest = fold(iter_digest, inf_err as u64);
+                if inf_err == 0 && !out_ptr.is_null() {
+                    let out = std::slice::from_raw_parts(out_ptr, out_size as usize);
+                    iter_digest = fold(iter_digest, out_size as u64);
+                    iter_digest = fold(iter_digest, checksum(out));
+                    iter_digest =
+                        fold(iter_digest, lodepng_crc32(out.as_ptr(), out.len() as size_t) as u64);
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                }
+                iter_digest = fold_error_text(iter_digest, inf_err as u32);
+                free_c_buffer(out_ptr);
+            } else {
+                last_err = def_err as u32;
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold_error_text(iter_digest, def_err as u32);
+            }
+
+            free_c_buffer(def_ptr);
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=raw_deflate_inflate err={} digest={:016x}", last_err, digest)
+}
+
+pub fn encode_png(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut iter_digest = 0u64;
+            let err: u32;
+
+            if let Some((w, h, rgba)) = parse_raw_rgba(data) {
+                let rgb = rgb_from_rgba(rgba);
+
+                let mut out32_ptr: *mut c_uchar = ptr::null_mut();
+                let mut out32_size: size_t = 0;
+                let err32 = lodepng_encode32(
+                    &mut out32_ptr,
+                    &mut out32_size,
+                    rgba.as_ptr(),
+                    w as c_uint,
+                    h as c_uint,
+                ) as u32;
+
+                iter_digest = fold(iter_digest, err32 as u64);
+                if err32 == 0 && !out32_ptr.is_null() {
+                    let out = std::slice::from_raw_parts(out32_ptr, out32_size as usize);
+                    iter_digest = fold(iter_digest, out32_size as u64);
+                    iter_digest = fold(iter_digest, checksum(out));
+                    iter_digest =
+                        fold(iter_digest, lodepng_crc32(out.as_ptr(), out.len() as size_t) as u64);
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                }
+                free_c_buffer(out32_ptr);
+
+                let mut out24_ptr: *mut c_uchar = ptr::null_mut();
+                let mut out24_size: size_t = 0;
+                let err24 = lodepng_encode24(
+                    &mut out24_ptr,
+                    &mut out24_size,
+                    rgb.as_ptr(),
+                    w as c_uint,
+                    h as c_uint,
+                ) as u32;
+
+                iter_digest = fold(iter_digest, err24 as u64);
+                if err24 == 0 && !out24_ptr.is_null() {
+                    let out = std::slice::from_raw_parts(out24_ptr, out24_size as usize);
+                    iter_digest = fold(iter_digest, out24_size as u64);
+                    iter_digest = fold(iter_digest, checksum_prefix(out, 256));
+                    iter_digest =
+                        fold(iter_digest, lodepng_crc32(out.as_ptr(), out.len() as size_t) as u64);
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                }
+                free_c_buffer(out24_ptr);
+
+                let g1 = encode_gray1_interlaced_png(rgba);
+                let g2 = encode_rgba16_interlaced_png(rgba);
+                iter_digest = fold(iter_digest, g1.len() as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(&g1, 128));
+                iter_digest = fold(iter_digest, g2.len() as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(&g2, 128));
+
+                err = err32 ^ err24;
+            } else {
+                err = 0xE000;
+                iter_digest = fold(iter_digest, err as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(data, 64));
+            }
+
+            last_err = err;
+            iter_digest = fold_error_text(iter_digest, err);
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=encode_png err={} digest={:016x}", last_err, digest)
+}
+
+pub fn color_convert(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut iter_digest = 0u64;
+
+            if let Some((w, h, rgba)) = parse_raw_rgba(data) {
+                let rgba_mode = lodepng_color_mode_make(6 as _, 8);
+                let rgb_mode = lodepng_color_mode_make(2 as _, 8);
+                let grey1_mode = lodepng_color_mode_make(0 as _, 1);
+                let grey8_mode = lodepng_color_mode_make(0 as _, 8);
+
+                let mut rgb_out =
+                    vec![0u8; (w as usize).saturating_mul(h as usize).saturating_mul(3)];
+                let conv_err = lodepng_convert(
+                    rgb_out.as_mut_ptr(),
+                    rgba.as_ptr(),
+                    &rgb_mode,
+                    &rgba_mode,
+                    w as c_uint,
+                    h as c_uint,
+                ) as u32;
+                last_err = conv_err;
+                iter_digest = fold(iter_digest, conv_err as u64);
+                iter_digest = fold(iter_digest, checksum(&rgb_out));
+
+                let grey1_sz =
+                    lodepng_get_raw_size(w as c_uint, h as c_uint, &grey1_mode) as usize;
+                let mut grey1_out = vec![0u8; grey1_sz];
+                let g1_err = lodepng_convert(
+                    grey1_out.as_mut_ptr(),
+                    rgba.as_ptr(),
+                    &grey1_mode,
+                    &rgba_mode,
+                    w as c_uint,
+                    h as c_uint,
+                ) as u32;
+                iter_digest = fold(iter_digest, g1_err as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(&grey1_out, 256));
+
+                let grey8_sz =
+                    lodepng_get_raw_size(w as c_uint, h as c_uint, &grey8_mode) as usize;
+                let mut grey8_out = vec![0u8; grey8_sz];
+                let g8_err = lodepng_convert(
+                    grey8_out.as_mut_ptr(),
+                    rgba.as_ptr(),
+                    &grey8_mode,
+                    &rgba_mode,
+                    w as c_uint,
+                    h as c_uint,
+                ) as u32;
+                iter_digest = fold(iter_digest, g8_err as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(&grey8_out, 256));
+
+                let mut r = 0u32;
+                let mut g = 0u32;
+                let mut b = 0u32;
+                let cr_err = lodepng_convert_rgb(
+                    &mut r,
+                    &mut g,
+                    &mut b,
+                    rgba.get(0).copied().unwrap_or(0) as u32,
+                    rgba.get(1).copied().unwrap_or(0) as u32,
+                    rgba.get(2).copied().unwrap_or(0) as u32,
+                    &rgb_mode,
+                    &rgba_mode,
+                ) as u32;
+                iter_digest = fold(iter_digest, cr_err as u64);
+                iter_digest = fold(iter_digest, r as u64);
+                iter_digest = fold(iter_digest, g as u64);
+                iter_digest = fold(iter_digest, b as u64);
+
+                iter_digest = fold(iter_digest, lodepng_get_channels(&rgba_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_get_channels(&rgb_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_get_bpp(&rgba_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_get_bpp(&rgb_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_get_bpp(&grey1_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_is_greyscale_type(&grey1_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_is_greyscale_type(&rgb_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_is_alpha_type(&rgba_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_is_alpha_type(&rgb_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_can_have_alpha(&rgba_mode) as u64);
+                iter_digest = fold(iter_digest, lodepng_can_have_alpha(&rgb_mode) as u64);
+                iter_digest = fold(
+                    iter_digest,
+                    lodepng_get_raw_size(w as c_uint, h as c_uint, &rgba_mode) as u64,
+                );
+                iter_digest = fold(
+                    iter_digest,
+                    lodepng_get_raw_size(w as c_uint, h as c_uint, &grey1_mode) as u64,
+                );
+
+                let mut pal_a = MaybeUninit::<LodePNGColorMode>::zeroed();
+                let mut pal_b = MaybeUninit::<LodePNGColorMode>::zeroed();
+                lodepng_color_mode_init(pal_a.as_mut_ptr());
+                lodepng_color_mode_init(pal_b.as_mut_ptr());
+                let pa = pal_a.as_mut_ptr();
+                let pb = pal_b.as_mut_ptr();
+
+                (*pa).colortype = 3 as _;
+                (*pa).bitdepth = 8;
+                let _ = lodepng_palette_add(pa, 255, 0, 0, 255);
+                let _ = lodepng_palette_add(pa, 0, 255, 0, 128);
+                let _ = lodepng_palette_add(pa, 0, 0, 255, 255);
+                let copy_err = lodepng_color_mode_copy(pb, pa) as u32;
+
+                iter_digest = fold(iter_digest, copy_err as u64);
+                iter_digest = fold(iter_digest, lodepng_is_palette_type(pa) as u64);
+                iter_digest = fold(iter_digest, lodepng_has_palette_alpha(pa) as u64);
+                iter_digest = fold(iter_digest, lodepng_get_channels(pa) as u64);
+                iter_digest = fold(iter_digest, lodepng_get_bpp(pa) as u64);
+                iter_digest = fold(iter_digest, lodepng_can_have_alpha(pa) as u64);
+                iter_digest = fold(iter_digest, lodepng_is_palette_type(pb) as u64);
+                iter_digest = fold(iter_digest, lodepng_has_palette_alpha(pb) as u64);
+                iter_digest = fold(iter_digest, lodepng_get_bpp(pb) as u64);
+                lodepng_palette_clear(pb);
+                iter_digest = fold(iter_digest, lodepng_has_palette_alpha(pb) as u64);
+
+                lodepng_color_mode_cleanup(pa);
+                lodepng_color_mode_cleanup(pb);
+
+                iter_digest = fold_error_text(iter_digest, conv_err);
+            } else {
+                last_err = 0xE100;
+                iter_digest = fold(iter_digest, last_err as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(data, 64));
+                iter_digest = fold_error_text(iter_digest, last_err);
+            }
+
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=color_convert err={} digest={:016x}", last_err, digest)
+}
+
+pub fn chunk_ops(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut iter_digest = 0u64;
+            let mut err = 0u32;
+
+            let payload_len = data.len().min(31);
+            let ctype = b"vpAg\0";
+
+            let mut chunk_ptr: *mut c_uchar = ptr::null_mut();
+            let mut chunk_size: size_t = 0;
+            let create_err = lodepng_chunk_create(
+                &mut chunk_ptr,
+                &mut chunk_size,
+                payload_len as size_t,
+                ctype.as_ptr() as *const c_char,
+                data.as_ptr(),
+            ) as u32;
+            iter_digest = fold(iter_digest, create_err as u64);
+
+            if create_err == 0 && !chunk_ptr.is_null() {
+                lodepng_chunk_generate_crc(chunk_ptr);
+                iter_digest = fold(iter_digest, lodepng_chunk_check_crc(chunk_ptr) as u64);
+                iter_digest = fold(iter_digest, lodepng_chunk_length(chunk_ptr) as u64);
+                let dp = lodepng_chunk_data(chunk_ptr);
+                if !dp.is_null() && payload_len > 0 {
+                    let ds = std::slice::from_raw_parts(dp, payload_len);
+                    iter_digest = fold(iter_digest, checksum(ds));
+                    iter_digest =
+                        fold(iter_digest, lodepng_crc32(ds.as_ptr(), ds.len() as size_t) as u64);
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                }
+
+                let mut tbuf = [0i8; 5];
+                lodepng_chunk_type(tbuf.as_mut_ptr(), chunk_ptr);
+                for &ch in &tbuf[..4] {
+                    iter_digest = fold(iter_digest, ch as u8 as u64);
+                }
+                iter_digest = fold(iter_digest, lodepng_chunk_ancillary(chunk_ptr) as u64);
+                iter_digest = fold(iter_digest, lodepng_chunk_private(chunk_ptr) as u64);
+                iter_digest = fold(iter_digest, lodepng_chunk_safetocopy(chunk_ptr) as u64);
+
+                let mut out_ptr: *mut c_uchar = ptr::null_mut();
+                let mut out_size: size_t = 0;
+                let append_err =
+                    lodepng_chunk_append(&mut out_ptr, &mut out_size, chunk_ptr) as u32;
+                iter_digest = fold(iter_digest, append_err as u64);
+
+                if append_err == 0 && !out_ptr.is_null() {
+                    let end = out_ptr.add(out_size as usize);
+                    let found = lodepng_chunk_find(out_ptr, end, ctype.as_ptr() as *const c_char);
+                    iter_digest = fold(iter_digest, (!found.is_null()) as u64);
+                    if !found.is_null() {
+                        iter_digest = fold(
+                            iter_digest,
+                            (found as usize).wrapping_sub(out_ptr as usize) as u64,
+                        );
+                        let next = lodepng_chunk_next(found, end);
+                        iter_digest = fold(iter_digest, (!next.is_null()) as u64);
+                        if !next.is_null() && next >= out_ptr && next <= end {
+                            iter_digest = fold(
+                                iter_digest,
+                                (next as usize).wrapping_sub(out_ptr as usize) as u64,
+                            );
+                        }
+                    }
+                    let out = std::slice::from_raw_parts(out_ptr, out_size as usize);
+                    iter_digest = fold(iter_digest, checksum(out));
+                } else {
+                    err = append_err;
+                }
+
+                free_c_buffer(out_ptr);
+            } else {
+                err = create_err;
+            }
+
+            free_c_buffer(chunk_ptr);
+            last_err = err;
+            iter_digest = fold_error_text(iter_digest, err);
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=chunk_ops err={} digest={:016x}", last_err, digest)
+}
+
+pub fn file_codec(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut iter_digest = 0u64;
+
+            if let Some((w, h, rgba)) = parse_raw_rgba(data) {
+                let rgb = rgb_from_rgba(rgba);
+                let png = encode_png_bytes(rgba, w, h);
+                let path_mem = temp_path("file_codec", "mem", data, ".png");
+                let path_32 = temp_path("file_codec", "e32", data, ".png");
+                let path_24 = temp_path("file_codec", "e24", data, ".png");
+                let path_any = temp_path("file_codec", "eany", data, ".png");
+
+                let c_mem = path_cstring(&path_mem);
+                let c32 = path_cstring(&path_32);
+                let c24 = path_cstring(&path_24);
+                let c_any = path_cstring(&path_any);
+
+                if let (Some(c_mem), Some(c32), Some(c24), Some(c_any)) =
+                    (c_mem, c32, c24, c_any)
+                {
+                    let save_err =
+                        lodepng_save_file(png.as_ptr(), png.len() as size_t, c_mem.as_ptr()) as u32;
+                    iter_digest = fold(iter_digest, save_err as u64);
+
+                    let e32 = lodepng_encode32_file(
+                        c32.as_ptr(),
+                        rgba.as_ptr(),
+                        w as c_uint,
+                        h as c_uint,
+                    ) as u32;
+                    let e24 =
+                        lodepng_encode24_file(c24.as_ptr(), rgb.as_ptr(), w as c_uint, h as c_uint)
+                            as u32;
+                    let eany = lodepng_encode_file(
+                        c_any.as_ptr(),
+                        rgb.as_ptr(),
+                        w as c_uint,
+                        h as c_uint,
+                        2 as _,
+                        8,
+                    ) as u32;
+                    iter_digest = fold(iter_digest, e32 as u64);
+                    iter_digest = fold(iter_digest, e24 as u64);
+                    iter_digest = fold(iter_digest, eany as u64);
+
+                    let mut load_ptr: *mut c_uchar = ptr::null_mut();
+                    let mut load_size: size_t = 0;
+                    let load_err =
+                        lodepng_load_file(&mut load_ptr, &mut load_size, c_mem.as_ptr()) as u32;
+                    iter_digest = fold(iter_digest, load_err as u64);
+                    if load_err == 0 && !load_ptr.is_null() {
+                        let loaded = std::slice::from_raw_parts(load_ptr, load_size as usize);
+                        iter_digest = fold(iter_digest, load_size as u64);
+                        iter_digest = fold(iter_digest, checksum(loaded));
+                    } else {
+                        iter_digest = fold(iter_digest, 0);
+                        iter_digest = fold(iter_digest, 0);
+                    }
+                    free_c_buffer(load_ptr);
+
+                    let mut out_ptr: *mut c_uchar = ptr::null_mut();
+                    let mut dw = 0u32;
+                    let mut dh = 0u32;
+
+                    let d32 =
+                        lodepng_decode32_file(&mut out_ptr, &mut dw, &mut dh, c32.as_ptr()) as u32;
+                    iter_digest = fold(iter_digest, d32 as u64);
+                    iter_digest = fold(iter_digest, dw as u64);
+                    iter_digest = fold(iter_digest, dh as u64);
+                    free_c_buffer(out_ptr);
+
+                    out_ptr = ptr::null_mut();
+                    dw = 0;
+                    dh = 0;
+                    let d24 =
+                        lodepng_decode24_file(&mut out_ptr, &mut dw, &mut dh, c24.as_ptr()) as u32;
+                    iter_digest = fold(iter_digest, d24 as u64);
+                    iter_digest = fold(iter_digest, dw as u64);
+                    iter_digest = fold(iter_digest, dh as u64);
+                    free_c_buffer(out_ptr);
+
+                    out_ptr = ptr::null_mut();
+                    dw = 0;
+                    dh = 0;
+                    let dany = lodepng_decode_file(
+                        &mut out_ptr,
+                        &mut dw,
+                        &mut dh,
+                        c_any.as_ptr(),
+                        6 as _,
+                        8,
+                    ) as u32;
+                    iter_digest = fold(iter_digest, dany as u64);
+                    iter_digest = fold(iter_digest, dw as u64);
+                    iter_digest = fold(iter_digest, dh as u64);
+                    if dany == 0 && !out_ptr.is_null() {
+                        let out = std::slice::from_raw_parts(
+                            out_ptr,
+                            (dw as usize).saturating_mul(dh as usize).saturating_mul(4),
+                        );
+                        iter_digest = fold(iter_digest, checksum_prefix(out, 256));
+                    } else {
+                        iter_digest = fold(iter_digest, 0);
+                    }
+                    free_c_buffer(out_ptr);
+
+                    last_err = save_err ^ e32 ^ e24 ^ eany ^ load_err ^ d32 ^ d24 ^ dany;
+                    iter_digest = fold_error_text(iter_digest, last_err);
+                } else {
+                    last_err = 0xE201;
+                    iter_digest = fold(iter_digest, last_err as u64);
+                }
+            } else {
+                last_err = 0xE200;
+                iter_digest = fold(iter_digest, last_err as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(data, 64));
+            }
+
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=file_codec err={} digest={:016x}", last_err, digest)
+}
+
+pub fn memory_codec(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut iter_digest = 0u64;
+
+            if let Some((w, h, rgba)) = parse_raw_rgba(data) {
+                iter_digest = fold(iter_digest, checksum_prefix(rgba, 256));
+                iter_digest =
+                    fold(iter_digest, lodepng_crc32(rgba.as_ptr(), rgba.len() as size_t) as u64);
+
+                let mut mem_ptr: *mut c_uchar = ptr::null_mut();
+                let mut mem_size: size_t = 0;
+                let em_err = lodepng_encode_memory(
+                    &mut mem_ptr,
+                    &mut mem_size,
+                    rgba.as_ptr(),
+                    w as c_uint,
+                    h as c_uint,
+                    6 as _,
+                    8,
+                ) as u32;
+                iter_digest = fold(iter_digest, em_err as u64);
+
+                if em_err == 0 && !mem_ptr.is_null() {
+                    let png = std::slice::from_raw_parts(mem_ptr, mem_size as usize);
+                    iter_digest = fold(iter_digest, mem_size as u64);
+                    iter_digest = fold(iter_digest, checksum_prefix(png, 256));
+
+                    let mut d32_ptr: *mut c_uchar = ptr::null_mut();
+                    let mut dw = 0u32;
+                    let mut dh = 0u32;
+                    let d32_err = lodepng_decode_memory(
+                        &mut d32_ptr,
+                        &mut dw,
+                        &mut dh,
+                        mem_ptr,
+                        mem_size,
+                        6 as _,
+                        8,
+                    ) as u32;
+                    iter_digest = fold(iter_digest, d32_err as u64);
+                    iter_digest = fold(iter_digest, dw as u64);
+                    iter_digest = fold(iter_digest, dh as u64);
+                    if d32_err == 0 && !d32_ptr.is_null() {
+                        let out = std::slice::from_raw_parts(
+                            d32_ptr,
+                            (dw as usize).saturating_mul(dh as usize).saturating_mul(4),
+                        );
+                        iter_digest = fold(iter_digest, checksum_prefix(out, 512));
+                    } else {
+                        iter_digest = fold(iter_digest, 0);
+                    }
+                    free_c_buffer(d32_ptr);
+
+                    let mut d24_ptr: *mut c_uchar = ptr::null_mut();
+                    dw = 0;
+                    dh = 0;
+                    let d24_err = lodepng_decode_memory(
+                        &mut d24_ptr,
+                        &mut dw,
+                        &mut dh,
+                        mem_ptr,
+                        mem_size,
+                        2 as _,
+                        8,
+                    ) as u32;
+                    iter_digest = fold(iter_digest, d24_err as u64);
+                    iter_digest = fold(iter_digest, dw as u64);
+                    iter_digest = fold(iter_digest, dh as u64);
+                    if d24_err == 0 && !d24_ptr.is_null() {
+                        let out = std::slice::from_raw_parts(
+                            d24_ptr,
+                            (dw as usize).saturating_mul(dh as usize).saturating_mul(3),
+                        );
+                        iter_digest = fold(iter_digest, checksum_prefix(out, 512));
+                    } else {
+                        iter_digest = fold(iter_digest, 0);
+                    }
+                    free_c_buffer(d24_ptr);
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                }
+                free_c_buffer(mem_ptr);
+
+                let gray_png = encode_gray1_interlaced_png(rgba);
+                let rgba16_png = encode_rgba16_interlaced_png(rgba);
+                iter_digest = fold(iter_digest, gray_png.len() as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(&gray_png, 128));
+                iter_digest = fold(iter_digest, rgba16_png.len() as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(&rgba16_png, 128));
+
+                let mut st1 = MaybeUninit::<LodePNGState>::zeroed();
+                lodepng_state_init(st1.as_mut_ptr());
+                (*st1.as_mut_ptr()).info_raw = lodepng_color_mode_make(0 as _, 1);
+                let mut out1_ptr: *mut c_uchar = ptr::null_mut();
+                let mut gw = 0u32;
+                let mut gh = 0u32;
+                let dg_err = lodepng_decode(
+                    &mut out1_ptr,
+                    &mut gw,
+                    &mut gh,
+                    st1.as_mut_ptr(),
+                    gray_png.as_ptr(),
+                    gray_png.len() as size_t,
+                ) as u32;
+                iter_digest = fold(iter_digest, dg_err as u64);
+                iter_digest = fold(iter_digest, gw as u64);
+                iter_digest = fold(iter_digest, gh as u64);
+                if dg_err == 0 && !out1_ptr.is_null() {
+                    let sz = lodepng_get_raw_size(
+                        gw as c_uint,
+                        gh as c_uint,
+                        &(*st1.as_mut_ptr()).info_raw,
+                    ) as usize;
+                    let out = std::slice::from_raw_parts(out1_ptr, sz);
+                    iter_digest = fold(iter_digest, checksum(out));
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                }
+                free_c_buffer(out1_ptr);
+                lodepng_state_cleanup(st1.as_mut_ptr());
+
+                let mut st2 = MaybeUninit::<LodePNGState>::zeroed();
+                lodepng_state_init(st2.as_mut_ptr());
+                (*st2.as_mut_ptr()).info_raw = lodepng_color_mode_make(6 as _, 16);
+                let mut out2_ptr: *mut c_uchar = ptr::null_mut();
+                let mut rw = 0u32;
+                let mut rh = 0u32;
+                let dr16_err = lodepng_decode(
+                    &mut out2_ptr,
+                    &mut rw,
+                    &mut rh,
+                    st2.as_mut_ptr(),
+                    rgba16_png.as_ptr(),
+                    rgba16_png.len() as size_t,
+                ) as u32;
+                iter_digest = fold(iter_digest, dr16_err as u64);
+                iter_digest = fold(iter_digest, rw as u64);
+                iter_digest = fold(iter_digest, rh as u64);
+                if dr16_err == 0 && !out2_ptr.is_null() {
+                    let sz = lodepng_get_raw_size(
+                        rw as c_uint,
+                        rh as c_uint,
+                        &(*st2.as_mut_ptr()).info_raw,
+                    ) as usize;
+                    let out = std::slice::from_raw_parts(out2_ptr, sz);
+                    iter_digest = fold(iter_digest, checksum_prefix(out, 512));
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                }
+                free_c_buffer(out2_ptr);
+                lodepng_state_cleanup(st2.as_mut_ptr());
+
+                last_err = 0;
+                iter_digest = fold_error_text(iter_digest, last_err);
+            } else {
+                last_err = 0xE300;
+                iter_digest = fold(iter_digest, last_err as u64);
+                iter_digest = fold(iter_digest, checksum_prefix(data, 64));
+                iter_digest = fold_error_text(iter_digest, last_err);
+            }
+
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!("op=memory_codec err={} digest={:016x}", last_err, digest)
+}
+
+pub fn stateful_palette_encode(data: &[u8], iters: u64) -> String {
+    let mut digest = 0u64;
+    let mut last_err = 0u32;
+
+    for _ in 0..iters {
+        unsafe {
+            let mut iter_digest = 0u64;
+
+            iter_digest = fold(iter_digest, data.len() as u64);
+            iter_digest = fold(iter_digest, checksum_prefix(data, 256));
+            if !data.is_empty() {
+                iter_digest = fold(iter_digest, checksum(data));
+                iter_digest =
+                    fold(iter_digest, lodepng_crc32(data.as_ptr(), data.len() as size_t) as u64);
+            } else {
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+            }
+
+            let mut src = MaybeUninit::<LodePNGState>::zeroed();
+            let mut dst = MaybeUninit::<LodePNGState>::zeroed();
+            lodepng_state_init(src.as_mut_ptr());
+            lodepng_state_init(dst.as_mut_ptr());
+            let sp = src.as_mut_ptr();
+            let dp = dst.as_mut_ptr();
+
+            (*sp).info_raw = lodepng_color_mode_make(3 as _, 8);
+            (*sp).info_png.color = lodepng_color_mode_make(3 as _, 8);
+            (*sp).info_png.interlace_method = 1;
+            (*sp).encoder.auto_convert = 0;
+            (*sp).encoder.force_palette = 1;
+            (*sp).encoder.text_compression = 1;
+
+            let mut palette_digest = 0u64;
+            for i in 0..16u8 {
+                let srcb = if data.is_empty() {
+                    i
+                } else {
+                    data[(i as usize) % data.len()]
+                };
+                let r = srcb.wrapping_mul(13).wrapping_add(i);
+                let g = srcb.wrapping_mul(7).wrapping_add(41);
+                let b = srcb.wrapping_mul(19).wrapping_add(3);
+                let a = if srcb & 1 == 0 { 255 } else { 80 };
+                palette_digest = fold(palette_digest, srcb as u64);
+                palette_digest = fold(palette_digest, r as u64);
+                palette_digest = fold(palette_digest, g as u64);
+                palette_digest = fold(palette_digest, b as u64);
+                palette_digest = fold(palette_digest, a as u64);
+                let _ = lodepng_palette_add(&mut (*sp).info_raw, r, g, b, a);
+                let _ = lodepng_palette_add(&mut (*sp).info_png.color, r, g, b, a);
+            }
+            iter_digest = fold(iter_digest, palette_digest);
+
+            let key = b"Author\0";
+            let val = b"harness\0";
+            let ikey = b"Note\0";
+            let ilang = b"en\0";
+            let itr = b"note\0";
+            let ival = b"palette+interlace+metadata\0";
+            let _ = lodepng_add_text(
+                &mut (*sp).info_png,
+                key.as_ptr() as *const c_char,
+                val.as_ptr() as *const c_char,
+            );
+            let _ = lodepng_add_itext(
+                &mut (*sp).info_png,
+                ikey.as_ptr() as *const c_char,
+                ilang.as_ptr() as *const c_char,
+                itr.as_ptr() as *const c_char,
+                ival.as_ptr() as *const c_char,
+            );
+
+            let icc_name = b"sRGB\0";
+            let icc_profile: [u8; 25] = *b"FakeICCProfileData1234567";
+            let exif_blob: [u8; 20] = [
+                0x4d, 0x4d, 0x00, 0x2a, 0, 0, 0, 8, 0, 1, 0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, 2,
+            ];
+            let icc_err = lodepng_set_icc(
+                &mut (*sp).info_png,
+                icc_name.as_ptr() as *const c_char,
+                icc_profile.as_ptr(),
+                icc_profile.len() as c_uint,
+            ) as u32;
+            let exif_err = lodepng_set_exif(
+                &mut (*sp).info_png,
+                exif_blob.as_ptr(),
+                exif_blob.len() as c_uint,
+            ) as u32;
+            iter_digest = fold(iter_digest, icc_err as u64);
+            iter_digest = fold(iter_digest, exif_err as u64);
+            lodepng_clear_icc(&mut (*sp).info_png);
+            lodepng_clear_exif(&mut (*sp).info_png);
+            let icc_err2 = lodepng_set_icc(
+                &mut (*sp).info_png,
+                icc_name.as_ptr() as *const c_char,
+                icc_profile.as_ptr(),
+                icc_profile.len() as c_uint,
+            ) as u32;
+            let exif_err2 = lodepng_set_exif(
+                &mut (*sp).info_png,
+                exif_blob.as_ptr(),
+                exif_blob.len() as c_uint,
+            ) as u32;
+            iter_digest = fold(iter_digest, icc_err2 as u64);
+            iter_digest = fold(iter_digest, exif_err2 as u64);
+
+            let copy_err = lodepng_state_copy(dp, sp) as u32;
+            iter_digest = fold(iter_digest, copy_err as u64);
+
+            let mut info_copy = MaybeUninit::<LodePNGInfo>::zeroed();
+            lodepng_info_init(info_copy.as_mut_ptr());
+            let icopy_err = lodepng_info_copy(info_copy.as_mut_ptr(), &(*sp).info_png) as u32;
+            iter_digest = fold(iter_digest, icopy_err as u64);
+            lodepng_clear_text(info_copy.as_mut_ptr());
+            lodepng_clear_itext(info_copy.as_mut_ptr());
+            lodepng_info_cleanup(info_copy.as_mut_ptr());
+
+            iter_digest = fold(iter_digest, lodepng_is_palette_type(&(*sp).info_png.color) as u64);
+            iter_digest = fold(
+                iter_digest,
+                lodepng_has_palette_alpha(&(*sp).info_png.color) as u64,
+            );
+            iter_digest = fold(iter_digest, lodepng_get_channels(&(*sp).info_png.color) as u64);
+            iter_digest = fold(iter_digest, lodepng_get_bpp(&(*sp).info_png.color) as u64);
+            iter_digest = fold(iter_digest, lodepng_can_have_alpha(&(*sp).info_png.color) as u64);
+
+            let w = 64u32;
+            let h = 64u32;
+            let mut image = vec![0u8; (w * h) as usize];
+            let mut image_digest = 0u64;
+            let mut hist = [0u32; 16];
+            for (i, px) in image.iter_mut().enumerate() {
+                let b = if data.is_empty() {
+                    i as u8
+                } else {
+                    let src = data[i % data.len()];
+                    let mix = data[(i.wrapping_mul(131).wrapping_add(data.len())) % data.len()];
+                    src.rotate_left((i & 7) as u32) ^ mix.wrapping_add((i as u8).wrapping_mul(17))
+                };
+                let idx = b & 15;
+                *px = idx;
+                hist[idx as usize] = hist[idx as usize].wrapping_add(1);
+                image_digest = fold(image_digest, idx as u64);
+            }
+            iter_digest = fold(iter_digest, image_digest);
+            for &count in &hist {
+                iter_digest = fold(iter_digest, count as u64);
+            }
+
+            let mut out_ptr: *mut c_uchar = ptr::null_mut();
+            let mut out_size: size_t = 0;
+            let enc_err = lodepng_encode(
+                &mut out_ptr,
+                &mut out_size,
+                image.as_ptr(),
+                w as c_uint,
+                h as c_uint,
+                dp,
+            ) as u32;
+            last_err = enc_err;
+            iter_digest = fold(iter_digest, enc_err as u64);
+
+            if enc_err == 0 && !out_ptr.is_null() {
+                let out = std::slice::from_raw_parts(out_ptr, out_size as usize);
+                iter_digest = fold(iter_digest, out_size as u64);
+                iter_digest = fold(iter_digest, checksum(out));
+
+                let mut dec_ptr: *mut c_uchar = ptr::null_mut();
+                let mut dw = 0u32;
+                let mut dh = 0u32;
+                let dec_err =
+                    lodepng_decode32(&mut dec_ptr, &mut dw, &mut dh, out_ptr, out_size) as u32;
+                iter_digest = fold(iter_digest, dec_err as u64);
+                iter_digest = fold(iter_digest, dw as u64);
+                iter_digest = fold(iter_digest, dh as u64);
+                if dec_err == 0 && !dec_ptr.is_null() {
+                    let dec_len = (dw as usize).saturating_mul(dh as usize).saturating_mul(4);
+                    let dec = std::slice::from_raw_parts(dec_ptr, dec_len);
+                    iter_digest = fold(iter_digest, dec_len as u64);
+                    iter_digest = fold(iter_digest, checksum_prefix(dec, 512));
+                    if dec_len >= 4 {
+                        iter_digest = fold(iter_digest, dec[0] as u64);
+                        iter_digest = fold(iter_digest, dec[1] as u64);
+                        iter_digest = fold(iter_digest, dec[2] as u64);
+                        iter_digest = fold(iter_digest, dec[3] as u64);
+                    } else {
+                        iter_digest = fold(iter_digest, 0);
+                        iter_digest = fold(iter_digest, 0);
+                        iter_digest = fold(iter_digest, 0);
+                        iter_digest = fold(iter_digest, 0);
+                    }
+                } else {
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                    iter_digest = fold(iter_digest, 0);
+                }
+                free_c_buffer(dec_ptr);
+            } else {
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+                iter_digest = fold(iter_digest, 0);
+            }
+
+            iter_digest = fold_error_text(iter_digest, enc_err);
+
+            free_c_buffer(out_ptr);
+            lodepng_state_cleanup(dp);
+            lodepng_state_cleanup(sp);
+
+            digest = fold(digest, iter_digest);
+        }
+    }
+
+    format!(
+        "op=stateful_palette_encode err={} digest={:016x}",
+        last_err, digest
+    )
+}
+
+pub fn ops() -> Vec<(&'static str, fn(&[u8], u64) -> String)> {
+    vec![
+        ("decode32_png", decode32_png as fn(&[u8], u64) -> String),
+        ("decode24_png", decode24_png as fn(&[u8], u64) -> String),
+        ("inspect_png", inspect_png as fn(&[u8], u64) -> String),
+        ("zlib_decompress", zlib_decompress as fn(&[u8], u64) -> String),
+        (
+            "raw_deflate_inflate",
+            raw_deflate_inflate as fn(&[u8], u64) -> String,
+        ),
+        ("encode_png", encode_png as fn(&[u8], u64) -> String),
+        ("color_convert", color_convert as fn(&[u8], u64) -> String),
+        ("chunk_ops", chunk_ops as fn(&[u8], u64) -> String),
+        ("file_codec", file_codec as fn(&[u8], u64) -> String),
+        ("memory_codec", memory_codec as fn(&[u8], u64) -> String),
+        (
+            "stateful_palette_encode",
+            stateful_palette_encode as fn(&[u8], u64) -> String,
+        ),
+    ]
+}
+
+pub fn gen_seeds(dir: &str) -> Vec<String> {
+    let mut lines = Vec::new();
+    let _ = fs::create_dir_all(dir);
+
+    let img1 = rgba_pattern_a(64, 48);
+    let img2 = rgba_pattern_b(73, 55);
+
+    let png1 = encode_png_bytes(&img1, 64, 48);
+    let png2 = encode_png_bytes(&img2, 73, 55);
+    let rich1_raw = encode_palette_png_with_features(&img1);
+    let rich2_raw = encode_palette_png_with_features(&img2);
+    let gray1 = encode_gray1_interlaced_png(&img1);
+    let gray2 = encode_gray1_interlaced_png(&img2);
+    let rgba16_1 = encode_rgba16_interlaced_png(&img1);
+    let rgba16_2 = encode_rgba16_interlaced_png(&img2);
+
+    let (decode32_a, decode32_b) = choose_distinct_nonempty_png_pair(
+        gray1.clone(),
+        rgba16_2.clone(),
+        rich1_raw.clone(),
+        png2.clone(),
+    );
+    let (decode24_a, decode24_b) = choose_distinct_nonempty_png_pair(
+        rich2_raw.clone(),
+        gray2.clone(),
+        png1.clone(),
+        rgba16_1.clone(),
+    );
+    let (inspect_a, inspect_b) = choose_distinct_nonempty_png_pair(
+        rich1_raw.clone(),
+        rgba16_1.clone(),
+        gray1.clone(),
+        png2.clone(),
+    );
+
+    for (op, idx, bytes) in [
+        ("decode32_png", 1usize, &decode32_a),
+        ("decode32_png", 2usize, &decode32_b),
+        ("decode24_png", 1usize, &decode24_a),
+        ("decode24_png", 2usize, &decode24_b),
+        ("inspect_png", 1usize, &inspect_a),
+        ("inspect_png", 2usize, &inspect_b),
+    ] {
+        let path = format!("{}/{}.{}.bin", dir, op, idx);
+        let _ = fs::write(&path, bytes);
+        lines.push(format!("seed {} {}", op, path));
+    }
+
+    let plain1 = synth_plaintext_a(24 * 1024);
+    let plain2 = synth_plaintext_b(28 * 1024);
+    let z1 = compress_zlib_bytes(&plain1);
+    let z2 = compress_zlib_bytes(&plain2);
+
+    for (idx, bytes) in [(1usize, &z1), (2usize, &z2)] {
+        let path = format!("{}/zlib_decompress.{}.bin", dir, idx);
+        let _ = fs::write(&path, bytes);
+        lines.push(format!("seed zlib_decompress {}", path));
+    }
+
+    for (idx, bytes) in [(1usize, &plain1), (2usize, &plain2)] {
+        let path = format!("{}/raw_deflate_inflate.{}.bin", dir, idx);
+        let _ = fs::write(&path, bytes);
+        lines.push(format!("seed raw_deflate_inflate {}", path));
+    }
+
+    let raw1 = raw_container(40, 30, &rgba_pattern_a(40, 30));
+    let raw2 = raw_container(57, 41, &rgba_pattern_b(57, 41));
+    for op in ["encode_png", "color_convert", "file_codec", "memory_codec"] {
+        for (idx, bytes) in [(1usize, &raw1), (2usize, &raw2)] {
+            let path = format!("{}/{}.{}.bin", dir, op, idx);
+            let _ = fs::write(&path, bytes);
+            lines.push(format!("seed {} {}", op, path));
+        }
+    }
+
+    let chunk1 = if !png1.is_empty() {
+        png1.clone()
+    } else {
+        decode32_a.clone()
+    };
+    let chunk2 = if !inspect_b.is_empty() && inspect_b != chunk1 {
+        inspect_b.clone()
+    } else if !png2.is_empty() && png2 != chunk1 {
+        png2.clone()
+    } else {
+        decode32_b.clone()
+    };
+    for (idx, bytes) in [(1usize, &chunk1), (2usize, &chunk2)] {
+        let path = format!("{}/chunk_ops.{}.bin", dir, idx);
+        let _ = fs::write(&path, bytes);
+        lines.push(format!("seed chunk_ops {}", path));
+    }
+
+    let sp1 = synth_plaintext_a(1024);
+    let sp2 = synth_plaintext_b(1536);
+    for (idx, bytes) in [(1usize, &sp1), (2usize, &sp2)] {
+        let path = format!("{}/stateful_palette_encode.{}.bin", dir, idx);
+        let _ = fs::write(&path, bytes);
+        lines.push(format!("seed stateful_palette_encode {}", path));
+    }
+
+    lines
+}
+
+fn encode_gray1_interlaced_png_large(seed: &[u8], w: u32, h: u32) -> Vec<u8> {
+    unsafe {
+        let mut st = MaybeUninit::<LodePNGState>::zeroed();
+        lodepng_state_init(st.as_mut_ptr());
+        let stp = st.as_mut_ptr();
+
+        (*stp).info_raw = lodepng_color_mode_make(0 as _, 1);
+        (*stp).info_png.color = lodepng_color_mode_make(0 as _, 1);
+        (*stp).info_png.interlace_method = 1;
+        (*stp).encoder.auto_convert = 0;
+
+        let rowbytes = ((w + 7) / 8) as usize;
+        let mut image = vec![0u8; rowbytes.saturating_mul(h as usize)];
+
+        for y in 0..h as usize {
+            for x in 0..w as usize {
+                let s = if seed.is_empty() {
+                    ((x as u32 * 13 + y as u32 * 7) & 255) as u8
+                } else {
+                    seed[(x.wrapping_mul(17).wrapping_add(y * rowbytes)) % seed.len()]
+                };
+                let bit = ((s.rotate_left((x & 7) as u32) ^ (y as u8).wrapping_mul(11)) >> 5) & 1;
+                if bit != 0 {
+                    let idx = y * rowbytes + x / 8;
+                    image[idx] |= 1u8 << (7 - (x & 7));
+                }
+            }
+        }
+
+        let mut out_ptr: *mut c_uchar = ptr::null_mut();
+        let mut out_size: size_t = 0;
+        let err = lodepng_encode(
+            &mut out_ptr,
+            &mut out_size,
+            image.as_ptr(),
+            w as c_uint,
+            h as c_uint,
+            stp,
+        );
+
+        let out = if err == 0 && !out_ptr.is_null() {
+            let v = std::slice::from_raw_parts(out_ptr, out_size as usize).to_vec();
+            free_c_buffer(out_ptr);
+            v
+        } else {
+            free_c_buffer(out_ptr);
+            Vec::new()
+        };
+
+        lodepng_state_cleanup(stp);
+        out
+    }
+}
+
+fn encode_rgba16_interlaced_png_large(seed: &[u8], w: u32, h: u32) -> Vec<u8> {
+    unsafe {
+        let mut st = MaybeUninit::<LodePNGState>::zeroed();
+        lodepng_state_init(st.as_mut_ptr());
+        let stp = st.as_mut_ptr();
+
+        (*stp).info_raw = lodepng_color_mode_make(6 as _, 16);
+        (*stp).info_png.color = lodepng_color_mode_make(6 as _, 16);
+        (*stp).info_png.interlace_method = 1;
+        (*stp).encoder.auto_convert = 0;
+
+        let mut image = vec![0u8; (w as usize).saturating_mul(h as usize).saturating_mul(8)];
+
+        for y in 0..h {
+            for x in 0..w {
+                let i = ((y * w + x) as usize) * 8;
+                let s0 = if seed.is_empty() {
+                    (x.wrapping_mul(9) ^ y.wrapping_mul(13)) as u8
+                } else {
+                    seed[(i + 0) % seed.len()]
+                };
+                let s1 = if seed.is_empty() {
+                    (x.wrapping_mul(5) + y.wrapping_mul(7)) as u8
+                } else {
+                    seed[(i + 1) % seed.len()]
+                };
+                let s2 = if seed.is_empty() {
+                    (x.wrapping_mul(17) + y.wrapping_mul(3)) as u8
+                } else {
+                    seed[(i + 2) % seed.len()]
+                };
+                let s3 = if seed.is_empty() {
+                    (x ^ y) as u8
+                } else {
+                    seed[(i + 3) % seed.len()]
+                };
+                let r = (((s0 as u16) << 8) | (s1 as u16)).to_be_bytes();
+                let g = ((((s1 ^ 0x5a) as u16) << 8) | (s2 as u16)).to_be_bytes();
+                let b = ((((s2 ^ 0xa5) as u16) << 8) | (s3 as u16)).to_be_bytes();
+                let a = (((255u16.wrapping_sub(s3 as u16)) << 8) | (s0 as u16)).to_be_bytes();
+                image[i..i + 2].copy_from_slice(&r);
+                image[i + 2..i + 4].copy_from_slice(&g);
+                image[i + 4..i + 6].copy_from_slice(&b);
+                image[i + 6..i + 8].copy_from_slice(&a);
+            }
+        }
+
+        let mut out_ptr: *mut c_uchar = ptr::null_mut();
+        let mut out_size: size_t = 0;
+        let err = lodepng_encode(
+            &mut out_ptr,
+            &mut out_size,
+            image.as_ptr(),
+            w as c_uint,
+            h as c_uint,
+            stp,
+        );
+
+        let out = if err == 0 && !out_ptr.is_null() {
+            let v = std::slice::from_raw_parts(out_ptr, out_size as usize).to_vec();
+            free_c_buffer(out_ptr);
+            v
+        } else {
+            free_c_buffer(out_ptr);
+            Vec::new()
+        };
+
+        lodepng_state_cleanup(stp);
+        out
+    }
+}
+
+fn encode_palette_png_with_many_chunks(seed: &[u8], w: u32, h: u32) -> Vec<u8> {
+    unsafe {
+        let mut st = MaybeUninit::<LodePNGState>::zeroed();
+        lodepng_state_init(st.as_mut_ptr());
+        let stp = st.as_mut_ptr();
+
+        (*stp).info_raw = lodepng_color_mode_make(3 as _, 8);
+        (*stp).info_png.color = lodepng_color_mode_make(3 as _, 8);
+        (*stp).info_png.interlace_method = 1;
+        (*stp).encoder.auto_convert = 0;
+        (*stp).encoder.force_palette = 1;
+        (*stp).encoder.text_compression = 1;
+
+        for i in 0..64u8 {
+            let r = i.wrapping_mul(37).wrapping_add(11);
+            let g = i.wrapping_mul(19).wrapping_add(23);
+            let b = i.wrapping_mul(53).wrapping_add(7);
+            let a = if i % 7 == 0 { 96 } else { 255 };
+            let _ = lodepng_palette_add(&mut (*stp).info_raw, r, g, b, a);
+            let _ = lodepng_palette_add(&mut (*stp).info_png.color, r, g, b, a);
+        }
+
+        let text_payload_a = synth_plaintext_a(256 * 1024);
+        let text_payload_b = synth_plaintext_b(256 * 1024);
+
+        for i in 0..48usize {
+            let key = match CString::new(format!("Comment{:02}", i)) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            let start = (i * 4093) % text_payload_a.len();
+            let end = (start + 2048).min(text_payload_a.len());
+            let mut val = text_payload_a[start..end].to_vec();
+            if val.is_empty() {
+                val.extend_from_slice(b"x");
+            }
+            let val = match CString::new(val) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            let _ = lodepng_add_text(&mut (*stp).info_png, key.as_ptr(), val.as_ptr());
+        }
+
+        for i in 0..48usize {
+            let key = match CString::new(format!("IComment{:02}", i)) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            let lang = b"en\0";
+            let trans = match CString::new(format!("translation{:02}", i)) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            let start = (i * 8111) % text_payload_b.len();
+            let end = (start + 2048).min(text_payload_b.len());
+            let mut val = text_payload_b[start..end].to_vec();
+            if val.is_empty() {
+                val.extend_from_slice(b"y");
+            }
+            let val = match CString::new(val) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            let _ = lodepng_add_itext(
+                &mut (*stp).info_png,
+                key.as_ptr(),
+                lang.as_ptr() as *const c_char,
+                trans.as_ptr(),
+                val.as_ptr(),
+            );
+        }
+
+        let icc_name = b"sRGB\0";
+        let mut icc_profile = synth_plaintext_a(32 * 1024);
+        if icc_profile.is_empty() {
+            icc_profile.push(b'Z');
+        }
+        let exif_blob = {
+            let mut v = vec![0x4d, 0x4d, 0x00, 0x2a, 0, 0, 0, 8, 0, 1, 0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, 1];
+            v.extend_from_slice(&synth_plaintext_b(8 * 1024));
+            v
+        };
+
+        let _ = lodepng_set_icc(
+            &mut (*stp).info_png,
+            icc_name.as_ptr() as *const c_char,
+            icc_profile.as_ptr(),
+            icc_profile.len() as c_uint,
+        );
+        let _ = lodepng_set_exif(
+            &mut (*stp).info_png,
+            exif_blob.as_ptr(),
+            exif_blob.len() as c_uint,
+        );
+
+        let mut image = vec![0u8; (w as usize).saturating_mul(h as usize)];
+        for (i, px) in image.iter_mut().enumerate() {
+            let b = if seed.is_empty() {
+                i as u8
+            } else {
+                seed[(i.wrapping_mul(131)) % seed.len()]
+            };
+            *px = b & 63;
+        }
+
+        let mut out_ptr: *mut c_uchar = ptr::null_mut();
+        let mut out_size: size_t = 0;
+        let err = lodepng_encode(
+            &mut out_ptr,
+            &mut out_size,
+            image.as_ptr(),
+            w as c_uint,
+            h as c_uint,
+            stp,
+        );
+
+        let out = if err == 0 && !out_ptr.is_null() {
+            let v = std::slice::from_raw_parts(out_ptr, out_size as usize).to_vec();
+            free_c_buffer(out_ptr);
+            v
+        } else {
+            free_c_buffer(out_ptr);
+            Vec::new()
+        };
+
+        lodepng_state_cleanup(stp);
+        out
+    }
+}
+
+pub fn gen_perf(dir: &str) -> Vec<String> {
+    let mut lines = Vec::new();
+    let _ = fs::create_dir_all(dir);
+
+    let w = 1536u32;
+    let h = 1536u32;
+    let big_rgba = rgba_pattern_b(w, h);
+
+    let big_png = encode_png_bytes(&big_rgba, w, h);
+
+    let big_decode32 = {
+        let p = encode_rgba16_interlaced_png_large(&big_rgba, 1024, 1024);
+        if p.is_empty() { big_png.clone() } else { p }
+    };
+
+    let big_decode24 = {
+        let p = encode_gray1_interlaced_png_large(&big_rgba, 2048, 1536);
+        if p.is_empty() { big_png.clone() } else { p }
+    };
+
+    let big_chunky_png = {
+        let p = encode_palette_png_with_many_chunks(&big_rgba, 1024, 1024);
+        if !p.is_empty() {
+            p
+        } else {
+            let q = encode_palette_png_with_features(&big_rgba);
+            if !q.is_empty() { q } else { big_png.clone() }
+        }
+    };
+
+    for (op, bytes) in [
+        ("decode32_png", &big_decode32),
+        ("decode24_png", &big_decode24),
+        ("inspect_png", &big_chunky_png),
+    ] {
+        let path = format!("{}/{}.perf.bin", dir, op);
+        let _ = fs::write(&path, bytes);
+        lines.push(format!("perf {} {}", op, path));
+    }
+
+    let big_raw = raw_container(w, h, &big_rgba);
+    for op in ["encode_png", "color_convert", "file_codec", "memory_codec"] {
+        let path = format!("{}/{}.perf.bin", dir, op);
+        let _ = fs::write(&path, &big_raw);
+        lines.push(format!("perf {} {}", op, path));
+    }
+
+    let big_plain = synth_plaintext_b(8 * 1024 * 1024);
+    let big_z = compress_zlib_bytes(&big_plain);
+
+    let path = format!("{}/zlib_decompress.perf.bin", dir);
+    let _ = fs::write(&path, &big_z);
+    lines.push(format!("perf zlib_decompress {}", path));
+
+    let path = format!("{}/raw_deflate_inflate.perf.bin", dir);
+    let _ = fs::write(&path, &big_plain);
+    lines.push(format!("perf raw_deflate_inflate {}", path));
+
+    let stateful_seed = synth_plaintext_b(2 * 1024 * 1024);
+    let path = format!("{}/stateful_palette_encode.perf.bin", dir);
+    let _ = fs::write(&path, &stateful_seed);
+    lines.push(format!("perf stateful_palette_encode {}", path));
+
+    let path = format!("{}/chunk_ops.perf.bin", dir);
+    let _ = fs::write(&path, &big_chunky_png);
+    lines.push(format!("perf chunk_ops {}", path));
+
+    lines
+}
+```
+================================================================================
+

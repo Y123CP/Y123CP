@@ -1,0 +1,166 @@
+{
+  "hot_function": {
+    "symbol": "BrotliIsMostlyUTF8",
+    "location": "src/enc/utf8_util.rs:93-122",
+    "workload": "api_sweep",
+    "hot_region": "src/enc/utf8_util.rs:93-122",
+    "rust_source": "pub unsafe fn BrotliIsMostlyUTF8(\n    mut data: *const uint8_t,\n    pos: size_t,\n    mask: size_t,\n    length: size_t,\n    min_fraction: c_double,\n) -> c_int {\n    let mut size_utf8: size_t = 0 as size_t;\n    let mut i: size_t = 0 as size_t;\n    while i < length {\n        let mut symbol: c_int = 0;\n        let mut bytes_read: size_t = BrotliParseAsUTF8(\n            &raw mut symbol,\n            data.offset((pos.wrapping_add(i) & mask) as isize) as *const uint8_t,\n            length.wrapping_sub(i),\n        );\n        i = (i as c_ulong).wrapping_add(bytes_read as c_ulong) as size_t\n            as size_t;\n        if symbol < 0x110000 as c_int {\n            size_utf8 = (size_utf8 as c_ulong)\n                .wrapping_add(bytes_read as c_ulong) as size_t\n                as size_t;\n        }\n    }\n    return if size_utf8 as c_double > min_fraction * length as c_double {\n        BROTLI_TRUE\n    } else {\n        BROTLI_FALSE\n    };\n}",
+    "signature": "pub unsafe fn BrotliIsMostlyUTF8(\n    mut data: *const uint8_t,\n    pos: size_t,\n    mask: size_t,\n    length: size_t,\n    min_fraction: c_double,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.6054,
+      "call_count": null,
+      "retired_instructions": 16474518500,
+      "instructions_per_call": null,
+      "cpi": 0.217,
+      "tma": {
+        "scope": "process",
+        "retiring": 94.53534388787072,
+        "frontend_bound": 2.4361072899492653,
+        "bad_speculation": 2.505758503899156,
+        "backend_bound": 0.5227903182808578,
+        "memory_bound": 0.16764431377072375,
+        "core_bound": 0.355146004510134,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0019
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 104,
+        "message": "'_ZN14brotli_cleaned3src3enc9utf8_util17BrotliParseAsUTF817hc119d46889d6cf9cE' not inlined into '_ZN14brotli_cleaned3src3enc9utf8_util18BrotliIsMostlyUTF817hf9faaaea8f98e263E' because too costly to inline (cost=340, threshold=250)"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 111,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 102,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 111,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 104,
+        "message": "'_ZN14brotli_cleaned3src3enc9utf8_util17BrotliParseAsUTF817hc119d46889d6cf9cE' not inlined into '_ZN14brotli_cleaned3src3enc12literal_cost33BrotliEstimateBitCostsForLiterals17hdd42231e9cd10afdE' because too costly to inline (cost=340, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 104,
+        "message": "'_ZN14brotli_cleaned3src3enc9utf8_util17BrotliParseAsUTF817hc119d46889d6cf9cE' not inlined into '_ZN14brotli_cleaned3src3enc22backward_references_hq34ZopfliCostModelSetFromLiteralCosts17h47e42fe0d521b86cE' because too costly to inline (cost=340, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 104,
+        "message": "'_ZN14brotli_cleaned3src3enc9utf8_util17BrotliParseAsUTF817hc119d46889d6cf9cE' not inlined into '_ZN14brotli_cleaned3src3enc6encode17ChooseContextMode17hadd87a6a0f7e7761E' because too costly to inline (cost=340, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 104,
+        "message": "'_ZN14brotli_cleaned3src3enc9utf8_util17BrotliParseAsUTF817hc119d46889d6cf9cE' not inlined into '_ZN14brotli_cleaned3src3enc6encode10EncodeData17h6fc7640f1b352a26E' because too costly to inline (cost=340, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 104,
+        "message": "_ZN14brotli_cleaned3src3enc9utf8_util17BrotliParseAsUTF817hc119d46889d6cf9cE will not be inlined into _ZN14brotli_cleaned3src3enc9utf8_util18BrotliIsMostlyUTF817hf9faaaea8f98e263E because its definition is unavailable"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 117,
+        "message": "hoisting uitofp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 117,
+        "message": "hoisting fmul"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 102,
+        "message": "2 reloads 4.000733e+01 total reloads cost 2 virtual registers copies 4.000733e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 103,
+        "message": "BasicBlock: bb2.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 117,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3enc9utf8_util18BrotliIsMostlyUTF817hf9faaaea8f98e263E.exit.i"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 102,
+        "message": "1 reloads 4.753781e-01 total reloads cost 2 virtual registers copies 9.507563e-01 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 103,
+        "message": "BasicBlock: bb2.i.i100.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 117,
+        "message": "BasicBlock: bb7.loopexit.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 117,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3enc9utf8_util18BrotliIsMostlyUTF817hf9faaaea8f98e263E.exit.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 106,
+        "message": "BasicBlock: bb2.i63"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 117,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3enc9utf8_util18BrotliIsMostlyUTF817hf9faaaea8f98e263E.exit"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

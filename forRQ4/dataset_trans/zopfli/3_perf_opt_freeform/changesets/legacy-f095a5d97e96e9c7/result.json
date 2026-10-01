@@ -1,0 +1,94 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "c81322ddb3440f301987676c5f2278ce6fac44d5",
+      "changeset_id": "legacy-f095a5d97e96e9c7",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-34ba23aa6a0436f1",
+          "replacement_function_source": "unsafe fn GetBestLengths(\n    mut s: *mut ZopfliBlockState,\n    mut in_0: *const c_uchar,\n    mut instart: size_t,\n    mut inend: size_t,\n    mut costmodel: Option<CostModelFun>,\n    mut costcontext: *mut c_void,\n    mut length_array: *mut c_ushort,\n    mut h: *mut ZopfliHash,\n    mut costs: *mut c_float,\n) -> c_double {\n    let blocksize: size_t = inend.wrapping_sub(instart);\n    let mut sublen: [c_ushort; 259] = [0; 259];\n    let windowstart: size_t = if instart > ZOPFLI_WINDOW_SIZE as size_t {\n        instart.wrapping_sub(ZOPFLI_WINDOW_SIZE as size_t)\n    } else {\n        0 as size_t\n    };\n    let mincost: c_double = GetCostModelMinCost(costmodel, costcontext);\n\n    if instart == inend {\n        return 0 as c_int as c_double;\n    }\n\n    let costfn = costmodel.expect(\"non-null function pointer\");\n\n    ZopfliResetHash(ZOPFLI_WINDOW_SIZE as size_t, h);\n    ZopfliWarmupHash(in_0, windowstart, inend, h);\n\n    let mut i = windowstart;\n    while i < instart {\n        ZopfliUpdateHash(in_0, i, inend, h);\n        i = i.wrapping_add(1);\n    }\n\n    i = 1 as size_t;\n    while i < blocksize.wrapping_add(1) {\n        // SAFETY: caller provides costs with at least blocksize + 1 elements; i is in 1..=blocksize here.\n        unsafe { *costs.add(i) = ZOPFLI_LARGE_FLOAT as c_float; }\n        i = i.wrapping_add(1);\n    }\n    // SAFETY: caller provides costs and length_array with at least 1 element.\n    unsafe {\n        *costs.add(0) = 0 as c_int as c_float;\n        *length_array.add(0) = 0 as c_ushort;\n    }\n\n    let h_same = (*h).same;\n    let window_mask = ZOPFLI_WINDOW_MASK as size_t;\n    let max_match_usize = ZOPFLI_MAX_MATCH as size_t;\n    let max_match_ushort = ZOPFLI_MAX_MATCH as c_ushort;\n\n    i = instart;\n    while i < inend {\n        let mut j: size_t = i.wrapping_sub(instart);\n        ZopfliUpdateHash(in_0, i, inend, h);\n\n        // SAFETY: h_same points to the same ring buffer used by the original code; masked indices stay in range.\n        let same_i = unsafe { *h_same.add(i & window_mask) as c_int };\n        if same_i > ZOPFLI_MAX_MATCH * 2 as c_int\n            && i > instart.wrapping_add(max_match_usize).wrapping_add(1)\n            && i.wrapping_add((ZOPFLI_MAX_MATCH * 2 as c_int) as size_t)\n                .wrapping_add(1)\n                < inend\n            // SAFETY: same as above; masked index stays in range.\n            && unsafe {\n                *h_same.add(i.wrapping_sub(max_match_usize) & window_mask) as c_int\n            } > ZOPFLI_MAX_MATCH\n        {\n            let symbolcost: c_double = costfn(ZOPFLI_MAX_MATCH as c_uint, 1 as c_uint, costcontext);\n            // SAFETY: j is within block, so costs[j] is valid.\n            let base_cost = unsafe { *costs.add(j) as c_double };\n            let fill_cost = (base_cost + symbolcost) as c_float;\n            let target = j.wrapping_add(max_match_usize);\n\n            // SAFETY: target is within 0..=blocksize as in original logic.\n            unsafe {\n                *costs.add(target) = fill_cost;\n                *length_array.add(target) = max_match_ushort;\n            }\n\n            let mut k = 0usize;\n            while k < max_match_usize {\n                i = i.wrapping_add(1);\n                j = j.wrapping_add(1);\n                ZopfliUpdateHash(in_0, i, inend, h);\n                // SAFETY: target remains within initialized DP arrays during this fast-forward path.\n                unsafe {\n                    *costs.add(j.wrapping_add(max_match_usize)) = fill_cost;\n                    *length_array.add(j.wrapping_add(max_match_usize)) = max_match_ushort;\n                }\n                k = k.wrapping_add(1);\n            }\n        }\n\n        let mut dist: c_ushort = 0;\n        let mut leng: c_ushort = 0;\n        ZopfliFindLongestMatch(\n            s,\n            h,\n            in_0,\n            i,\n            inend,\n            max_match_usize,\n            &raw mut sublen as *mut c_ushort,\n            &raw mut dist,\n            &raw mut leng,\n        );\n\n        // SAFETY: j is within block, so costs[j] is valid.\n        let cost_j = unsafe { *costs.add(j) as c_double };\n\n        if i.wrapping_add(1) <= inend {\n            let new_cost: c_double =\n                costfn(\n                    // SAFETY: i < inend in loop condition, so input byte is valid.\n                    unsafe { *in_0.add(i) as c_uint },\n                    0 as c_uint,\n                    costcontext,\n                ) + cost_j;\n            let next = j.wrapping_add(1);\n            // SAFETY: next is within 1..=blocksize.\n            unsafe {\n                if new_cost < *costs.add(next) as c_double {\n                    *costs.add(next) = new_cost as c_float;\n                    *length_array.add(next) = 1 as c_ushort;\n                }\n            }\n        }\n\n        let kend = zopfli_min(leng as size_t, inend.wrapping_sub(i));\n        let mincostaddcostj: c_double = mincost + cost_j;\n        let mut k = 3usize;\n        while k <= kend {\n            let idx = j.wrapping_add(k);\n            // SAFETY: idx is within DP array bounds by construction.\n            let old_cost = unsafe { *costs.add(idx) as c_double };\n            if !(old_cost <= mincostaddcostj) {\n                let new_cost =\n                    costfn(k as c_uint, sublen[k as usize] as c_uint, costcontext) + cost_j;\n                if new_cost < old_cost {\n                    // SAFETY: idx is within DP array bounds by construction.\n                    unsafe {\n                        *costs.add(idx) = new_cost as c_float;\n                        *length_array.add(idx) = k as c_ushort;\n                    }\n                }\n            }\n            k = k.wrapping_add(1);\n        }\n\n        i = i.wrapping_add(1);\n    }\n\n    // SAFETY: blocksize is within the allocated DP arrays.\n    unsafe { *costs.add(blocksize) as c_double }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "f12a9ab9a8926542b68935955251f24e3deb20623340c6b4652b215ecd49a6a6",
+            "file_hint": "src/squeeze.rs",
+            "qualified_name": "crate::GetBestLengths",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "GetBestLengths-c172c09e53a5",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "GetBestLengths",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "776be2a8e300a9f93ffb0f6eb543ca7c5477cdbfc0457c2555d3d45f8d41109e",
+            "edit_id": "edit-replace-34ba23aa6a0436f1",
+            "end_byte": 15018,
+            "operation_id": "replace-34ba23aa6a0436f1",
+            "relative_path": "src/squeeze.rs",
+            "replacement_text": "unsafe fn GetBestLengths(\n    mut s: *mut ZopfliBlockState,\n    mut in_0: *const c_uchar,\n    mut instart: size_t,\n    mut inend: size_t,\n    mut costmodel: Option<CostModelFun>,\n    mut costcontext: *mut c_void,\n    mut length_array: *mut c_ushort,\n    mut h: *mut ZopfliHash,\n    mut costs: *mut c_float,\n) -> c_double {\n    let blocksize: size_t = inend.wrapping_sub(instart);\n    let mut sublen: [c_ushort; 259] = [0; 259];\n    let windowstart: size_t = if instart > ZOPFLI_WINDOW_SIZE as size_t {\n        instart.wrapping_sub(ZOPFLI_WINDOW_SIZE as size_t)\n    } else {\n        0 as size_t\n    };\n    let mincost: c_double = GetCostModelMinCost(costmodel, costcontext);\n\n    if instart == inend {\n        return 0 as c_int as c_double;\n    }\n\n    let costfn = costmodel.expect(\"non-null function pointer\");\n\n    ZopfliResetHash(ZOPFLI_WINDOW_SIZE as size_t, h);\n    ZopfliWarmupHash(in_0, windowstart, inend, h);\n\n    let mut i = windowstart;\n    while i < instart {\n        ZopfliUpdateHash(in_0, i, inend, h);\n        i = i.wrapping_add(1);\n    }\n\n    i = 1 as size_t;\n    while i < blocksize.wrapping_add(1) {\n        // SAFETY: caller provides costs with at least blocksize + 1 elements; i is in 1..=blocksize here.\n        unsafe { *costs.add(i) = ZOPFLI_LARGE_FLOAT as c_float; }\n        i = i.wrapping_add(1);\n    }\n    // SAFETY: caller provides costs and length_array with at least 1 element.\n    unsafe {\n        *costs.add(0) = 0 as c_int as c_float;\n        *length_array.add(0) = 0 as c_ushort;\n    }\n\n    let h_same = (*h).same;\n    let window_mask = ZOPFLI_WINDOW_MASK as size_t;\n    let max_match_usize = ZOPFLI_MAX_MATCH as size_t;\n    let max_match_ushort = ZOPFLI_MAX_MATCH as c_ushort;\n\n    i = instart;\n    while i < inend {\n        let mut j: size_t = i.wrapping_sub(instart);\n        ZopfliUpdateHash(in_0, i, inend, h);\n\n        // SAFETY: h_same points to the same ring buffer used by the original code; masked indices stay in range.\n        let same_i = unsafe { *h_same.add(i & window_mask) as c_int };\n        if same_i > ZOPFLI_MAX_MATCH * 2 as c_int\n            && i > instart.wrapping_add(max_match_usize).wrapping_add(1)\n            && i.wrapping_add((ZOPFLI_MAX_MATCH * 2 as c_int) as size_t)\n                .wrapping_add(1)\n                < inend\n            // SAFETY: same as above; masked index stays in range.\n            && unsafe {\n                *h_same.add(i.wrapping_sub(max_match_usize) & window_mask) as c_int\n            } > ZOPFLI_MAX_MATCH\n        {\n            let symbolcost: c_double = costfn(ZOPFLI_MAX_MATCH as c_uint, 1 as c_uint, costcontext);\n            // SAFETY: j is within block, so costs[j] is valid.\n            let base_cost = unsafe { *costs.add(j) as c_double };\n            let fill_cost = (base_cost + symbolcost) as c_float;\n            let target = j.wrapping_add(max_match_usize);\n\n            // SAFETY: target is within 0..=blocksize as in original logic.\n            unsafe {\n                *costs.add(target) = fill_cost;\n                *length_array.add(target) = max_match_ushort;\n            }\n\n            let mut k = 0usize;\n            while k < max_match_usize {\n                i = i.wrapping_add(1);\n                j = j.wrapping_add(1);\n                ZopfliUpdateHash(in_0, i, inend, h);\n                // SAFETY: target remains within initialized DP arrays during this fast-forward path.\n                unsafe {\n                    *costs.add(j.wrapping_add(max_match_usize)) = fill_cost;\n                    *length_array.add(j.wrapping_add(max_match_usize)) = max_match_ushort;\n                }\n                k = k.wrapping_add(1);\n            }\n        }\n\n        let mut dist: c_ushort = 0;\n        let mut leng: c_ushort = 0;\n        ZopfliFindLongestMatch(\n            s,\n            h,\n            in_0,\n            i,\n            inend,\n            max_match_usize,\n            &raw mut sublen as *mut c_ushort,\n            &raw mut dist,\n            &raw mut leng,\n        );\n\n        // SAFETY: j is within block, so costs[j] is valid.\n        let cost_j = unsafe { *costs.add(j) as c_double };\n\n        if i.wrapping_add(1) <= inend {\n            let new_cost: c_double =\n                costfn(\n                    // SAFETY: i < inend in loop condition, so input byte is valid.\n                    unsafe { *in_0.add(i) as c_uint },\n                    0 as c_uint,\n                    costcontext,\n                ) + cost_j;\n            let next = j.wrapping_add(1);\n            // SAFETY: next is within 1..=blocksize.\n            unsafe {\n                if new_cost < *costs.add(next) as c_double {\n                    *costs.add(next) = new_cost as c_float;\n                    *length_array.add(next) = 1 as c_ushort;\n                }\n            }\n        }\n\n        let kend = zopfli_min(leng as size_t, inend.wrapping_sub(i));\n        let mincostaddcostj: c_double = mincost + cost_j;\n        let mut k = 3usize;\n        while k <= kend {\n            let idx = j.wrapping_add(k);\n            // SAFETY: idx is within DP array bounds by construction.\n            let old_cost = unsafe { *costs.add(idx) as c_double };\n            if !(old_cost <= mincostaddcostj) {\n                let new_cost =\n                    costfn(k as c_uint, sublen[k as usize] as c_uint, costcontext) + cost_j;\n                if new_cost < old_cost {\n                    // SAFETY: idx is within DP array bounds by construction.\n                    unsafe {\n                        *costs.add(idx) = new_cost as c_float;\n                        *length_array.add(idx) = k as c_ushort;\n                    }\n                }\n            }\n            k = k.wrapping_add(1);\n        }\n\n        i = i.wrapping_add(1);\n    }\n\n    // SAFETY: blocksize is within the allocated DP arrays.\n    unsafe { *costs.add(blocksize) as c_double }\n}",
+            "start_byte": 9854
+          }
+        ],
+        "facts": {
+          "fn_name": "GetBestLengths",
+          "target_span_hash": "f12a9ab9a8926542b68935955251f24e3deb20623340c6b4652b215ecd49a6a6"
+        },
+        "operation_id": "replace-34ba23aa6a0436f1"
+      }
+    ],
+    "resolved_head": "c81322ddb3440f301987676c5f2278ce6fac44d5"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_post_validation",
+  "touched_paths": [
+    "src/squeeze.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "added_bounds_check_in_loop",
+      "detail": "rewrite adds a bounds check inside a loop the original indexed unchecked (1 site(s)): sublen[k as usize]",
+      "ok": false
+    }
+  ]
+}

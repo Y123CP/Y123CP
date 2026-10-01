@@ -1,0 +1,162 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.9023528898055809,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 1.1621877432782175,
+            "aggregate_ci_low_pct": 0.6425180363329444,
+            "aggregate_pct": 0.9023528898055809,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.6779,
+                "ci_low_pct": -0.1951,
+                "insns_delta_pct": 0.0457,
+                "mean_delta_pct": 0.2414,
+                "op": "expr_embedded_builtins",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 1.9623,
+                "ci_low_pct": 0.9843,
+                "insns_delta_pct": 1.3451,
+                "mean_delta_pct": 1.4733,
+                "op": "native_call_state",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              },
+              {
+                "ci_high_pct": 1.5458,
+                "ci_low_pct": 0.4389,
+                "insns_delta_pct": 0.5948,
+                "mean_delta_pct": 0.9923,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "expr_embedded_builtins",
+          "native_call_state",
+          "subst_list_pipeline"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "native_call_state"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "ea427d903f7bc34a203513985256cde8ba382447",
+      "changeset_id": "legacy-515d2b52ecd5e010",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-a32561e07b9a9b0d",
+          "replacement_function_source": "// Applied rules: [III④, C3, III③]\n// Skipped rules: [III②: Hit [3] is an interior `realloc` on `(*cell).e` whose ownership escapes this function via the hashmap field and is paired outside `hm_put`; alloc/free are not in the same function scope, so RAII conversion is out of scope.; II_vec: Hits [1,2] point at the search loop, but this function's loop trip count is data-dependent on `(*cell).c` and the main blocker is likely the opaque `strcmp` plus raw-pointer shape. Applying III④ and III③ first may moot the vectorization remarks; no standalone II_vec canonicalization targets a concrete remaining site here.]\n#[inline]\nunsafe fn hm_put(\n    mut hm: *mut hashmap_t,\n    mut key: *const c_char,\n    mut value: *mut c_void,\n) {\n    let mut cell: *mut hashcell_t = (&raw mut (*hm).cell as *mut hashcell_t)\n        .offset((hm_hash(key) & HASHMAP_CELLMASK as c_ulong) as isize);\n\n    let count: size_t = (*cell).c;\n    let entries_ptr: *mut hashentry_t = (*cell).e;\n    // SAFETY: `entries_ptr` is the bucket entry array base stored in `(*cell).e`,\n    // `count` comes from `(*cell).c` and is not mutated during the search loop,\n    // and this view is used only before any possible `realloc` of the same buffer.\n    let entries: &mut [hashentry_t] =\n        unsafe { core::slice::from_raw_parts_mut(entries_ptr, count as usize) };\n\n    // SAFETY: caller provides `key` as a valid NUL-terminated C string.\n    let key_cstr = unsafe { core::ffi::CStr::from_ptr(key) };\n\n    let mut i: size_t = 0;\n    i = 0 as size_t;\n    while i < count {\n        let entry = unsafe { entries.get_unchecked_mut(i as usize) };\n        // SAFETY: stored hashmap keys are valid NUL-terminated strings created by `strclone`.\n        let entry_key = unsafe { core::ffi::CStr::from_ptr(entry.k) };\n        if key_cstr == entry_key {\n            entry.v = value;\n            return;\n        }\n        i = i.wrapping_add(1);\n    }\n\n    (*cell).e = realloc(\n        (*cell).e as *mut c_void,\n        (::core::mem::size_of::<hashentry_t>() as size_t)\n            .wrapping_mul((*cell).c.wrapping_add(1 as size_t)),\n    ) as *mut hashentry_t;\n\n    let append_idx = (*cell).c as usize;\n    let new_entries_ptr = (*cell).e;\n    let new_count = (*cell).c.wrapping_add(1 as size_t);\n    // SAFETY: after `realloc`, `new_entries_ptr` is the current bucket storage for\n    // `new_count` entries, and this fresh view is created after growth so it does not\n    // overlap any pre-realloc slice/view.\n    let new_entries: &mut [hashentry_t] =\n        unsafe { core::slice::from_raw_parts_mut(new_entries_ptr, new_count as usize) };\n\n    let entry = unsafe { new_entries.get_unchecked_mut(append_idx) };\n    entry.k = strclone(key);\n    entry.v = value;\n    (*cell).c = (*cell).c.wrapping_add(1);\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "3d59000fbb930d5c504c4fd0b66e95e22430756eef9905e47f1b8199586e4225",
+            "file_hint": "src/lil.rs",
+            "qualified_name": "crate::hm_put",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "hm_put-ba64c49dd09f",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "hm_put",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "4b6f257cfdbc81ac6a0c411639d64b2f71bdecf779bc55b21c1f8cc184d9d015",
+            "edit_id": "edit-replace-a32561e07b9a9b0d",
+            "end_byte": 9734,
+            "operation_id": "replace-a32561e07b9a9b0d",
+            "relative_path": "src/lil.rs",
+            "replacement_text": "// Applied rules: [III④, C3, III③]\n// Skipped rules: [III②: Hit [3] is an interior `realloc` on `(*cell).e` whose ownership escapes this function via the hashmap field and is paired outside `hm_put`; alloc/free are not in the same function scope, so RAII conversion is out of scope.; II_vec: Hits [1,2] point at the search loop, but this function's loop trip count is data-dependent on `(*cell).c` and the main blocker is likely the opaque `strcmp` plus raw-pointer shape. Applying III④ and III③ first may moot the vectorization remarks; no standalone II_vec canonicalization targets a concrete remaining site here.]\n#[inline]\nunsafe fn hm_put(\n    mut hm: *mut hashmap_t,\n    mut key: *const c_char,\n    mut value: *mut c_void,\n) {\n    let mut cell: *mut hashcell_t = (&raw mut (*hm).cell as *mut hashcell_t)\n        .offset((hm_hash(key) & HASHMAP_CELLMASK as c_ulong) as isize);\n\n    let count: size_t = (*cell).c;\n    let entries_ptr: *mut hashentry_t = (*cell).e;\n    // SAFETY: `entries_ptr` is the bucket entry array base stored in `(*cell).e`,\n    // `count` comes from `(*cell).c` and is not mutated during the search loop,\n    // and this view is used only before any possible `realloc` of the same buffer.\n    let entries: &mut [hashentry_t] =\n        unsafe { core::slice::from_raw_parts_mut(entries_ptr, count as usize) };\n\n    // SAFETY: caller provides `key` as a valid NUL-terminated C string.\n    let key_cstr = unsafe { core::ffi::CStr::from_ptr(key) };\n\n    let mut i: size_t = 0;\n    i = 0 as size_t;\n    while i < count {\n        let entry = unsafe { entries.get_unchecked_mut(i as usize) };\n        // SAFETY: stored hashmap keys are valid NUL-terminated strings created by `strclone`.\n        let entry_key = unsafe { core::ffi::CStr::from_ptr(entry.k) };\n        if key_cstr == entry_key {\n            entry.v = value;\n            return;\n        }\n        i = i.wrapping_add(1);\n    }\n\n    (*cell).e = realloc(\n        (*cell).e as *mut c_void,\n        (::core::mem::size_of::<hashentry_t>() as size_t)\n            .wrapping_mul((*cell).c.wrapping_add(1 as size_t)),\n    ) as *mut hashentry_t;\n\n    let append_idx = (*cell).c as usize;\n    let new_entries_ptr = (*cell).e;\n    let new_count = (*cell).c.wrapping_add(1 as size_t);\n    // SAFETY: after `realloc`, `new_entries_ptr` is the current bucket storage for\n    // `new_count` entries, and this fresh view is created after growth so it does not\n    // overlap any pre-realloc slice/view.\n    let new_entries: &mut [hashentry_t] =\n        unsafe { core::slice::from_raw_parts_mut(new_entries_ptr, new_count as usize) };\n\n    let entry = unsafe { new_entries.get_unchecked_mut(append_idx) };\n    entry.k = strclone(key);\n    entry.v = value;\n    (*cell).c = (*cell).c.wrapping_add(1);\n}",
+            "start_byte": 8728
+          }
+        ],
+        "facts": {
+          "fn_name": "hm_put",
+          "target_span_hash": "3d59000fbb930d5c504c4fd0b66e95e22430756eef9905e47f1b8199586e4225"
+        },
+        "operation_id": "replace-a32561e07b9a9b0d"
+      }
+    ],
+    "resolved_head": "ea427d903f7bc34a203513985256cde8ba382447"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/lil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "introduced_scan",
+      "detail": "rewrite builds a view whose length must be scanned for, which the original did not do: let key_cstr = unsafe { core::ffi::CStr::from_ptr(key) };, let entry_key = unsafe { core::ffi::CStr::from_ptr(entry.k) };",
+      "ok": true
+    }
+  ]
+}

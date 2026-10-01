@@ -1,0 +1,284 @@
+{
+  "hot_function": {
+    "symbol": "longest_match",
+    "location": "src/zlib/deflate.rs:1282-1396",
+    "workload": "zlib_compress_uncompress",
+    "hot_region": "src/zlib/deflate.rs:1282-1396",
+    "rust_source": "unsafe fn longest_match(mut s: *mut deflate_state, mut cur_match: IPos) -> uInt {\n    let s_view: &mut deflate_state = unsafe { &mut *s };\n    let mut chain_length: c_uint = s_view.max_chain_length as c_uint;\n    let mut scan: *mut Bytef = s_view.window.offset(s_view.strstart as isize);\n    let mut match_0: *mut Bytef = ::core::ptr::null_mut::<Bytef>();\n    let mut len: c_int = 0;\n    let mut best_len: c_int = s_view.prev_length as c_int;\n    let mut nice_match: c_int = s_view.nice_match;\n    let mut limit: IPos = if s_view.strstart\n        > (s_view.w_size as c_uint).wrapping_sub(MIN_LOOKAHEAD as c_uint)\n    {\n        (s_view.strstart as IPos).wrapping_sub(\n            (s_view.w_size as c_uint).wrapping_sub(MIN_LOOKAHEAD as c_uint),\n        )\n    } else {\n        NIL as IPos\n    };\n    let mut prev: *mut Posf = s_view.prev;\n    let mut wmask: uInt = s_view.w_mask;\n    let mut strend: *mut Bytef = s_view\n        .window\n        .offset(s_view.strstart as isize)\n        .offset(MAX_MATCH as isize);\n    let mut scan_end1: Byte = *scan.offset((best_len - 1 as c_int) as isize) as Byte;\n    let mut scan_end: Byte = *scan.offset(best_len as isize) as Byte;\n    if s_view.prev_length >= s_view.good_match {\n        chain_length >>= 2 as c_int;\n    }\n    if nice_match as uInt > s_view.lookahead {\n        nice_match = s_view.lookahead as c_int;\n    }\n    loop {\n        match_0 = s_view.window.offset(cur_match as isize);\n        if !(*match_0.offset(best_len as isize) as c_int\n            != scan_end as c_int\n            || *match_0.offset((best_len - 1 as c_int) as isize) as c_int\n                != scan_end1 as c_int\n            || *match_0 as c_int != *scan as c_int\n            || {\n                match_0 = match_0.offset(1);\n                *match_0 as c_int\n                    != *scan.offset(1 as c_int as isize) as c_int\n            })\n        {\n            scan = scan.offset(2 as c_int as isize);\n            match_0 = match_0.offset(1);\n            loop {\n                scan = scan.offset(1);\n                match_0 = match_0.offset(1);\n                if !(*scan as c_int == *match_0 as c_int\n                    && {\n                        scan = scan.offset(1);\n                        match_0 = match_0.offset(1);\n                        *scan as c_int == *match_0 as c_int\n                    }\n                    && {\n                        scan = scan.offset(1);\n                        match_0 = match_0.offset(1);\n                        *scan as c_int == *match_0 as c_int\n                    }\n                    && {\n                        scan = scan.offset(1);\n                        match_0 = match_0.offset(1);\n                        *scan as c_int == *match_0 as c_int\n                    }\n                    && {\n                        scan = scan.offset(1);\n                        match_0 = match_0.offset(1);\n                        *scan as c_int == *match_0 as c_int\n                    }\n                    && {\n                        scan = scan.offset(1);\n                        match_0 = match_0.offset(1);\n                        *scan as c_int == *match_0 as c_int\n                    }\n                    && {\n                        scan = scan.offset(1);\n                        match_0 = match_0.offset(1);\n                        *scan as c_int == *match_0 as c_int\n                    }\n                    && {\n                        scan = scan.offset(1);\n                        match_0 = match_0.offset(1);\n                        *scan as c_int == *match_0 as c_int\n                    }\n                    && scan < strend)\n                {\n                    break;\n                }\n            }\n            len = MAX_MATCH - strend.offset_from(scan) as c_long as c_int;\n            scan = strend.offset(-(MAX_MATCH as isize));\n            if len > best_len {\n                s_view.match_start = cur_match as uInt;\n                best_len = len;\n                if len >= nice_match {\n                    break;\n                }\n                scan_end1 = *scan.offset((best_len - 1 as c_int) as isize) as Byte;\n                scan_end = *scan.offset(best_len as isize) as Byte;\n            }\n        }\n        cur_match = *prev.offset((cur_match as uInt & wmask) as isize) as IPos;\n        if !(cur_match > limit && {\n            chain_length = chain_length.wrapping_sub(1);\n            chain_length != 0 as c_uint\n        }) {\n            break;\n        }\n    }\n    if best_len as uInt <= s_view.lookahead {\n        return best_len as uInt;\n    }\n    return s_view.lookahead;\n}",
+    "signature": "unsafe fn longest_match(mut s: *mut deflate_state, mut cur_match: IPos) -> uInt",
+    "profile": {
+      "self_time_ratio": 0.3042,
+      "call_count": null,
+      "retired_instructions": 3357902086,
+      "instructions_per_call": null,
+      "cpi": 0.541,
+      "tma": {
+        "scope": "process",
+        "retiring": 49.972377692631504,
+        "frontend_bound": 15.116888479665324,
+        "bad_speculation": 10.008721640783417,
+        "backend_bound": 24.90201218691976,
+        "memory_bound": 17.164257741817703,
+        "core_bound": 7.737754445102055,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.017
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_vec": {
+        "CantComputeNumberOfIterations": 1
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1319,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1323,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1319,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1323,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1381,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1328,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1328,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1282,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate13longest_match17h0cce781343b37a67E: MI Instruction count changed from 0 to 157; Delta: 157"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1282,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate13longest_match17h0cce781343b37a67E: MI Instruction count changed from 157 to 156; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1282,
+        "message": "Peephole Optimizations: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate13longest_match17h0cce781343b37a67E: MI Instruction count changed from 156 to 152; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1282,
+        "message": "X86 LEA Optimize: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate13longest_match17h0cce781343b37a67E: MI Instruction count changed from 152 to 151; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1282,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate13longest_match17h0cce781343b37a67E: MI Instruction count changed from 151 to 192; Delta: 41"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1282,
+        "message": "Two-Address instruction pass: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate13longest_match17h0cce781343b37a67E: MI Instruction count changed from 192 to 216; Delta: 24"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1282,
+        "message": "Register Coalescer: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate13longest_match17h0cce781343b37a67E: MI Instruction count changed from 216 to 143; Delta: -73"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1328,
+        "message": "1 reloads 8.676806e+00 total reloads cost 1 virtual registers copies 8.676806e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1313,
+        "message": "2 reloads 9.646388e+00 total reloads cost 2 folded reloads 2.912548e+00 total folded reloads cost 19 virtual registers copies 1.613688e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1282,
+        "message": "5 spills 5.000000e+00 total spills cost 3 reloads 1.064639e+01 total reloads cost 2 folded reloads 2.912548e+00 total folded reloads cost 23 virtual registers copies 1.916730e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1282,
+        "message": "Greedy Register Allocator: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate13longest_match17h0cce781343b37a67E: MI Instruction count changed from 143 to 163; Delta: 20"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1282,
+        "message": "Virtual Register Rewriter: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate13longest_match17h0cce781343b37a67E: MI Instruction count changed from 163 to 160; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1282,
+        "message": "Machine Copy Propagation Pass: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate13longest_match17h0cce781343b37a67E: MI Instruction count changed from 160 to 159; Delta: -1"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 1282,
+        "message": "48 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1282,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate13longest_match17h0cce781343b37a67E: MI Instruction count changed from 159 to 189; Delta: 30"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1282,
+        "message": "Control Flow Optimizer: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate13longest_match17h0cce781343b37a67E: MI Instruction count changed from 189 to 159; Delta: -30"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1282,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate13longest_match17h0cce781343b37a67E: MI Instruction count changed from 159 to 163; Delta: 4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1282,
+        "message": "X86 LEA Fixup: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate13longest_match17h0cce781343b37a67E: MI Instruction count changed from 163 to 165; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1282,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN21optipng_0_7_7_cleaned3src4zlib7deflate13longest_match17h0cce781343b37a67E: MI Instruction count changed from 165 to 166; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1314,
+        "message": "BasicBlock: bb10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1317,
+        "message": "BasicBlock: bb12"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1319,
+        "message": "BasicBlock: bb14"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1322,
+        "message": "BasicBlock: bb16"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1335,
+        "message": "BasicBlock: bb19"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1340,
+        "message": "BasicBlock: bb20"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1345,
+        "message": "BasicBlock: bb21"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1350,
+        "message": "BasicBlock: bb22"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1355,
+        "message": "BasicBlock: bb23"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1360,
+        "message": "BasicBlock: bb24"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1380,
+        "message": "BasicBlock: bb33"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1384,
+        "message": "BasicBlock: bb36"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1282,
+        "message": "146 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

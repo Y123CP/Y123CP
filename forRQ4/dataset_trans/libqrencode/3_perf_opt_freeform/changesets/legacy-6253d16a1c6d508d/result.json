@@ -1,0 +1,101 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": "encode_data_and_input:75b62744: sha256 b9a15b7dab0f… ≠ ceda0c64c4ab…"
+      },
+      "gate": "w1",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "479c2317bb3082b8d085c4dbb2494bb404ae69f4",
+      "changeset_id": "legacy-6253d16a1c6d508d",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-02b393e675d4528e",
+          "replacement_function_source": "unsafe fn Mask_calcN2(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n) -> c_int {\n    // Applied rules:\n    // - Hoist invariant width conversion out of inner loop.\n    // - Use row-based traversal to reduce pointer arithmetic in the hot path.\n    // Skipped rules:\n    // - No widened/vectorized loads: exact byte semantics must be preserved.\n\n    let mut demerit: c_int = 0;\n    if width <= 1 {\n        return demerit;\n    }\n\n    let w = width as isize;\n    let mut y: c_int = 1;\n    // SAFETY: Caller guarantees `frame` points to a valid `width * width` byte grid;\n    // width > 1 here, so advancing to row 1, col 1 stays within the allocation.\n    let mut row = unsafe { frame.offset(w).offset(1) };\n\n    while y < width {\n        let mut x: c_int = 1;\n        let mut p = row;\n        while x < width {\n            // SAFETY: For 1 <= x,y < width, p points at frame[y][x], and the offsets\n            // -1, -w, and -w-1 refer to frame[y][x-1], frame[y-1][x], frame[y-1][x-1],\n            // all within the same valid allocation.\n            let c = unsafe { *p } as c_int;\n            // SAFETY: See above; p.offset(-1) is in-bounds.\n            let l = unsafe { *p.offset(-1) } as c_int;\n            // SAFETY: See above; p.offset(-w) is in-bounds.\n            let u = unsafe { *p.offset(-w) } as c_int;\n            // SAFETY: See above; p.offset(-w - 1) is in-bounds.\n            let ul = unsafe { *p.offset(-w - 1) } as c_int;\n\n            let b22 = c & l & u & ul;\n            let w22 = c | l | u | ul;\n            if ((b22 | (w22 ^ 1)) & 1) != 0 {\n                demerit += N2;\n            }\n\n            // SAFETY: Advancing within the current row; loop bounds ensure p remains\n            // within or one-past the row segment being traversed.\n            p = unsafe { p.offset(1) };\n            x += 1;\n        }\n        // Match original pointer progression exactly: after inner loop p is one-past\n        // the processed row segment, then advance one more to the next row's col 1.\n        // SAFETY: row points to col 1 of row y; adding w + 1 reaches col 1 of row y+1,\n        // or one-past the allocation after the final iteration, which is not dereferenced.\n        row = unsafe { row.offset(w + 1) };\n        y += 1;\n    }\n\n    demerit\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "cfb697fa975488702e2c8444dc8d28c34466534f45bfe060d3889edec1247ae1",
+            "file_hint": "src/mask.rs",
+            "qualified_name": "crate::Mask_calcN2",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "Mask_calcN2-9378aa0c348e",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "Mask_calcN2",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "5b43af3fc7bc8ddcc2622e5c5903fac4250c7b3881a938fb500cf81bb97e7a0b",
+            "edit_id": "edit-replace-02b393e675d4528e",
+            "end_byte": 13367,
+            "operation_id": "replace-02b393e675d4528e",
+            "relative_path": "src/mask.rs",
+            "replacement_text": "unsafe fn Mask_calcN2(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n) -> c_int {\n    // Applied rules:\n    // - Hoist invariant width conversion out of inner loop.\n    // - Use row-based traversal to reduce pointer arithmetic in the hot path.\n    // Skipped rules:\n    // - No widened/vectorized loads: exact byte semantics must be preserved.\n\n    let mut demerit: c_int = 0;\n    if width <= 1 {\n        return demerit;\n    }\n\n    let w = width as isize;\n    let mut y: c_int = 1;\n    // SAFETY: Caller guarantees `frame` points to a valid `width * width` byte grid;\n    // width > 1 here, so advancing to row 1, col 1 stays within the allocation.\n    let mut row = unsafe { frame.offset(w).offset(1) };\n\n    while y < width {\n        let mut x: c_int = 1;\n        let mut p = row;\n        while x < width {\n            // SAFETY: For 1 <= x,y < width, p points at frame[y][x], and the offsets\n            // -1, -w, and -w-1 refer to frame[y][x-1], frame[y-1][x], frame[y-1][x-1],\n            // all within the same valid allocation.\n            let c = unsafe { *p } as c_int;\n            // SAFETY: See above; p.offset(-1) is in-bounds.\n            let l = unsafe { *p.offset(-1) } as c_int;\n            // SAFETY: See above; p.offset(-w) is in-bounds.\n            let u = unsafe { *p.offset(-w) } as c_int;\n            // SAFETY: See above; p.offset(-w - 1) is in-bounds.\n            let ul = unsafe { *p.offset(-w - 1) } as c_int;\n\n            let b22 = c & l & u & ul;\n            let w22 = c | l | u | ul;\n            if ((b22 | (w22 ^ 1)) & 1) != 0 {\n                demerit += N2;\n            }\n\n            // SAFETY: Advancing within the current row; loop bounds ensure p remains\n            // within or one-past the row segment being traversed.\n            p = unsafe { p.offset(1) };\n            x += 1;\n        }\n        // Match original pointer progression exactly: after inner loop p is one-past\n        // the processed row segment, then advance one more to the next row's col 1.\n        // SAFETY: row points to col 1 of row y; adding w + 1 reaches col 1 of row y+1,\n        // or one-past the allocation after the final iteration, which is not dereferenced.\n        row = unsafe { row.offset(w + 1) };\n        y += 1;\n    }\n\n    demerit\n}",
+            "start_byte": 12047
+          }
+        ],
+        "facts": {
+          "fn_name": "Mask_calcN2",
+          "target_span_hash": "cfb697fa975488702e2c8444dc8d28c34466534f45bfe060d3889edec1247ae1"
+        },
+        "operation_id": "replace-02b393e675d4528e"
+      }
+    ],
+    "resolved_head": "479c2317bb3082b8d085c4dbb2494bb404ae69f4"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w1",
+  "touched_paths": [
+    "src/mask.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

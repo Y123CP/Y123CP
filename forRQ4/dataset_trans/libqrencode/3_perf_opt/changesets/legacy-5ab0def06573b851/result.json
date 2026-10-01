@@ -1,0 +1,194 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -9.230426563897772,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -8.991497987493002,
+            "aggregate_ci_low_pct": -9.469355140302543,
+            "aggregate_pct": -9.230426563897772,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -0.1321,
+                "ci_low_pct": -0.4519,
+                "insns_delta_pct": -0.1398,
+                "mean_delta_pct": -0.292,
+                "op": "encode_data_and_input",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.1039,
+                "ci_low_pct": -0.2037,
+                "insns_delta_pct": -0.1433,
+                "mean_delta_pct": -0.0499,
+                "op": "encode_string_api",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -26.6553,
+                "ci_low_pct": -28.0433,
+                "insns_delta_pct": -32.3906,
+                "mean_delta_pct": -27.3493,
+                "op": "spec_mask_ecc",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.1088520528093115,
+            "aggregate_ci_low_pct": -0.1710805624152279,
+            "aggregate_pct": -0.031114254802958197,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.2087,
+                "ci_low_pct": -0.3323,
+                "insns_delta_pct": -0.001,
+                "mean_delta_pct": -0.0618,
+                "op": "encode_data_and_input",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.0984,
+                "ci_low_pct": -0.0993,
+                "insns_delta_pct": 0.0026,
+                "mean_delta_pct": -0.0004,
+                "op": "encode_string_api",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_data_and_input",
+          "encode_string_api"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "encode_string_api"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "4e6562fc0a5bb4a0b7bc46b4ee7aeefb81992675",
+      "changeset_id": "legacy-5ab0def06573b851",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-f79ae90c21009914",
+          "replacement_function_source": "// Applied rules: [III④, C3]\n// Skipped rules: []\nunsafe fn Mask_calcRunLengthV(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n    mut runLength: *mut c_int,\n) -> c_int {\n    let mut head: c_int;\n    let mut prev: c_uchar;\n    let width_usize = width as usize;\n    let run_len_usize = width_usize.wrapping_add(1);\n\n    // SAFETY: `width` is the caller-provided logical extent for this scan; the\n    // original code unconditionally reads `frame[0]` and then reads strided\n    // positions `frame[i * width]` for `0 <= i < width`, so callers must provide\n    // a non-null allocation covering at least `width * width` bytes. No Rust\n    // references to this memory are otherwise created in this region.\n    let frame = unsafe {\n        core::slice::from_raw_parts(frame as *const c_uchar, width_usize.wrapping_mul(width_usize))\n    };\n    // SAFETY: the output writes at most `width + 1` entries (optional leading\n    // `-1` plus one run per scanned row), so callers must provide non-null\n    // writable storage for that many `c_int`s. No other Rust reference aliases\n    // this region during the rewrite region.\n    let run_length = unsafe { core::slice::from_raw_parts_mut(runLength, run_len_usize) };\n\n    // SAFETY: same caller preconditions as the original unconditional\n    // `*frame.offset(0)` read; index 0 is within the `frame` view.\n    let first = unsafe { *frame.get_unchecked(0) };\n    if first as c_int & 1 as c_int != 0 {\n        // SAFETY: index 0 is within the `run_length` view of length `width + 1`.\n        unsafe { *run_length.get_unchecked_mut(0) = -(1 as c_int) };\n        head = 1 as c_int;\n    } else {\n        head = 0 as c_int;\n    }\n\n    // SAFETY: `head` is 0 or 1 here, so it is within `run_length[..width+1]`.\n    unsafe { *run_length.get_unchecked_mut(head as usize) = 1 as c_int };\n    prev = first;\n\n    let mut i: c_int = 1 as c_int;\n    while i < width {\n        let idx = (i * width) as usize;\n        // SAFETY: for each loop iteration `0 <= i < width`, matching the\n        // original `frame.offset(i * width)` access; callers guarantee the\n        // strided positions exist within the `frame` allocation.\n        let pixel = unsafe { *frame.get_unchecked(idx) };\n        if (pixel as c_int ^ prev as c_int) & 1 as c_int != 0 {\n            head += 1;\n            // SAFETY: `head` starts at 0 or 1 and increases by at most once per\n            // iteration, so across `width - 1` iterations it never exceeds\n            // `width`; therefore `head` is always within `run_length[..width+1]`.\n            unsafe { *run_length.get_unchecked_mut(head as usize) = 1 as c_int };\n            prev = pixel;\n        } else {\n            // SAFETY: same bound as above; `head <= width`, so this mutable\n            // access stays within the `run_length` view.\n            unsafe {\n                let slot = run_length.get_unchecked_mut(head as usize);\n                *slot += 1;\n            }\n        }\n        i += 1;\n    }\n    head + 1 as c_int\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "2f249d0c1073a9430e88dd5920b231fb6f957589e0a4a5ca08e4cff9bf847576",
+            "file_hint": "src/mask.rs",
+            "qualified_name": "crate::Mask_calcRunLengthV",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "Mask_calcRunLengthV-0c34699fe34e",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "Mask_calcRunLengthV",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "a38d93f87d0658705488019fc56ffb43aaca0469af77914e6d89eba0ce006c91",
+            "edit_id": "edit-replace-f79ae90c21009914",
+            "end_byte": 15383,
+            "operation_id": "replace-f79ae90c21009914",
+            "relative_path": "src/mask.rs",
+            "replacement_text": "// Applied rules: [III④, C3]\n// Skipped rules: []\nunsafe fn Mask_calcRunLengthV(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n    mut runLength: *mut c_int,\n) -> c_int {\n    let mut head: c_int;\n    let mut prev: c_uchar;\n    let width_usize = width as usize;\n    let run_len_usize = width_usize.wrapping_add(1);\n\n    // SAFETY: `width` is the caller-provided logical extent for this scan; the\n    // original code unconditionally reads `frame[0]` and then reads strided\n    // positions `frame[i * width]` for `0 <= i < width`, so callers must provide\n    // a non-null allocation covering at least `width * width` bytes. No Rust\n    // references to this memory are otherwise created in this region.\n    let frame = unsafe {\n        core::slice::from_raw_parts(frame as *const c_uchar, width_usize.wrapping_mul(width_usize))\n    };\n    // SAFETY: the output writes at most `width + 1` entries (optional leading\n    // `-1` plus one run per scanned row), so callers must provide non-null\n    // writable storage for that many `c_int`s. No other Rust reference aliases\n    // this region during the rewrite region.\n    let run_length = unsafe { core::slice::from_raw_parts_mut(runLength, run_len_usize) };\n\n    // SAFETY: same caller preconditions as the original unconditional\n    // `*frame.offset(0)` read; index 0 is within the `frame` view.\n    let first = unsafe { *frame.get_unchecked(0) };\n    if first as c_int & 1 as c_int != 0 {\n        // SAFETY: index 0 is within the `run_length` view of length `width + 1`.\n        unsafe { *run_length.get_unchecked_mut(0) = -(1 as c_int) };\n        head = 1 as c_int;\n    } else {\n        head = 0 as c_int;\n    }\n\n    // SAFETY: `head` is 0 or 1 here, so it is within `run_length[..width+1]`.\n    unsafe { *run_length.get_unchecked_mut(head as usize) = 1 as c_int };\n    prev = first;\n\n    let mut i: c_int = 1 as c_int;\n    while i < width {\n        let idx = (i * width) as usize;\n        // SAFETY: for each loop iteration `0 <= i < width`, matching the\n        // original `frame.offset(i * width)` access; callers guarantee the\n        // strided positions exist within the `frame` allocation.\n        let pixel = unsafe { *frame.get_unchecked(idx) };\n        if (pixel as c_int ^ prev as c_int) & 1 as c_int != 0 {\n            head += 1;\n            // SAFETY: `head` starts at 0 or 1 and increases by at most once per\n            // iteration, so across `width - 1` iterations it never exceeds\n            // `width`; therefore `head` is always within `run_length[..width+1]`.\n            unsafe { *run_length.get_unchecked_mut(head as usize) = 1 as c_int };\n            prev = pixel;\n        } else {\n            // SAFETY: same bound as above; `head <= width`, so this mutable\n            // access stays within the `run_length` view.\n            unsafe {\n                let slot = run_length.get_unchecked_mut(head as usize);\n                *slot += 1;\n            }\n        }\n        i += 1;\n    }\n    head + 1 as c_int\n}",
+            "start_byte": 14366
+          }
+        ],
+        "facts": {
+          "fn_name": "Mask_calcRunLengthV",
+          "target_span_hash": "2f249d0c1073a9430e88dd5920b231fb6f957589e0a4a5ca08e4cff9bf847576"
+        },
+        "operation_id": "replace-f79ae90c21009914"
+      }
+    ],
+    "resolved_head": "4e6562fc0a5bb4a0b7bc46b4ee7aeefb81992675"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/mask.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

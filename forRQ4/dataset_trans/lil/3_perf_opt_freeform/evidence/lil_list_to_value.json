@@ -1,0 +1,496 @@
+{
+  "hot_function": {
+    "symbol": "lil_list_to_value",
+    "location": "src/lil.rs:536-584",
+    "workload": "builtin_script_matrix",
+    "hot_region": "src/lil.rs:536-584",
+    "rust_source": "pub fn lil_list_to_value(\n    mut list: lil_list_t,\n    mut do_escape: c_int,\n) -> lil_value_t { unsafe {\n    let mut val: lil_value_t = alloc_value(::core::ptr::null::<c_char>());\n    let mut i: size_t = 0;\n    let mut j: size_t = 0;\n    i = 0 as size_t;\n    while i < (*list).c {\n        let mut escape: c_int = if do_escape != 0 {\n            needs_escape(lil_to_string(*(*list).v.offset(i as isize)))\n        } else {\n            0 as c_int\n        };\n        if i != 0 {\n            lil_append_char(val, ' ' as i32 as c_char);\n        }\n        if escape != 0 {\n            lil_append_char(val, '{' as i32 as c_char);\n            j = 0 as size_t;\n            while j < (**(*list).v.offset(i as isize)).l {\n                if *(**(*list).v.offset(i as isize)).d.offset(j as isize) as c_int\n                    == '{' as i32\n                {\n                    lil_append_string(\n                        val,\n                        b\"}\\\"\\\\o\\\"{\\0\" as *const u8 as *const c_char,\n                    );\n                } else if *(**(*list).v.offset(i as isize)).d.offset(j as isize)\n                    as c_int\n                    == '}' as i32\n                {\n                    lil_append_string(\n                        val,\n                        b\"}\\\"\\\\c\\\"{\\0\" as *const u8 as *const c_char,\n                    );\n                } else {\n                    lil_append_char(val, *(**(*list).v.offset(i as isize)).d.offset(j as isize));\n                }\n                j = j.wrapping_add(1);\n            }\n            lil_append_char(val, '}' as i32 as c_char);\n        } else {\n            lil_append_val(val, *(*list).v.offset(i as isize));\n        }\n        i = i.wrapping_add(1);\n    }\n    return val;\n} }",
+    "signature": "pub fn lil_list_to_value(\n    mut list: lil_list_t,\n    mut do_escape: c_int,\n) -> lil_value_t",
+    "profile": {
+      "self_time_ratio": 0.1669,
+      "call_count": null,
+      "retired_instructions": 4557542924,
+      "instructions_per_call": null,
+      "cpi": 0.214,
+      "tma": {
+        "scope": "process",
+        "retiring": 58.90728348131257,
+        "frontend_bound": 25.58897376642629,
+        "bad_speculation": 2.131083229655242,
+        "backend_bound": 13.372659522605897,
+        "memory_bound": 9.887339899212124,
+        "core_bound": 3.485319623393773,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0025
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 540,
+        "message": "'_ZN11lil_cleaned3src3lil11alloc_value17h4a3e3435e01ff9d1E' inlined into '_ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E' with (cost=5, threshold=375) at callsite _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E:4:32;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 546,
+        "message": "'_ZN11lil_cleaned3src3lil12needs_escape17hb9a93ec68e1ada94E' inlined into '_ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E' with (cost=130, threshold=250) at callsite _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E:10:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 551,
+        "message": "'_ZN11lil_cleaned3src3lil15lil_append_char17h740d671488483e90E' inlined into '_ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E' with (cost=55, threshold=325) at callsite _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E:15:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 579,
+        "message": "'_ZN11lil_cleaned3src3lil14lil_append_val17hf56855fe8bb7fbb1E' inlined into '_ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E' with (cost=100, threshold=325) at callsite _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E:43:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 554,
+        "message": "'_ZN11lil_cleaned3src3lil15lil_append_char17h740d671488483e90E' inlined into '_ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E' with (cost=55, threshold=325) at callsite _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E:18:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 577,
+        "message": "'_ZN11lil_cleaned3src3lil15lil_append_char17h740d671488483e90E' inlined into '_ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E' with (cost=55, threshold=325) at callsite _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E:41:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 573,
+        "message": "'_ZN11lil_cleaned3src3lil15lil_append_char17h740d671488483e90E' inlined into '_ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E' with (cost=55, threshold=525) at callsite _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E:37:21;"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 556,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 544,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 544,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 546,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 579,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 545,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 557,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 544,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 546,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 556,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 579,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 544,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 540,
+        "message": "_ZN11lil_cleaned3src3lil11alloc_value17h4a3e3435e01ff9d1E will not be inlined into _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 546,
+        "message": "_ZN11lil_cleaned3src3lil12needs_escape17hb9a93ec68e1ada94E will not be inlined into _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E because its definition is unavailable"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 579,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 544,
+        "message": "peeled loop by 1 iterations"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 544,
+        "message": "load of type i64 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 579,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 579,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 579,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E: MI Instruction count changed from 0 to 263; Delta: 263"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Early Tail Duplication: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E: MI Instruction count changed from 263 to 262; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Remove dead machine instructions: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E: MI Instruction count changed from 262 to 261; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E: MI Instruction count changed from 261 to 262; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E: MI Instruction count changed from 262 to 261; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E: MI Instruction count changed from 261 to 305; Delta: 44"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Two-Address instruction pass: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E: MI Instruction count changed from 305 to 312; Delta: 7"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Register Coalescer: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E: MI Instruction count changed from 312 to 243; Delta: -69"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 557,
+        "message": "1 reloads 2.132500e+02 total reloads cost 6 virtual registers copies 3.465000e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 544,
+        "message": "5 reloads 2.689167e+02 total reloads cost 1 folded reloads 2.125000e+01 total folded reloads cost 16 virtual registers copies 4.873333e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 536,
+        "message": "2 spills 2.000000e+00 total spills cost 5 reloads 2.689167e+02 total reloads cost 1 folded reloads 2.125000e+01 total folded reloads cost 19 virtual registers copies 4.903333e+02 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Greedy Register Allocator: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E: MI Instruction count changed from 243 to 253; Delta: 10"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Virtual Register Rewriter: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E: MI Instruction count changed from 253 to 229; Delta: -24"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 536,
+        "message": "72 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E: MI Instruction count changed from 229 to 241; Delta: 12"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Control Flow Optimizer: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E: MI Instruction count changed from 241 to 208; Delta: -33"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Tail Duplication: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E: MI Instruction count changed from 208 to 209; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "X86 LEA Fixup: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E: MI Instruction count changed from 209 to 210; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 550,
+        "message": "BasicBlock: bb7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 553,
+        "message": "BasicBlock: bb11"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 557,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 557,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 584,
+        "message": "BasicBlock: bb27"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 536,
+        "message": "190 instructions in function"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 544,
+        "message": "BasicBlock: bb40"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 579,
+        "message": "BasicBlock: bb11.i"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E.139: MI Instruction count changed from 0 to 261; Delta: 261"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Early Tail Duplication: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E.139: MI Instruction count changed from 261 to 260; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Remove dead machine instructions: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E.139: MI Instruction count changed from 260 to 259; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E.139: MI Instruction count changed from 259 to 260; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E.139: MI Instruction count changed from 260 to 303; Delta: 43"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Two-Address instruction pass: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E.139: MI Instruction count changed from 303 to 313; Delta: 10"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Register Coalescer: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E.139: MI Instruction count changed from 313 to 242; Delta: -71"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 557,
+        "message": "6 reloads 2.131667e+02 total reloads cost 23 virtual registers copies 1.225917e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 544,
+        "message": "1 spills 6.583333e+00 total spills cost 17 reloads 2.960834e+02 total reloads cost 44 virtual registers copies 1.390000e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 536,
+        "message": "2 spills 7.250000e+00 total spills cost 17 reloads 2.960834e+02 total reloads cost 48 virtual registers copies 1.394000e+03 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Greedy Register Allocator: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E.139: MI Instruction count changed from 242 to 292; Delta: 50"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Virtual Register Rewriter: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E.139: MI Instruction count changed from 292 to 269; Delta: -23"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E.139: MI Instruction count changed from 269 to 281; Delta: 12"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Control Flow Optimizer: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E.139: MI Instruction count changed from 281 to 237; Delta: -44"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E.139: MI Instruction count changed from 237 to 241; Delta: 4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 536,
+        "message": "X86 LEA Fixup: Function: _ZN11lil_cleaned3src3lil17lil_list_to_value17h1d774a967074d508E.139: MI Instruction count changed from 241 to 242; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 546,
+        "message": "BasicBlock: bb4"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 579,
+        "message": "BasicBlock: bb24"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 536,
+        "message": "222 instructions in function"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 544,
+        "message": "BasicBlock: bb26.i.peel"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 579,
+        "message": "BasicBlock: bb11.i.peel"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 579,
+        "message": "BasicBlock: bb11.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

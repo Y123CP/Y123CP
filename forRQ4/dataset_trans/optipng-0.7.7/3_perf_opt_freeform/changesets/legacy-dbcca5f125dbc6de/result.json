@@ -1,0 +1,206 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.1659759601738963,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.30477439392115896,
+            "aggregate_ci_low_pct": 0.027177526426633625,
+            "aggregate_pct": 0.1659759601738963,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.4578,
+                "ci_low_pct": -0.2234,
+                "insns_delta_pct": -0.0163,
+                "mean_delta_pct": 0.1172,
+                "op": "gzip_file_roundtrip",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.8608,
+                "ci_low_pct": -0.2966,
+                "insns_delta_pct": -0.0,
+                "mean_delta_pct": 0.2821,
+                "op": "ioutil_paths_and_files",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.1346,
+                "ci_low_pct": -0.174,
+                "insns_delta_pct": -0.0076,
+                "mean_delta_pct": -0.0197,
+                "op": "png_palette_roundtrip",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 1.1716,
+                "ci_low_pct": -0.0444,
+                "insns_delta_pct": 0.065,
+                "mean_delta_pct": 0.5636,
+                "op": "png_write_read_roundtrip",
+                "samples": 40,
+                "state": "active",
+                "stop_reason": "per_op_uncertain"
+              },
+              {
+                "ci_high_pct": 0.1068,
+                "ci_low_pct": -0.0121,
+                "insns_delta_pct": -0.0118,
+                "mean_delta_pct": 0.0474,
+                "op": "zlib_compress_uncompress",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.128,
+                "ci_low_pct": -0.0798,
+                "insns_delta_pct": -0.0074,
+                "mean_delta_pct": 0.0241,
+                "op": "zlib_deflate_inflate_stream",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.5062,
+                "ci_low_pct": -0.2116,
+                "insns_delta_pct": 0.0028,
+                "mean_delta_pct": 0.1473,
+                "op": "zlib_gzip_advanced",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "per_op_uncertain"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "gzip_file_roundtrip",
+          "ioutil_paths_and_files",
+          "png_palette_roundtrip",
+          "png_write_read_roundtrip",
+          "zlib_compress_uncompress",
+          "zlib_deflate_inflate_stream",
+          "zlib_gzip_advanced"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "png_write_read_roundtrip"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "1b6911536fa4071b9bf048eced0445b0b36791ea",
+      "changeset_id": "legacy-dbcca5f125dbc6de",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-e411d52752884b9d",
+          "replacement_function_source": "unsafe fn crc32_little(\n    mut crc: c_ulong,\n    mut buf: *const c_uchar,\n    mut len: z_size_t,\n) -> c_ulong {\n    #[inline(always)]\n    fn step_word(mut c: z_crc_t, w: z_crc_t) -> z_crc_t {\n        c ^= w;\n        unsafe { // SAFETY: crc_table is a valid global lookup table; indices are masked to 0..=255.\n            crc_table[3][(c & 0xff) as usize]\n                ^ crc_table[2][((c >> 8) & 0xff) as usize]\n                ^ crc_table[1][((c >> 16) & 0xff) as usize]\n                ^ crc_table[0][(c >> 24) as usize]\n        }\n    }\n\n    let mut c: z_crc_t = !(crc as z_crc_t);\n\n    while len != 0 && (buf as ptrdiff_t & 3) != 0 {\n        let b = unsafe { // SAFETY: caller guarantees buf is valid for len bytes; len != 0 here, so one-byte read is in-bounds.\n            *buf\n        } as z_crc_t;\n        buf = unsafe { // SAFETY: advancing by 1 stays within or one past the valid input range because len != 0.\n            buf.add(1)\n        };\n        c = unsafe { // SAFETY: crc_table is a valid global lookup table; index is masked to 0..=255.\n            crc_table[0][((c ^ b) & 0xff) as usize]\n        } ^ (c >> 8);\n        len = len.wrapping_sub(1);\n    }\n\n    let mut buf4 = buf as *const z_crc_t;\n\n    while len >= 32 {\n        c = step_word(\n            c,\n            unsafe { // SAFETY: len >= 32 guarantees at least 8 z_crc_t words remain after 4-byte alignment.\n                *buf4\n            },\n        );\n        buf4 = unsafe { // SAFETY: advancing by 1 word remains within the 8-word chunk guaranteed by len >= 32.\n            buf4.add(1)\n        };\n        c = step_word(\n            c,\n            unsafe { // SAFETY: len >= 32 guarantees this read is in-bounds.\n                *buf4\n            },\n        );\n        buf4 = unsafe { // SAFETY: advancing by 1 word remains within the 8-word chunk guaranteed by len >= 32.\n            buf4.add(1)\n        };\n        c = step_word(\n            c,\n            unsafe { // SAFETY: len >= 32 guarantees this read is in-bounds.\n                *buf4\n            },\n        );\n        buf4 = unsafe { // SAFETY: advancing by 1 word remains within the 8-word chunk guaranteed by len >= 32.\n            buf4.add(1)\n        };\n        c = step_word(\n            c,\n            unsafe { // SAFETY: len >= 32 guarantees this read is in-bounds.\n                *buf4\n            },\n        );\n        buf4 = unsafe { // SAFETY: advancing by 1 word remains within the 8-word chunk guaranteed by len >= 32.\n            buf4.add(1)\n        };\n        c = step_word(\n            c,\n            unsafe { // SAFETY: len >= 32 guarantees this read is in-bounds.\n                *buf4\n            },\n        );\n        buf4 = unsafe { // SAFETY: advancing by 1 word remains within the 8-word chunk guaranteed by len >= 32.\n            buf4.add(1)\n        };\n        c = step_word(\n            c,\n            unsafe { // SAFETY: len >= 32 guarantees this read is in-bounds.\n                *buf4\n            },\n        );\n        buf4 = unsafe { // SAFETY: advancing by 1 word remains within the 8-word chunk guaranteed by len >= 32.\n            buf4.add(1)\n        };\n        c = step_word(\n            c,\n            unsafe { // SAFETY: len >= 32 guarantees this read is in-bounds.\n                *buf4\n            },\n        );\n        buf4 = unsafe { // SAFETY: advancing by 1 word remains within the 8-word chunk guaranteed by len >= 32.\n            buf4.add(1)\n        };\n        c = step_word(\n            c,\n            unsafe { // SAFETY: len >= 32 guarantees this read is in-bounds.\n                *buf4\n            },\n        );\n        buf4 = unsafe { // SAFETY: advancing by 1 word remains within the 8-word chunk guaranteed by len >= 32.\n            buf4.add(1)\n        };\n        len = len.wrapping_sub(32);\n    }\n\n    while len >= 4 {\n        c = step_word(\n            c,\n            unsafe { // SAFETY: len >= 4 guarantees one z_crc_t word remains.\n                *buf4\n            },\n        );\n        buf4 = unsafe { // SAFETY: advancing by 1 word stays within or one past the valid input range because len >= 4.\n            buf4.add(1)\n        };\n        len = len.wrapping_sub(4);\n    }\n\n    buf = buf4 as *const c_uchar;\n    while len != 0 {\n        let b = unsafe { // SAFETY: caller guarantees buf is valid for len bytes; len != 0 here, so one-byte read is in-bounds.\n            *buf\n        } as z_crc_t;\n        buf = unsafe { // SAFETY: advancing by 1 stays within or one past the valid input range because len != 0.\n            buf.add(1)\n        };\n        c = unsafe { // SAFETY: crc_table is a valid global lookup table; index is masked to 0..=255.\n            crc_table[0][((c ^ b) & 0xff) as usize]\n        } ^ (c >> 8);\n        len = len.wrapping_sub(1);\n    }\n\n    (!c) as c_ulong\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "9da2864d62acdb4221d9a17f807db4d1d6de2f2f7de627c117c44f0607e31e4b",
+            "file_hint": "src/zlib/crc32.rs",
+            "qualified_name": "crate::crc32_little",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "crc32_little-f0051acc43d1",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "crc32_little",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "43a53f2d98b02104c8ebac56ba140ad1a2278b41aee657b9239621cde3487e96",
+            "edit_id": "edit-replace-e411d52752884b9d",
+            "end_byte": 96007,
+            "operation_id": "replace-e411d52752884b9d",
+            "relative_path": "src/zlib/crc32.rs",
+            "replacement_text": "unsafe fn crc32_little(\n    mut crc: c_ulong,\n    mut buf: *const c_uchar,\n    mut len: z_size_t,\n) -> c_ulong {\n    #[inline(always)]\n    fn step_word(mut c: z_crc_t, w: z_crc_t) -> z_crc_t {\n        c ^= w;\n        unsafe { // SAFETY: crc_table is a valid global lookup table; indices are masked to 0..=255.\n            crc_table[3][(c & 0xff) as usize]\n                ^ crc_table[2][((c >> 8) & 0xff) as usize]\n                ^ crc_table[1][((c >> 16) & 0xff) as usize]\n                ^ crc_table[0][(c >> 24) as usize]\n        }\n    }\n\n    let mut c: z_crc_t = !(crc as z_crc_t);\n\n    while len != 0 && (buf as ptrdiff_t & 3) != 0 {\n        let b = unsafe { // SAFETY: caller guarantees buf is valid for len bytes; len != 0 here, so one-byte read is in-bounds.\n            *buf\n        } as z_crc_t;\n        buf = unsafe { // SAFETY: advancing by 1 stays within or one past the valid input range because len != 0.\n            buf.add(1)\n        };\n        c = unsafe { // SAFETY: crc_table is a valid global lookup table; index is masked to 0..=255.\n            crc_table[0][((c ^ b) & 0xff) as usize]\n        } ^ (c >> 8);\n        len = len.wrapping_sub(1);\n    }\n\n    let mut buf4 = buf as *const z_crc_t;\n\n    while len >= 32 {\n        c = step_word(\n            c,\n            unsafe { // SAFETY: len >= 32 guarantees at least 8 z_crc_t words remain after 4-byte alignment.\n                *buf4\n            },\n        );\n        buf4 = unsafe { // SAFETY: advancing by 1 word remains within the 8-word chunk guaranteed by len >= 32.\n            buf4.add(1)\n        };\n        c = step_word(\n            c,\n            unsafe { // SAFETY: len >= 32 guarantees this read is in-bounds.\n                *buf4\n            },\n        );\n        buf4 = unsafe { // SAFETY: advancing by 1 word remains within the 8-word chunk guaranteed by len >= 32.\n            buf4.add(1)\n        };\n        c = step_word(\n            c,\n            unsafe { // SAFETY: len >= 32 guarantees this read is in-bounds.\n                *buf4\n            },\n        );\n        buf4 = unsafe { // SAFETY: advancing by 1 word remains within the 8-word chunk guaranteed by len >= 32.\n            buf4.add(1)\n        };\n        c = step_word(\n            c,\n            unsafe { // SAFETY: len >= 32 guarantees this read is in-bounds.\n                *buf4\n            },\n        );\n        buf4 = unsafe { // SAFETY: advancing by 1 word remains within the 8-word chunk guaranteed by len >= 32.\n            buf4.add(1)\n        };\n        c = step_word(\n            c,\n            unsafe { // SAFETY: len >= 32 guarantees this read is in-bounds.\n                *buf4\n            },\n        );\n        buf4 = unsafe { // SAFETY: advancing by 1 word remains within the 8-word chunk guaranteed by len >= 32.\n            buf4.add(1)\n        };\n        c = step_word(\n            c,\n            unsafe { // SAFETY: len >= 32 guarantees this read is in-bounds.\n                *buf4\n            },\n        );\n        buf4 = unsafe { // SAFETY: advancing by 1 word remains within the 8-word chunk guaranteed by len >= 32.\n            buf4.add(1)\n        };\n        c = step_word(\n            c,\n            unsafe { // SAFETY: len >= 32 guarantees this read is in-bounds.\n                *buf4\n            },\n        );\n        buf4 = unsafe { // SAFETY: advancing by 1 word remains within the 8-word chunk guaranteed by len >= 32.\n            buf4.add(1)\n        };\n        c = step_word(\n            c,\n            unsafe { // SAFETY: len >= 32 guarantees this read is in-bounds.\n                *buf4\n            },\n        );\n        buf4 = unsafe { // SAFETY: advancing by 1 word remains within the 8-word chunk guaranteed by len >= 32.\n            buf4.add(1)\n        };\n        len = len.wrapping_sub(32);\n    }\n\n    while len >= 4 {\n        c = step_word(\n            c,\n            unsafe { // SAFETY: len >= 4 guarantees one z_crc_t word remains.\n                *buf4\n            },\n        );\n        buf4 = unsafe { // SAFETY: advancing by 1 word stays within or one past the valid input range because len >= 4.\n            buf4.add(1)\n        };\n        len = len.wrapping_sub(4);\n    }\n\n    buf = buf4 as *const c_uchar;\n    while len != 0 {\n        let b = unsafe { // SAFETY: caller guarantees buf is valid for len bytes; len != 0 here, so one-byte read is in-bounds.\n            *buf\n        } as z_crc_t;\n        buf = unsafe { // SAFETY: advancing by 1 stays within or one past the valid input range because len != 0.\n            buf.add(1)\n        };\n        c = unsafe { // SAFETY: crc_table is a valid global lookup table; index is masked to 0..=255.\n            crc_table[0][((c ^ b) & 0xff) as usize]\n        } ^ (c >> 8);\n        len = len.wrapping_sub(1);\n    }\n\n    (!c) as c_ulong\n}",
+            "start_byte": 89575
+          }
+        ],
+        "facts": {
+          "fn_name": "crc32_little",
+          "target_span_hash": "9da2864d62acdb4221d9a17f807db4d1d6de2f2f7de627c117c44f0607e31e4b"
+        },
+        "operation_id": "replace-e411d52752884b9d"
+      }
+    ],
+    "resolved_head": "1b6911536fa4071b9bf048eced0445b0b36791ea"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/zlib/crc32.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

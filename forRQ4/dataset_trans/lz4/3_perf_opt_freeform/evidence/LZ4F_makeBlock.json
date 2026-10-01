@@ -1,0 +1,167 @@
+{
+  "hot_function": {
+    "symbol": "LZ4F_makeBlock",
+    "location": "src/lz4frame.rs:1131-1185",
+    "workload": "frame_decompress_usingdict",
+    "hot_region": "src/lz4frame.rs:1131-1185",
+    "rust_source": "unsafe fn LZ4F_makeBlock(\n    mut dst: *mut c_void,\n    mut src: *const c_void,\n    mut srcSize: size_t,\n    mut compress: compressFunc_t,\n    mut lz4ctx: *mut c_void,\n    mut level: c_int,\n    mut cdict: *const LZ4F_CDict,\n    mut crcFlag: LZ4F_blockChecksum_t,\n) -> size_t {\n    let cSizePtr: *mut BYTE = dst as *mut BYTE;\n    let mut dstCapacity: c_int = if srcSize > 1 as size_t {\n        srcSize as c_int - 1 as c_int\n    } else {\n        1 as c_int\n    };\n    let mut cSize: U32 = 0;\n    cSize = compress.expect(\"non-null function pointer\")(\n        lz4ctx,\n        src as *const c_char,\n        cSizePtr.offset(BHSize as isize) as *mut c_char,\n        srcSize as c_int,\n        dstCapacity,\n        level,\n        cdict,\n    ) as U32;\n    if cSize == 0 as U32 || cSize as size_t >= srcSize {\n        cSize = srcSize as U32;\n        LZ4F_writeLE32(\n            cSizePtr as *mut c_void,\n            cSize | LZ4F_BLOCKUNCOMPRESSED_FLAG as U32,\n        );\n        memcpy(\n            cSizePtr.offset(BHSize as isize) as *mut c_void,\n            src,\n            srcSize,\n        );\n    } else {\n        LZ4F_writeLE32(cSizePtr as *mut c_void, cSize);\n    }\n    if crcFlag as u64 != 0 {\n        let crc32: U32 = XXH32(\n            cSizePtr.offset(BHSize as isize) as *const c_void,\n            cSize as size_t,\n            0 as c_uint,\n        ) as U32;\n        LZ4F_writeLE32(\n            cSizePtr.offset(BHSize as isize).offset(cSize as isize) as *mut c_void,\n            crc32,\n        );\n    }\n    return BHSize\n        .wrapping_add(cSize as size_t)\n        .wrapping_add((crcFlag as U32 as size_t).wrapping_mul(BFSize));\n}",
+    "signature": "unsafe fn LZ4F_makeBlock(\n    mut dst: *mut c_void,\n    mut src: *const c_void,\n    mut srcSize: size_t,\n    mut compress: compressFunc_t,\n    mut lz4ctx: *mut c_void,\n    mut level: c_int,\n    mut cdict: *const LZ4F_CDict,\n    mut crcFlag: LZ4F_blockChecksum_t,\n) -> size_t",
+    "profile": {
+      "self_time_ratio": 0.204,
+      "call_count": null,
+      "retired_instructions": null,
+      "instructions_per_call": null,
+      "cpi": null,
+      "tma": {
+        "scope": "process",
+        "retiring": 47.417242456553225,
+        "frontend_bound": 11.144849722880402,
+        "bad_speculation": 14.507301346964415,
+        "backend_bound": 26.930606473601966,
+        "memory_bound": 8.9890094957413,
+        "core_bound": 17.941596977860666,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0294
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C1": 1,
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1164,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1173,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1182,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1184,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1131,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN11lz4_cleaned3src8lz4frame14LZ4F_makeBlock17ha9ab7268a0df5ebfE: MI Instruction count changed from 0 to 140; Delta: 140"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1131,
+        "message": "Remove dead machine instructions: Function: _ZN11lz4_cleaned3src8lz4frame14LZ4F_makeBlock17ha9ab7268a0df5ebfE: MI Instruction count changed from 140 to 139; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1131,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN11lz4_cleaned3src8lz4frame14LZ4F_makeBlock17ha9ab7268a0df5ebfE: MI Instruction count changed from 139 to 151; Delta: 12"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1131,
+        "message": "Two-Address instruction pass: Function: _ZN11lz4_cleaned3src8lz4frame14LZ4F_makeBlock17ha9ab7268a0df5ebfE: MI Instruction count changed from 151 to 176; Delta: 25"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1131,
+        "message": "Register Coalescer: Function: _ZN11lz4_cleaned3src8lz4frame14LZ4F_makeBlock17ha9ab7268a0df5ebfE: MI Instruction count changed from 176 to 127; Delta: -49"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1131,
+        "message": "19 virtual registers copies 2.356248e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1131,
+        "message": "Virtual Register Rewriter: Function: _ZN11lz4_cleaned3src8lz4frame14LZ4F_makeBlock17ha9ab7268a0df5ebfE: MI Instruction count changed from 127 to 115; Delta: -12"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 1131,
+        "message": "56 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1131,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN11lz4_cleaned3src8lz4frame14LZ4F_makeBlock17ha9ab7268a0df5ebfE: MI Instruction count changed from 115 to 141; Delta: 26"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1131,
+        "message": "Control Flow Optimizer: Function: _ZN11lz4_cleaned3src8lz4frame14LZ4F_makeBlock17ha9ab7268a0df5ebfE: MI Instruction count changed from 141 to 135; Delta: -6"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1131,
+        "message": "Machine Copy Propagation Pass: Function: _ZN11lz4_cleaned3src8lz4frame14LZ4F_makeBlock17ha9ab7268a0df5ebfE: MI Instruction count changed from 135 to 134; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1131,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN11lz4_cleaned3src8lz4frame14LZ4F_makeBlock17ha9ab7268a0df5ebfE: MI Instruction count changed from 134 to 136; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1131,
+        "message": "X86 LEA Fixup: Function: _ZN11lz4_cleaned3src8lz4frame14LZ4F_makeBlock17ha9ab7268a0df5ebfE: MI Instruction count changed from 136 to 138; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1131,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN11lz4_cleaned3src8lz4frame14LZ4F_makeBlock17ha9ab7268a0df5ebfE: MI Instruction count changed from 138 to 139; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1171,
+        "message": "BasicBlock: bb13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1131,
+        "message": "118 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

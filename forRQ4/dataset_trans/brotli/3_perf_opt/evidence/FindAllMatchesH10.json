@@ -1,0 +1,268 @@
+{
+  "hot_function": {
+    "symbol": "FindAllMatchesH10",
+    "location": "src/enc/backward_references_hq.rs:581-686",
+    "workload": "encode_buffer",
+    "hot_region": "src/enc/backward_references_hq.rs:581-686",
+    "rust_source": "unsafe fn FindAllMatchesH10(\n    mut self_0: *mut H10,\n    mut dictionary: *const BrotliEncoderDictionary,\n    mut data: *const uint8_t,\n    ring_buffer_mask: size_t,\n    cur_ix: size_t,\n    max_length: size_t,\n    max_backward: size_t,\n    dictionary_distance: size_t,\n    mut params: *const BrotliEncoderParams,\n    mut matches: *mut BackwardMatch,\n) -> size_t {\n    let orig_matches: *mut BackwardMatch = matches;\n    let cur_ix_masked: size_t = cur_ix & ring_buffer_mask;\n    let mut best_len: size_t = 1 as size_t;\n    let short_match_max_backward: size_t = (if (*params).quality != HQ_ZOPFLIFICATION_QUALITY {\n        16 as c_int\n    } else {\n        64 as c_int\n    }) as size_t;\n    let mut stop: size_t = cur_ix.wrapping_sub(short_match_max_backward);\n    let mut dict_matches: [uint32_t; 38] = [0; 38];\n    let mut i: size_t = 0;\n    if cur_ix < short_match_max_backward {\n        stop = 0 as size_t;\n    }\n    i = cur_ix.wrapping_sub(1 as size_t);\n    while i > stop && best_len <= 2 as size_t {\n        let mut prev_ix: size_t = i;\n        let backward: size_t = cur_ix.wrapping_sub(prev_ix);\n        if (backward > max_backward) as c_int as c_long != 0 {\n            break;\n        }\n        prev_ix =\n            (prev_ix as c_ulong & ring_buffer_mask as c_ulong) as size_t;\n        if !(*data.offset(cur_ix_masked as isize) as c_int\n            != *data.offset(prev_ix as isize) as c_int\n            || *data.offset(cur_ix_masked.wrapping_add(1 as size_t) as isize) as c_int\n                != *data.offset(prev_ix.wrapping_add(1 as size_t) as isize) as c_int)\n        {\n            let len: size_t = FindMatchLengthWithLimit(\n                data.offset(prev_ix as isize) as *const uint8_t,\n                data.offset(cur_ix_masked as isize) as *const uint8_t,\n                max_length,\n            ) as size_t;\n            if len > best_len {\n                best_len = len;\n                let fresh1 = matches;\n                matches = matches.offset(1);\n                InitBackwardMatch(fresh1, backward, len);\n            }\n        }\n        i = i.wrapping_sub(1);\n    }\n    if best_len < max_length {\n        matches = StoreAndFindMatchesH10(\n            self_0,\n            data,\n            cur_ix,\n            ring_buffer_mask,\n            max_length,\n            max_backward,\n            &raw mut best_len,\n            matches,\n        );\n    }\n    i = 0 as size_t;\n    while i <= BROTLI_MAX_STATIC_DICTIONARY_MATCH_LEN as size_t {\n        dict_matches[i as usize] = kInvalidMatch;\n        i = i.wrapping_add(1);\n    }\n    let mut minlen: size_t = brotli_max_size_t(4 as size_t, best_len.wrapping_add(1 as size_t));\n    if BrotliFindAllStaticDictionaryMatches(\n        dictionary,\n        data.offset(cur_ix_masked as isize) as *const uint8_t,\n        minlen,\n        max_length,\n        (&raw mut dict_matches as *mut uint32_t).offset(0 as c_int as isize)\n            as *mut uint32_t,\n    ) != 0\n    {\n        let mut maxlen: size_t = brotli_min_size_t(37 as size_t, max_length);\n        let mut l: size_t = 0;\n        l = minlen;\n        while l <= maxlen {\n            let mut dict_id: uint32_t = dict_matches[l as usize];\n            if dict_id < kInvalidMatch {\n                let mut distance: size_t = dictionary_distance\n                    .wrapping_add((dict_id >> 5 as c_int) as size_t)\n                    .wrapping_add(1 as size_t);\n                if distance <= (*params).dist.max_distance {\n                    let fresh2 = matches;\n                    matches = matches.offset(1);\n                    InitDictionaryBackwardMatch(\n                        fresh2,\n                        distance,\n                        l,\n                        (dict_id & 31 as uint32_t) as size_t,\n                    );\n                }\n            }\n            l = l.wrapping_add(1);\n        }\n    }\n    return matches.offset_from(orig_matches) as c_long as size_t;\n}",
+    "signature": "unsafe fn FindAllMatchesH10(\n    mut self_0: *mut H10,\n    mut dictionary: *const BrotliEncoderDictionary,\n    mut data: *const uint8_t,\n    ring_buffer_mask: size_t,\n    cur_ix: size_t,\n    max_length: size_t,\n    max_backward: size_t,\n    dictionary_distance: size_t,\n    mut params: *const BrotliEncoderParams,\n    mut matches: *mut BackwardMatch,\n) -> size_t",
+    "profile": {
+      "self_time_ratio": 0.0441,
+      "call_count": null,
+      "retired_instructions": 4888996246,
+      "instructions_per_call": null,
+      "cpi": 0.482,
+      "tma": {
+        "scope": "process",
+        "retiring": 59.31155026127477,
+        "frontend_bound": 15.191323127255803,
+        "bad_speculation": 8.091951580786422,
+        "backend_bound": 17.40517503068301,
+        "memory_bound": 13.069316342529765,
+        "core_bound": 4.335858688153246,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0095
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 621,
+        "message": "'_ZN14brotli_cleaned3src3enc22backward_references_hq24FindMatchLengthWithLimit17h2c64e87f57e5229aE' inlined into '_ZN14brotli_cleaned3src3enc22backward_references_hq17FindAllMatchesH1017hb46820ccca74f6afE': always inline attribute at callsite _ZN14brotli_cleaned3src3enc22backward_references_hq17FindAllMatchesH1017hb46820ccca74f6afE:40:31;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 636,
+        "message": "'_ZN14brotli_cleaned3src3enc22backward_references_hq22StoreAndFindMatchesH1017ha13f8c6ad3553d4cE' inlined into '_ZN14brotli_cleaned3src3enc22backward_references_hq17FindAllMatchesH1017hb46820ccca74f6afE': always inline attribute at callsite _ZN14brotli_cleaned3src3enc22backward_references_hq17FindAllMatchesH1017hb46820ccca74f6afE:55:19;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 653,
+        "message": "'_ZN14brotli_cleaned3src3enc11static_dict36BrotliFindAllStaticDictionaryMatches17ha6f7e84f4ac5fd6cE' inlined into '_ZN14brotli_cleaned3src3enc22backward_references_hq17FindAllMatchesH1017hb46820ccca74f6afE' with (cost=-14585, threshold=325) at callsite _ZN14brotli_cleaned3src3enc22backward_references_hq17FindAllMatchesH1017hb46820ccca74f6afE:72:8;"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 616,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 618,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 649,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 667,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 671,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 671,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 648,
+        "message": "completely unrolled loop with 38 iterations"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 616,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 618,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 667,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 667,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 671,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 667,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 596,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 649,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 596,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 596,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 608,
+        "message": "1 spills 1.278531e+01 total spills cost 7 reloads 2.037025e+02 total reloads cost 1 folded reloads 1.022825e+02 total folded reloads cost 11 virtual registers copies 3.398594e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 665,
+        "message": "1 spills 3.247882e+01 total spills cost 2 reloads 9.743648e+01 total reloads cost 2 virtual registers copies 1.948730e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 615,
+        "message": "BasicBlock: bb10.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 608,
+        "message": "BasicBlock: bb19.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 635,
+        "message": "BasicBlock: bb22.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 653,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3enc11static_dict36BrotliFindAllStaticDictionaryMatches17ha6f7e84f4ac5fd6cE.exit.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 666,
+        "message": "BasicBlock: bb35.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 669,
+        "message": "BasicBlock: bb36.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 678,
+        "message": "BasicBlock: bb37.i.i"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 608,
+        "message": "1 spills 7.990604e+00 total spills cost 8 reloads 1.368243e+02 total reloads cost 7 virtual registers copies 1.315163e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 665,
+        "message": "1 spills 2.029871e+01 total spills cost 1 reloads 2.029871e+01 total reloads cost 2 virtual registers copies 1.217923e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 615,
+        "message": "BasicBlock: bb10.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 608,
+        "message": "BasicBlock: bb19.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 653,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3enc11static_dict36BrotliFindAllStaticDictionaryMatches17ha6f7e84f4ac5fd6cE.exit.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 666,
+        "message": "BasicBlock: bb35.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 669,
+        "message": "BasicBlock: bb36.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 678,
+        "message": "BasicBlock: bb37.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

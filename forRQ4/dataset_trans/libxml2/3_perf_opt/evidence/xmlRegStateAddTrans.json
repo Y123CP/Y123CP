@@ -1,0 +1,377 @@
+{
+  "hot_function": {
+    "symbol": "xmlRegStateAddTrans",
+    "location": "src/xmlregexp.rs:2545-2622",
+    "workload": "regexp_pattern",
+    "hot_region": "src/xmlregexp.rs:2545-2622",
+    "rust_source": "fn xmlRegStateAddTrans(\n    mut ctxt: xmlRegParserCtxtPtr,\n    mut state: xmlRegStatePtr,\n    mut atom: xmlRegAtomPtr,\n    mut target: xmlRegStatePtr,\n    mut counter: c_int,\n    mut count: c_int,\n) { unsafe {\n    let mut nrtrans: c_int = 0;\n    if state.is_null() {\n        (*ctxt).error = XML_REGEXP_COMPILE_ERROR as c_int;\n        xmlRegexpErrCompile(\n            ctxt,\n            b\"add state: state is NULL\\0\" as *const u8 as *const c_char,\n        );\n        return;\n    }\n    if target.is_null() {\n        (*ctxt).error = XML_REGEXP_COMPILE_ERROR as c_int;\n        xmlRegexpErrCompile(\n            ctxt,\n            b\"add state: target is NULL\\0\" as *const u8 as *const c_char,\n        );\n        return;\n    }\n    nrtrans = (*state).nbTrans - 1 as c_int;\n    while nrtrans >= 0 as c_int {\n        let mut trans: xmlRegTransPtr = (*state).trans.offset(nrtrans as isize) as xmlRegTransPtr;\n        if (*trans).atom == atom\n            && (*trans).to == (*target).no\n            && (*trans).counter == counter\n            && (*trans).count == count\n        {\n            return;\n        }\n        nrtrans -= 1;\n    }\n    if (*state).maxTrans == 0 as c_int {\n        (*state).maxTrans = 8 as c_int;\n        (*state).trans = xmlMalloc.expect(\"non-null function pointer\")(\n            ((*state).maxTrans as size_t)\n                .wrapping_mul(::core::mem::size_of::<xmlRegTrans>() as size_t),\n        ) as *mut xmlRegTrans;\n        if (*state).trans.is_null() {\n            xmlRegexpErrMemory(\n                ctxt,\n                b\"adding transition\\0\" as *const u8 as *const c_char,\n            );\n            (*state).maxTrans = 0 as c_int;\n            return;\n        }\n    } else if (*state).nbTrans >= (*state).maxTrans {\n        let mut tmp: *mut xmlRegTrans = ::core::ptr::null_mut::<xmlRegTrans>();\n        (*state).maxTrans *= 2 as c_int;\n        tmp = xmlRealloc.expect(\"non-null function pointer\")(\n            (*state).trans as *mut c_void,\n            ((*state).maxTrans as size_t)\n                .wrapping_mul(::core::mem::size_of::<xmlRegTrans>() as size_t),\n        ) as *mut xmlRegTrans;\n        if tmp.is_null() {\n            xmlRegexpErrMemory(\n                ctxt,\n                b\"adding transition\\0\" as *const u8 as *const c_char,\n            );\n            (*state).maxTrans /= 2 as c_int;\n            return;\n        }\n        (*state).trans = tmp;\n    }\n    let ref mut fresh7 = (*(*state).trans.offset((*state).nbTrans as isize)).atom;\n    *fresh7 = atom;\n    (*(*state).trans.offset((*state).nbTrans as isize)).to = (*target).no;\n    (*(*state).trans.offset((*state).nbTrans as isize)).counter = counter;\n    (*(*state).trans.offset((*state).nbTrans as isize)).count = count;\n    (*(*state).trans.offset((*state).nbTrans as isize)).nd = 0 as c_int;\n    (*state).nbTrans += 1;\n    xmlRegStateAddTransTo(ctxt, target, (*state).no);\n} }",
+    "signature": "fn xmlRegStateAddTrans(\n    mut ctxt: xmlRegParserCtxtPtr,\n    mut state: xmlRegStatePtr,\n    mut atom: xmlRegAtomPtr,\n    mut target: xmlRegStatePtr,\n    mut counter: c_int,\n    mut count: c_int,\n)",
+    "profile": {
+      "self_time_ratio": 0.0801,
+      "call_count": null,
+      "retired_instructions": 1636372263,
+      "instructions_per_call": null,
+      "cpi": 0.288,
+      "tma": {
+        "scope": "process",
+        "retiring": 66.82235739321233,
+        "frontend_bound": 28.613918718531778,
+        "bad_speculation": 2.1965423248087257,
+        "backend_bound": 2.3671815634471676,
+        "memory_bound": 1.8562291120589534,
+        "core_bound": 0.5109524513882142,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0015
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C1": 2,
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2556,
+        "message": "'_ZN15libxml2_cleaned3src9xmlregexp19xmlRegexpErrCompile17hed27fc279c1a29e8E' inlined into '_ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE' with (cost=105, threshold=250) at callsite _ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE:11:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2564,
+        "message": "'_ZN15libxml2_cleaned3src9xmlregexp19xmlRegexpErrCompile17hed27fc279c1a29e8E' inlined into '_ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE' with (cost=105, threshold=250) at callsite _ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE:19:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2589,
+        "message": "'_ZN15libxml2_cleaned3src9xmlregexp18xmlRegexpErrMemory17h0c2f82c15f73b022E' inlined into '_ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE' with (cost=95, threshold=250) at callsite _ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE:44:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2621,
+        "message": "'_ZN15libxml2_cleaned3src9xmlregexp21xmlRegStateAddTransTo17h1b2240e416025eb9E' inlined into '_ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE' with (cost=-14490, threshold=250) at callsite _ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE:76:5;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2605,
+        "message": "'_ZN15libxml2_cleaned3src9xmlregexp18xmlRegexpErrMemory17h0c2f82c15f73b022E' inlined into '_ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE' with (cost=95, threshold=250) at callsite _ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE:60:13;"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2572,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2572,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2574,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2574,
+        "message": "failed to hoist load with loop-invariant address because load is conditionally executed"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2609,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 2614,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2614,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2616,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2616,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2616,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2617,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2617,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2618,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2618,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2619,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2619,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2620,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2621,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2545,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE: MI Instruction count changed from 0 to 412; Delta: 412"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2545,
+        "message": "Peephole Optimizations: Function: _ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE: MI Instruction count changed from 412 to 408; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2545,
+        "message": "X86 Optimize Call Frame: Function: _ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE: MI Instruction count changed from 408 to 472; Delta: 64"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2545,
+        "message": "Process Implicit Definitions: Function: _ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE: MI Instruction count changed from 472 to 470; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2545,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE: MI Instruction count changed from 470 to 480; Delta: 10"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2545,
+        "message": "Two-Address instruction pass: Function: _ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE: MI Instruction count changed from 480 to 496; Delta: 16"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2545,
+        "message": "Register Coalescer: Function: _ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE: MI Instruction count changed from 496 to 430; Delta: -66"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2545,
+        "message": "9 virtual registers copies 6.466092e+00 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2545,
+        "message": "Virtual Register Rewriter: Function: _ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE: MI Instruction count changed from 430 to 414; Delta: -16"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 2545,
+        "message": "56 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2545,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE: MI Instruction count changed from 414 to 468; Delta: 54"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2545,
+        "message": "Control Flow Optimizer: Function: _ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE: MI Instruction count changed from 468 to 388; Delta: -80"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2545,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE: MI Instruction count changed from 388 to 389; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2545,
+        "message": "X86 LEA Fixup: Function: _ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE: MI Instruction count changed from 389 to 390; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2545,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN15libxml2_cleaned3src9xmlregexp19xmlRegStateAddTrans17h1cf19b9b21c3e5ffE: MI Instruction count changed from 390 to 393; Delta: 3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2571,
+        "message": "BasicBlock: bb17"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2573,
+        "message": "BasicBlock: bb8"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2574,
+        "message": "BasicBlock: bb9"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2575,
+        "message": "BasicBlock: bb10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2576,
+        "message": "BasicBlock: bb11"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2582,
+        "message": "BasicBlock: bb18"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2596,
+        "message": "BasicBlock: bb20"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2614,
+        "message": "BasicBlock: bb20.bb33_crit_edge"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2583,
+        "message": "BasicBlock: bb19"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2584,
+        "message": "BasicBlock: bb38"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2598,
+        "message": "BasicBlock: bb25"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2600,
+        "message": "BasicBlock: bb40"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2612,
+        "message": "BasicBlock: bb31"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2614,
+        "message": "BasicBlock: bb33"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2622,
+        "message": "BasicBlock: bb36"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2622,
+        "message": "BasicBlock: bb36"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2545,
+        "message": "304 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

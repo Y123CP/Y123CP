@@ -1,0 +1,226 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -13.550478970378528,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -13.468686268096441,
+            "aggregate_ci_low_pct": -13.632271672660615,
+            "aggregate_pct": -13.550478970378528,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -14.7732,
+                "ci_low_pct": -15.1151,
+                "insns_delta_pct": -27.7124,
+                "mean_delta_pct": -14.9441,
+                "op": "decode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -14.7323,
+                "ci_low_pct": -14.9953,
+                "insns_delta_pct": -27.9029,
+                "mean_delta_pct": -14.8638,
+                "op": "decode_sync_hd",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -11.7255,
+                "ci_low_pct": -11.9816,
+                "insns_delta_pct": -22.6618,
+                "mean_delta_pct": -11.8535,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -12.2831,
+                "ci_low_pct": -12.7978,
+                "insns_delta_pct": -23.1388,
+                "mean_delta_pct": -12.5405,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.08139344633090148,
+            "aggregate_ci_low_pct": -0.14362006693590815,
+            "aggregate_pct": -0.031113310302503326,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.111,
+                "ci_low_pct": -0.2771,
+                "insns_delta_pct": -0.0046,
+                "mean_delta_pct": -0.083,
+                "op": "decode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.3974,
+                "ci_low_pct": -0.0312,
+                "insns_delta_pct": 0.017,
+                "mean_delta_pct": 0.1831,
+                "op": "decode_sync_hd",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.0203,
+                "ci_low_pct": -0.3615,
+                "insns_delta_pct": -0.0098,
+                "mean_delta_pct": -0.1706,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.3001,
+                "ci_low_pct": -0.4079,
+                "insns_delta_pct": -0.0314,
+                "mean_delta_pct": -0.0539,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "decode_std",
+          "decode_sync_hd",
+          "encode_hd_reset",
+          "encode_std"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "encode_hd_reset"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "d7120e40e30b59fde26e3d01c8b6e0a8c81ace78",
+      "changeset_id": "legacy-733d36524ab794c1",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-f0896c55e7060498",
+          "replacement_function_source": "// Applied rules: [III④, C3]\n// Skipped rules: []\n#[inline]\nunsafe fn aptx_qmf_convolution(\n    mut signal: *const aptx_filter_signal,\n    mut coeffs: *const int32_t,\n    mut shift: c_uint,\n) -> int32_t {\n    let signal_view: &aptx_filter_signal = unsafe { &*signal };\n    let sig: *const int32_t =\n        (&raw const signal_view.buffer as *const int32_t).offset(signal_view.pos as isize)\n            as *const int32_t;\n    // SAFETY: `sig` is derived from `signal_view.buffer` plus `signal_view.pos`, and this\n    // function's caller/origin guarantees the convolution window contains `FILTER_TAPS`\n    // contiguous `int32_t` elements starting at `sig`; `sig` is non-null because it points\n    // into `signal_view.buffer`; this shared slice does not alias any live mutable reference.\n    let sig_slice: &[int32_t] = unsafe { core::slice::from_raw_parts(sig, FILTER_TAPS as usize) };\n    // SAFETY: `coeffs` is a caller-provided non-null pointer to at least `FILTER_TAPS`\n    // contiguous coefficients; this shared slice does not alias any live mutable reference.\n    let coeffs_slice: &[int32_t] =\n        unsafe { core::slice::from_raw_parts(coeffs, FILTER_TAPS as usize) };\n\n    let mut e: int64_t = 0 as int64_t;\n    for (&s, &c) in sig_slice.iter().zip(coeffs_slice.iter()) {\n        e += s as int64_t * c as int64_t;\n    }\n    return rshift64_clip24(e, shift);\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "9e785e07fa5e0825262c5a46288f4c6f9b82d63650d8c3fa85945f3a886befda",
+            "file_hint": "src/openaptx.rs",
+            "qualified_name": "crate::aptx_qmf_convolution",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "aptx_qmf_convolution-8e43ab11f3be",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "aptx_qmf_convolution",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "21b65bbbab1b1f87c4ad4f89b01fc8b0b881f3d93fac4b803a0b4f108cd7339d",
+            "edit_id": "edit-replace-f0896c55e7060498",
+            "end_byte": 47286,
+            "operation_id": "replace-f0896c55e7060498",
+            "relative_path": "src/openaptx.rs",
+            "replacement_text": "// Applied rules: [III④, C3]\n// Skipped rules: []\n#[inline]\nunsafe fn aptx_qmf_convolution(\n    mut signal: *const aptx_filter_signal,\n    mut coeffs: *const int32_t,\n    mut shift: c_uint,\n) -> int32_t {\n    let signal_view: &aptx_filter_signal = unsafe { &*signal };\n    let sig: *const int32_t =\n        (&raw const signal_view.buffer as *const int32_t).offset(signal_view.pos as isize)\n            as *const int32_t;\n    // SAFETY: `sig` is derived from `signal_view.buffer` plus `signal_view.pos`, and this\n    // function's caller/origin guarantees the convolution window contains `FILTER_TAPS`\n    // contiguous `int32_t` elements starting at `sig`; `sig` is non-null because it points\n    // into `signal_view.buffer`; this shared slice does not alias any live mutable reference.\n    let sig_slice: &[int32_t] = unsafe { core::slice::from_raw_parts(sig, FILTER_TAPS as usize) };\n    // SAFETY: `coeffs` is a caller-provided non-null pointer to at least `FILTER_TAPS`\n    // contiguous coefficients; this shared slice does not alias any live mutable reference.\n    let coeffs_slice: &[int32_t] =\n        unsafe { core::slice::from_raw_parts(coeffs, FILTER_TAPS as usize) };\n\n    let mut e: int64_t = 0 as int64_t;\n    for (&s, &c) in sig_slice.iter().zip(coeffs_slice.iter()) {\n        e += s as int64_t * c as int64_t;\n    }\n    return rshift64_clip24(e, shift);\n}",
+            "start_byte": 46632
+          }
+        ],
+        "facts": {
+          "fn_name": "aptx_qmf_convolution",
+          "target_span_hash": "9e785e07fa5e0825262c5a46288f4c6f9b82d63650d8c3fa85945f3a886befda"
+        },
+        "operation_id": "replace-f0896c55e7060498"
+      }
+    ],
+    "resolved_head": "d7120e40e30b59fde26e3d01c8b6e0a8c81ace78"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/openaptx.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+# =============================================================================
+# Empirical-study measurement manifest — json-c  (LIBRARY project)
+# =============================================================================
+# C vs c2rust_raw(0_raw). json-c is a multi-file library; both sides driven by an
+# EQUIVALENT harness that parses a JSON doc + walks it, printing "length=N keys=M":
+#   C  side : jsonc_length_keys.c + all 15 json-c lib .c   (single-shot clang-17 LTO)
+#   raw side: workloads/harness/json_roundtrip_raw (main.rs) → path-dep 0_raw (json_c_raw)
+# Equivalence VERIFIED 2026-07-01: identical "length=.. keys=.." + sha256 on canada.
+#
+# FAIR C BUILD note: json-c needs -D_GNU_SOURCE (vasprintf is a GNU ext) + the
+# cmake-generated headers in _build/ (-I _build). Single-shot clang-17 -flto over
+# driver + all lib .c gives whole-program LTO matching Rust's fat-LTO. (Do NOT link
+# the pre-built _build/libjson-c.a — it's a non-LTO gcc archive, unfair.)
+#
+# KNOWN (PREFLIGHT ⑤): bottleneck is memory/alloc (libc malloc ~25-30% self-time);
+# recovery lever sits outside the rewritable surface. Watch self_time_own gate.
+# =============================================================================
+
+[study]
+project      = "json-c"
+binary       = "json_roundtrip"
+compare      = ["c", "c2rust_raw"]
+report_mode  = "per_input"
+
+[builds.c]
+kind        = "c_reference"
+compiler    = "clang-17"
+source_dir  = "empirical_study/json-c/c_ref"     # self-contained (copied from dataset_source/json-c)
+build_cmd   = "bash empirical_study/json-c/c_ref/build.sh"
+binary_path = "empirical_study/json-c/bin/jsonc_cref17"
+
+[builds.c2rust_raw]
+kind        = "cargo_harness"
+crate_dir   = "empirical_study/json-c/rust_harness"
+build_cmd   = "( cd empirical_study/json-c/rust_harness && cargo build --release )"
+flags       = "opt-level=3, lto=fat, codegen-units=1, target-cpu=native (harness Cargo.toml + .cargo/config)"
+binary_path = "empirical_study/json-c/rust_harness/target/release/json_roundtrip"
+
+[measure]
+warmup_runs    = 5
+measure_runs   = 30
+metric         = "median"
+outlier_rule   = "drop >1.5*IQR"
+required_cv    = 0.03
+min_runtime_ms = 100
+timeout_s      = 300
+pin_cpu        = 16
+order          = ["c", "c2rust_raw"]
+paired         = true
+freq_pin       = true
+
+[profile]
+call_graph_mode = "dwarf"
+frequency       = 99
+
+# OPERATION 1 — PARSE (text → object tree): json_tokener_parse × JC_N=20 loops
+# (isolated from serialize; loop makes runtime ≥~1s, fixes citm/twitter CV warns).
+[[operations]]
+name = "parse"
+args = ["$INPUT", "parse"]
+
+  [[operations.inputs]]
+  name = "canada"
+  path = "empirical_study/json-c/inputs/canada.json"
+  size = "2.25M x20"
+  character = "deeply-nested float arrays (geo)"
+  stdout_sha256 = "6ab364e3a5d4fad07ba111a3f474955b7a4d783da4a677ffc623b6c13f4fcc4d"
+
+  [[operations.inputs]]
+  name = "citm_catalog"
+  path = "empirical_study/json-c/inputs/citm_catalog.json"
+  size = "1.73M x20"
+  character = "many keys / object-heavy"
+  stdout_sha256 = "87042980886d6598a2df0e3d35af3955db41ab88a28cded3f32879b2fd8d7142"
+
+  [[operations.inputs]]
+  name = "twitter"
+  path = "empirical_study/json-c/inputs/twitter.json"
+  size = "631K x20"
+  character = "UTF-8 strings / mixed"
+  stdout_sha256 = "6ab364e3a5d4fad07ba111a3f474955b7a4d783da4a677ffc623b6c13f4fcc4d"
+
+# OPERATION 2 — SERIALIZE (object tree → text): parse once, then
+# json_object_to_json_string × JC_N=20 (re-serializes each call: resets its printbuf).
+[[operations]]
+name = "serialize"
+args = ["$INPUT", "serialize"]
+
+  [[operations.inputs]]
+  name = "canada"
+  path = "empirical_study/json-c/inputs/canada.json"
+  size = "2.25M x20"
+  character = "deeply-nested float arrays (geo)"
+  stdout_sha256 = "cf1987fae5c8316478b1c05dafc28304a6d2bce532edfb8911715fb621f54911"
+
+  [[operations.inputs]]
+  name = "citm_catalog"
+  path = "empirical_study/json-c/inputs/citm_catalog.json"
+  size = "1.73M x20"
+  character = "many keys / object-heavy"
+  stdout_sha256 = "58e12628dfa5d7344237bbbbc3bd476e2aea7079315ed2e2aa3c8ec9e93a6fb7"
+
+  [[operations.inputs]]
+  name = "twitter"
+  path = "empirical_study/json-c/inputs/twitter.json"
+  size = "631K x20"
+  character = "UTF-8 strings / mixed"
+  stdout_sha256 = "90ef60cf8e0110ff749918d72e90df1d7cf3c923d417cd589cc5b899c4e8cec7"
+
+[oracle]
+exit_code = 0
+correctness_manifests = []   # json-c workloads dir has no correctness*.toml; equivalence gated per-input above
+
+[gates]
+coverage_line_min = 60
+coverage_fn_min   = 70
+self_time_own_min = 70   # NOTE: alloc-heavy (libc malloc). May land below 70% — flag
+                         # if so; divergence still valid (alloc identical both sides).

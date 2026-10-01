@@ -1,0 +1,1057 @@
+{
+  "hot_function": {
+    "symbol": "opng_reduce_to_palette",
+    "location": "src/opngreduc/opngreduc.rs:1251-1666",
+    "workload": "png_write_read_roundtrip",
+    "hot_region": "src/opngreduc/opngreduc.rs:1251-1666",
+    "rust_source": "fn opng_reduce_to_palette(\n    mut png_ptr: png_structp,\n    mut info_ptr: png_infop,\n    mut reductions: png_uint_32,\n) -> png_uint_32 { unsafe {\n    let mut result: png_uint_32 = 0;\n    let mut row_info: png_row_info = png_row_info {\n        width: 0,\n        rowbytes: 0,\n        color_type: 0,\n        bit_depth: 0,\n        channels: 0,\n        pixel_depth: 0,\n    };\n    let mut row_ptr: png_bytepp = ::core::ptr::null_mut::<*mut png_byte>();\n    let mut sample_ptr: png_bytep = ::core::ptr::null_mut::<png_byte>();\n    let mut alpha_row: png_bytep = ::core::ptr::null_mut::<png_byte>();\n    let mut height: png_uint_32 = 0;\n    let mut width: png_uint_32 = 0;\n    let mut color_type: c_int = 0;\n    let mut interlace_type: c_int = 0;\n    let mut compression_type: c_int = 0;\n    let mut filter_type: c_int = 0;\n    let mut src_bit_depth: c_int = 0;\n    let mut dest_bit_depth: c_int = 0;\n    let mut channels: c_int = 0;\n    let mut palette: [png_color; 256] = [png_color {\n        red: 0,\n        green: 0,\n        blue: 0,\n    }; 256];\n    let mut trans_alpha: [png_byte; 256] = [0; 256];\n    let mut trans_color: png_color_16p = ::core::ptr::null_mut::<png_color_16>();\n    let mut num_palette: c_int = 0;\n    let mut num_trans: c_int = 0;\n    let mut index: c_int = 0;\n    let mut gray: c_uint = 0;\n    let mut red: c_uint = 0;\n    let mut green: c_uint = 0;\n    let mut blue: c_uint = 0;\n    let mut alpha: c_uint = 0;\n    let mut prev_gray: c_uint = 0;\n    let mut prev_red: c_uint = 0;\n    let mut prev_green: c_uint = 0;\n    let mut prev_blue: c_uint = 0;\n    let mut prev_alpha: c_uint = 0;\n    let mut background: png_color_16p = ::core::ptr::null_mut::<png_color_16>();\n    let mut i: png_uint_32 = 0;\n    let mut j: png_uint_32 = 0;\n    png_get_IHDR(\n        png_ptr as png_const_structrp,\n        info_ptr as png_const_inforp,\n        &raw mut width,\n        &raw mut height,\n        &raw mut src_bit_depth,\n        &raw mut color_type,\n        &raw mut interlace_type,\n        &raw mut compression_type,\n        &raw mut filter_type,\n    );\n    if src_bit_depth != 8 as c_int {\n        return OPNG_REDUCE_NONE as png_uint_32;\n    }\n    '_c2rust_label: {\n        if color_type & 1 as c_int == 0 {\n        } else {\n            __assert_fail(\n                b\"!(color_type & 1)\\0\" as *const u8 as *const c_char,\n                b\"opngreduc.c\\0\" as *const u8 as *const c_char,\n                802 as c_uint,\n                b\"png_uint_32 opng_reduce_to_palette(png_structp, png_infop, png_uint_32)\\0\"\n                    as *const u8 as *const c_char,\n            );\n        }\n    };\n    row_ptr = png_get_rows(png_ptr as png_const_structrp, info_ptr as png_const_inforp);\n    channels = png_get_channels(png_ptr as png_const_structrp, info_ptr as png_const_inforp)\n        as c_int;\n    alpha_row = png_malloc(png_ptr as png_const_structrp, width as png_alloc_size_t) as png_bytep;\n    row_info.width = width;\n    row_info.rowbytes = 0 as png_size_t;\n    row_info.color_type = color_type as png_byte;\n    row_info.bit_depth = src_bit_depth as png_byte;\n    row_info.channels = channels as png_byte;\n    row_info.pixel_depth = 0 as png_byte;\n    num_trans = 0 as c_int;\n    num_palette = num_trans;\n    trans_color = ::core::ptr::null_mut::<png_color_16>();\n    png_get_tRNS(\n        png_ptr as png_const_structrp,\n        info_ptr as png_inforp,\n        ::core::ptr::null_mut::<png_bytep>(),\n        ::core::ptr::null_mut::<c_int>(),\n        &raw mut trans_color,\n    );\n    prev_alpha = 256 as c_uint;\n    prev_blue = prev_alpha;\n    prev_green = prev_blue;\n    prev_red = prev_green;\n    prev_gray = prev_red;\n    i = 0 as png_uint_32;\n    while i < height {\n        sample_ptr = *row_ptr as png_bytep;\n        opng_get_alpha_row(&raw mut row_info, trans_color, *row_ptr, alpha_row);\n        if color_type & PNG_COLOR_MASK_COLOR != 0 {\n            j = 0 as png_uint_32;\n            while j < width {\n                red = *sample_ptr.offset(0 as c_int as isize) as c_uint;\n                green = *sample_ptr.offset(1 as c_int as isize) as c_uint;\n                blue = *sample_ptr.offset(2 as c_int as isize) as c_uint;\n                alpha = *alpha_row.offset(j as isize) as c_uint;\n                if red != prev_red\n                    || green != prev_green\n                    || blue != prev_blue\n                    || alpha != prev_alpha\n                {\n                    prev_red = red;\n                    prev_green = green;\n                    prev_blue = blue;\n                    prev_alpha = alpha;\n                    if opng_insert_palette_entry(\n                        &raw mut palette as png_colorp,\n                        &raw mut num_palette,\n                        &raw mut trans_alpha as png_bytep,\n                        &raw mut num_trans,\n                        256 as c_int,\n                        red,\n                        green,\n                        blue,\n                        alpha,\n                        &raw mut index,\n                    ) < 0 as c_int\n                    {\n                        '_c2rust_label_0: {\n                            if num_palette < 0 as c_int {\n                            } else {\n                                __assert_fail(\n                                    b\"num_palette < 0\\0\" as *const u8\n                                        as *const c_char,\n                                    b\"opngreduc.c\\0\" as *const u8 as *const c_char,\n                                    844 as c_uint,\n                                    b\"png_uint_32 opng_reduce_to_palette(png_structp, png_infop, png_uint_32)\\0\"\n                                        as *const u8 as *const c_char,\n                                );\n                            }\n                        };\n                        i = height;\n                        break;\n                    }\n                }\n                j = j.wrapping_add(1);\n                sample_ptr = sample_ptr.offset(channels as isize);\n            }\n        } else {\n            j = 0 as png_uint_32;\n            while j < width {\n                gray = *sample_ptr.offset(0 as c_int as isize) as c_uint;\n                alpha = *alpha_row.offset(j as isize) as c_uint;\n                if gray != prev_gray || alpha != prev_alpha {\n                    prev_gray = gray;\n                    prev_alpha = alpha;\n                    if opng_insert_palette_entry(\n                        &raw mut palette as png_colorp,\n                        &raw mut num_palette,\n                        &raw mut trans_alpha as png_bytep,\n                        &raw mut num_trans,\n                        256 as c_int,\n                        gray,\n                        gray,\n                        gray,\n                        alpha,\n                        &raw mut index,\n                    ) < 0 as c_int\n                    {\n                        '_c2rust_label_1: {\n                            if num_palette < 0 as c_int {\n                            } else {\n                                __assert_fail(\n                                    b\"num_palette < 0\\0\" as *const u8\n                                        as *const c_char,\n                                    b\"opngreduc.c\\0\" as *const u8 as *const c_char,\n                                    866 as c_uint,\n                                    b\"png_uint_32 opng_reduce_to_palette(png_structp, png_infop, png_uint_32)\\0\"\n                                        as *const u8 as *const c_char,\n                                );\n                            }\n                        };\n                        i = height;\n                        break;\n                    }\n                }\n                j = j.wrapping_add(1);\n                sample_ptr = sample_ptr.offset(channels as isize);\n            }\n        }\n        i = i.wrapping_add(1);\n        row_ptr = row_ptr.offset(1);\n    }\n    if num_palette >= 0 as c_int\n        && png_get_bKGD(\n            png_ptr as png_const_structrp,\n            info_ptr as png_inforp,\n            &raw mut background,\n        ) != 0\n    {\n        if color_type & PNG_COLOR_MASK_COLOR != 0 {\n            red = (*background).red as c_uint;\n            green = (*background).green as c_uint;\n            blue = (*background).blue as c_uint;\n        } else {\n            blue = (*background).gray as c_uint;\n            green = blue;\n            red = green;\n        }\n        opng_insert_palette_entry(\n            &raw mut palette as png_colorp,\n            &raw mut num_palette,\n            &raw mut trans_alpha as png_bytep,\n            &raw mut num_trans,\n            256 as c_int,\n            red,\n            green,\n            blue,\n            256 as c_uint,\n            &raw mut index,\n        );\n        if index >= 0 as c_int {\n            (*background).index = index as png_byte;\n        }\n    }\n    if num_palette >= 0 as c_int {\n        '_c2rust_label_2: {\n            if num_palette > 0 as c_int && num_palette <= 256 as c_int {\n            } else {\n                __assert_fail(\n                    b\"num_palette > 0 && num_palette <= 256\\0\" as *const u8\n                        as *const c_char,\n                    b\"opngreduc.c\\0\" as *const u8 as *const c_char,\n                    905 as c_uint,\n                    b\"png_uint_32 opng_reduce_to_palette(png_structp, png_infop, png_uint_32)\\0\"\n                        as *const u8 as *const c_char,\n                );\n            }\n        };\n        '_c2rust_label_3: {\n            if num_trans >= 0 as c_int && num_trans <= num_palette {\n            } else {\n                __assert_fail(\n                    b\"num_trans >= 0 && num_trans <= num_palette\\0\" as *const u8\n                        as *const c_char,\n                    b\"opngreduc.c\\0\" as *const u8 as *const c_char,\n                    906 as c_uint,\n                    b\"png_uint_32 opng_reduce_to_palette(png_structp, png_infop, png_uint_32)\\0\"\n                        as *const u8 as *const c_char,\n                );\n            }\n        };\n        if num_palette <= 2 as c_int {\n            dest_bit_depth = 1 as c_int;\n        } else if num_palette <= 4 as c_int {\n            dest_bit_depth = 2 as c_int;\n        } else if num_palette <= 16 as c_int {\n            dest_bit_depth = 4 as c_int;\n        } else {\n            dest_bit_depth = 8 as c_int;\n        }\n        if channels * 8 as c_int == dest_bit_depth\n            || (((3 as c_int * num_palette + num_trans) * 8 as c_int\n                / (channels * 8 as c_int - dest_bit_depth))\n                as png_uint_32)\n                .wrapping_div(width)\n                .wrapping_div(height)\n                >= 1 as c_uint\n        {\n            num_palette = -(1 as c_int);\n        }\n    }\n    if num_palette < 0 as c_int {\n        png_free(png_ptr as png_const_structrp, alpha_row as png_voidp);\n        return OPNG_REDUCE_NONE as png_uint_32;\n    }\n    row_ptr = png_get_rows(png_ptr as png_const_structrp, info_ptr as png_const_inforp);\n    index = -(1 as c_int);\n    prev_alpha = -(1 as c_int) as c_uint;\n    prev_blue = prev_alpha;\n    prev_green = prev_blue;\n    prev_red = prev_green;\n    i = 0 as png_uint_32;\n    while i < height {\n        sample_ptr = *row_ptr as png_bytep;\n        opng_get_alpha_row(&raw mut row_info, trans_color, *row_ptr, alpha_row);\n        if color_type & PNG_COLOR_MASK_COLOR != 0 {\n            j = 0 as png_uint_32;\n            while j < width {\n                red = *sample_ptr.offset(0 as c_int as isize) as c_uint;\n                green = *sample_ptr.offset(1 as c_int as isize) as c_uint;\n                blue = *sample_ptr.offset(2 as c_int as isize) as c_uint;\n                alpha = *alpha_row.offset(j as isize) as c_uint;\n                if red != prev_red\n                    || green != prev_green\n                    || blue != prev_blue\n                    || alpha != prev_alpha\n                {\n                    prev_red = red;\n                    prev_green = green;\n                    prev_blue = blue;\n                    prev_alpha = alpha;\n                    if opng_insert_palette_entry(\n                        &raw mut palette as png_colorp,\n                        &raw mut num_palette,\n                        &raw mut trans_alpha as png_bytep,\n                        &raw mut num_trans,\n                        256 as c_int,\n                        red,\n                        green,\n                        blue,\n                        alpha,\n                        &raw mut index,\n                    ) != 0 as c_int\n                    {\n                        index = -(1 as c_int);\n                    }\n                }\n                '_c2rust_label_4: {\n                    if index >= 0 as c_int {\n                    } else {\n                        __assert_fail(\n                            b\"index >= 0\\0\" as *const u8 as *const c_char,\n                            b\"opngreduc.c\\0\" as *const u8 as *const c_char,\n                            957 as c_uint,\n                            b\"png_uint_32 opng_reduce_to_palette(png_structp, png_infop, png_uint_32)\\0\"\n                                as *const u8 as *const c_char,\n                        );\n                    }\n                };\n                *(*row_ptr).offset(j as isize) = index as png_byte;\n                j = j.wrapping_add(1);\n                sample_ptr = sample_ptr.offset(channels as isize);\n            }\n        } else {\n            j = 0 as png_uint_32;\n            while j < width {\n                gray = *sample_ptr.offset(0 as c_int as isize) as c_uint;\n                alpha = *alpha_row.offset(j as isize) as c_uint;\n                if gray != prev_gray || alpha != prev_alpha {\n                    prev_gray = gray;\n                    prev_alpha = alpha;\n                    if opng_insert_palette_entry(\n                        &raw mut palette as png_colorp,\n                        &raw mut num_palette,\n                        &raw mut trans_alpha as png_bytep,\n                        &raw mut num_trans,\n                        256 as c_int,\n                        gray,\n                        gray,\n                        gray,\n                        alpha,\n                        &raw mut index,\n                    ) != 0 as c_int\n                    {\n                        index = -(1 as c_int);\n                    }\n                }\n                '_c2rust_label_5: {\n                    if index >= 0 as c_int {\n                    } else {\n                        __assert_fail(\n                            b\"index >= 0\\0\" as *const u8 as *const c_char,\n                            b\"opngreduc.c\\0\" as *const u8 as *const c_char,\n                            977 as c_uint,\n                            b\"png_uint_32 opng_reduce_to_palette(png_structp, png_infop, png_uint_32)\\0\"\n                                as *const u8 as *const c_char,\n                        );\n                    }\n                };\n                *(*row_ptr).offset(j as isize) = index as png_byte;\n                j = j.wrapping_add(1);\n                sample_ptr = sample_ptr.offset(channels as isize);\n            }\n        }\n        i = i.wrapping_add(1);\n        row_ptr = row_ptr.offset(1);\n    }\n    png_set_IHDR(\n        png_ptr as png_const_structrp,\n        info_ptr as png_inforp,\n        width,\n        height,\n        8 as c_int,\n        PNG_COLOR_TYPE_PALETTE,\n        interlace_type,\n        compression_type,\n        filter_type,\n    );\n    png_set_PLTE(\n        png_ptr as png_structrp,\n        info_ptr as png_inforp,\n        &raw mut palette as *mut png_color as png_const_colorp,\n        num_palette,\n    );\n    if num_trans > 0 as c_int {\n        png_set_tRNS(\n            png_ptr as png_structrp,\n            info_ptr as png_inforp,\n            &raw mut trans_alpha as *mut png_byte as png_const_bytep,\n            num_trans,\n            ::core::ptr::null::<png_color_16>(),\n        );\n    }\n    png_free(png_ptr as png_const_structrp, alpha_row as png_voidp);\n    result = OPNG_REDUCE_RGB_TO_PALETTE as png_uint_32;\n    if reductions as c_uint & OPNG_REDUCE_8_TO_4_2_1 as c_uint != 0 {\n        result |= opng_reduce_palette_bits(png_ptr, info_ptr, reductions) as c_uint;\n    }\n    return result;\n} }",
+    "signature": "fn opng_reduce_to_palette(\n    mut png_ptr: png_structp,\n    mut info_ptr: png_infop,\n    mut reductions: png_uint_32,\n) -> png_uint_32",
+    "profile": {
+      "self_time_ratio": 0.0613,
+      "call_count": null,
+      "retired_instructions": 694154713,
+      "instructions_per_call": null,
+      "cpi": 0.523,
+      "tma": {
+        "scope": "process",
+        "retiring": 51.425930929611255,
+        "frontend_bound": 25.707339535339,
+        "bad_speculation": 13.429234291527084,
+        "backend_bound": 9.437495243522658,
+        "memory_bound": 3.33716759412876,
+        "core_bound": 6.100327649393898,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0162
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_vec": {
+        "NoCFGForSelect": 4,
+        "NonReductionValueUsedOutsideLoop": 4,
+        "CantComputeNumberOfIterations": 4
+      },
+      "II_inl": {
+        "TooCostly": 9
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1317,
+        "message": "__assert_fail will not be inlined into _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1485,
+        "message": "__assert_fail will not be inlined into _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1498,
+        "message": "__assert_fail will not be inlined into _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1518,
+        "message": "_ZN4core9panicking5panic17hc9ef14243ed05cbcE will not be inlined into _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1617,
+        "message": "__assert_fail will not be inlined into _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1577,
+        "message": "__assert_fail will not be inlined into _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1428,
+        "message": "__assert_fail will not be inlined into _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1387,
+        "message": "__assert_fail will not be inlined into _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1300,
+        "message": "'png_get_IHDR' inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' with (cost=85, threshold=250) at callsite _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E:49:5;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1326,
+        "message": "'png_get_rows' inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' with (cost=-15, threshold=250) at callsite _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E:75:15;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1327,
+        "message": "'png_get_channels' inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' with (cost=-15, threshold=250) at callsite _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E:76:16;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1329,
+        "message": "'png_malloc' inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' with (cost=65, threshold=250) at callsite _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E:78:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1339,
+        "message": "'png_get_tRNS' inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' with (cost=0, threshold=250) at callsite _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E:88:5;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1354,
+        "message": "'_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc18opng_get_alpha_row17h819e98d1a4510a96E' not inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' because too costly to inline (cost=545, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1450,
+        "message": "'png_get_bKGD' inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' with (cost=-5, threshold=250) at callsite _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E:199:12;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1465,
+        "message": "'_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E' not inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' because too costly to inline (cost=435, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1532,
+        "message": "'png_get_rows' inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' with (cost=-15, threshold=250) at callsite _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E:281:15;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1529,
+        "message": "'png_free' inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' with (cost=15, threshold=250) at callsite _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E:278:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1634,
+        "message": "'png_set_IHDR' inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' with (cost=190, threshold=250) at callsite _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E:383:5;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1645,
+        "message": "'png_set_PLTE' not inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' because too costly to inline (cost=425, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1541,
+        "message": "'_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc18opng_get_alpha_row17h819e98d1a4510a96E' not inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' because too costly to inline (cost=545, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1652,
+        "message": "'png_set_tRNS' inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' with (cost=240, threshold=250) at callsite _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E:401:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1660,
+        "message": "'png_free' inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' with (cost=15, threshold=250) at callsite _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E:409:5;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1663,
+        "message": "'_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc24opng_reduce_palette_bits17h097ba9c1790b2aafE' not inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' because too costly to inline (cost=870, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1598,
+        "message": "'_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E' not inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' because too costly to inline (cost=720, threshold=525)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1558,
+        "message": "'_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E' not inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' because too costly to inline (cost=720, threshold=525)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1412,
+        "message": "'_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E' not inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' because too costly to inline (cost=720, threshold=525)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1371,
+        "message": "'_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E' not inlined into '_ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E' because too costly to inline (cost=720, threshold=525)"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1385,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1426,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1355,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1355,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1575,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1586,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1615,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1626,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1542,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1542,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 1357,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 1406,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 1544,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 1592,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1353,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1358,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1361,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1385,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1407,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1408,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1426,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1449,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1457,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1458,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1459,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1461,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1477,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1481,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1496,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 1528,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1540,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1545,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1548,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1575,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 1575,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1586,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1593,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1594,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1615,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 1615,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1626,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1649,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1651,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1357,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1406,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1544,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1592,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1371,
+        "message": "loop not vectorized: control flow cannot be substituted for a select"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1357,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1357,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1357,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1412,
+        "message": "loop not vectorized: control flow cannot be substituted for a select"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1406,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1406,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1406,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1558,
+        "message": "loop not vectorized: control flow cannot be substituted for a select"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1544,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1544,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1544,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1598,
+        "message": "loop not vectorized: control flow cannot be substituted for a select"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1592,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1592,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1592,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1251,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E: MI Instruction count changed from 0 to 799; Delta: 799"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1251,
+        "message": "Merge disjoint stack slots: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E: MI Instruction count changed from 799 to 787; Delta: -12"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1251,
+        "message": "Remove dead machine instructions: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E: MI Instruction count changed from 787 to 784; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1251,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E: MI Instruction count changed from 784 to 780; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1251,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E: MI Instruction count changed from 780 to 774; Delta: -6"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1251,
+        "message": "Peephole Optimizations: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E: MI Instruction count changed from 774 to 778; Delta: 4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1251,
+        "message": "X86 Fixup SetCC: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E: MI Instruction count changed from 778 to 779; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1251,
+        "message": "X86 Optimize Call Frame: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E: MI Instruction count changed from 779 to 817; Delta: 38"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1251,
+        "message": "Process Implicit Definitions: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E: MI Instruction count changed from 817 to 802; Delta: -15"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1251,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E: MI Instruction count changed from 802 to 964; Delta: 162"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1251,
+        "message": "Two-Address instruction pass: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E: MI Instruction count changed from 964 to 1003; Delta: 39"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1251,
+        "message": "Register Coalescer: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E: MI Instruction count changed from 1003 to 713; Delta: -290"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1592,
+        "message": "2 reloads 6.546289e+01 total reloads cost 2 folded reloads 8.728373e+01 total folded reloads cost 4 virtual registers copies 8.728381e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1592,
+        "message": "2 spills 2.727741e+00 total spills cost 7 reloads 7.228212e+01 total reloads cost 2 folded reloads 8.728373e+01 total folded reloads cost 7 virtual registers copies 9.137543e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1544,
+        "message": "2 reloads 6.546289e+01 total reloads cost 2 folded reloads 8.728373e+01 total folded reloads cost 6 virtual registers copies 1.309257e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1544,
+        "message": "2 spills 2.727741e+00 total spills cost 7 reloads 7.228212e+01 total reloads cost 2 folded reloads 8.728373e+01 total folded reloads cost 17 virtual registers copies 1.459283e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1406,
+        "message": "2 reloads 1.599980e+02 total reloads cost 1 folded reloads 1.061039e+02 total folded reloads cost 5 virtual registers copies 2.661019e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1406,
+        "message": "1 spills 4.999936e+00 total spills cost 9 reloads 1.866818e+02 total reloads cost 1 folded reloads 1.061039e+02 total folded reloads cost 11 virtual registers copies 2.894174e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1357,
+        "message": "2 reloads 1.599980e+02 total reloads cost 1 folded reloads 1.061039e+02 total folded reloads cost 6 virtual registers copies 3.166275e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1357,
+        "message": "2 spills 9.999871e+00 total spills cost 10 reloads 1.899976e+02 total reloads cost 1 folded reloads 1.061039e+02 total folded reloads cost 16 virtual registers copies 3.565744e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1251,
+        "message": "21 spills 2.954064e+01 total spills cost 52 reloads 5.251750e+02 total reloads cost 9 folded reloads 3.873605e+02 total folded reloads cost 73 virtual registers copies 8.900214e+02 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1251,
+        "message": "Greedy Register Allocator: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E: MI Instruction count changed from 713 to 789; Delta: 76"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1251,
+        "message": "Virtual Register Rewriter: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E: MI Instruction count changed from 789 to 714; Delta: -75"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 1251,
+        "message": "1224 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1251,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E: MI Instruction count changed from 714 to 710; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1251,
+        "message": "Control Flow Optimizer: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E: MI Instruction count changed from 710 to 651; Delta: -59"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1251,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E: MI Instruction count changed from 651 to 657; Delta: 6"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1251,
+        "message": "X86 vzeroupper inserter: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E: MI Instruction count changed from 657 to 658; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1251,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc22opng_reduce_to_palette17he837d0eeeaffeb32E: MI Instruction count changed from 658 to 659; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1315,
+        "message": "BasicBlock: bb3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1412,
+        "message": "BasicBlock: bb37.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1407,
+        "message": "BasicBlock: bb34.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1409,
+        "message": "BasicBlock: bb34.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1426,
+        "message": "BasicBlock: bb39.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1428,
+        "message": "BasicBlock: bb41"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1449,
+        "message": "BasicBlock: bb48"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1371,
+        "message": "BasicBlock: bb22"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1358,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1362,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1362,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1385,
+        "message": "BasicBlock: bb24"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1387,
+        "message": "BasicBlock: bb26"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1456,
+        "message": "BasicBlock: bb52"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1461,
+        "message": "BasicBlock: bb54"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1457,
+        "message": "BasicBlock: bb53"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1465,
+        "message": "BasicBlock: bb55"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1478,
+        "message": "BasicBlock: bb57"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1481,
+        "message": "BasicBlock: bb61"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1483,
+        "message": "BasicBlock: bb62"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1496,
+        "message": "BasicBlock: bb64"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1496,
+        "message": "BasicBlock: bb64"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1519,
+        "message": "BasicBlock: bb83"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1518,
+        "message": "BasicBlock: bb83"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1518,
+        "message": "BasicBlock: bb145"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1593,
+        "message": "BasicBlock: bb118.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1595,
+        "message": "BasicBlock: bb118.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1598,
+        "message": "BasicBlock: bb121.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1615,
+        "message": "BasicBlock: bb121.us.bb126.us_crit_edge"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1615,
+        "message": "BasicBlock: bb126.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1626,
+        "message": "BasicBlock: bb127.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1512,
+        "message": "BasicBlock: bb81"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1666,
+        "message": "BasicBlock: bb143"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1545,
+        "message": "BasicBlock: bb100"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1549,
+        "message": "BasicBlock: bb100"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1558,
+        "message": "BasicBlock: bb107"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1575,
+        "message": "BasicBlock: bb107.bb112_crit_edge"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1575,
+        "message": "BasicBlock: bb112"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1586,
+        "message": "BasicBlock: bb113"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1663,
+        "message": "BasicBlock: bb139"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1518,
+        "message": "BasicBlock: panic1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1617,
+        "message": "BasicBlock: bb128"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1577,
+        "message": "BasicBlock: bb114"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1317,
+        "message": "BasicBlock: bb5"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1485,
+        "message": "BasicBlock: bb67"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1498,
+        "message": "BasicBlock: bb72"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1251,
+        "message": "602 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

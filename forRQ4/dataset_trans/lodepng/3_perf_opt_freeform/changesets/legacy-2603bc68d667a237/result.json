@@ -1,0 +1,149 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 6.411597651930765,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 6.710154138811218,
+            "aggregate_ci_low_pct": 6.113041165050312,
+            "aggregate_pct": 6.411597651930765,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 6.7102,
+                "ci_low_pct": 6.113,
+                "insns_delta_pct": 0.0011,
+                "mean_delta_pct": 6.4116,
+                "op": "inspect_png",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "chunk_ops",
+          "decode24_png",
+          "decode32_png",
+          "encode_png",
+          "file_codec",
+          "inspect_png",
+          "memory_codec",
+          "raw_deflate_inflate",
+          "stateful_palette_encode",
+          "zlib_decompress"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "inspect_png"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "d2e62f4bb4e8ec1f41e0d3b860efe5f8871c6c36",
+      "changeset_id": "legacy-2603bc68d667a237",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-7af32c0b77979a29",
+          "replacement_function_source": "#[inline]\npub unsafe fn lodepng_crc32(\n    mut data: *const c_uchar,\n    mut length: size_t,\n) -> c_uint {\n    let mut r: c_uint = 0xffff_ffffu32;\n\n    while length >= 8 {\n        let b0 = unsafe { *data } as c_uint; // SAFETY: caller provides a valid pointer to at least `length` bytes; here `length >= 8`, so bytes 0..7 are readable.\n        let b1 = unsafe { *data.add(1) } as c_uint; // SAFETY: caller provides a valid pointer to at least `length` bytes; here `length >= 8`, so bytes 0..7 are readable.\n        let b2 = unsafe { *data.add(2) } as c_uint; // SAFETY: caller provides a valid pointer to at least `length` bytes; here `length >= 8`, so bytes 0..7 are readable.\n        let b3 = unsafe { *data.add(3) } as c_uint; // SAFETY: caller provides a valid pointer to at least `length` bytes; here `length >= 8`, so bytes 0..7 are readable.\n        let b4 = unsafe { *data.add(4) } as usize; // SAFETY: caller provides a valid pointer to at least `length` bytes; here `length >= 8`, so bytes 0..7 are readable.\n        let b5 = unsafe { *data.add(5) } as usize; // SAFETY: caller provides a valid pointer to at least `length` bytes; here `length >= 8`, so bytes 0..7 are readable.\n        let b6 = unsafe { *data.add(6) } as usize; // SAFETY: caller provides a valid pointer to at least `length` bytes; here `length >= 8`, so bytes 0..7 are readable.\n        let b7 = unsafe { *data.add(7) } as usize; // SAFETY: caller provides a valid pointer to at least `length` bytes; here `length >= 8`, so bytes 0..7 are readable.\n\n        r = lodepng_crc32_table7[((b0 ^ r) & 0xff) as usize]\n            ^ lodepng_crc32_table6[((b1 ^ ((r >> 8) & 0xff)) & 0xff) as usize]\n            ^ lodepng_crc32_table5[((b2 ^ ((r >> 16) & 0xff)) & 0xff) as usize]\n            ^ lodepng_crc32_table4[((b3 ^ ((r >> 24) & 0xff)) & 0xff) as usize]\n            ^ lodepng_crc32_table3[b4]\n            ^ lodepng_crc32_table2[b5]\n            ^ lodepng_crc32_table1[b6]\n            ^ lodepng_crc32_table0[b7];\n\n        data = unsafe { data.add(8) }; // SAFETY: advancing by 8 stays within the same allocation or one past it because `length >= 8` and caller guarantees `data..data+length` is valid.\n        length -= 8;\n    }\n\n    while length != 0 {\n        let byte = unsafe { *data } as c_uint; // SAFETY: loop invariant guarantees `length != 0`, so current byte is readable from caller-provided valid range.\n        data = unsafe { data.add(1) }; // SAFETY: advancing by 1 stays within the same allocation or one past it because one readable byte remains.\n        r = lodepng_crc32_table0[((r ^ byte) & 0xff) as usize] ^ (r >> 8);\n        length -= 1;\n    }\n\n    r ^ 0xffff_ffffu32\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "cd67dac85abc925643e1b02780df9beddf9dc64cf00be74fb14ca7be0c69d101",
+            "file_hint": "src/lodepng.rs",
+            "qualified_name": "crate::lodepng_crc32",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "lodepng_crc32-ffc44c9f179e",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "lodepng_crc32",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "fec9b0bcf931100e2a5302dea0c7f5d2bfc1df7ac2e7e3768eb02bf9ede9eaeb",
+            "edit_id": "edit-replace-7af32c0b77979a29",
+            "end_byte": 193150,
+            "operation_id": "replace-7af32c0b77979a29",
+            "relative_path": "src/lodepng.rs",
+            "replacement_text": "#[inline]\npub unsafe fn lodepng_crc32(\n    mut data: *const c_uchar,\n    mut length: size_t,\n) -> c_uint {\n    let mut r: c_uint = 0xffff_ffffu32;\n\n    while length >= 8 {\n        let b0 = unsafe { *data } as c_uint; // SAFETY: caller provides a valid pointer to at least `length` bytes; here `length >= 8`, so bytes 0..7 are readable.\n        let b1 = unsafe { *data.add(1) } as c_uint; // SAFETY: caller provides a valid pointer to at least `length` bytes; here `length >= 8`, so bytes 0..7 are readable.\n        let b2 = unsafe { *data.add(2) } as c_uint; // SAFETY: caller provides a valid pointer to at least `length` bytes; here `length >= 8`, so bytes 0..7 are readable.\n        let b3 = unsafe { *data.add(3) } as c_uint; // SAFETY: caller provides a valid pointer to at least `length` bytes; here `length >= 8`, so bytes 0..7 are readable.\n        let b4 = unsafe { *data.add(4) } as usize; // SAFETY: caller provides a valid pointer to at least `length` bytes; here `length >= 8`, so bytes 0..7 are readable.\n        let b5 = unsafe { *data.add(5) } as usize; // SAFETY: caller provides a valid pointer to at least `length` bytes; here `length >= 8`, so bytes 0..7 are readable.\n        let b6 = unsafe { *data.add(6) } as usize; // SAFETY: caller provides a valid pointer to at least `length` bytes; here `length >= 8`, so bytes 0..7 are readable.\n        let b7 = unsafe { *data.add(7) } as usize; // SAFETY: caller provides a valid pointer to at least `length` bytes; here `length >= 8`, so bytes 0..7 are readable.\n\n        r = lodepng_crc32_table7[((b0 ^ r) & 0xff) as usize]\n            ^ lodepng_crc32_table6[((b1 ^ ((r >> 8) & 0xff)) & 0xff) as usize]\n            ^ lodepng_crc32_table5[((b2 ^ ((r >> 16) & 0xff)) & 0xff) as usize]\n            ^ lodepng_crc32_table4[((b3 ^ ((r >> 24) & 0xff)) & 0xff) as usize]\n            ^ lodepng_crc32_table3[b4]\n            ^ lodepng_crc32_table2[b5]\n            ^ lodepng_crc32_table1[b6]\n            ^ lodepng_crc32_table0[b7];\n\n        data = unsafe { data.add(8) }; // SAFETY: advancing by 8 stays within the same allocation or one past it because `length >= 8` and caller guarantees `data..data+length` is valid.\n        length -= 8;\n    }\n\n    while length != 0 {\n        let byte = unsafe { *data } as c_uint; // SAFETY: loop invariant guarantees `length != 0`, so current byte is readable from caller-provided valid range.\n        data = unsafe { data.add(1) }; // SAFETY: advancing by 1 stays within the same allocation or one past it because one readable byte remains.\n        r = lodepng_crc32_table0[((r ^ byte) & 0xff) as usize] ^ (r >> 8);\n        length -= 1;\n    }\n\n    r ^ 0xffff_ffffu32\n}",
+            "start_byte": 191462
+          }
+        ],
+        "facts": {
+          "fn_name": "lodepng_crc32",
+          "target_span_hash": "cd67dac85abc925643e1b02780df9beddf9dc64cf00be74fb14ca7be0c69d101"
+        },
+        "operation_id": "replace-7af32c0b77979a29"
+      }
+    ],
+    "resolved_head": "d2e62f4bb4e8ec1f41e0d3b860efe5f8871c6c36"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/lodepng.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

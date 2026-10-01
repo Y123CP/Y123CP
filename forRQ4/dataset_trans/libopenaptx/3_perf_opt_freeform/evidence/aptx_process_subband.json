@@ -1,0 +1,112 @@
+{
+  "hot_function": {
+    "symbol": "aptx_process_subband",
+    "location": "src/openaptx.rs:2413-2475",
+    "workload": "decode_sync_hd",
+    "hot_region": "src/openaptx.rs:2413-2475",
+    "rust_source": "unsafe fn aptx_process_subband(\n    mut invert_quantize: *mut aptx_invert_quantize,\n    mut prediction: *mut aptx_prediction,\n    mut quantized_sample: int32_t,\n    mut dither: int32_t,\n    mut tables: *const aptx_tables,\n) {\n    let tables_view: &aptx_tables = unsafe { &*tables };\n    let mut sign: int32_t = 0;\n    let mut same_sign: [int32_t; 2] = [0; 2];\n    let mut weight: [int32_t; 2] = [0; 2];\n    let mut sw1: int32_t = 0;\n    let mut range: int32_t = 0;\n    aptx_invert_quantization(invert_quantize, quantized_sample, dither, tables);\n    sign = (((*invert_quantize).reconstructed_difference > -(*prediction).predicted_difference)\n        as c_int\n        - ((*invert_quantize).reconstructed_difference < -(*prediction).predicted_difference)\n            as c_int) as int32_t;\n    same_sign[0 as c_int as usize] =\n        sign * (*prediction).prev_sign[0 as c_int as usize];\n    same_sign[1 as c_int as usize] =\n        sign * (*prediction).prev_sign[1 as c_int as usize];\n    (*prediction).prev_sign[0 as c_int as usize] =\n        (*prediction).prev_sign[1 as c_int as usize];\n    (*prediction).prev_sign[1 as c_int as usize] = sign | 1 as int32_t;\n    range = 0x100000 as c_int as int32_t;\n    sw1 = rshift32(\n        -same_sign[1 as c_int as usize]\n            * (*prediction).s_weight[1 as c_int as usize],\n        1 as c_uint,\n    );\n    sw1 = (clip(sw1, -range, range) & !(0xf as int32_t)) * 16 as int32_t;\n    range = 0x300000 as c_int as int32_t;\n    weight[0 as c_int as usize] = 254 as int32_t\n        * (*prediction).s_weight[0 as c_int as usize]\n        + 0x800000 as int32_t * same_sign[0 as c_int as usize]\n        + sw1;\n    (*prediction).s_weight[0 as c_int as usize] = clip(\n        rshift32(\n            weight[0 as c_int as usize],\n            8 as c_uint,\n        ),\n        -range,\n        range,\n    );\n    range = 0x3c0000 as int32_t - (*prediction).s_weight[0 as c_int as usize];\n    weight[1 as c_int as usize] = 255 as int32_t\n        * (*prediction).s_weight[1 as c_int as usize]\n        + 0xc00000 as int32_t * same_sign[1 as c_int as usize];\n    (*prediction).s_weight[1 as c_int as usize] = clip(\n        rshift32(\n            weight[1 as c_int as usize],\n            8 as c_uint,\n        ),\n        -range,\n        range,\n    );\n    aptx_prediction_filtering(\n        prediction,\n        (*invert_quantize).reconstructed_difference,\n        tables_view.prediction_order,\n    );\n}",
+    "signature": "unsafe fn aptx_process_subband(\n    mut invert_quantize: *mut aptx_invert_quantize,\n    mut prediction: *mut aptx_prediction,\n    mut quantized_sample: int32_t,\n    mut dither: int32_t,\n    mut tables: *const aptx_tables,\n)",
+    "profile": {
+      "self_time_ratio": 0.0532,
+      "call_count": null,
+      "retired_instructions": 851558136,
+      "instructions_per_call": null,
+      "cpi": 0.37,
+      "tma": {
+        "scope": "process",
+        "retiring": 79.355310935314,
+        "frontend_bound": 1.93801240861373,
+        "bad_speculation": 0.5323774366310581,
+        "backend_bound": 18.174299219441217,
+        "memory_bound": 12.611300497790246,
+        "core_bound": 5.5629987216509695,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0009
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2426,
+        "message": "'_ZN19libopenaptx_cleaned3src8openaptx24aptx_invert_quantization17h7d41a93f3aff2f8fE' inlined into '_ZN19libopenaptx_cleaned3src8openaptx20aptx_process_subband17hd638d22ea54f4b19E' with (cost=-14760, threshold=375) at callsite _ZN19libopenaptx_cleaned3src8openaptx20aptx_process_subband17hd638d22ea54f4b19E:13:5;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2470,
+        "message": "'_ZN19libopenaptx_cleaned3src8openaptx25aptx_prediction_filtering17h15ff9b695ca17993E' inlined into '_ZN19libopenaptx_cleaned3src8openaptx20aptx_process_subband17hd638d22ea54f4b19E' with (cost=-14560, threshold=250) at callsite _ZN19libopenaptx_cleaned3src8openaptx20aptx_process_subband17hd638d22ea54f4b19E:57:5;"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2427,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2432,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2434,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2441,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2447,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2472,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2473,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2444,
+        "message": "BasicBlock: bb6.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2447,
+        "message": "BasicBlock: bb8.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

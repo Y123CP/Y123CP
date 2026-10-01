@@ -1,0 +1,248 @@
+{
+  "hot_function": {
+    "symbol": "update_adler32",
+    "location": "src/lodepng.rs:3476-3504",
+    "workload": "zlib_decompress",
+    "hot_region": "src/lodepng.rs:3476-3504",
+    "rust_source": "unsafe fn update_adler32(\n    mut adler: c_uint,\n    mut data: *const c_uchar,\n    mut len: c_uint,\n) -> c_uint {\n    let mut s1: c_uint = adler & 0xffff as c_uint;\n    let mut s2: c_uint =\n        adler >> 16 as c_uint & 0xffff as c_uint;\n    while len != 0 as c_uint {\n        let mut i: c_uint = 0;\n        let mut amount: c_uint = if len > 5552 as c_uint {\n            5552 as c_uint\n        } else {\n            len\n        };\n        len = len.wrapping_sub(amount);\n        i = 0 as c_uint;\n        while i != amount {\n            let fresh35 = data;\n            data = data.offset(1);\n            s1 = s1.wrapping_add(*fresh35 as c_uint);\n            s2 = s2.wrapping_add(s1);\n            i = i.wrapping_add(1);\n        }\n        s1 = s1.wrapping_rem(65521 as c_uint);\n        s2 = s2.wrapping_rem(65521 as c_uint);\n    }\n    return s2 << 16 as c_uint | s1;\n}",
+    "signature": "unsafe fn update_adler32(\n    mut adler: c_uint,\n    mut data: *const c_uchar,\n    mut len: c_uint,\n) -> c_uint",
+    "profile": {
+      "self_time_ratio": 0.1812,
+      "call_count": null,
+      "retired_instructions": 2553336413,
+      "instructions_per_call": null,
+      "cpi": 0.429,
+      "tma": {
+        "scope": "process",
+        "retiring": 55.5202092811301,
+        "frontend_bound": 2.5232453568235047,
+        "bad_speculation": 0.9181933526473314,
+        "backend_bound": 41.03835200939906,
+        "memory_bound": 36.94207103764204,
+        "core_bound": 4.096280971757024,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.002
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_vec": {
+        "NonReductionValueUsedOutsideLoop": 1
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3496,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 3493,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 3493,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 3493,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 3493,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 3493,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 3493,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3493,
+        "message": "4 virtual registers copies 4.309524e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3484,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3486,
+        "message": "BasicBlock: bb2.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3493,
+        "message": "BasicBlock: bb2.i.new"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3496,
+        "message": "BasicBlock: bb7.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3493,
+        "message": "BasicBlock: bb8.i.unr-lcssa"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3493,
+        "message": "BasicBlock: bb7.i.epil.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3496,
+        "message": "BasicBlock: bb7.i.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3503,
+        "message": "BasicBlock: bb9.loopexit.i"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3493,
+        "message": "4 virtual registers copies 3.739670e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3484,
+        "message": "BasicBlock: bb8.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3486,
+        "message": "BasicBlock: bb2.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3493,
+        "message": "BasicBlock: bb2.i.i.i.new"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3496,
+        "message": "BasicBlock: bb7.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3493,
+        "message": "BasicBlock: bb8.i.i.i.unr-lcssa"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3493,
+        "message": "BasicBlock: bb7.i.i.i.epil.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3496,
+        "message": "BasicBlock: bb7.i.i.i.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3503,
+        "message": "BasicBlock: bb9.loopexit.i.i.i"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3493,
+        "message": "4 virtual registers copies 9.960938e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3486,
+        "message": "BasicBlock: bb2.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3493,
+        "message": "BasicBlock: bb2.i.i.new"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3496,
+        "message": "BasicBlock: bb7.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3493,
+        "message": "BasicBlock: bb8.i.i.unr-lcssa"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3493,
+        "message": "BasicBlock: bb7.i.i.epil.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3496,
+        "message": "BasicBlock: bb7.i.i.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3503,
+        "message": "BasicBlock: bb9.loopexit.i.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

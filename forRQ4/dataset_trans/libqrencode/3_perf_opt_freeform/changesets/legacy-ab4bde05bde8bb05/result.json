@@ -1,0 +1,196 @@
+{
+  "applied_rules": [
+    "freeform"
+  ],
+  "commit_sha": "479c231",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.4043858967723407,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -0.20587879010854088,
+            "aggregate_ci_low_pct": -0.6028930034361406,
+            "aggregate_pct": -0.4043858967723407,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -0.0367,
+                "ci_low_pct": -0.2997,
+                "insns_delta_pct": -1.4334,
+                "mean_delta_pct": -0.1682,
+                "op": "encode_data_and_input",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.2539,
+                "ci_low_pct": -1.0272,
+                "insns_delta_pct": -1.4629,
+                "mean_delta_pct": -0.6406,
+                "op": "encode_string_api",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -0.9662264690745979,
+            "aggregate_ci_low_pct": -1.582952351809675,
+            "aggregate_pct": -1.2745894104421365,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -0.6232,
+                "ci_low_pct": -1.0998,
+                "insns_delta_pct": -2.6671,
+                "mean_delta_pct": -0.8615,
+                "op": "encode_data_and_input",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.6437,
+                "ci_low_pct": -1.2904,
+                "insns_delta_pct": -2.7019,
+                "mean_delta_pct": -0.9671,
+                "op": "encode_string_api",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.122,
+                "ci_low_pct": -2.8684,
+                "insns_delta_pct": 0.1709,
+                "mean_delta_pct": -1.9952,
+                "op": "spec_mask_ecc",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_data_and_input",
+          "encode_string_api"
+        ],
+        "reason": "accepted",
+        "triggering_op": "encode_data_and_input"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "80e51766b11df8695bea3c9fccf7564419a51371",
+      "changeset_id": "legacy-ab4bde05bde8bb05",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-54ac0124ac680913",
+          "replacement_function_source": "unsafe fn Mask_calcRunLengthH(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n    mut runLength: *mut c_int,\n) -> c_int {\n    let first = unsafe { *frame } as c_int; // SAFETY: caller provides valid pointers for at least one readable frame element.\n    let mut head: c_int = if first & 1 != 0 {\n        unsafe { *runLength = -1 }; // SAFETY: caller provides valid runLength storage for the written entries.\n        1\n    } else {\n        0\n    };\n\n    unsafe { *runLength.add(head as usize) = 1 }; // SAFETY: caller provides valid runLength storage for the written entries.\n\n    let mut prev_bit = first & 1;\n    let mut i: c_int = 1;\n    while i < width {\n        let bit = unsafe { (*frame.add(i as usize) as c_int) & 1 }; // SAFETY: loop invariant ensures 0 <= i < width and caller provides readable frame elements.\n        if bit != prev_bit {\n            head += 1;\n            unsafe { *runLength.add(head as usize) = 1 }; // SAFETY: caller provides valid runLength storage for the written entries.\n            prev_bit = bit;\n        } else {\n            unsafe { *runLength.add(head as usize) += 1 }; // SAFETY: caller provides valid runLength storage for the written entries.\n        }\n        i += 1;\n    }\n    head + 1\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "69377a956a0866acbbe07a816a3d8a475fb7c92ccf0fb56b7fd8eaf417ddeecc",
+            "file_hint": "src/mask.rs",
+            "qualified_name": "crate::Mask_calcRunLengthH",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "Mask_calcRunLengthH-ad0e518e46e5",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "Mask_calcRunLengthH",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "654be492245519df8a8e1bcc83a3ad9f75e2e4f6c0320885dea64c1e2410d8f5",
+            "edit_id": "edit-replace-54ac0124ac680913",
+            "end_byte": 14365,
+            "operation_id": "replace-54ac0124ac680913",
+            "relative_path": "src/mask.rs",
+            "replacement_text": "unsafe fn Mask_calcRunLengthH(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n    mut runLength: *mut c_int,\n) -> c_int {\n    let first = unsafe { *frame } as c_int; // SAFETY: caller provides valid pointers for at least one readable frame element.\n    let mut head: c_int = if first & 1 != 0 {\n        unsafe { *runLength = -1 }; // SAFETY: caller provides valid runLength storage for the written entries.\n        1\n    } else {\n        0\n    };\n\n    unsafe { *runLength.add(head as usize) = 1 }; // SAFETY: caller provides valid runLength storage for the written entries.\n\n    let mut prev_bit = first & 1;\n    let mut i: c_int = 1;\n    while i < width {\n        let bit = unsafe { (*frame.add(i as usize) as c_int) & 1 }; // SAFETY: loop invariant ensures 0 <= i < width and caller provides readable frame elements.\n        if bit != prev_bit {\n            head += 1;\n            unsafe { *runLength.add(head as usize) = 1 }; // SAFETY: caller provides valid runLength storage for the written entries.\n            prev_bit = bit;\n        } else {\n            unsafe { *runLength.add(head as usize) += 1 }; // SAFETY: caller provides valid runLength storage for the written entries.\n        }\n        i += 1;\n    }\n    head + 1\n}",
+            "start_byte": 13368
+          }
+        ],
+        "facts": {
+          "fn_name": "Mask_calcRunLengthH",
+          "target_span_hash": "69377a956a0866acbbe07a816a3d8a475fb7c92ccf0fb56b7fd8eaf417ddeecc"
+        },
+        "operation_id": "replace-54ac0124ac680913"
+      }
+    ],
+    "resolved_head": "80e51766b11df8695bea3c9fccf7564419a51371"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/mask.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

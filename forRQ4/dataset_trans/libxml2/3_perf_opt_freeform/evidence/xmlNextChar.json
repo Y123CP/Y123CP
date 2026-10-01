@@ -1,0 +1,478 @@
+{
+  "hot_function": {
+    "symbol": "xmlNextChar",
+    "location": "src/parserInternals.rs:2077-2238",
+    "workload": "html_push_parse",
+    "hot_region": "src/parserInternals.rs:2077-2238",
+    "rust_source": "pub extern \"C\" fn xmlNextChar(mut ctxt: xmlParserCtxtPtr) { unsafe {\n    let mut current_block: u64;\n    let mut cur: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut avail: size_t = 0;\n    let mut c: c_int = 0;\n    if ctxt.is_null()\n        || (*ctxt).instate as c_int == XML_PARSER_EOF as c_int\n        || (*ctxt).input.is_null()\n    {\n        return;\n    }\n    avail = (*(*ctxt).input).end.offset_from((*(*ctxt).input).cur) as c_long as size_t;\n    if avail < INPUT_CHUNK as size_t {\n        xmlParserGrow(ctxt);\n        if (*ctxt).instate as c_int == XML_PARSER_EOF as c_int\n            || (*(*ctxt).input).cur >= (*(*ctxt).input).end\n        {\n            return;\n        }\n        avail =\n            (*(*ctxt).input).end.offset_from((*(*ctxt).input).cur) as c_long as size_t;\n    }\n    cur = (*(*ctxt).input).cur as *const c_uchar;\n    c = *cur as c_int;\n    if c < 0x80 as c_int {\n        if c == '\\n' as i32 {\n            (*(*ctxt).input).cur = (*(*ctxt).input).cur.offset(1);\n            (*(*ctxt).input).line += 1;\n            (*(*ctxt).input).col = 1 as c_int;\n        } else if c == '\\r' as i32 {\n            (*(*ctxt).input).cur = (*(*ctxt).input).cur.offset(\n                (if *cur.offset(1 as c_int as isize) as c_int\n                    == '\\n' as i32\n                {\n                    2 as c_int\n                } else {\n                    1 as c_int\n                }) as isize,\n            );\n            (*(*ctxt).input).line += 1;\n            (*(*ctxt).input).col = 1 as c_int;\n            return;\n        } else {\n            (*(*ctxt).input).cur = (*(*ctxt).input).cur.offset(1);\n            (*(*ctxt).input).col += 1;\n        }\n    } else {\n        (*(*ctxt).input).col += 1;\n        if avail < 2 as size_t\n            || *cur.offset(1 as c_int as isize) as c_int\n                & 0xc0 as c_int\n                != 0x80 as c_int\n        {\n            current_block = 10664207195514096503;\n        } else if c < 0xe0 as c_int {\n            if c < 0xc2 as c_int {\n                current_block = 10664207195514096503;\n            } else {\n                (*(*ctxt).input).cur = (*(*ctxt).input)\n                    .cur\n                    .offset(2 as c_int as isize);\n                current_block = 14434620278749266018;\n            }\n        } else {\n            let mut val: c_uint = (c << 8 as c_int\n                | *cur.offset(1 as c_int as isize) as c_int)\n                as c_uint;\n            if avail < 3 as size_t\n                || *cur.offset(2 as c_int as isize) as c_int\n                    & 0xc0 as c_int\n                    != 0x80 as c_int\n            {\n                current_block = 10664207195514096503;\n            } else if c < 0xf0 as c_int {\n                if val < 0xe0a0 as c_uint\n                    || val >= 0xeda0 as c_uint && val < 0xee00 as c_uint\n                {\n                    current_block = 10664207195514096503;\n                } else {\n                    (*(*ctxt).input).cur = (*(*ctxt).input)\n                        .cur\n                        .offset(3 as c_int as isize);\n                    current_block = 14434620278749266018;\n                }\n            } else if avail < 4 as size_t\n                || *cur.offset(3 as c_int as isize) as c_int\n                    & 0xc0 as c_int\n                    != 0x80 as c_int\n            {\n                current_block = 10664207195514096503;\n            } else if val < 0xf090 as c_uint || val >= 0xf490 as c_uint {\n                current_block = 10664207195514096503;\n            } else {\n                (*(*ctxt).input).cur = (*(*ctxt).input)\n                    .cur\n                    .offset(4 as c_int as isize);\n                current_block = 14434620278749266018;\n            }\n        }\n        match current_block {\n            14434620278749266018 => {}\n            _ => {\n                if (*(*ctxt).input).flags as c_uint & XML_INPUT_ENCODING_ERROR\n                    == 0 as c_uint\n                {\n                    if ctxt.is_null()\n                        || (*ctxt).input.is_null()\n                        || ((*(*ctxt).input).end.offset_from((*(*ctxt).input).cur)\n                            as c_long)\n                            < 4 as c_long\n                    {\n                        __xmlErrEncoding(\n                            ctxt,\n                            XML_ERR_INVALID_CHAR,\n                            b\"Input is not proper UTF-8, indicate encoding !\\n\\0\" as *const u8\n                                as *const c_char,\n                            ::core::ptr::null::<xmlChar>(),\n                            ::core::ptr::null::<xmlChar>(),\n                        );\n                    } else {\n                        let mut buffer: [c_char; 150] = [0; 150];\n                        snprintf(\n                            &raw mut buffer as *mut c_char,\n                            149 as size_t,\n                            b\"Bytes: 0x%02X 0x%02X 0x%02X 0x%02X\\n\\0\" as *const u8\n                                as *const c_char,\n                            *(*(*ctxt).input)\n                                .cur\n                                .offset(0 as c_int as isize)\n                                as c_int,\n                            *(*(*ctxt).input)\n                                .cur\n                                .offset(1 as c_int as isize)\n                                as c_int,\n                            *(*(*ctxt).input)\n                                .cur\n                                .offset(2 as c_int as isize)\n                                as c_int,\n                            *(*(*ctxt).input)\n                                .cur\n                                .offset(3 as c_int as isize)\n                                as c_int,\n                        );\n                        __xmlErrEncoding(\n                            ctxt,\n                            XML_ERR_INVALID_CHAR,\n                            b\"Input is not proper UTF-8, indicate encoding !\\n%s\\0\" as *const u8\n                                as *const c_char,\n                            &raw mut buffer as *mut c_char as *mut xmlChar,\n                            ::core::ptr::null::<xmlChar>(),\n                        );\n                    }\n                    (*(*ctxt).input).flags = ((*(*ctxt).input).flags as c_uint\n                        | XML_INPUT_ENCODING_ERROR)\n                        as c_int;\n                }\n                (*(*ctxt).input).cur = (*(*ctxt).input).cur.offset(1);\n                return;\n            }\n        }\n    };\n} }",
+    "signature": "pub extern \"C\" fn xmlNextChar(mut ctxt: xmlParserCtxtPtr)",
+    "profile": {
+      "self_time_ratio": 0.0572,
+      "call_count": null,
+      "retired_instructions": 1087425586,
+      "instructions_per_call": null,
+      "cpi": 0.306,
+      "tma": {
+        "scope": "process",
+        "retiring": 55.096498330094484,
+        "frontend_bound": 30.042227530080183,
+        "bad_speculation": 4.756478362319564,
+        "backend_bound": 10.10479577750577,
+        "memory_bound": 5.644617152766263,
+        "core_bound": 4.460178624739506,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0044
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2198,
+        "message": "snprintf will not be inlined into xmlNextChar because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2090,
+        "message": "'xmlParserGrow' not inlined into 'xmlNextChar' because too costly to inline (cost=590, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2220,
+        "message": "'__xmlErrEncoding' not inlined into 'xmlNextChar' because too costly to inline (cost=125, threshold=45)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2188,
+        "message": "'__xmlErrEncoding' not inlined into 'xmlNextChar' because too costly to inline (cost=125, threshold=45)"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2091,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2092,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 2099,
+        "message": "load of type ptr eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2126,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2145,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2162,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2170,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2156,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2135,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2179,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2203,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2203,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2207,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2211,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2215,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2229,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2233,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 2233,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2116,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2116,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2117,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2104,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2104,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2105,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2121,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2121,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2077,
+        "message": "X86 DAG->DAG Instruction Selection: Function: xmlNextChar: MI Instruction count changed from 0 to 208; Delta: 208"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2077,
+        "message": "Merge disjoint stack slots: Function: xmlNextChar: MI Instruction count changed from 208 to 206; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2077,
+        "message": "Remove dead machine instructions: Function: xmlNextChar: MI Instruction count changed from 206 to 204; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2077,
+        "message": "Machine Common Subexpression Elimination: Function: xmlNextChar: MI Instruction count changed from 204 to 203; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2077,
+        "message": "Peephole Optimizations: Function: xmlNextChar: MI Instruction count changed from 203 to 200; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2077,
+        "message": "X86 Fixup SetCC: Function: xmlNextChar: MI Instruction count changed from 200 to 201; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2077,
+        "message": "Eliminate PHI nodes for register allocation: Function: xmlNextChar: MI Instruction count changed from 201 to 209; Delta: 8"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2077,
+        "message": "Two-Address instruction pass: Function: xmlNextChar: MI Instruction count changed from 209 to 222; Delta: 13"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2077,
+        "message": "Register Coalescer: Function: xmlNextChar: MI Instruction count changed from 222 to 184; Delta: -38"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2077,
+        "message": "8 virtual registers copies 1.209611e+00 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2077,
+        "message": "Virtual Register Rewriter: Function: xmlNextChar: MI Instruction count changed from 184 to 178; Delta: -6"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2077,
+        "message": "Shrink Wrapping analysis: Function: xmlNextChar: MI Instruction count changed from 178 to 180; Delta: 2"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 2077,
+        "message": "184 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2077,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: xmlNextChar: MI Instruction count changed from 180 to 188; Delta: 8"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2077,
+        "message": "Control Flow Optimizer: Function: xmlNextChar: MI Instruction count changed from 188 to 155; Delta: -33"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2077,
+        "message": "X86 LEA Fixup: Function: xmlNextChar: MI Instruction count changed from 155 to 156; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2084,
+        "message": "BasicBlock: bb3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2088,
+        "message": "BasicBlock: bb5"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2090,
+        "message": "BasicBlock: bb6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2092,
+        "message": "BasicBlock: bb9"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2100,
+        "message": "BasicBlock: bb13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2102,
+        "message": "BasicBlock: bb14"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2108,
+        "message": "BasicBlock: bb17"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2124,
+        "message": "BasicBlock: bb22"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2126,
+        "message": "BasicBlock: bb24"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2131,
+        "message": "BasicBlock: bb26"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2132,
+        "message": "BasicBlock: bb27"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2135,
+        "message": "BasicBlock: bb29"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2144,
+        "message": "BasicBlock: bb31"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2145,
+        "message": "BasicBlock: bb33"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2151,
+        "message": "BasicBlock: bb36"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2156,
+        "message": "BasicBlock: bb40"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2161,
+        "message": "BasicBlock: bb42"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2162,
+        "message": "BasicBlock: bb44"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2170,
+        "message": "BasicBlock: bb49"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2179,
+        "message": "BasicBlock: bb56"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2184,
+        "message": "BasicBlock: bb60"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2188,
+        "message": "BasicBlock: bb61"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2197,
+        "message": "BasicBlock: bb63"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2233,
+        "message": "BasicBlock: bb68"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2238,
+        "message": "BasicBlock: bb72"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2077,
+        "message": "146 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

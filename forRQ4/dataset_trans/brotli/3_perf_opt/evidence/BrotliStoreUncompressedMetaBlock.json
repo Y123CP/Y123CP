@@ -1,0 +1,220 @@
+{
+  "hot_function": {
+    "symbol": "BrotliStoreUncompressedMetaBlock",
+    "location": "src/enc/brotli_bit_stream.rs:2593-2635",
+    "workload": "lowlevel_probe",
+    "hot_region": "src/enc/brotli_bit_stream.rs:2593-2635",
+    "rust_source": "pub unsafe fn BrotliStoreUncompressedMetaBlock(\n    mut is_final_block: c_int,\n    mut input: *const uint8_t,\n    mut position: size_t,\n    mut mask: size_t,\n    mut len: size_t,\n    mut storage_ix: *mut size_t,\n    mut storage: *mut uint8_t,\n) {\n    let mut masked_pos: size_t = position & mask;\n    BrotliStoreUncompressedMetaBlockHeader(len, storage_ix, storage);\n    JumpToByteBoundary(storage_ix, storage);\n    if masked_pos.wrapping_add(len) > mask.wrapping_add(1 as size_t) {\n        let mut len1: size_t = mask.wrapping_add(1 as size_t).wrapping_sub(masked_pos);\n        memcpy(\n            storage.offset((*storage_ix >> 3 as c_int) as isize) as *mut uint8_t\n                as *mut c_void,\n            input.offset(masked_pos as isize) as *const uint8_t as *const c_void,\n            len1,\n        );\n        *storage_ix = (*storage_ix as c_ulong)\n            .wrapping_add((len1 << 3 as c_int) as c_ulong)\n            as size_t as size_t;\n        len = (len as c_ulong).wrapping_sub(len1 as c_ulong) as size_t\n            as size_t;\n        masked_pos = 0 as size_t;\n    }\n    memcpy(\n        storage.offset((*storage_ix >> 3 as c_int) as isize) as *mut uint8_t\n            as *mut c_void,\n        input.offset(masked_pos as isize) as *const uint8_t as *const c_void,\n        len,\n    );\n    *storage_ix = (*storage_ix as c_ulong)\n        .wrapping_add((len << 3 as c_int) as c_ulong)\n        as size_t as size_t;\n    BrotliWriteBitsPrepareStorage(*storage_ix, storage);\n    if is_final_block != 0 {\n        BrotliWriteBits(1 as size_t, 1 as uint64_t, storage_ix, storage);\n        BrotliWriteBits(1 as size_t, 1 as uint64_t, storage_ix, storage);\n        JumpToByteBoundary(storage_ix, storage);\n    }\n}",
+    "signature": "pub unsafe fn BrotliStoreUncompressedMetaBlock(\n    mut is_final_block: c_int,\n    mut input: *const uint8_t,\n    mut position: size_t,\n    mut mask: size_t,\n    mut len: size_t,\n    mut storage_ix: *mut size_t,\n    mut storage: *mut uint8_t,\n)",
+    "profile": {
+      "self_time_ratio": 0.5945,
+      "call_count": null,
+      "retired_instructions": 3291241,
+      "instructions_per_call": null,
+      "cpi": 998.958,
+      "tma": {
+        "scope": "process",
+        "retiring": 12.078826406896425,
+        "frontend_bound": 0.5327472320429362,
+        "bad_speculation": 0.01119021986194264,
+        "backend_bound": 87.3772361411987,
+        "memory_bound": 53.02756077351719,
+        "core_bound": 34.349675367681506,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0004
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "memory_bound",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2631,
+        "message": "'_ZN14brotli_cleaned3src3enc17brotli_bit_stream15BrotliWriteBits17hf9fcb8796f40fdb8E' inlined into '_ZN14brotli_cleaned3src3enc17brotli_bit_stream32BrotliStoreUncompressedMetaBlock17h6293e26ac9373265E': always inline attribute at callsite _ZN14brotli_cleaned3src3enc17brotli_bit_stream32BrotliStoreUncompressedMetaBlock17h6293e26ac9373265E:38:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2632,
+        "message": "'_ZN14brotli_cleaned3src3enc17brotli_bit_stream15BrotliWriteBits17hf9fcb8796f40fdb8E' inlined into '_ZN14brotli_cleaned3src3enc17brotli_bit_stream32BrotliStoreUncompressedMetaBlock17h6293e26ac9373265E': always inline attribute at callsite _ZN14brotli_cleaned3src3enc17brotli_bit_stream32BrotliStoreUncompressedMetaBlock17h6293e26ac9373265E:39:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2603,
+        "message": "'_ZN14brotli_cleaned3src3enc17brotli_bit_stream38BrotliStoreUncompressedMetaBlockHeader17h595f5f0b36a913dfE' inlined into '_ZN14brotli_cleaned3src3enc17brotli_bit_stream32BrotliStoreUncompressedMetaBlock17h6293e26ac9373265E' with (cost=185, threshold=250) at callsite _ZN14brotli_cleaned3src3enc17brotli_bit_stream32BrotliStoreUncompressedMetaBlock17h6293e26ac9373265E:10:5;"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2608,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2613,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2621,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 2621,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2626,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2603,
+        "message": "_ZN14brotli_cleaned3src3enc17brotli_bit_stream38BrotliStoreUncompressedMetaBlockHeader17h595f5f0b36a913dfE will not be inlined into _ZN14brotli_cleaned3src3enc17brotli_bit_stream32BrotliStoreUncompressedMetaBlock17h6293e26ac9373265E because its definition is unavailable"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2626,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2605,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2614,
+        "message": "hoisting shl"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 2626,
+        "message": "load of type i64 eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2603,
+        "message": "_ZN14brotli_cleaned3src3enc17brotli_bit_stream38BrotliStoreUncompressedMetaBlockHeader17h595f5f0b36a913dfE will not be inlined into _ZN18brotli_raw_harness14lowlevel_probe17hafe9f0924db70499E because its definition is unavailable"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2593,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN14brotli_cleaned3src3enc17brotli_bit_stream32BrotliStoreUncompressedMetaBlock17h6293e26ac9373265E: MI Instruction count changed from 0 to 155; Delta: 155"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2593,
+        "message": "Remove dead machine instructions: Function: _ZN14brotli_cleaned3src3enc17brotli_bit_stream32BrotliStoreUncompressedMetaBlock17h6293e26ac9373265E: MI Instruction count changed from 155 to 153; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2593,
+        "message": "Process Implicit Definitions: Function: _ZN14brotli_cleaned3src3enc17brotli_bit_stream32BrotliStoreUncompressedMetaBlock17h6293e26ac9373265E: MI Instruction count changed from 153 to 150; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2593,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN14brotli_cleaned3src3enc17brotli_bit_stream32BrotliStoreUncompressedMetaBlock17h6293e26ac9373265E: MI Instruction count changed from 150 to 160; Delta: 10"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2593,
+        "message": "Two-Address instruction pass: Function: _ZN14brotli_cleaned3src3enc17brotli_bit_stream32BrotliStoreUncompressedMetaBlock17h6293e26ac9373265E: MI Instruction count changed from 160 to 208; Delta: 48"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2593,
+        "message": "Register Coalescer: Function: _ZN14brotli_cleaned3src3enc17brotli_bit_stream32BrotliStoreUncompressedMetaBlock17h6293e26ac9373265E: MI Instruction count changed from 208 to 132; Delta: -76"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2593,
+        "message": "17 virtual registers copies 1.435714e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2593,
+        "message": "Virtual Register Rewriter: Function: _ZN14brotli_cleaned3src3enc17brotli_bit_stream32BrotliStoreUncompressedMetaBlock17h6293e26ac9373265E: MI Instruction count changed from 132 to 129; Delta: -3"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 2593,
+        "message": "56 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2593,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN14brotli_cleaned3src3enc17brotli_bit_stream32BrotliStoreUncompressedMetaBlock17h6293e26ac9373265E: MI Instruction count changed from 129 to 159; Delta: 30"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2593,
+        "message": "Control Flow Optimizer: Function: _ZN14brotli_cleaned3src3enc17brotli_bit_stream32BrotliStoreUncompressedMetaBlock17h6293e26ac9373265E: MI Instruction count changed from 159 to 155; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 2593,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN14brotli_cleaned3src3enc17brotli_bit_stream32BrotliStoreUncompressedMetaBlock17h6293e26ac9373265E: MI Instruction count changed from 155 to 157; Delta: 2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2621,
+        "message": "BasicBlock: bb5"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2635,
+        "message": "BasicBlock: bb10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2593,
+        "message": "135 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

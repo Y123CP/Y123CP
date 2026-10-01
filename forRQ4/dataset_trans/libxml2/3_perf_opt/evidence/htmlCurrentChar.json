@@ -1,0 +1,675 @@
+{
+  "hot_function": {
+    "symbol": "htmlCurrentChar",
+    "location": "src/HTMLparser.rs:1740-2001",
+    "workload": "html_push_parse",
+    "hot_region": "src/HTMLparser.rs:1740-2001",
+    "rust_source": "unsafe fn htmlCurrentChar(\n    mut ctxt: xmlParserCtxtPtr,\n    mut len: *mut c_int,\n) -> c_int {\n    let mut current_block: u64;\n    let mut cur: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut c: c_uchar = 0;\n    let mut val: c_uint = 0;\n    if (*ctxt).instate as c_int == XML_PARSER_EOF as c_int {\n        return 0 as c_int;\n    }\n    if (*ctxt).token != 0 as c_int {\n        *len = 0 as c_int;\n        return (*ctxt).token;\n    }\n    if ((*(*ctxt).input).end.offset_from((*(*ctxt).input).cur) as c_long)\n        < INPUT_CHUNK as c_long\n    {\n        xmlParserGrow(ctxt);\n        if (*ctxt).instate as c_int == XML_PARSER_EOF as c_int {\n            return 0 as c_int;\n        }\n    }\n    if (*(*ctxt).input).flags as c_uint & XML_INPUT_HAS_ENCODING\n        == 0 as c_uint\n    {\n        let mut guess: *mut xmlChar = ::core::ptr::null_mut::<xmlChar>();\n        let mut handler: xmlCharEncodingHandlerPtr =\n            ::core::ptr::null_mut::<xmlCharEncodingHandler>();\n        if (*(*(*ctxt).input).cur as c_int) < 0x80 as c_int {\n            *len = 1 as c_int;\n            if *(*(*ctxt).input).cur as c_int == 0 as c_int\n                && (*(*ctxt).input).cur < (*(*ctxt).input).end\n            {\n                htmlParseErrInt(\n                    ctxt,\n                    XML_ERR_INVALID_CHAR,\n                    b\"Char 0x%X out of allowed range\\n\\0\" as *const u8\n                        as *const c_char,\n                    0 as c_int,\n                );\n                return ' ' as i32;\n            }\n            return *(*(*ctxt).input).cur as c_int;\n        }\n        guess = htmlFindEncoding(ctxt);\n        if guess.is_null() {\n            xmlSwitchEncoding(ctxt, XML_CHAR_ENCODING_8859_1);\n        } else {\n            handler = xmlFindCharEncodingHandler(guess as *const c_char);\n            if !handler.is_null() {\n                if xmlStrEqual(\n                    (*handler).name as *mut xmlChar,\n                    b\"UTF-8\\0\" as *const u8 as *const c_char as *mut xmlChar,\n                ) == 0\n                {\n                    xmlSwitchToEncoding(ctxt, handler);\n                }\n            } else {\n                htmlParseErr(\n                    ctxt,\n                    XML_ERR_INVALID_ENCODING,\n                    b\"Unsupported encoding %s\\0\" as *const u8 as *const c_char,\n                    guess,\n                    ::core::ptr::null::<xmlChar>(),\n                );\n            }\n            xmlFree.expect(\"non-null function pointer\")(guess as *mut c_void);\n        }\n        (*(*ctxt).input).flags = ((*(*ctxt).input).flags as c_uint\n            | XML_INPUT_HAS_ENCODING) as c_int;\n    }\n    cur = (*(*ctxt).input).cur as *const c_uchar;\n    c = *cur;\n    if c as c_int & 0x80 as c_int != 0 {\n        let mut avail: size_t = 0;\n        if !(c as c_int & 0x40 as c_int == 0 as c_int) {\n            avail = (*(*ctxt).input).end.offset_from((*(*ctxt).input).cur) as c_long\n                as size_t;\n            if !(avail < 2 as size_t\n                || *cur.offset(1 as c_int as isize) as c_int\n                    & 0xc0 as c_int\n                    != 0x80 as c_int)\n            {\n                if c as c_int & 0xe0 as c_int\n                    == 0xe0 as c_int\n                {\n                    if avail < 3 as size_t\n                        || *cur.offset(2 as c_int as isize) as c_int\n                            & 0xc0 as c_int\n                            != 0x80 as c_int\n                    {\n                        current_block = 17672205421487143479;\n                    } else if c as c_int & 0xf0 as c_int\n                        == 0xf0 as c_int\n                    {\n                        if c as c_int & 0xf8 as c_int\n                            != 0xf0 as c_int\n                            || avail < 4 as size_t\n                            || *cur.offset(3 as c_int as isize) as c_int\n                                & 0xc0 as c_int\n                                != 0x80 as c_int\n                        {\n                            current_block = 17672205421487143479;\n                        } else {\n                            *len = 4 as c_int;\n                            val = ((*cur.offset(0 as c_int as isize)\n                                as c_int\n                                & 0x7 as c_int)\n                                << 18 as c_int)\n                                as c_uint;\n                            val |= ((*cur.offset(1 as c_int as isize)\n                                as c_int\n                                & 0x3f as c_int)\n                                << 12 as c_int)\n                                as c_uint;\n                            val |= ((*cur.offset(2 as c_int as isize)\n                                as c_int\n                                & 0x3f as c_int)\n                                << 6 as c_int)\n                                as c_uint;\n                            val |= (*cur.offset(3 as c_int as isize)\n                                as c_int\n                                & 0x3f as c_int)\n                                as c_uint;\n                            if val < 0x10000 as c_int as c_uint {\n                                current_block = 17672205421487143479;\n                            } else {\n                                current_block = 16738040538446813684;\n                            }\n                        }\n                    } else {\n                        *len = 3 as c_int;\n                        val = ((*cur.offset(0 as c_int as isize)\n                            as c_int\n                            & 0xf as c_int)\n                            << 12 as c_int)\n                            as c_uint;\n                        val |= ((*cur.offset(1 as c_int as isize)\n                            as c_int\n                            & 0x3f as c_int)\n                            << 6 as c_int)\n                            as c_uint;\n                        val |= (*cur.offset(2 as c_int as isize) as c_int\n                            & 0x3f as c_int)\n                            as c_uint;\n                        if val < 0x800 as c_uint {\n                            current_block = 17672205421487143479;\n                        } else {\n                            current_block = 16738040538446813684;\n                        }\n                    }\n                } else {\n                    *len = 2 as c_int;\n                    val = ((*cur.offset(0 as c_int as isize) as c_int\n                        & 0x1f as c_int)\n                        << 6 as c_int)\n                        as c_uint;\n                    val |= (*cur.offset(1 as c_int as isize) as c_int\n                        & 0x3f as c_int)\n                        as c_uint;\n                    if val < 0x80 as c_uint {\n                        current_block = 17672205421487143479;\n                    } else {\n                        current_block = 16738040538446813684;\n                    }\n                }\n                match current_block {\n                    17672205421487143479 => {}\n                    _ => {\n                        if if val < 0x100 as c_uint {\n                            (0x9 as c_uint <= val && val <= 0xa as c_uint\n                                || val == 0xd as c_uint\n                                || 0x20 as c_uint <= val)\n                                as c_int\n                        } else {\n                            (0x100 as c_uint <= val\n                                && val <= 0xd7ff as c_uint\n                                || 0xe000 as c_uint <= val\n                                    && val <= 0xfffd as c_uint\n                                || 0x10000 as c_int as c_uint <= val\n                                    && val <= 0x10ffff as c_int as c_uint)\n                                as c_int\n                        } == 0\n                        {\n                            htmlParseErrInt(\n                                ctxt,\n                                XML_ERR_INVALID_CHAR,\n                                b\"Char 0x%X out of allowed range\\n\\0\" as *const u8\n                                    as *const c_char,\n                                val as c_int,\n                            );\n                        }\n                        return val as c_int;\n                    }\n                }\n            }\n        }\n        let mut buffer: [c_char; 150] = [0; 150];\n        if (*(*ctxt).input).end.offset_from((*(*ctxt).input).cur) as c_long\n            >= 4 as c_long\n        {\n            snprintf(\n                &raw mut buffer as *mut c_char,\n                149 as size_t,\n                b\"Bytes: 0x%02X 0x%02X 0x%02X 0x%02X\\n\\0\" as *const u8\n                    as *const c_char,\n                *(*(*ctxt).input)\n                    .cur\n                    .offset(0 as c_int as isize) as c_int,\n                *(*(*ctxt).input)\n                    .cur\n                    .offset(1 as c_int as isize) as c_int,\n                *(*(*ctxt).input)\n                    .cur\n                    .offset(2 as c_int as isize) as c_int,\n                *(*(*ctxt).input)\n                    .cur\n                    .offset(3 as c_int as isize) as c_int,\n            );\n        } else {\n            snprintf(\n                &raw mut buffer as *mut c_char,\n                149 as size_t,\n                b\"Bytes: 0x%02X\\n\\0\" as *const u8 as *const c_char,\n                *(*(*ctxt).input)\n                    .cur\n                    .offset(0 as c_int as isize) as c_int,\n            );\n        }\n        htmlParseErr(\n            ctxt,\n            XML_ERR_INVALID_ENCODING,\n            b\"Input is not proper UTF-8, indicate encoding !\\n\\0\" as *const u8\n                as *const c_char,\n            &raw mut buffer as *mut c_char as *mut xmlChar,\n            ::core::ptr::null::<xmlChar>(),\n        );\n        if (*(*ctxt).input).flags as c_uint & XML_INPUT_HAS_ENCODING\n            == 0 as c_uint\n        {\n            xmlSwitchEncoding(ctxt, XML_CHAR_ENCODING_8859_1);\n        }\n        *len = 1 as c_int;\n        return *(*(*ctxt).input).cur as c_int;\n    } else {\n        if *(*(*ctxt).input).cur as c_int == 0 as c_int\n            && (*(*ctxt).input).cur < (*(*ctxt).input).end\n        {\n            htmlParseErrInt(\n                ctxt,\n                XML_ERR_INVALID_CHAR,\n                b\"Char 0x%X out of allowed range\\n\\0\" as *const u8 as *const c_char,\n                0 as c_int,\n            );\n            *len = 1 as c_int;\n            return ' ' as i32;\n        }\n        *len = 1 as c_int;\n        return *(*(*ctxt).input).cur as c_int;\n    };\n}",
+    "signature": "unsafe fn htmlCurrentChar(\n    mut ctxt: xmlParserCtxtPtr,\n    mut len: *mut c_int,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.0679,
+      "call_count": null,
+      "retired_instructions": 1237357199,
+      "instructions_per_call": null,
+      "cpi": 0.323,
+      "tma": {
+        "scope": "process",
+        "retiring": 54.808562443006146,
+        "frontend_bound": 30.369517990542167,
+        "bad_speculation": 4.6621107565871585,
+        "backend_bound": 10.159808809864533,
+        "memory_bound": 5.620025594600058,
+        "core_bound": 4.539783215264475,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0044
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C1": 1,
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_inl": {
+        "TooCostly": 7
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1961,
+        "message": "snprintf will not be inlined into _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1942,
+        "message": "snprintf will not be inlined into _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1758,
+        "message": "'xmlParserGrow' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E' because too costly to inline (cost=590, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1785,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser16htmlFindEncoding17h4dd81f91a8007bcaE' inlined into '_ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E' with (cost=-14395, threshold=250) at callsite _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E:45:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1787,
+        "message": "'xmlSwitchEncoding' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E' because too costly to inline (cost=320, threshold=45)"
+      },
+      {
+        "pass": "inline-cost",
+        "status": "missed",
+        "line": 1789,
+        "message": "_ZN15libxml2_cleaned3src8encoding26xmlFindCharEncodingHandler17h0485c6117e4be705E has uninlinable pattern (recursive) and cost is not fully computed"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1789,
+        "message": "'_ZN15libxml2_cleaned3src8encoding26xmlFindCharEncodingHandler17h0485c6117e4be705E' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E' because it should never be inlined (cost=never): recursive"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1799,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser12htmlParseErr17h939430b8de2cb4afE' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E' because too costly to inline (cost=235, threshold=45)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1791,
+        "message": "'_ZN15libxml2_cleaned3src9xmlstring11xmlStrEqual17h1078d11fd35b1b29E' inlined into '_ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E' with (cost=10, threshold=45) at callsite _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E:51:20;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1796,
+        "message": "'xmlSwitchToEncoding' inlined into '_ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E' with (cost=20, threshold=45) at callsite _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E:56:21;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1774,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser15htmlParseErrInt17h1ad515a342c425c1E' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E' because too costly to inline (cost=230, threshold=45)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1989,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser15htmlParseErrInt17h1ad515a342c425c1E' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E' because too costly to inline (cost=230, threshold=45)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1925,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser15htmlParseErrInt17h1ad515a342c425c1E' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E' because too costly to inline (cost=230, threshold=45)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1970,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser12htmlParseErr17h939430b8de2cb4afE' inlined into '_ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E' with (cost=235, threshold=250) at callsite _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E:230:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1981,
+        "message": "'xmlSwitchEncoding' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E' because too costly to inline (cost=320, threshold=250)"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1753,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1759,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1763,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 1763,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1792,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1807,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1809,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1812,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 1812,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1894,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1898,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1873,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1878,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1883,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1846,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1851,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1856,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1861,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1939,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1939,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1965,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1947,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1950,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1953,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1956,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1978,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1984,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1984,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1999,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1999,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1771,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1771,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1772,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1740,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E: MI Instruction count changed from 0 to 544; Delta: 544"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1740,
+        "message": "Early Tail Duplication: Function: _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E: MI Instruction count changed from 544 to 542; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1740,
+        "message": "Merge disjoint stack slots: Function: _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E: MI Instruction count changed from 542 to 540; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1740,
+        "message": "Remove dead machine instructions: Function: _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E: MI Instruction count changed from 540 to 534; Delta: -6"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1740,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E: MI Instruction count changed from 534 to 525; Delta: -9"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1740,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E: MI Instruction count changed from 525 to 522; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1740,
+        "message": "Peephole Optimizations: Function: _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E: MI Instruction count changed from 522 to 509; Delta: -13"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1740,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E: MI Instruction count changed from 509 to 549; Delta: 40"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1740,
+        "message": "Two-Address instruction pass: Function: _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E: MI Instruction count changed from 549 to 591; Delta: 42"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1740,
+        "message": "Register Coalescer: Function: _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E: MI Instruction count changed from 591 to 459; Delta: -132"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1740,
+        "message": "23 virtual registers copies 3.456317e+00 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1740,
+        "message": "Virtual Register Rewriter: Function: _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E: MI Instruction count changed from 459 to 438; Delta: -21"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 1740,
+        "message": "280 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1740,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E: MI Instruction count changed from 438 to 423; Delta: -15"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1740,
+        "message": "Control Flow Optimizer: Function: _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E: MI Instruction count changed from 423 to 359; Delta: -64"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1740,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E: MI Instruction count changed from 359 to 360; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1752,
+        "message": "BasicBlock: bb3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1755,
+        "message": "BasicBlock: bb4"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1758,
+        "message": "BasicBlock: bb5"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1763,
+        "message": "BasicBlock: bb5.bb10_crit_edge"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1763,
+        "message": "BasicBlock: bb10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1769,
+        "message": "BasicBlock: bb11"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1770,
+        "message": "BasicBlock: bb12"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1772,
+        "message": "BasicBlock: bb13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1774,
+        "message": "BasicBlock: bb14"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1787,
+        "message": "BasicBlock: bb21"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1809,
+        "message": "BasicBlock: bb34"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1812,
+        "message": "BasicBlock: bb36"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1986,
+        "message": "BasicBlock: bb112"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1987,
+        "message": "BasicBlock: bb113"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1989,
+        "message": "BasicBlock: bb114"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1816,
+        "message": "BasicBlock: bb37"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1817,
+        "message": "BasicBlock: bb39"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1820,
+        "message": "BasicBlock: bb41"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1824,
+        "message": "BasicBlock: bb43"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1827,
+        "message": "BasicBlock: bb44"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1828,
+        "message": "BasicBlock: bb46"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1833,
+        "message": "BasicBlock: bb48"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1836,
+        "message": "BasicBlock: bb49"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1836,
+        "message": "BasicBlock: bb49"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1839,
+        "message": "BasicBlock: bb53"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1845,
+        "message": "BasicBlock: bb69"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1792,
+        "message": "BasicBlock: bb26"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1893,
+        "message": "BasicBlock: bb65"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1938,
+        "message": "BasicBlock: bb101"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1950,
+        "message": "BasicBlock: bb102"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1961,
+        "message": "BasicBlock: bb104"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1978,
+        "message": "BasicBlock: _ZN15libxml2_cleaned3src10HTMLparser12htmlParseErr17h939430b8de2cb4afE.exit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1981,
+        "message": "BasicBlock: bb108"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2001,
+        "message": "BasicBlock: bb121"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1872,
+        "message": "BasicBlock: bb60"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1925,
+        "message": "BasicBlock: bb96"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1799,
+        "message": "BasicBlock: bb25"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1807,
+        "message": "BasicBlock: bb32"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1807,
+        "message": "BasicBlock: bb124"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1740,
+        "message": "347 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

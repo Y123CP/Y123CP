@@ -1,0 +1,206 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -1.702738472899529,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": -1.3877769466484065,
+            "aggregate_ci_low_pct": -2.0176999991506515,
+            "aggregate_pct": -1.702738472899529,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -14.6762,
+                "ci_low_pct": -17.2064,
+                "insns_delta_pct": -13.5333,
+                "mean_delta_pct": -15.9413,
+                "op": "buf_strings_chars",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 2.0344,
+                "ci_low_pct": 1.1759,
+                "insns_delta_pct": 0.2506,
+                "mean_delta_pct": 1.6051,
+                "op": "entities_tree_valid",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              },
+              {
+                "ci_high_pct": 1.7101,
+                "ci_low_pct": 0.1351,
+                "insns_delta_pct": 0.237,
+                "mean_delta_pct": 0.9226,
+                "op": "html_push_parse",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              },
+              {
+                "ci_high_pct": 1.2521,
+                "ci_low_pct": 0.5509,
+                "insns_delta_pct": -0.0102,
+                "mean_delta_pct": 0.9015,
+                "op": "regexp_pattern",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              },
+              {
+                "ci_high_pct": 0.2901,
+                "ci_low_pct": -1.4656,
+                "insns_delta_pct": -0.2252,
+                "mean_delta_pct": -0.5878,
+                "op": "schema_suite",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 1.8463,
+                "ci_low_pct": -1.3648,
+                "insns_delta_pct": 0.1791,
+                "mean_delta_pct": 0.2407,
+                "op": "uri_roundtrip",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              },
+              {
+                "ci_high_pct": 1.2627,
+                "ci_low_pct": 0.617,
+                "insns_delta_pct": 0.2872,
+                "mean_delta_pct": 0.9399,
+                "op": "writer_save",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "buf_strings_chars",
+          "entities_tree_valid",
+          "html_push_parse",
+          "regexp_pattern",
+          "schema_suite",
+          "uri_roundtrip",
+          "writer_save"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "entities_tree_valid"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "3fa6c8a021b679439f56f9f595d6bd15f7198346",
+      "changeset_id": "legacy-192b1f46a0775d19",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-fc88d22fa51867df",
+          "replacement_function_source": "// Applied rules: [C4, III④]\n// Skipped rules: [C3: Only one loop-carried load site is reported ([0]), and this function has no stores or alias-heavy field reload pattern for S2 hoisting. The profitable issue is the byte-serial scan itself, which C4 addresses more directly; S1 signature lift would require caller-wide proof and is not justified from this single hit.]\n#[inline]\npub unsafe fn xmlStrdup(mut cur: *const xmlChar) -> *mut xmlChar {\n    let mut p: *const xmlChar = cur;\n    if cur.is_null() {\n        return ::core::ptr::null_mut::<xmlChar>();\n    }\n\n    #[inline]\n    unsafe fn has_zero_byte(x: u64) -> bool {\n        x.wrapping_sub(0x0101_0101_0101_0101u64) & !x & 0x8080_8080_8080_8080u64 != 0\n    }\n\n    loop {\n        let addr = p as usize;\n        let aligned = (addr & (::core::mem::size_of::<u64>() - 1)) == 0;\n        if !aligned {\n            if *p as c_int == 0 as c_int {\n                break;\n            }\n            p = p.offset(1);\n            continue;\n        }\n\n        let w = unsafe { // SAFETY: `p` is aligned for `u64`; this widened read is only valid under the function's C-string precondition that the NUL-terminated byte sequence is readable up to and including the first terminating NUL, allowing word-at-a-time probing before the scalar stop position.\n            *(p as *const u64)\n        };\n        if unsafe { has_zero_byte(w) } {\n            break;\n        }\n        p = p.offset(8);\n    }\n\n    while *p as c_int != 0 as c_int {\n        p = p.offset(1);\n    }\n\n    return xmlStrndup(cur, p.offset_from(cur) as c_long as c_int);\n}",
+          "rule_id": "C4,III④",
+          "target": {
+            "declaration_hash": "9eb368789e8805b640c651e1bef27d3ad49f9380ce3ddfeadee4966df2b37ef5",
+            "file_hint": "src/xmlstring.rs",
+            "qualified_name": "crate::xmlStrdup",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "xmlStrdup-7bc65a25eb95",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "xmlStrdup",
+        "rule_id": "C4,III④"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "a02b53dd1c6f34137440c76b975e8c215f0c732ae5f6dbff9e80c62b78a2a4e0",
+            "edit_id": "edit-replace-fc88d22fa51867df",
+            "end_byte": 1324,
+            "operation_id": "replace-fc88d22fa51867df",
+            "relative_path": "src/xmlstring.rs",
+            "replacement_text": "// Applied rules: [C4, III④]\n// Skipped rules: [C3: Only one loop-carried load site is reported ([0]), and this function has no stores or alias-heavy field reload pattern for S2 hoisting. The profitable issue is the byte-serial scan itself, which C4 addresses more directly; S1 signature lift would require caller-wide proof and is not justified from this single hit.]\n#[inline]\npub unsafe fn xmlStrdup(mut cur: *const xmlChar) -> *mut xmlChar {\n    let mut p: *const xmlChar = cur;\n    if cur.is_null() {\n        return ::core::ptr::null_mut::<xmlChar>();\n    }\n\n    #[inline]\n    unsafe fn has_zero_byte(x: u64) -> bool {\n        x.wrapping_sub(0x0101_0101_0101_0101u64) & !x & 0x8080_8080_8080_8080u64 != 0\n    }\n\n    loop {\n        let addr = p as usize;\n        let aligned = (addr & (::core::mem::size_of::<u64>() - 1)) == 0;\n        if !aligned {\n            if *p as c_int == 0 as c_int {\n                break;\n            }\n            p = p.offset(1);\n            continue;\n        }\n\n        let w = unsafe { // SAFETY: `p` is aligned for `u64`; this widened read is only valid under the function's C-string precondition that the NUL-terminated byte sequence is readable up to and including the first terminating NUL, allowing word-at-a-time probing before the scalar stop position.\n            *(p as *const u64)\n        };\n        if unsafe { has_zero_byte(w) } {\n            break;\n        }\n        p = p.offset(8);\n    }\n\n    while *p as c_int != 0 as c_int {\n        p = p.offset(1);\n    }\n\n    return xmlStrndup(cur, p.offset_from(cur) as c_long as c_int);\n}",
+            "start_byte": 970
+          }
+        ],
+        "facts": {
+          "fn_name": "xmlStrdup",
+          "target_span_hash": "9eb368789e8805b640c651e1bef27d3ad49f9380ce3ddfeadee4966df2b37ef5"
+        },
+        "operation_id": "replace-fc88d22fa51867df"
+      }
+    ],
+    "resolved_head": "3fa6c8a021b679439f56f9f595d6bd15f7198346"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/xmlstring.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

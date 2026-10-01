@@ -1,0 +1,608 @@
+{
+  "hot_function": {
+    "symbol": "ZopfliFindLongestMatch",
+    "location": "src/lz77.rs:665-798",
+    "workload": "lz77_blocksplit_analysis",
+    "hot_region": "src/lz77.rs:665-798",
+    "rust_source": "pub unsafe fn ZopfliFindLongestMatch(\n    mut s: *mut ZopfliBlockState,\n    mut h: *const ZopfliHash,\n    mut array: *const c_uchar,\n    mut pos: size_t,\n    mut size: size_t,\n    mut limit: size_t,\n    mut sublen: *mut c_ushort,\n    mut distance: *mut c_ushort,\n    mut length: *mut c_ushort,\n) {\n    let h_view: &ZopfliHash = unsafe { &*h };\n    let mut hpos: c_ushort =\n        (pos & ZOPFLI_WINDOW_MASK as size_t) as c_ushort;\n    let mut p: c_ushort = 0;\n    let mut pp: c_ushort = 0;\n    let mut bestdist: c_ushort = 0 as c_ushort;\n    let mut bestlength: c_ushort = 1 as c_ushort;\n    let mut scan: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut match_0: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut arrayend: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut arrayend_safe: *const c_uchar =\n        ::core::ptr::null::<c_uchar>();\n    let mut chain_counter: c_int = ZOPFLI_MAX_CHAIN_HITS;\n    let mut dist: c_uint = 0 as c_uint;\n    let mut hhead: *mut c_int = h_view.head;\n    let mut hprev: *mut c_ushort = h_view.prev;\n    let mut hhashval: *mut c_int = h_view.hashval;\n    let mut hval: c_int = h_view.val;\n    if TryGetFromLongestMatchCache(s, pos, &raw mut limit, sublen, distance, length) != 0 {\n        return;\n    }\n    if size.wrapping_sub(pos) < ZOPFLI_MIN_MATCH as size_t {\n        *length = 0 as c_ushort;\n        *distance = 0 as c_ushort;\n        return;\n    }\n    if pos.wrapping_add(limit) > size {\n        limit = size.wrapping_sub(pos);\n    }\n    arrayend = (array.offset(pos as isize) as *const c_uchar).offset(limit as isize);\n    arrayend_safe = arrayend.offset(-(8 as c_int as isize));\n    pp = *hhead.offset(hval as isize) as c_ushort;\n    p = *hprev.offset(pp as isize);\n    dist = (if (p as c_int) < pp as c_int {\n        pp as c_int - p as c_int\n    } else {\n        ZOPFLI_WINDOW_SIZE - p as c_int + pp as c_int\n    }) as c_uint;\n    while dist < ZOPFLI_WINDOW_SIZE as c_uint {\n        let mut currentlength: c_ushort = 0 as c_ushort;\n        if dist > 0 as c_uint {\n            scan = array.offset(pos as isize) as *const c_uchar;\n            match_0 = array.offset(pos.wrapping_sub(dist as size_t) as isize)\n                as *const c_uchar;\n            if pos.wrapping_add(bestlength as size_t) >= size\n                || *scan.offset(bestlength as c_int as isize) as c_int\n                    == *match_0.offset(bestlength as c_int as isize)\n                        as c_int\n            {\n                let mut same0: c_ushort = *h_view\n                    .same\n                    .offset((pos & ZOPFLI_WINDOW_MASK as size_t) as isize);\n                if same0 as c_int > 2 as c_int\n                    && *scan as c_int == *match_0 as c_int\n                {\n                    let mut same1: c_ushort = *h_view.same.offset(\n                        (pos.wrapping_sub(dist as size_t) & ZOPFLI_WINDOW_MASK as size_t) as isize,\n                    );\n                    let mut same: c_ushort =\n                        (if (same0 as c_int) < same1 as c_int {\n                            same0 as c_int\n                        } else {\n                            same1 as c_int\n                        }) as c_ushort;\n                    if same as size_t > limit {\n                        same = limit as c_ushort;\n                    }\n                    scan = scan.offset(same as c_int as isize);\n                    match_0 = match_0.offset(same as c_int as isize);\n                }\n                scan = GetMatch(scan, match_0, arrayend, arrayend_safe);\n                currentlength = scan\n                    .offset_from(array.offset(pos as isize) as *const c_uchar)\n                    as c_long as c_ushort;\n            }\n            if currentlength as c_int > bestlength as c_int {\n                if !sublen.is_null() {\n                    let mut j: c_ushort = 0;\n                    j = (bestlength as c_int + 1 as c_int)\n                        as c_ushort;\n                    while j as c_int <= currentlength as c_int {\n                        *sublen.offset(j as isize) = dist as c_ushort;\n                        j = j.wrapping_add(1);\n                    }\n                }\n                bestdist = dist as c_ushort;\n                bestlength = currentlength;\n                if currentlength as size_t >= limit {\n                    break;\n                }\n            }\n        }\n        if hhead != h_view.head2\n            && bestlength as c_int\n                >= *h_view.same.offset(hpos as isize) as c_int\n            && h_view.val2 == *h_view.hashval2.offset(p as isize)\n        {\n            hhead = h_view.head2;\n            hprev = h_view.prev2;\n            hhashval = h_view.hashval2;\n            hval = h_view.val2;\n        }\n        pp = p;\n        p = *hprev.offset(p as isize);\n        if p as c_int == pp as c_int {\n            break;\n        }\n        dist = dist.wrapping_add(\n            (if (p as c_int) < pp as c_int {\n                pp as c_int - p as c_int\n            } else {\n                ZOPFLI_WINDOW_SIZE - p as c_int + pp as c_int\n            }) as c_uint,\n        );\n        chain_counter -= 1;\n        if chain_counter <= 0 as c_int {\n            break;\n        }\n    }\n    StoreInLongestMatchCache(s, pos, limit, sublen, bestdist, bestlength);\n    *distance = bestdist;\n    *length = bestlength;\n}",
+    "signature": "pub unsafe fn ZopfliFindLongestMatch(\n    mut s: *mut ZopfliBlockState,\n    mut h: *const ZopfliHash,\n    mut array: *const c_uchar,\n    mut pos: size_t,\n    mut size: size_t,\n    mut limit: size_t,\n    mut sublen: *mut c_ushort,\n    mut distance: *mut c_ushort,\n    mut length: *mut c_ushort,\n)",
+    "profile": {
+      "self_time_ratio": 0.2011,
+      "call_count": null,
+      "retired_instructions": 2212166346,
+      "instructions_per_call": null,
+      "cpi": 0.377,
+      "tma": {
+        "scope": "process",
+        "retiring": 48.740084999198295,
+        "frontend_bound": 25.475647596016305,
+        "bad_speculation": 12.560801001284968,
+        "backend_bound": 13.223466403500435,
+        "memory_bound": 7.541883967347542,
+        "core_bound": 5.681582436152893,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0172
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_inl": {
+        "TooCostly": 1
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 694,
+        "message": "'_ZN14zopfli_cleaned3src4lz7727TryGetFromLongestMatchCache17h47a96abef42c386aE' not inlined into '_ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E' because too costly to inline (cost=740, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 795,
+        "message": "'_ZN14zopfli_cleaned3src4lz7724StoreInLongestMatchCache17h01cedbd9fea96bd5E' inlined into '_ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E' with (cost=240, threshold=250) at callsite _ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E:130:5;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 746,
+        "message": "'_ZN14zopfli_cleaned3src4lz778GetMatch17h4b3c620333c4c080E' inlined into '_ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E' with (cost=-14965, threshold=250) at callsite _ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E:81:24;"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 757,
+        "message": "hoisting trunc"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 729,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 725,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 725,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 740,
+        "message": "hoisting trunc"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 752,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 768,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 768,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 770,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 770,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 771,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 771,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 771,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 771,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 774,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 774,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 702,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 707,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 725,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 729,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 768,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 770,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 771,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 771,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 774,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 694,
+        "message": "_ZN14zopfli_cleaned3src4lz7727TryGetFromLongestMatchCache17h47a96abef42c386aE will not be inlined into _ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 795,
+        "message": "_ZN14zopfli_cleaned3src4lz7724StoreInLongestMatchCache17h01cedbd9fea96bd5E will not be inlined into _ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E because its definition is unavailable"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 705,
+        "message": "load of type i64 eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 725,
+        "message": "failed to hoist load with loop-invariant address because load is conditionally executed"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 729,
+        "message": "failed to hoist load with loop-invariant address because load is conditionally executed"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 768,
+        "message": "failed to hoist load with loop-invariant address because load is conditionally executed"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 770,
+        "message": "failed to hoist load with loop-invariant address because load is conditionally executed"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 771,
+        "message": "failed to hoist load with loop-invariant address because load is conditionally executed"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 771,
+        "message": "failed to hoist load with loop-invariant address because load is conditionally executed"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 774,
+        "message": "failed to hoist load with loop-invariant address because load is conditionally executed"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 690,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 691,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 693,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 702,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 690,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 691,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 693,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 665,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E: MI Instruction count changed from 0 to 328; Delta: 328"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 665,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E: MI Instruction count changed from 328 to 326; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 665,
+        "message": "Machine code sinking: Function: _ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E: MI Instruction count changed from 326 to 325; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 665,
+        "message": "Peephole Optimizations: Function: _ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E: MI Instruction count changed from 325 to 326; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 665,
+        "message": "Process Implicit Definitions: Function: _ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E: MI Instruction count changed from 326 to 319; Delta: -7"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 665,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E: MI Instruction count changed from 319 to 399; Delta: 80"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 665,
+        "message": "Two-Address instruction pass: Function: _ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E: MI Instruction count changed from 399 to 433; Delta: 34"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 665,
+        "message": "Register Coalescer: Function: _ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E: MI Instruction count changed from 433 to 261; Delta: -172"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 714,
+        "message": "2 spills 2.247540e-01 total spills cost 10 reloads 3.035215e+00 total reloads cost 3 folded reloads 1.276541e+00 total folded reloads cost 23 virtual registers copies 6.547385e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 665,
+        "message": "10 spills 3.255826e+00 total spills cost 2 folded spills 1.874676e-01 total folded spills cost 17 reloads 4.112377e+00 total reloads cost 3 folded reloads 1.276541e+00 total folded reloads cost 43 virtual registers copies 1.487985e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 665,
+        "message": "Greedy Register Allocator: Function: _ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E: MI Instruction count changed from 261 to 331; Delta: 70"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 665,
+        "message": "Virtual Register Rewriter: Function: _ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E: MI Instruction count changed from 331 to 308; Delta: -23"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 665,
+        "message": "Machine Copy Propagation Pass: Function: _ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E: MI Instruction count changed from 308 to 307; Delta: -1"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 665,
+        "message": "136 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 665,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E: MI Instruction count changed from 307 to 339; Delta: 32"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 665,
+        "message": "Control Flow Optimizer: Function: _ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E: MI Instruction count changed from 339 to 292; Delta: -47"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 665,
+        "message": "Tail Duplication: Function: _ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E: MI Instruction count changed from 292 to 293; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 665,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN14zopfli_cleaned3src4lz7722ZopfliFindLongestMatch17h4d0c070af9998245E: MI Instruction count changed from 293 to 299; Delta: 6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 698,
+        "message": "BasicBlock: bb4"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 716,
+        "message": "BasicBlock: bb13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 721,
+        "message": "BasicBlock: bb16"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 725,
+        "message": "BasicBlock: bb17"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 729,
+        "message": "BasicBlock: bb18"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 732,
+        "message": "BasicBlock: bb19"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 757,
+        "message": "BasicBlock: bb35"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 768,
+        "message": "BasicBlock: bb43"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 770,
+        "message": "BasicBlock: bb44"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 771,
+        "message": "BasicBlock: bb45"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 774,
+        "message": "BasicBlock: bb46"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 779,
+        "message": "BasicBlock: bb50"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 791,
+        "message": "BasicBlock: bb52"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 796,
+        "message": "BasicBlock: _ZN14zopfli_cleaned3src4lz7724StoreInLongestMatchCache17h01cedbd9fea96bd5E.exit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 798,
+        "message": "BasicBlock: bb63"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 665,
+        "message": "279 instructions in function"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 714,
+        "message": "2 spills 2.389105e+00 total spills cost 14 reloads 3.017899e+01 total reloads cost 2 folded reloads 9.453307e+00 total folded reloads cost 15 virtual registers copies 3.986576e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 698,
+        "message": "BasicBlock: bb4.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 702,
+        "message": "BasicBlock: bb5.i40"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 716,
+        "message": "BasicBlock: bb13.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 725,
+        "message": "BasicBlock: bb17.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 732,
+        "message": "BasicBlock: bb19.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 757,
+        "message": "BasicBlock: bb35.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 763,
+        "message": "BasicBlock: bb37.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 768,
+        "message": "BasicBlock: bb43.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 770,
+        "message": "BasicBlock: bb44.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 771,
+        "message": "BasicBlock: bb45.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 774,
+        "message": "BasicBlock: bb46.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 791,
+        "message": "BasicBlock: bb52.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 796,
+        "message": "BasicBlock: _ZN14zopfli_cleaned3src4lz7724StoreInLongestMatchCache17h01cedbd9fea96bd5E.exit"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

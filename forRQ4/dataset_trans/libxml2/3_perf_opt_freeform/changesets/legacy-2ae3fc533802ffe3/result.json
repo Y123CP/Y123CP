@@ -1,0 +1,101 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": "html_entity_encode:e37821fd: sha256 fd33f7793c25… ≠ f48c660df9db…"
+      },
+      "gate": "w1",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "e393711b52ff56b5d2f6e5a3b897c96c5e15c440",
+      "changeset_id": "legacy-2ae3fc533802ffe3",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-10f52e226732b79d",
+          "replacement_function_source": "#[no_mangle]\npub unsafe extern \"C\" fn UTF8ToHtml(\n    mut out: *mut c_uchar,\n    mut outlen: *mut c_int,\n    mut in_0: *const c_uchar,\n    mut inlen: *mut c_int,\n) -> c_int {\n    if out.is_null() || outlen.is_null() || inlen.is_null() {\n        return -(1 as c_int);\n    }\n    if in_0.is_null() {\n        // SAFETY: outlen and inlen were checked non-null above.\n        unsafe {\n            *outlen = 0 as c_int;\n            *inlen = 0 as c_int;\n        }\n        return 0 as c_int;\n    }\n\n    let outstart = out;\n    let instart = in_0;\n    let mut processed = in_0;\n\n    // SAFETY: in_0/out are valid pointers per the original function contract; offset uses caller-provided lengths exactly as before.\n    let inend = unsafe { in_0.offset(*inlen as isize) };\n    // SAFETY: out is valid per the original function contract; offset uses caller-provided length exactly as before.\n    let outend = unsafe { out.offset(*outlen as isize) };\n\n    while in_0 < inend {\n        // SAFETY: loop invariant guarantees in_0 < inend, so dereference is in-bounds.\n        let d0 = unsafe {\n            let p = in_0;\n            in_0 = in_0.offset(1);\n            *p as c_uint\n        };\n\n        let mut c: c_uint;\n        let mut trailing: c_int;\n\n        if d0 < 0x80 {\n            c = d0;\n            trailing = 0;\n        } else if d0 < 0xc0 {\n            // SAFETY: outlen/inlen are non-null; pointer differences are within the same allocations as in the original code.\n            unsafe {\n                *outlen = out.offset_from(outstart) as c_long as c_int;\n                *inlen = processed.offset_from(instart) as c_long as c_int;\n            }\n            return -2;\n        } else if d0 < 0xe0 {\n            c = d0 & 0x1f;\n            trailing = 1;\n        } else if d0 < 0xf0 {\n            c = d0 & 0x0f;\n            trailing = 2;\n        } else if d0 < 0xf8 {\n            c = d0 & 0x07;\n            trailing = 3;\n        } else {\n            // SAFETY: outlen/inlen are non-null; pointer differences are within the same allocations as in the original code.\n            unsafe {\n                *outlen = out.offset_from(outstart) as c_long as c_int;\n                *inlen = processed.offset_from(instart) as c_long as c_int;\n            }\n            return -2;\n        }\n\n        // Fast path for ASCII.\n        if trailing == 0 {\n            if c < 0x80 {\n                // SAFETY: pointer arithmetic mirrors the original bounds check.\n                if unsafe { out.offset(1) } >= outend {\n                    break;\n                }\n                // SAFETY: bounds check above ensures one byte is writable.\n                unsafe {\n                    *out = c as c_uchar;\n                    out = out.offset(1);\n                }\n                processed = in_0;\n                continue;\n            }\n        } else {\n            // SAFETY: offset_from on pointers into the same input allocation, as in the original code.\n            if unsafe { inend.offset_from(in_0) as c_long } < trailing as c_long {\n                break;\n            }\n\n            let mut ok = true;\n            while trailing != 0 {\n                if in_0 >= inend {\n                    ok = false;\n                    break;\n                }\n                // SAFETY: in_0 < inend checked just above, so dereference is in-bounds.\n                let d = unsafe {\n                    let p = in_0;\n                    in_0 = in_0.offset(1);\n                    *p as c_uint\n                };\n                if d & 0xc0 != 0x80 {\n                    ok = false;\n                    break;\n                }\n                c = (c << 6) | (d & 0x3f);\n                trailing -= 1;\n            }\n            if !ok {\n                break;\n            }\n        }\n\n        if c < 0x80 {\n            // SAFETY: pointer arithmetic mirrors the original bounds check.\n            if unsafe { out.offset(1) } >= outend {\n                break;\n            }\n            // SAFETY: bounds check above ensures one byte is writable.\n            unsafe {\n                *out = c as c_uchar;\n                out = out.offset(1);\n            }\n        } else {\n            let mut nbuf: [c_char; 16] = [0; 16];\n            // SAFETY: external lookup is called exactly as in the original code.\n            let ent = unsafe { htmlEntityValueLookup(c) };\n            let cp: *const c_char = if ent.is_null() {\n                // SAFETY: nbuf is a valid writable buffer of the provided size; format string is NUL-terminated and arguments match.\n                unsafe {\n                    snprintf(\n                        nbuf.as_mut_ptr(),\n                        ::core::mem::size_of::<[c_char; 16]>() as size_t,\n                        b\"#%u\\0\" as *const u8 as *const c_char,\n                        c,\n                    );\n                }\n                nbuf.as_mut_ptr()\n            } else {\n                // SAFETY: ent is non-null and points to a valid htmlEntityDesc per lookup contract.\n                unsafe { (*ent).name }\n            };\n\n            // SAFETY: cp is a valid NUL-terminated string from either snprintf into nbuf or entity table.\n            let len = unsafe { strlen(cp) as c_int };\n\n            // SAFETY: pointer arithmetic mirrors the original bounds check.\n            if unsafe { out.offset(2).offset(len as isize) } >= outend {\n                break;\n            }\n\n            // SAFETY: bounds check above ensures space for '&', len bytes, and ';'; memcpy source/destination are valid and non-overlapping as in original usage.\n            unsafe {\n                *out = b'&' as c_uchar;\n                out = out.offset(1);\n                memcpy(out as *mut c_void, cp as *const c_void, len as size_t);\n                out = out.offset(len as isize);\n                *out = b';' as c_uchar;\n                out = out.offset(1);\n            }\n        }\n\n        processed = in_0;\n    }\n\n    // SAFETY: outlen/inlen are non-null; pointer differences are within the same allocations as in the original code.\n    unsafe {\n        *outlen = out.offset_from(outstart) as c_long as c_int;\n        *inlen = processed.offset_from(instart) as c_long as c_int;\n    }\n    0 as c_int\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "0a5e3ba039fe0cac3871e784c2034f00aeb83d422d0d6350485c2501d8d4ab28",
+            "file_hint": "src/HTMLparser.rs",
+            "qualified_name": "crate::UTF8ToHtml",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "UTF8ToHtml-c6c72d4ee469",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "UTF8ToHtml",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "4d5f456647edd13f988823e39bbffd67d57ea31353a4fc711ab98ba7423d9f58",
+            "edit_id": "edit-replace-10f52e226732b79d",
+            "end_byte": 351123,
+            "operation_id": "replace-10f52e226732b79d",
+            "relative_path": "src/HTMLparser.rs",
+            "replacement_text": "#[no_mangle]\npub unsafe extern \"C\" fn UTF8ToHtml(\n    mut out: *mut c_uchar,\n    mut outlen: *mut c_int,\n    mut in_0: *const c_uchar,\n    mut inlen: *mut c_int,\n) -> c_int {\n    if out.is_null() || outlen.is_null() || inlen.is_null() {\n        return -(1 as c_int);\n    }\n    if in_0.is_null() {\n        // SAFETY: outlen and inlen were checked non-null above.\n        unsafe {\n            *outlen = 0 as c_int;\n            *inlen = 0 as c_int;\n        }\n        return 0 as c_int;\n    }\n\n    let outstart = out;\n    let instart = in_0;\n    let mut processed = in_0;\n\n    // SAFETY: in_0/out are valid pointers per the original function contract; offset uses caller-provided lengths exactly as before.\n    let inend = unsafe { in_0.offset(*inlen as isize) };\n    // SAFETY: out is valid per the original function contract; offset uses caller-provided length exactly as before.\n    let outend = unsafe { out.offset(*outlen as isize) };\n\n    while in_0 < inend {\n        // SAFETY: loop invariant guarantees in_0 < inend, so dereference is in-bounds.\n        let d0 = unsafe {\n            let p = in_0;\n            in_0 = in_0.offset(1);\n            *p as c_uint\n        };\n\n        let mut c: c_uint;\n        let mut trailing: c_int;\n\n        if d0 < 0x80 {\n            c = d0;\n            trailing = 0;\n        } else if d0 < 0xc0 {\n            // SAFETY: outlen/inlen are non-null; pointer differences are within the same allocations as in the original code.\n            unsafe {\n                *outlen = out.offset_from(outstart) as c_long as c_int;\n                *inlen = processed.offset_from(instart) as c_long as c_int;\n            }\n            return -2;\n        } else if d0 < 0xe0 {\n            c = d0 & 0x1f;\n            trailing = 1;\n        } else if d0 < 0xf0 {\n            c = d0 & 0x0f;\n            trailing = 2;\n        } else if d0 < 0xf8 {\n            c = d0 & 0x07;\n            trailing = 3;\n        } else {\n            // SAFETY: outlen/inlen are non-null; pointer differences are within the same allocations as in the original code.\n            unsafe {\n                *outlen = out.offset_from(outstart) as c_long as c_int;\n                *inlen = processed.offset_from(instart) as c_long as c_int;\n            }\n            return -2;\n        }\n\n        // Fast path for ASCII.\n        if trailing == 0 {\n            if c < 0x80 {\n                // SAFETY: pointer arithmetic mirrors the original bounds check.\n                if unsafe { out.offset(1) } >= outend {\n                    break;\n                }\n                // SAFETY: bounds check above ensures one byte is writable.\n                unsafe {\n                    *out = c as c_uchar;\n                    out = out.offset(1);\n                }\n                processed = in_0;\n                continue;\n            }\n        } else {\n            // SAFETY: offset_from on pointers into the same input allocation, as in the original code.\n            if unsafe { inend.offset_from(in_0) as c_long } < trailing as c_long {\n                break;\n            }\n\n            let mut ok = true;\n            while trailing != 0 {\n                if in_0 >= inend {\n                    ok = false;\n                    break;\n                }\n                // SAFETY: in_0 < inend checked just above, so dereference is in-bounds.\n                let d = unsafe {\n                    let p = in_0;\n                    in_0 = in_0.offset(1);\n                    *p as c_uint\n                };\n                if d & 0xc0 != 0x80 {\n                    ok = false;\n                    break;\n                }\n                c = (c << 6) | (d & 0x3f);\n                trailing -= 1;\n            }\n            if !ok {\n                break;\n            }\n        }\n\n        if c < 0x80 {\n            // SAFETY: pointer arithmetic mirrors the original bounds check.\n            if unsafe { out.offset(1) } >= outend {\n                break;\n            }\n            // SAFETY: bounds check above ensures one byte is writable.\n            unsafe {\n                *out = c as c_uchar;\n                out = out.offset(1);\n            }\n        } else {\n            let mut nbuf: [c_char; 16] = [0; 16];\n            // SAFETY: external lookup is called exactly as in the original code.\n            let ent = unsafe { htmlEntityValueLookup(c) };\n            let cp: *const c_char = if ent.is_null() {\n                // SAFETY: nbuf is a valid writable buffer of the provided size; format string is NUL-terminated and arguments match.\n                unsafe {\n                    snprintf(\n                        nbuf.as_mut_ptr(),\n                        ::core::mem::size_of::<[c_char; 16]>() as size_t,\n                        b\"#%u\\0\" as *const u8 as *const c_char,\n                        c,\n                    );\n                }\n                nbuf.as_mut_ptr()\n            } else {\n                // SAFETY: ent is non-null and points to a valid htmlEntityDesc per lookup contract.\n                unsafe { (*ent).name }\n            };\n\n            // SAFETY: cp is a valid NUL-terminated string from either snprintf into nbuf or entity table.\n            let len = unsafe { strlen(cp) as c_int };\n\n            // SAFETY: pointer arithmetic mirrors the original bounds check.\n            if unsafe { out.offset(2).offset(len as isize) } >= outend {\n                break;\n            }\n\n            // SAFETY: bounds check above ensures space for '&', len bytes, and ';'; memcpy source/destination are valid and non-overlapping as in original usage.\n            unsafe {\n                *out = b'&' as c_uchar;\n                out = out.offset(1);\n                memcpy(out as *mut c_void, cp as *const c_void, len as size_t);\n                out = out.offset(len as isize);\n                *out = b';' as c_uchar;\n                out = out.offset(1);\n            }\n        }\n\n        processed = in_0;\n    }\n\n    // SAFETY: outlen/inlen are non-null; pointer differences are within the same allocations as in the original code.\n    unsafe {\n        *outlen = out.offset_from(outstart) as c_long as c_int;\n        *inlen = processed.offset_from(instart) as c_long as c_int;\n    }\n    0 as c_int\n}",
+            "start_byte": 347082
+          }
+        ],
+        "facts": {
+          "fn_name": "UTF8ToHtml",
+          "target_span_hash": "0a5e3ba039fe0cac3871e784c2034f00aeb83d422d0d6350485c2501d8d4ab28"
+        },
+        "operation_id": "replace-10f52e226732b79d"
+      }
+    ],
+    "resolved_head": "e393711b52ff56b5d2f6e5a3b897c96c5e15c440"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w1",
+  "touched_paths": [
+    "src/HTMLparser.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,206 @@
+{
+  "applied_rules": [
+    "freeform"
+  ],
+  "commit_sha": "1ae5446",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -1.161391595031788,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -1.0315129279145654,
+            "aggregate_ci_low_pct": -1.2912702621490104,
+            "aggregate_pct": -1.161391595031788,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -1.2927,
+                "ci_low_pct": -1.5384,
+                "insns_delta_pct": -0.1007,
+                "mean_delta_pct": -1.4155,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.6644,
+                "ci_low_pct": -1.1501,
+                "insns_delta_pct": 0.0663,
+                "mean_delta_pct": -0.9072,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -0.40678680483896035,
+            "aggregate_ci_low_pct": -0.5808111181534029,
+            "aggregate_pct": -0.49379896149618163,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.2821,
+                "ci_low_pct": -0.0673,
+                "insns_delta_pct": 0.0012,
+                "mean_delta_pct": 0.1074,
+                "op": "decode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.3165,
+                "ci_low_pct": -0.124,
+                "insns_delta_pct": 0.0307,
+                "mean_delta_pct": 0.0963,
+                "op": "decode_sync_hd",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.0974,
+                "ci_low_pct": -1.4389,
+                "insns_delta_pct": -0.0858,
+                "mean_delta_pct": -1.2681,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.706,
+                "ci_low_pct": -1.1154,
+                "insns_delta_pct": 0.0632,
+                "mean_delta_pct": -0.9107,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_hd_reset",
+          "encode_std"
+        ],
+        "reason": "accepted",
+        "triggering_op": "encode_std"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "e8131785ed847292ebe3493a5feefa2ccb74f732",
+      "changeset_id": "legacy-0ff721611017e52a",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-b2b594807a1bc730",
+          "replacement_function_source": "#[inline]\nunsafe fn aptx_qmf_polyphase_analysis(\n    mut signal: *mut aptx_filter_signal,\n    mut coeffs: *const [int32_t; 16],\n    mut shift: c_uint,\n    mut samples: *const int32_t,\n    mut low_subband_output: *mut int32_t,\n    mut high_subband_output: *mut int32_t,\n) {\n    let s0 = signal;\n    // SAFETY: `signal` points to an array of at least `NB_FILTERS` elements; this function only accesses element 1 when `NB_FILTERS == 2` as in the original code.\n    let s1 = unsafe { signal.add(1) };\n\n    let c0 = coeffs;\n    // SAFETY: `coeffs` points to an array of at least `NB_FILTERS` coefficient blocks; this function only accesses element 1 when `NB_FILTERS == 2` as in the original code.\n    let c1 = unsafe { coeffs.add(1) };\n\n    // SAFETY: `samples` points to at least `NB_FILTERS` input samples; indices 1 and 0 match the original loop for `NB_FILTERS == 2`.\n    let sample1 = unsafe { *samples.add(1) };\n    // SAFETY: `samples` points to at least `NB_FILTERS` input samples; index 0 is in-bounds as in the original code.\n    let sample0 = unsafe { *samples.add(0) };\n\n    aptx_qmf_filter_signal_push(s0, sample1);\n    let sub0 = aptx_qmf_convolution(\n        s0,\n        &raw const *c0 as *const int32_t,\n        shift,\n    );\n\n    aptx_qmf_filter_signal_push(s1, sample0);\n    let sub1 = aptx_qmf_convolution(\n        s1,\n        &raw const *c1 as *const int32_t,\n        shift,\n    );\n\n    // SAFETY: output pointers are valid for writes exactly as required by the original function.\n    unsafe {\n        *low_subband_output = clip_intp2(sub0 + sub1, 23 as c_uint);\n        *high_subband_output = clip_intp2(sub0 - sub1, 23 as c_uint);\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "aec117c6af70a6b2e2c7c152bb0ff556e4529fdc0780b70fe8561c28eba8e51d",
+            "file_hint": "src/openaptx.rs",
+            "qualified_name": "crate::aptx_qmf_polyphase_analysis",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "aptx_qmf_polyphase_analysis-6405845aaa43",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "aptx_qmf_polyphase_analysis",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "740b1755bf447a144bb4cef0b7feb45b1fee2b570624277aa82dffded3ef1223",
+            "edit_id": "edit-replace-b2b594807a1bc730",
+            "end_byte": 48481,
+            "operation_id": "replace-b2b594807a1bc730",
+            "relative_path": "src/openaptx.rs",
+            "replacement_text": "#[inline]\nunsafe fn aptx_qmf_polyphase_analysis(\n    mut signal: *mut aptx_filter_signal,\n    mut coeffs: *const [int32_t; 16],\n    mut shift: c_uint,\n    mut samples: *const int32_t,\n    mut low_subband_output: *mut int32_t,\n    mut high_subband_output: *mut int32_t,\n) {\n    let s0 = signal;\n    // SAFETY: `signal` points to an array of at least `NB_FILTERS` elements; this function only accesses element 1 when `NB_FILTERS == 2` as in the original code.\n    let s1 = unsafe { signal.add(1) };\n\n    let c0 = coeffs;\n    // SAFETY: `coeffs` points to an array of at least `NB_FILTERS` coefficient blocks; this function only accesses element 1 when `NB_FILTERS == 2` as in the original code.\n    let c1 = unsafe { coeffs.add(1) };\n\n    // SAFETY: `samples` points to at least `NB_FILTERS` input samples; indices 1 and 0 match the original loop for `NB_FILTERS == 2`.\n    let sample1 = unsafe { *samples.add(1) };\n    // SAFETY: `samples` points to at least `NB_FILTERS` input samples; index 0 is in-bounds as in the original code.\n    let sample0 = unsafe { *samples.add(0) };\n\n    aptx_qmf_filter_signal_push(s0, sample1);\n    let sub0 = aptx_qmf_convolution(\n        s0,\n        &raw const *c0 as *const int32_t,\n        shift,\n    );\n\n    aptx_qmf_filter_signal_push(s1, sample0);\n    let sub1 = aptx_qmf_convolution(\n        s1,\n        &raw const *c1 as *const int32_t,\n        shift,\n    );\n\n    // SAFETY: output pointers are valid for writes exactly as required by the original function.\n    unsafe {\n        *low_subband_output = clip_intp2(sub0 + sub1, 23 as c_uint);\n        *high_subband_output = clip_intp2(sub0 - sub1, 23 as c_uint);\n    }\n}",
+            "start_byte": 47287
+          }
+        ],
+        "facts": {
+          "fn_name": "aptx_qmf_polyphase_analysis",
+          "target_span_hash": "aec117c6af70a6b2e2c7c152bb0ff556e4529fdc0780b70fe8561c28eba8e51d"
+        },
+        "operation_id": "replace-b2b594807a1bc730"
+      }
+    ],
+    "resolved_head": "e8131785ed847292ebe3493a5feefa2ccb74f732"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/openaptx.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

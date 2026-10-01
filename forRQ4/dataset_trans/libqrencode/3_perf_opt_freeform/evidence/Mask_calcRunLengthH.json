@@ -1,0 +1,118 @@
+{
+  "hot_function": {
+    "symbol": "Mask_calcRunLengthH",
+    "location": "src/mask.rs:475-510",
+    "workload": "encode_string_api",
+    "hot_region": "src/mask.rs:475-510",
+    "rust_source": "unsafe fn Mask_calcRunLengthH(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n    mut runLength: *mut c_int,\n) -> c_int {\n    let mut head: c_int = 0;\n    let mut i: c_int = 0;\n    let mut prev: c_uchar = 0;\n    if *frame.offset(0 as c_int as isize) as c_int\n        & 1 as c_int\n        != 0\n    {\n        *runLength.offset(0 as c_int as isize) = -(1 as c_int);\n        head = 1 as c_int;\n    } else {\n        head = 0 as c_int;\n    }\n    *runLength.offset(head as isize) = 1 as c_int;\n    prev = *frame.offset(0 as c_int as isize);\n    i = 1 as c_int;\n    while i < width {\n        if (*frame.offset(i as isize) as c_int ^ prev as c_int)\n            & 1 as c_int\n            != 0\n        {\n            head += 1;\n            *runLength.offset(head as isize) = 1 as c_int;\n            prev = *frame.offset(i as isize);\n        } else {\n            let ref mut fresh1 = *runLength.offset(head as isize);\n            *fresh1 += 1;\n        }\n        i += 1;\n    }\n    return head + 1 as c_int;\n}",
+    "signature": "unsafe fn Mask_calcRunLengthH(\n    mut width: c_int,\n    mut frame: *mut c_uchar,\n    mut runLength: *mut c_int,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.2698,
+      "call_count": null,
+      "retired_instructions": 1225587580,
+      "instructions_per_call": null,
+      "cpi": 1.265,
+      "tma": {
+        "scope": "process",
+        "retiring": 38.110322116588414,
+        "frontend_bound": 14.935132557090517,
+        "bad_speculation": 38.15578163362414,
+        "backend_bound": 8.798763692696937,
+        "memory_bound": 2.521473728289139,
+        "core_bound": 6.277289964407798,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.1043
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "bad_speculation",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 493,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 502,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 495,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 483,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 496,
+        "message": "2 virtual registers copies 7.679688e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 483,
+        "message": "3 virtual registers copies 7.839531e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 509,
+        "message": "BasicBlock: _ZN19libqrencode_cleaned3src4mask19Mask_calcRunLengthH17h8455c4de846bee13E.exit.loopexit.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 487,
+        "message": "BasicBlock: bb1.i.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 504,
+        "message": "BasicBlock: bb7.i.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 496,
+        "message": "BasicBlock: bb5.i.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 500,
+        "message": "BasicBlock: bb6.i.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 487,
+        "message": "BasicBlock: bb1.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

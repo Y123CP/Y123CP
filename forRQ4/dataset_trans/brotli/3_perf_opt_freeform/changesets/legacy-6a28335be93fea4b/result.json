@@ -1,0 +1,235 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.17127027237694198,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.04170337891098291,
+            "aggregate_ci_low_pct": -0.38424392366486687,
+            "aggregate_pct": -0.17127027237694198,
+            "checkpoint": 20,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.0083,
+                "ci_low_pct": -0.0144,
+                "insns_delta_pct": 0.0004,
+                "mean_delta_pct": -0.003,
+                "op": "api_sweep",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.6161,
+                "ci_low_pct": -0.15,
+                "insns_delta_pct": 0.0112,
+                "mean_delta_pct": 0.2331,
+                "op": "decode_buffer",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "per_op_uncertain"
+              },
+              {
+                "ci_high_pct": -0.4207,
+                "ci_low_pct": -0.9669,
+                "insns_delta_pct": -0.5246,
+                "mean_delta_pct": -0.6938,
+                "op": "encode_buffer",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 2.1669,
+                "ci_low_pct": -0.2375,
+                "insns_delta_pct": -0.0484,
+                "mean_delta_pct": 0.9647,
+                "op": "lowlevel_probe",
+                "samples": 20,
+                "state": "active",
+                "stop_reason": "per_op_uncertain"
+              },
+              {
+                "ci_high_pct": -0.6888,
+                "ci_low_pct": -0.7916,
+                "insns_delta_pct": -0.0712,
+                "mean_delta_pct": -0.7402,
+                "op": "shared_dict_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.6062,
+                "ci_low_pct": -0.9705,
+                "insns_delta_pct": -0.3802,
+                "mean_delta_pct": -0.7883,
+                "op": "stream_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -0.6205735917747819,
+            "aggregate_ci_low_pct": -0.9042207924878987,
+            "aggregate_pct": -0.7623971921313403,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -0.469,
+                "ci_low_pct": -0.9247,
+                "insns_delta_pct": -0.5939,
+                "mean_delta_pct": -0.6969,
+                "op": "encode_buffer",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.6682,
+                "ci_low_pct": -0.8088,
+                "insns_delta_pct": -0.0896,
+                "mean_delta_pct": -0.7385,
+                "op": "shared_dict_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.4682,
+                "ci_low_pct": -1.2355,
+                "insns_delta_pct": -0.3824,
+                "mean_delta_pct": -0.8518,
+                "op": "stream_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_buffer",
+          "shared_dict_roundtrip",
+          "stream_roundtrip"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "lowlevel_probe"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be",
+      "changeset_id": "legacy-6a28335be93fea4b",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-2b7065a19dab7476",
+          "replacement_function_source": "#[inline(always)]\nunsafe extern \"C\" fn StoreAndFindMatchesH10(\n    mut self_0: *mut H10,\n    mut data: *const uint8_t,\n    cur_ix: size_t,\n    ring_buffer_mask: size_t,\n    max_length: size_t,\n    max_backward: size_t,\n    best_len: *mut size_t,\n    mut matches: *mut BackwardMatch,\n) -> *mut BackwardMatch {\n    let cur_ix_masked: size_t = cur_ix & ring_buffer_mask;\n    let max_comp_len: size_t = brotli_min_size_t(max_length, 128 as size_t) as size_t;\n    let should_reroot_tree: bool = max_length >= 128 as size_t;\n    let key: uint32_t =\n        HashBytesH10(data.offset(cur_ix_masked as isize) as *const uint8_t) as uint32_t;\n\n    let buckets: *mut uint32_t = (*self_0).buckets_;\n    let forest: *mut uint32_t = (*self_0).forest_;\n    let invalid_pos = (*self_0).invalid_pos_;\n\n    let mut prev_ix: size_t = *buckets.offset(key as isize) as size_t;\n    let mut node_left: size_t = LeftChildIndexH10(self_0, cur_ix);\n    let mut node_right: size_t = RightChildIndexH10(self_0, cur_ix);\n    let mut best_len_left: size_t = 0;\n    let mut best_len_right: size_t = 0;\n    let mut depth_remaining: size_t = MAX_TREE_SEARCH_DEPTH as size_t;\n\n    if should_reroot_tree {\n        *buckets.offset(key as isize) = cur_ix as uint32_t;\n    }\n\n    loop {\n        let backward: size_t = cur_ix.wrapping_sub(prev_ix);\n        if backward == 0 as size_t || backward > max_backward || depth_remaining == 0 as size_t {\n            if should_reroot_tree {\n                *forest.offset(node_left as isize) = invalid_pos;\n                *forest.offset(node_right as isize) = invalid_pos;\n            }\n            break;\n        }\n\n        let prev_ix_masked: size_t = prev_ix & ring_buffer_mask;\n        let cur_len: size_t = brotli_min_size_t(best_len_left, best_len_right) as size_t;\n        let len: size_t = cur_len.wrapping_add(FindMatchLengthWithLimit(\n            data.offset(cur_ix_masked.wrapping_add(cur_len) as isize) as *const uint8_t,\n            data.offset(prev_ix_masked.wrapping_add(cur_len) as isize) as *const uint8_t,\n            max_length.wrapping_sub(cur_len),\n        ));\n\n        if !matches.is_null() && len > *best_len {\n            *best_len = len;\n            let m = matches;\n            matches = matches.offset(1);\n            InitBackwardMatch(m, backward, len);\n        }\n\n        if len >= max_comp_len {\n            if should_reroot_tree {\n                let left = LeftChildIndexH10(self_0, prev_ix);\n                let right = RightChildIndexH10(self_0, prev_ix);\n                *forest.offset(node_left as isize) = *forest.offset(left as isize);\n                *forest.offset(node_right as isize) = *forest.offset(right as isize);\n            }\n            break;\n        }\n\n        let cur_byte = *data.offset(cur_ix_masked.wrapping_add(len) as isize) as c_int;\n        let prev_byte = *data.offset(prev_ix_masked.wrapping_add(len) as isize) as c_int;\n\n        if cur_byte > prev_byte {\n            best_len_left = len;\n            if should_reroot_tree {\n                *forest.offset(node_left as isize) = prev_ix as uint32_t;\n            }\n            node_left = RightChildIndexH10(self_0, prev_ix);\n            prev_ix = *forest.offset(node_left as isize) as size_t;\n        } else {\n            best_len_right = len;\n            if should_reroot_tree {\n                *forest.offset(node_right as isize) = prev_ix as uint32_t;\n            }\n            node_right = LeftChildIndexH10(self_0, prev_ix);\n            prev_ix = *forest.offset(node_right as isize) as size_t;\n        }\n        depth_remaining = depth_remaining.wrapping_sub(1);\n    }\n\n    matches\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "ff9f36e49a878700d37a877b589dabe7911211bb4766aca8c202dd2303e928f6",
+            "file_hint": "src/enc/backward_references_hq.rs",
+            "qualified_name": "crate::StoreAndFindMatchesH10",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "StoreAndFindMatchesH10-f56bd26a2e52",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "StoreAndFindMatchesH10",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "5f6e937fff859451f9b9a3d43e9a6848124aae582e157c9042191ef1139080e6",
+            "edit_id": "edit-replace-2b7065a19dab7476",
+            "end_byte": 21239,
+            "operation_id": "replace-2b7065a19dab7476",
+            "relative_path": "src/enc/backward_references_hq.rs",
+            "replacement_text": "#[inline(always)]\nunsafe extern \"C\" fn StoreAndFindMatchesH10(\n    mut self_0: *mut H10,\n    mut data: *const uint8_t,\n    cur_ix: size_t,\n    ring_buffer_mask: size_t,\n    max_length: size_t,\n    max_backward: size_t,\n    best_len: *mut size_t,\n    mut matches: *mut BackwardMatch,\n) -> *mut BackwardMatch {\n    let cur_ix_masked: size_t = cur_ix & ring_buffer_mask;\n    let max_comp_len: size_t = brotli_min_size_t(max_length, 128 as size_t) as size_t;\n    let should_reroot_tree: bool = max_length >= 128 as size_t;\n    let key: uint32_t =\n        HashBytesH10(data.offset(cur_ix_masked as isize) as *const uint8_t) as uint32_t;\n\n    let buckets: *mut uint32_t = (*self_0).buckets_;\n    let forest: *mut uint32_t = (*self_0).forest_;\n    let invalid_pos = (*self_0).invalid_pos_;\n\n    let mut prev_ix: size_t = *buckets.offset(key as isize) as size_t;\n    let mut node_left: size_t = LeftChildIndexH10(self_0, cur_ix);\n    let mut node_right: size_t = RightChildIndexH10(self_0, cur_ix);\n    let mut best_len_left: size_t = 0;\n    let mut best_len_right: size_t = 0;\n    let mut depth_remaining: size_t = MAX_TREE_SEARCH_DEPTH as size_t;\n\n    if should_reroot_tree {\n        *buckets.offset(key as isize) = cur_ix as uint32_t;\n    }\n\n    loop {\n        let backward: size_t = cur_ix.wrapping_sub(prev_ix);\n        if backward == 0 as size_t || backward > max_backward || depth_remaining == 0 as size_t {\n            if should_reroot_tree {\n                *forest.offset(node_left as isize) = invalid_pos;\n                *forest.offset(node_right as isize) = invalid_pos;\n            }\n            break;\n        }\n\n        let prev_ix_masked: size_t = prev_ix & ring_buffer_mask;\n        let cur_len: size_t = brotli_min_size_t(best_len_left, best_len_right) as size_t;\n        let len: size_t = cur_len.wrapping_add(FindMatchLengthWithLimit(\n            data.offset(cur_ix_masked.wrapping_add(cur_len) as isize) as *const uint8_t,\n            data.offset(prev_ix_masked.wrapping_add(cur_len) as isize) as *const uint8_t,\n            max_length.wrapping_sub(cur_len),\n        ));\n\n        if !matches.is_null() && len > *best_len {\n            *best_len = len;\n            let m = matches;\n            matches = matches.offset(1);\n            InitBackwardMatch(m, backward, len);\n        }\n\n        if len >= max_comp_len {\n            if should_reroot_tree {\n                let left = LeftChildIndexH10(self_0, prev_ix);\n                let right = RightChildIndexH10(self_0, prev_ix);\n                *forest.offset(node_left as isize) = *forest.offset(left as isize);\n                *forest.offset(node_right as isize) = *forest.offset(right as isize);\n            }\n            break;\n        }\n\n        let cur_byte = *data.offset(cur_ix_masked.wrapping_add(len) as isize) as c_int;\n        let prev_byte = *data.offset(prev_ix_masked.wrapping_add(len) as isize) as c_int;\n\n        if cur_byte > prev_byte {\n            best_len_left = len;\n            if should_reroot_tree {\n                *forest.offset(node_left as isize) = prev_ix as uint32_t;\n            }\n            node_left = RightChildIndexH10(self_0, prev_ix);\n            prev_ix = *forest.offset(node_left as isize) as size_t;\n        } else {\n            best_len_right = len;\n            if should_reroot_tree {\n                *forest.offset(node_right as isize) = prev_ix as uint32_t;\n            }\n            node_right = LeftChildIndexH10(self_0, prev_ix);\n            prev_ix = *forest.offset(node_right as isize) as size_t;\n        }\n        depth_remaining = depth_remaining.wrapping_sub(1);\n    }\n\n    matches\n}",
+            "start_byte": 17295
+          }
+        ],
+        "facts": {
+          "fn_name": "StoreAndFindMatchesH10",
+          "target_span_hash": "ff9f36e49a878700d37a877b589dabe7911211bb4766aca8c202dd2303e928f6"
+        },
+        "operation_id": "replace-2b7065a19dab7476"
+      }
+    ],
+    "resolved_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/enc/backward_references_hq.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

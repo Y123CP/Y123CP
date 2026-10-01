@@ -1,0 +1,196 @@
+{
+  "applied_rules": [
+    "III④,C10,C3"
+  ],
+  "commit_sha": "1b06c96",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -5.598553113083852,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -5.390920305496778,
+            "aggregate_ci_low_pct": -5.806185920670927,
+            "aggregate_pct": -5.598553113083852,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.0881,
+                "ci_low_pct": -0.2178,
+                "insns_delta_pct": -0.094,
+                "mean_delta_pct": -0.0649,
+                "op": "encode_string_api",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -10.7333,
+                "ci_low_pct": -11.5311,
+                "insns_delta_pct": -8.7896,
+                "mean_delta_pct": -11.1322,
+                "op": "spec_mask_ecc",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -3.397355511893088,
+            "aggregate_ci_low_pct": -3.8680806182726215,
+            "aggregate_pct": -3.6327180650828548,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.1066,
+                "ci_low_pct": -0.0578,
+                "insns_delta_pct": -0.0376,
+                "mean_delta_pct": 0.0244,
+                "op": "encode_data_and_input",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.085,
+                "ci_low_pct": -0.1374,
+                "insns_delta_pct": -0.0989,
+                "mean_delta_pct": -0.0262,
+                "op": "encode_string_api",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -10.2039,
+                "ci_low_pct": -11.5887,
+                "insns_delta_pct": -8.6623,
+                "mean_delta_pct": -10.8963,
+                "op": "spec_mask_ecc",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_string_api",
+          "spec_mask_ecc"
+        ],
+        "reason": "accepted",
+        "triggering_op": "encode_string_api"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "8d994941623c7dbc36664dddeaa300f6c16ca61e",
+      "changeset_id": "legacy-3a29ff9d9e90132b",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-e268b1584cd43783",
+          "replacement_function_source": "// Applied rules: [III④, C10, C3]\n// Skipped rules: []\nunsafe fn BitStream_writeBytes(\n    mut dest: *mut c_uchar,\n    mut size: size_t,\n    mut data: *mut c_uchar,\n) {\n    let size_usize = size as usize;\n    let dest_len = size_usize.wrapping_mul(8);\n\n    // SAFETY: `size` is the explicit caller-provided source length; the caller guarantees\n    // `data` is non-null and points to at least `size` readable bytes for this routine, and\n    // no mutable reference aliases that region for the duration of this reborrow.\n    let data_view: &[c_uchar] = unsafe { core::slice::from_raw_parts(data, size_usize) };\n    // SAFETY: the original loop writes exactly 8 bytes to `dest` for each of the `size`\n    // source bytes, so the required destination length is `8 * size`; the caller guarantees\n    // `dest` is non-null and points to at least that many writable bytes, and that this\n    // mutable region does not alias the source region for the duration of this reborrow.\n    let dest_view: &mut [c_uchar] = unsafe { core::slice::from_raw_parts_mut(dest, dest_len) };\n\n    const LANES: u64 = u64::from_le_bytes([0x01; 8]);\n    const HALF: u64 = u64::from_le_bytes([0x7f; 8]);\n    const SELECT: u64 = u64::from_le_bytes([0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01]);\n\n    for (src, out_chunk) in data_view.iter().copied().zip(dest_view.chunks_exact_mut(8)) {\n        let spread = (src as u64).wrapping_mul(LANES);\n        let ones = ((spread & SELECT).wrapping_add(HALF) >> 7) & LANES;\n        out_chunk.copy_from_slice(&ones.to_le_bytes());\n    }\n}",
+          "rule_id": "III④,C10,C3",
+          "target": {
+            "declaration_hash": "fc5a1a6686814337fa5347c221540263f701dea8448124e49c893156c4cef335",
+            "file_hint": "src/bitstream.rs",
+            "qualified_name": "crate::BitStream_writeBytes",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "BitStream_writeBytes-011ca990e8a1",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "BitStream_writeBytes",
+        "rule_id": "III④,C10,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "1b9d4de9e36cc3e15b7d6743da9bd4ca4e4e41f77376e770100db6a84f5fe870",
+            "edit_id": "edit-replace-e268b1584cd43783",
+            "end_byte": 2775,
+            "operation_id": "replace-e268b1584cd43783",
+            "relative_path": "src/bitstream.rs",
+            "replacement_text": "// Applied rules: [III④, C10, C3]\n// Skipped rules: []\nunsafe fn BitStream_writeBytes(\n    mut dest: *mut c_uchar,\n    mut size: size_t,\n    mut data: *mut c_uchar,\n) {\n    let size_usize = size as usize;\n    let dest_len = size_usize.wrapping_mul(8);\n\n    // SAFETY: `size` is the explicit caller-provided source length; the caller guarantees\n    // `data` is non-null and points to at least `size` readable bytes for this routine, and\n    // no mutable reference aliases that region for the duration of this reborrow.\n    let data_view: &[c_uchar] = unsafe { core::slice::from_raw_parts(data, size_usize) };\n    // SAFETY: the original loop writes exactly 8 bytes to `dest` for each of the `size`\n    // source bytes, so the required destination length is `8 * size`; the caller guarantees\n    // `dest` is non-null and points to at least that many writable bytes, and that this\n    // mutable region does not alias the source region for the duration of this reborrow.\n    let dest_view: &mut [c_uchar] = unsafe { core::slice::from_raw_parts_mut(dest, dest_len) };\n\n    const LANES: u64 = u64::from_le_bytes([0x01; 8]);\n    const HALF: u64 = u64::from_le_bytes([0x7f; 8]);\n    const SELECT: u64 = u64::from_le_bytes([0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01]);\n\n    for (src, out_chunk) in data_view.iter().copied().zip(dest_view.chunks_exact_mut(8)) {\n        let spread = (src as u64).wrapping_mul(LANES);\n        let ones = ((spread & SELECT).wrapping_add(HALF) >> 7) & LANES;\n        out_chunk.copy_from_slice(&ones.to_le_bytes());\n    }\n}",
+            "start_byte": 1921
+          }
+        ],
+        "facts": {
+          "fn_name": "BitStream_writeBytes",
+          "target_span_hash": "fc5a1a6686814337fa5347c221540263f701dea8448124e49c893156c4cef335"
+        },
+        "operation_id": "replace-e268b1584cd43783"
+      }
+    ],
+    "resolved_head": "8d994941623c7dbc36664dddeaa300f6c16ca61e"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/bitstream.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

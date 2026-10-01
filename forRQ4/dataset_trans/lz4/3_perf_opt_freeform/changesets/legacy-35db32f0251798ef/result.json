@@ -1,0 +1,89 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": "error[E0133]: use of mutable static is unsafe and requires unsafe function or block\n   --> /perf-build/crate/src/xxhash.rs:144:49\n    |\n144 |     seed = seed.wrapping_add(input.wrapping_mul(PRIME32_2));\n    |                                                 ^^^^^^^^^ use of mutable static\n    |\n    = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior\nerror[E0133]: use of mutable static is unsafe and requires unsafe function or block\n   --> /perf-build/crate/src/xxhash.rs:146:23\n    |\n146 |     seed.wrapping_mul(PRIME32_1)\n    |                       ^^^^^^^^^ use of mutable static\n    |\n    = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior\n\nFor more information about this error, try `rustc --explain E0133`.\nerror: could not compile `lz4_cleaned` (lib) due to 2 previous errors; 32 warnings emitted"
+      },
+      "gate": "build",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "c34d7ed2cce7f9522ed22537328255dc018c2e2b",
+      "changeset_id": "legacy-35db32f0251798ef",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-532d43e65e814133",
+          "replacement_function_source": "fn XXH32_round(mut seed: U32, mut input: U32) -> U32 {\n    seed = seed.wrapping_add(input.wrapping_mul(PRIME32_2));\n    seed = seed.rotate_left(13);\n    seed.wrapping_mul(PRIME32_1)\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "bfc5d9a67c12fb7c67ac612b4f23c9b0b5fd50843afb47335c8fdd108d0fbcfe",
+            "file_hint": "src/xxhash.rs",
+            "qualified_name": "crate::XXH32_round",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "XXH32_round-a93034681348",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "XXH32_round",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "4beab2617777cc6edf9b1e6d705b307ae841b75624a2e25c02452b430e5992c1",
+            "edit_id": "edit-replace-532d43e65e814133",
+            "end_byte": 4248,
+            "operation_id": "replace-532d43e65e814133",
+            "relative_path": "src/xxhash.rs",
+            "replacement_text": "fn XXH32_round(mut seed: U32, mut input: U32) -> U32 {\n    seed = seed.wrapping_add(input.wrapping_mul(PRIME32_2));\n    seed = seed.rotate_left(13);\n    seed.wrapping_mul(PRIME32_1)\n}",
+            "start_byte": 3986
+          }
+        ],
+        "facts": {
+          "fn_name": "XXH32_round",
+          "target_span_hash": "bfc5d9a67c12fb7c67ac612b4f23c9b0b5fd50843afb47335c8fdd108d0fbcfe"
+        },
+        "operation_id": "replace-532d43e65e814133"
+      }
+    ],
+    "resolved_head": "c34d7ed2cce7f9522ed22537328255dc018c2e2b"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_build",
+  "touched_paths": [
+    "src/xxhash.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

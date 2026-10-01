@@ -1,0 +1,316 @@
+{
+  "hot_function": {
+    "symbol": "ZopfliInitCache",
+    "location": "src/cache.rs:10-55",
+    "workload": "cache_roundtrip",
+    "hot_region": "src/cache.rs:10-55",
+    "rust_source": "pub unsafe fn ZopfliInitCache(\n    mut blocksize: size_t,\n    mut lmc: *mut ZopfliLongestMatchCache,\n) {\n    let lmc_view: &mut ZopfliLongestMatchCache = unsafe { &mut *lmc };\n    let mut i: size_t = 0;\n    lmc_view.length =\n        malloc((::core::mem::size_of::<c_ushort>() as size_t).wrapping_mul(blocksize))\n            as *mut c_ushort;\n    lmc_view.dist =\n        malloc((::core::mem::size_of::<c_ushort>() as size_t).wrapping_mul(blocksize))\n            as *mut c_ushort;\n    lmc_view.sublen =\n        malloc(((ZOPFLI_CACHE_LENGTH * 3 as c_int) as size_t).wrapping_mul(blocksize))\n            as *mut c_uchar;\n    if lmc_view.sublen.is_null() {\n        fprintf(\n            stderr,\n            b\"Error: Out of memory. Tried allocating %lu bytes of memory.\\n\\0\" as *const u8\n                as *const c_char,\n            (ZOPFLI_CACHE_LENGTH as size_t)\n                .wrapping_mul(3 as size_t)\n                .wrapping_mul(blocksize),\n        );\n        exit(EXIT_FAILURE);\n    }\n    i = 0 as size_t;\n    while i < blocksize {\n        *lmc_view.length.offset(i as isize) = 1 as c_ushort;\n        i = i.wrapping_add(1);\n    }\n    i = 0 as size_t;\n    while i < blocksize {\n        *lmc_view.dist.offset(i as isize) = 0 as c_ushort;\n        i = i.wrapping_add(1);\n    }\n    i = 0 as size_t;\n    while i\n        < (ZOPFLI_CACHE_LENGTH as size_t)\n            .wrapping_mul(blocksize)\n            .wrapping_mul(3 as size_t)\n    {\n        *lmc_view.sublen.offset(i as isize) = 0 as c_uchar;\n        i = i.wrapping_add(1);\n    }\n}",
+    "signature": "pub unsafe fn ZopfliInitCache(\n    mut blocksize: size_t,\n    mut lmc: *mut ZopfliLongestMatchCache,\n)",
+    "profile": {
+      "self_time_ratio": 0.1756,
+      "call_count": null,
+      "retired_instructions": 687270254,
+      "instructions_per_call": null,
+      "cpi": 1.417,
+      "tma": {
+        "scope": "process",
+        "retiring": 69.0923260441684,
+        "frontend_bound": 20.11840719429032,
+        "bad_speculation": 1.828145094069306,
+        "backend_bound": 8.961121667471978,
+        "memory_bound": 5.985722436584568,
+        "core_bound": 2.9753992308874104,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0026
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 17,
+        "message": "malloc will not be inlined into _ZN14zopfli_cleaned3src5cache15ZopfliInitCache17h5aa460e19cfca94dE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 20,
+        "message": "malloc will not be inlined into _ZN14zopfli_cleaned3src5cache15ZopfliInitCache17h5aa460e19cfca94dE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 23,
+        "message": "malloc will not be inlined into _ZN14zopfli_cleaned3src5cache15ZopfliInitCache17h5aa460e19cfca94dE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 26,
+        "message": "fprintf will not be inlined into _ZN14zopfli_cleaned3src5cache15ZopfliInitCache17h5aa460e19cfca94dE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 34,
+        "message": "exit will not be inlined into _ZN14zopfli_cleaned3src5cache15ZopfliInitCache17h5aa460e19cfca94dE because its definition is unavailable"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 38,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 43,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 52,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 38,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 43,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 52,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 27,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 47,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 37,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 37,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 42,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "loop-idiom",
+        "status": "success",
+        "line": 52,
+        "message": "Transformed loop-strided store in _ZN18zopfli_raw_harness18op_cache_roundtrip17ha6dfd0be43659e5bE function into a call to llvm.memset.p0.i64() intrinsic"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 47,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 37,
+        "message": "BasicBlock: bb7.preheader.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 38,
+        "message": "BasicBlock: bb8.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 38,
+        "message": "BasicBlock: bb8.i.i.i.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 42,
+        "message": "BasicBlock: bb11.i.i.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 43,
+        "message": "BasicBlock: bb11.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 42,
+        "message": "BasicBlock: bb13.preheader.i.i.i.unr-lcssa"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 43,
+        "message": "BasicBlock: bb11.i.i.i.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 47,
+        "message": "BasicBlock: bb13.preheader.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 52,
+        "message": "BasicBlock: bb14.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 38,
+        "message": "BasicBlock: bb8.i.i.i49"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 38,
+        "message": "BasicBlock: bb8.i.i.i49.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 42,
+        "message": "BasicBlock: bb11.i.i.i55.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 43,
+        "message": "BasicBlock: bb11.i.i.i55"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 42,
+        "message": "BasicBlock: bb13.preheader.i.i.i60.unr-lcssa"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 43,
+        "message": "BasicBlock: bb11.i.i.i55.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 47,
+        "message": "BasicBlock: bb13.preheader.i.i.i60"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 52,
+        "message": "BasicBlock: bb14.i.i.i62"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 27,
+        "message": "BasicBlock: bb4.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 27,
+        "message": "BasicBlock: bb4.i.i91.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 38,
+        "message": "BasicBlock: bb8.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 38,
+        "message": "BasicBlock: bb8.i.i.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 43,
+        "message": "BasicBlock: bb11.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 43,
+        "message": "BasicBlock: bb11.i.i.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 52,
+        "message": "BasicBlock: bb14.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 27,
+        "message": "BasicBlock: bb4.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 52,
+        "message": "BasicBlock: bb8.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 27,
+        "message": "BasicBlock: bb4.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

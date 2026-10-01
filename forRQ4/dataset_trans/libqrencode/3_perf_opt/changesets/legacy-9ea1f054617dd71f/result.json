@@ -1,0 +1,207 @@
+{
+  "applied_rules": [
+    "III④"
+  ],
+  "commit_sha": "00c1aba",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -1.6495775279516145,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -1.2444238778324266,
+            "aggregate_ci_low_pct": -2.0547311780708024,
+            "aggregate_pct": -1.6495775279516145,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -1.7998,
+                "ci_low_pct": -2.3788,
+                "insns_delta_pct": -6.0396,
+                "mean_delta_pct": -2.0893,
+                "op": "encode_data_and_input",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -2.0875,
+                "ci_low_pct": -2.1828,
+                "insns_delta_pct": -6.286,
+                "mean_delta_pct": -2.1351,
+                "op": "encode_string_api",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.4759,
+                "ci_low_pct": -1.9245,
+                "insns_delta_pct": 0.0537,
+                "mean_delta_pct": -0.7243,
+                "op": "spec_mask_ecc",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -11.092270553277856,
+            "aggregate_ci_low_pct": -11.685140869554129,
+            "aggregate_pct": -11.388705711415993,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -3.4431,
+                "ci_low_pct": -3.7345,
+                "insns_delta_pct": -7.3638,
+                "mean_delta_pct": -3.5888,
+                "op": "encode_data_and_input",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -3.6556,
+                "ci_low_pct": -3.7964,
+                "insns_delta_pct": -7.6265,
+                "mean_delta_pct": -3.726,
+                "op": "encode_string_api",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -25.9768,
+                "ci_low_pct": -27.7258,
+                "insns_delta_pct": -32.3426,
+                "mean_delta_pct": -26.8513,
+                "op": "spec_mask_ecc",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_data_and_input",
+          "encode_string_api",
+          "spec_mask_ecc"
+        ],
+        "reason": "accepted",
+        "triggering_op": "spec_mask_ecc"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "33ea635769f79d15276e3d9ced6a417e1642407c",
+      "changeset_id": "legacy-9ea1f054617dd71f",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-8d5068ea4ab89c04",
+          "replacement_function_source": "// Applied rules: [III④]\n// Skipped rules: []\nunsafe fn Mask_calcN1N3(\n    mut length: c_int,\n    mut runLength: *mut c_int,\n) -> c_int {\n    let mut demerit: c_int = 0;\n    let len = length as usize;\n    // SAFETY: `length` is the explicit L1 length source for `runLength`; the\n    // caller of this unsafe function must provide a non-null pointer to at\n    // least `length` contiguous `c_int` elements, and no other `&mut`/`&`\n    // aliases are created or used across this reborrow region.\n    let run_length = unsafe { core::slice::from_raw_parts(runLength, len) };\n\n    for (i, &rl) in run_length.iter().enumerate() {\n        if rl >= 5 as c_int {\n            demerit += N1 + (rl - 5 as c_int);\n        }\n        if i & 1 != 0\n            && i >= 3\n            && i + 2 < len\n            && rl % 3 as c_int == 0\n        {\n            let fact = rl / 3 as c_int;\n            if run_length[i - 2] == fact\n                && run_length[i - 1] == fact\n                && run_length[i + 1] == fact\n                && run_length[i + 2] == fact\n            {\n                if i == 3 || run_length[i - 3] >= 4 as c_int * fact {\n                    demerit += N3;\n                } else if i + 4 >= len || run_length[i + 3] >= 4 as c_int * fact {\n                    demerit += N3;\n                }\n            }\n        }\n    }\n    demerit\n}",
+          "rule_id": "III④",
+          "target": {
+            "declaration_hash": "6f278d327071c01ba17c9ad61b5db2655c794ba8501c8a805673e8ca2059b8a3",
+            "file_hint": "src/mask.rs",
+            "qualified_name": "crate::Mask_calcN1N3",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "Mask_calcN1N3-80463acc4853",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "Mask_calcN1N3",
+        "rule_id": "III④"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "b578abbef4008cd2d782c90d5ff479fdf085b16d6f0b7e2659dbd87c9390bf68",
+            "edit_id": "edit-replace-8d5068ea4ab89c04",
+            "end_byte": 12046,
+            "operation_id": "replace-8d5068ea4ab89c04",
+            "relative_path": "src/mask.rs",
+            "replacement_text": "// Applied rules: [III④]\n// Skipped rules: []\nunsafe fn Mask_calcN1N3(\n    mut length: c_int,\n    mut runLength: *mut c_int,\n) -> c_int {\n    let mut demerit: c_int = 0;\n    let len = length as usize;\n    // SAFETY: `length` is the explicit L1 length source for `runLength`; the\n    // caller of this unsafe function must provide a non-null pointer to at\n    // least `length` contiguous `c_int` elements, and no other `&mut`/`&`\n    // aliases are created or used across this reborrow region.\n    let run_length = unsafe { core::slice::from_raw_parts(runLength, len) };\n\n    for (i, &rl) in run_length.iter().enumerate() {\n        if rl >= 5 as c_int {\n            demerit += N1 + (rl - 5 as c_int);\n        }\n        if i & 1 != 0\n            && i >= 3\n            && i + 2 < len\n            && rl % 3 as c_int == 0\n        {\n            let fact = rl / 3 as c_int;\n            if run_length[i - 2] == fact\n                && run_length[i - 1] == fact\n                && run_length[i + 1] == fact\n                && run_length[i + 2] == fact\n            {\n                if i == 3 || run_length[i - 3] >= 4 as c_int * fact {\n                    demerit += N3;\n                } else if i + 4 >= len || run_length[i + 3] >= 4 as c_int * fact {\n                    demerit += N3;\n                }\n            }\n        }\n    }\n    demerit\n}",
+            "start_byte": 10507
+          }
+        ],
+        "facts": {
+          "fn_name": "Mask_calcN1N3",
+          "target_span_hash": "6f278d327071c01ba17c9ad61b5db2655c794ba8501c8a805673e8ca2059b8a3"
+        },
+        "operation_id": "replace-8d5068ea4ab89c04"
+      }
+    ],
+    "resolved_head": "33ea635769f79d15276e3d9ced6a417e1642407c"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/mask.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

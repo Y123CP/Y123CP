@@ -1,0 +1,188 @@
+{
+  "hot_function": {
+    "symbol": "xmlFileOpenW",
+    "location": "src/xmlIO.rs:1964-1998",
+    "workload": "writer_save",
+    "hot_region": "src/xmlIO.rs:1964-1998",
+    "rust_source": "unsafe extern \"C\" fn xmlFileOpenW(\n    mut filename: *const c_char,\n) -> *mut c_void {\n    let mut path: *const c_char = ::core::ptr::null::<c_char>();\n    let mut fd: *mut FILE = ::core::ptr::null_mut::<FILE>();\n    if strcmp(filename, b\"-\\0\" as *const u8 as *const c_char) == 0 {\n        fd = stdout;\n        return fd as *mut c_void;\n    }\n    if xmlStrncasecmp(\n        filename as *mut xmlChar,\n        b\"file://localhost/\\0\" as *const u8 as *const c_char as *mut xmlChar,\n        17 as c_int,\n    ) == 0\n    {\n        path = filename.offset(16 as c_int as isize) as *const c_char;\n    } else if xmlStrncasecmp(\n        filename as *mut xmlChar,\n        b\"file:///\\0\" as *const u8 as *const c_char as *mut xmlChar,\n        8 as c_int,\n    ) == 0\n    {\n        path = filename.offset(7 as c_int as isize) as *const c_char;\n    } else {\n        path = filename;\n    }\n    if path.is_null() {\n        return ::core::ptr::null_mut::<c_void>();\n    }\n    fd = fopen(path, b\"wb\\0\" as *const u8 as *const c_char);\n    if fd.is_null() {\n        xmlIOErr(0 as c_int, path);\n    }\n    return fd as *mut c_void;\n}",
+    "signature": "unsafe extern \"C\" fn xmlFileOpenW(\n    mut filename: *const c_char,\n) -> *mut c_void",
+    "profile": {
+      "self_time_ratio": 0.0613,
+      "call_count": null,
+      "retired_instructions": 14521884,
+      "instructions_per_call": null,
+      "cpi": 33.583,
+      "tma": {
+        "scope": "process",
+        "retiring": 39.46884890503992,
+        "frontend_bound": 49.240175201104634,
+        "bad_speculation": 6.283657978787376,
+        "backend_bound": 5.00731791506807,
+        "memory_bound": 2.4244673452650733,
+        "core_bound": 2.5828505698029964,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0143
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "frontend_bound",
+    "class_i_hits": {},
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1969,
+        "message": "strcmp will not be inlined into _ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1993,
+        "message": "fopen will not be inlined into _ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1973,
+        "message": "'_ZN15libxml2_cleaned3src9xmlstring14xmlStrncasecmp17h855166392a0734faE' inlined into '_ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E' with (cost=45, threshold=325) at callsite _ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E:9:8;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1980,
+        "message": "'_ZN15libxml2_cleaned3src9xmlstring14xmlStrncasecmp17h855166392a0734faE' inlined into '_ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E' with (cost=45, threshold=325) at callsite _ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E:16:15;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1995,
+        "message": "'_ZN15libxml2_cleaned3src5xmlIO8xmlIOErr17he4ea438704647363E' inlined into '_ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E' with (cost=5, threshold=375) at callsite _ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E:31:9;"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1964,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E: MI Instruction count changed from 0 to 226; Delta: 226"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1964,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E: MI Instruction count changed from 226 to 204; Delta: -22"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1964,
+        "message": "Peephole Optimizations: Function: _ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E: MI Instruction count changed from 204 to 182; Delta: -22"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1964,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E: MI Instruction count changed from 182 to 197; Delta: 15"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1964,
+        "message": "Two-Address instruction pass: Function: _ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E: MI Instruction count changed from 197 to 199; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1964,
+        "message": "Register Coalescer: Function: _ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E: MI Instruction count changed from 199 to 153; Delta: -46"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1964,
+        "message": "4 virtual registers copies 2.657959e+00 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1964,
+        "message": "Virtual Register Rewriter: Function: _ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E: MI Instruction count changed from 153 to 148; Delta: -5"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1964,
+        "message": "Machine Copy Propagation Pass: Function: _ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E: MI Instruction count changed from 148 to 147; Delta: -1"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 1964,
+        "message": "8 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1964,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E: MI Instruction count changed from 147 to 146; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1964,
+        "message": "Control Flow Optimizer: Function: _ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E: MI Instruction count changed from 146 to 112; Delta: -34"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1964,
+        "message": "Tail Duplication: Function: _ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E: MI Instruction count changed from 112 to 114; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1964,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E: MI Instruction count changed from 114 to 116; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1964,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN15libxml2_cleaned3src5xmlIO12xmlFileOpenW17h4e8d2e2e13c58302E: MI Instruction count changed from 116 to 118; Delta: 2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1970,
+        "message": "BasicBlock: bb2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1993,
+        "message": "BasicBlock: bb12"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1998,
+        "message": "BasicBlock: bb18"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1964,
+        "message": "111 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

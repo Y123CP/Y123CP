@@ -1,0 +1,227 @@
+{
+  "applied_rules": [
+    "freeform"
+  ],
+  "commit_sha": "94d8721",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.8379253980310297,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -0.7416835370800047,
+            "aggregate_ci_low_pct": -0.9341672589820548,
+            "aggregate_pct": -0.8379253980310297,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -2.011,
+                "ci_low_pct": -2.5472,
+                "insns_delta_pct": -0.1231,
+                "mean_delta_pct": -2.2791,
+                "op": "lz77_blocksplit_analysis",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.1279,
+                "ci_low_pct": -0.0893,
+                "insns_delta_pct": -0.8165,
+                "mean_delta_pct": 0.0193,
+                "op": "raw_deflate",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.1584,
+                "ci_low_pct": -0.3496,
+                "insns_delta_pct": -0.832,
+                "mean_delta_pct": -0.254,
+                "op": "zlib_compress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -1.376261351883833,
+            "aggregate_ci_low_pct": -1.940105001919657,
+            "aggregate_pct": -1.658183176901745,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -1.0743,
+                "ci_low_pct": -3.0655,
+                "insns_delta_pct": -1.5854,
+                "mean_delta_pct": -2.0699,
+                "op": "cache_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.7874,
+                "ci_low_pct": -2.0802,
+                "insns_delta_pct": 2.6492,
+                "mean_delta_pct": -1.9338,
+                "op": "lz77_blocksplit_analysis",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -2.0655,
+                "ci_low_pct": -2.7993,
+                "insns_delta_pct": -0.9886,
+                "mean_delta_pct": -2.4324,
+                "op": "raw_deflate",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 1.6348,
+                "ci_low_pct": -0.5412,
+                "insns_delta_pct": 0.0065,
+                "mean_delta_pct": 0.5468,
+                "op": "tree_codegen",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              },
+              {
+                "ci_high_pct": -2.3201,
+                "ci_low_pct": -2.4832,
+                "insns_delta_pct": -1.0163,
+                "mean_delta_pct": -2.4017,
+                "op": "zlib_compress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "lz77_blocksplit_analysis",
+          "raw_deflate",
+          "zlib_compress"
+        ],
+        "reason": "accepted",
+        "triggering_op": "raw_deflate"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "da4867e9ba9da6f304e76c1e279d90c45a5ca98a",
+      "changeset_id": "legacy-8030fb24e7c0d157",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-71752600e10133eb",
+          "replacement_function_source": "#[inline]\npub unsafe fn ZopfliUpdateHash(\n    mut array: *const c_uchar,\n    mut pos: size_t,\n    mut end: size_t,\n    mut h: *mut ZopfliHash,\n) {\n    let hpos = (pos & ZOPFLI_WINDOW_MASK as size_t) as c_ushort;\n    let hpos_i = hpos as isize;\n\n    let h_ref = &mut *h;\n\n    let next = if pos.wrapping_add(ZOPFLI_MIN_MATCH as size_t) <= end {\n        // SAFETY: Caller upholds that `array` is valid for reads up to `end`; the condition ensures the indexed byte is within bounds.\n        *array.add(pos.wrapping_add(ZOPFLI_MIN_MATCH as size_t).wrapping_sub(1 as size_t)) as c_uchar\n    } else {\n        0 as c_uchar\n    };\n    UpdateHashValue(h, next);\n\n    let val = h_ref.val;\n    let head = h_ref.head;\n    let prev = h_ref.prev;\n    let hashval = h_ref.hashval;\n\n    // SAFETY: `hpos` is masked to the window size and all hash table pointers are valid per caller/invariant of `ZopfliHash`.\n    *hashval.offset(hpos_i) = val;\n\n    // SAFETY: `val` is a valid hash index by construction of `UpdateHashValue`.\n    let head_idx = *head.offset(val as isize);\n    let prev_val = if head_idx != -(1 as c_int)\n        // SAFETY: `head_idx != -1` means it is a previously stored window position index into `hashval`.\n        && *hashval.offset(head_idx as isize) == val\n    {\n        head_idx as c_ushort\n    } else {\n        hpos\n    };\n    // SAFETY: `hpos` is a valid window position index.\n    *prev.offset(hpos_i) = prev_val;\n    // SAFETY: `val` is a valid hash index by construction of `UpdateHashValue`.\n    *head.offset(val as isize) = hpos as c_int;\n\n    let prev_same_idx =\n        (pos.wrapping_sub(1 as size_t) & ZOPFLI_WINDOW_MASK as size_t) as isize;\n    // SAFETY: masked window index is valid for `same`.\n    let prev_same = *h_ref.same.offset(prev_same_idx) as c_int;\n    let mut amount: size_t = if prev_same > 1 {\n        (prev_same - 1) as size_t\n    } else {\n        0 as size_t\n    };\n\n    // SAFETY: Caller guarantees `array` points to the input buffer; reading at `pos` matches original behavior.\n    let base = *array.add(pos) as c_int;\n    while pos.wrapping_add(amount).wrapping_add(1 as size_t) < end\n        // SAFETY: loop condition ensures this indexed read is within the readable prefix ending at `end`.\n        && *array.add(pos.wrapping_add(amount).wrapping_add(1 as size_t)) as c_int == base\n        && amount < -(1 as c_int) as c_ushort as size_t\n    {\n        amount = amount.wrapping_add(1);\n    }\n\n    let same = h_ref.same;\n    // SAFETY: `hpos` is a valid window position index.\n    *same.offset(hpos_i) = amount as c_ushort;\n\n    let val2 = ((*same.offset(hpos_i) as c_int - ZOPFLI_MIN_MATCH) & 255 as c_int) ^ val;\n    h_ref.val2 = val2;\n\n    let head2 = h_ref.head2;\n    let prev2 = h_ref.prev2;\n    let hashval2 = h_ref.hashval2;\n\n    // SAFETY: `hpos` is a valid window position index.\n    *hashval2.offset(hpos_i) = val2;\n\n    // SAFETY: `val2` is masked/xored into the valid secondary hash range as in the original code.\n    let head2_idx = *head2.offset(val2 as isize);\n    let prev2_val = if head2_idx != -(1 as c_int)\n        // SAFETY: `head2_idx != -1` means it is a previously stored window position index into `hashval2`.\n        && *hashval2.offset(head2_idx as isize) == val2\n    {\n        head2_idx as c_ushort\n    } else {\n        hpos\n    };\n    // SAFETY: `hpos` is a valid window position index.\n    *prev2.offset(hpos_i) = prev2_val;\n    // SAFETY: `val2` is a valid secondary hash index.\n    *head2.offset(val2 as isize) = hpos as c_int;\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "7b6f4fb1f54f0f832fea062edf7d411902f34f0f7366e1fc161182a88375172a",
+            "file_hint": "src/hash.rs",
+            "qualified_name": "crate::ZopfliUpdateHash",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "ZopfliUpdateHash-35108eefcf3d",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "ZopfliUpdateHash",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "7b4083cdc786a561b5e31392614fee4a0f985d6cffb183cda0dc844ab26c9304",
+            "edit_id": "edit-replace-71752600e10133eb",
+            "end_byte": 5493,
+            "operation_id": "replace-71752600e10133eb",
+            "relative_path": "src/hash.rs",
+            "replacement_text": "#[inline]\npub unsafe fn ZopfliUpdateHash(\n    mut array: *const c_uchar,\n    mut pos: size_t,\n    mut end: size_t,\n    mut h: *mut ZopfliHash,\n) {\n    let hpos = (pos & ZOPFLI_WINDOW_MASK as size_t) as c_ushort;\n    let hpos_i = hpos as isize;\n\n    let h_ref = &mut *h;\n\n    let next = if pos.wrapping_add(ZOPFLI_MIN_MATCH as size_t) <= end {\n        // SAFETY: Caller upholds that `array` is valid for reads up to `end`; the condition ensures the indexed byte is within bounds.\n        *array.add(pos.wrapping_add(ZOPFLI_MIN_MATCH as size_t).wrapping_sub(1 as size_t)) as c_uchar\n    } else {\n        0 as c_uchar\n    };\n    UpdateHashValue(h, next);\n\n    let val = h_ref.val;\n    let head = h_ref.head;\n    let prev = h_ref.prev;\n    let hashval = h_ref.hashval;\n\n    // SAFETY: `hpos` is masked to the window size and all hash table pointers are valid per caller/invariant of `ZopfliHash`.\n    *hashval.offset(hpos_i) = val;\n\n    // SAFETY: `val` is a valid hash index by construction of `UpdateHashValue`.\n    let head_idx = *head.offset(val as isize);\n    let prev_val = if head_idx != -(1 as c_int)\n        // SAFETY: `head_idx != -1` means it is a previously stored window position index into `hashval`.\n        && *hashval.offset(head_idx as isize) == val\n    {\n        head_idx as c_ushort\n    } else {\n        hpos\n    };\n    // SAFETY: `hpos` is a valid window position index.\n    *prev.offset(hpos_i) = prev_val;\n    // SAFETY: `val` is a valid hash index by construction of `UpdateHashValue`.\n    *head.offset(val as isize) = hpos as c_int;\n\n    let prev_same_idx =\n        (pos.wrapping_sub(1 as size_t) & ZOPFLI_WINDOW_MASK as size_t) as isize;\n    // SAFETY: masked window index is valid for `same`.\n    let prev_same = *h_ref.same.offset(prev_same_idx) as c_int;\n    let mut amount: size_t = if prev_same > 1 {\n        (prev_same - 1) as size_t\n    } else {\n        0 as size_t\n    };\n\n    // SAFETY: Caller guarantees `array` points to the input buffer; reading at `pos` matches original behavior.\n    let base = *array.add(pos) as c_int;\n    while pos.wrapping_add(amount).wrapping_add(1 as size_t) < end\n        // SAFETY: loop condition ensures this indexed read is within the readable prefix ending at `end`.\n        && *array.add(pos.wrapping_add(amount).wrapping_add(1 as size_t)) as c_int == base\n        && amount < -(1 as c_int) as c_ushort as size_t\n    {\n        amount = amount.wrapping_add(1);\n    }\n\n    let same = h_ref.same;\n    // SAFETY: `hpos` is a valid window position index.\n    *same.offset(hpos_i) = amount as c_ushort;\n\n    let val2 = ((*same.offset(hpos_i) as c_int - ZOPFLI_MIN_MATCH) & 255 as c_int) ^ val;\n    h_ref.val2 = val2;\n\n    let head2 = h_ref.head2;\n    let prev2 = h_ref.prev2;\n    let hashval2 = h_ref.hashval2;\n\n    // SAFETY: `hpos` is a valid window position index.\n    *hashval2.offset(hpos_i) = val2;\n\n    // SAFETY: `val2` is masked/xored into the valid secondary hash range as in the original code.\n    let head2_idx = *head2.offset(val2 as isize);\n    let prev2_val = if head2_idx != -(1 as c_int)\n        // SAFETY: `head2_idx != -1` means it is a previously stored window position index into `hashval2`.\n        && *hashval2.offset(head2_idx as isize) == val2\n    {\n        head2_idx as c_ushort\n    } else {\n        hpos\n    };\n    // SAFETY: `hpos` is a valid window position index.\n    *prev2.offset(hpos_i) = prev2_val;\n    // SAFETY: `val2` is a valid secondary hash index.\n    *head2.offset(val2 as isize) = hpos as c_int;\n}",
+            "start_byte": 3031
+          }
+        ],
+        "facts": {
+          "fn_name": "ZopfliUpdateHash",
+          "target_span_hash": "7b6f4fb1f54f0f832fea062edf7d411902f34f0f7366e1fc161182a88375172a"
+        },
+        "operation_id": "replace-71752600e10133eb"
+      }
+    ],
+    "resolved_head": "da4867e9ba9da6f304e76c1e279d90c45a5ca98a"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/hash.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

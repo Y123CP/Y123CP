@@ -1,0 +1,716 @@
+{
+  "hot_function": {
+    "symbol": "png_do_read_interlace",
+    "location": "src/libpng/pngrutil.rs:1825-2085",
+    "workload": "png_palette_roundtrip",
+    "hot_region": "src/libpng/pngrutil.rs:1825-2085",
+    "rust_source": "pub fn png_do_read_interlace(\n    mut row_info: png_row_infop,\n    mut row: png_bytep,\n    mut pass: c_int,\n    mut transformations: png_uint_32,\n) { unsafe {\n    static mut png_pass_inc: [c_uint; 7] = [\n        8 as c_int as c_uint,\n        8 as c_int as c_uint,\n        4 as c_int as c_uint,\n        4 as c_int as c_uint,\n        2 as c_int as c_uint,\n        2 as c_int as c_uint,\n        1 as c_int as c_uint,\n    ];\n    if !row.is_null() && !row_info.is_null() {\n        let mut final_width: png_uint_32 = 0;\n        final_width = ((*row_info).width as c_uint)\n            .wrapping_mul(png_pass_inc[pass as usize]) as png_uint_32;\n        match (*row_info).pixel_depth as c_int {\n            1 => {\n                let mut sp: png_bytep = row.offset(\n                    (((*row_info).width as c_uint)\n                        .wrapping_sub(1 as c_uint)\n                        >> 3 as c_int) as png_size_t as isize,\n                );\n                let mut dp: png_bytep = row.offset(\n                    ((final_width as c_uint).wrapping_sub(1 as c_uint)\n                        >> 3 as c_int) as png_size_t as isize,\n                );\n                let mut sshift: c_uint = 0;\n                let mut dshift: c_uint = 0;\n                let mut s_start: c_uint = 0;\n                let mut s_end: c_uint = 0;\n                let mut s_inc: c_int = 0;\n                let mut jstop: c_int =\n                    png_pass_inc[pass as usize] as c_int;\n                let mut v: png_byte = 0;\n                let mut i: png_uint_32 = 0;\n                let mut j: c_int = 0;\n                sshift = (7 as c_uint).wrapping_sub(\n                    ((*row_info).width as c_uint)\n                        .wrapping_add(7 as c_uint)\n                        & 0x7 as c_uint,\n                );\n                dshift = (7 as c_uint).wrapping_sub(\n                    (final_width as c_uint).wrapping_add(7 as c_uint)\n                        & 0x7 as c_uint,\n                );\n                s_start = 0 as c_uint;\n                s_end = 7 as c_uint;\n                s_inc = 1 as c_int;\n                i = 0 as png_uint_32;\n                while i < (*row_info).width {\n                    v = (*sp as c_int >> sshift & 0x1 as c_int)\n                        as png_byte;\n                    j = 0 as c_int;\n                    while j < jstop {\n                        let mut tmp: c_uint = (*dp as c_int\n                            & 0x7f7f as c_int\n                                >> (7 as c_uint).wrapping_sub(dshift))\n                            as c_uint;\n                        tmp |= ((v as c_int) << dshift) as c_uint;\n                        *dp = (tmp & 0xff as c_uint) as png_byte;\n                        if dshift == s_end {\n                            dshift = s_start;\n                            dp = dp.offset(-1);\n                        } else {\n                            dshift = (dshift as c_int + s_inc) as c_uint;\n                        }\n                        j += 1;\n                    }\n                    if sshift == s_end {\n                        sshift = s_start;\n                        sp = sp.offset(-1);\n                    } else {\n                        sshift = (sshift as c_int + s_inc) as c_uint;\n                    }\n                    i = i.wrapping_add(1);\n                }\n            }\n            2 => {\n                let mut sp_0: png_bytep = row.offset(\n                    (((*row_info).width as c_uint)\n                        .wrapping_sub(1 as c_uint)\n                        >> 2 as c_int) as isize,\n                );\n                let mut dp_0: png_bytep = row.offset(\n                    ((final_width as c_uint).wrapping_sub(1 as c_uint)\n                        >> 2 as c_int) as isize,\n                );\n                let mut sshift_0: c_uint = 0;\n                let mut dshift_0: c_uint = 0;\n                let mut s_start_0: c_uint = 0;\n                let mut s_end_0: c_uint = 0;\n                let mut s_inc_0: c_int = 0;\n                let mut jstop_0: c_int =\n                    png_pass_inc[pass as usize] as c_int;\n                let mut i_0: png_uint_32 = 0;\n                sshift_0 = (3 as c_uint).wrapping_sub(\n                    ((*row_info).width as c_uint)\n                        .wrapping_add(3 as c_uint)\n                        & 0x3 as c_uint,\n                ) << 1 as c_int;\n                dshift_0 = (3 as c_uint).wrapping_sub(\n                    (final_width as c_uint).wrapping_add(3 as c_uint)\n                        & 0x3 as c_uint,\n                ) << 1 as c_int;\n                s_start_0 = 0 as c_uint;\n                s_end_0 = 6 as c_uint;\n                s_inc_0 = 2 as c_int;\n                i_0 = 0 as png_uint_32;\n                while i_0 < (*row_info).width {\n                    let mut v_0: png_byte = 0;\n                    let mut j_0: c_int = 0;\n                    v_0 = (*sp_0 as c_int >> sshift_0 & 0x3 as c_int)\n                        as png_byte;\n                    j_0 = 0 as c_int;\n                    while j_0 < jstop_0 {\n                        let mut tmp_0: c_uint = (*dp_0 as c_int\n                            & 0x3f3f as c_int\n                                >> (6 as c_uint).wrapping_sub(dshift_0))\n                            as c_uint;\n                        tmp_0 |= ((v_0 as c_int) << dshift_0) as c_uint;\n                        *dp_0 = (tmp_0 & 0xff as c_uint) as png_byte;\n                        if dshift_0 == s_end_0 {\n                            dshift_0 = s_start_0;\n                            dp_0 = dp_0.offset(-1);\n                        } else {\n                            dshift_0 =\n                                (dshift_0 as c_int + s_inc_0) as c_uint;\n                        }\n                        j_0 += 1;\n                    }\n                    if sshift_0 == s_end_0 {\n                        sshift_0 = s_start_0;\n                        sp_0 = sp_0.offset(-1);\n                    } else {\n                        sshift_0 =\n                            (sshift_0 as c_int + s_inc_0) as c_uint;\n                    }\n                    i_0 = i_0.wrapping_add(1);\n                }\n            }\n            4 => {\n                let mut sp_1: png_bytep = row.offset(\n                    (((*row_info).width as c_uint)\n                        .wrapping_sub(1 as c_uint)\n                        >> 1 as c_int) as png_size_t as isize,\n                );\n                let mut dp_1: png_bytep = row.offset(\n                    ((final_width as c_uint).wrapping_sub(1 as c_uint)\n                        >> 1 as c_int) as png_size_t as isize,\n                );\n                let mut sshift_1: c_uint = 0;\n                let mut dshift_1: c_uint = 0;\n                let mut s_start_1: c_uint = 0;\n                let mut s_end_1: c_uint = 0;\n                let mut s_inc_1: c_int = 0;\n                let mut i_1: png_uint_32 = 0;\n                let mut jstop_1: c_int =\n                    png_pass_inc[pass as usize] as c_int;\n                sshift_1 = (1 as c_uint).wrapping_sub(\n                    ((*row_info).width as c_uint)\n                        .wrapping_add(1 as c_uint)\n                        & 0x1 as c_uint,\n                ) << 2 as c_int;\n                dshift_1 = (1 as c_uint).wrapping_sub(\n                    (final_width as c_uint).wrapping_add(1 as c_uint)\n                        & 0x1 as c_uint,\n                ) << 2 as c_int;\n                s_start_1 = 0 as c_uint;\n                s_end_1 = 4 as c_uint;\n                s_inc_1 = 4 as c_int;\n                i_1 = 0 as png_uint_32;\n                while i_1 < (*row_info).width {\n                    let mut v_1: png_byte = (*sp_1 as c_int >> sshift_1\n                        & 0xf as c_int)\n                        as png_byte;\n                    let mut j_1: c_int = 0;\n                    j_1 = 0 as c_int;\n                    while j_1 < jstop_1 {\n                        let mut tmp_1: c_uint = (*dp_1 as c_int\n                            & 0xf0f as c_int\n                                >> (4 as c_uint).wrapping_sub(dshift_1))\n                            as c_uint;\n                        tmp_1 |= ((v_1 as c_int) << dshift_1) as c_uint;\n                        *dp_1 = (tmp_1 & 0xff as c_uint) as png_byte;\n                        if dshift_1 == s_end_1 {\n                            dshift_1 = s_start_1;\n                            dp_1 = dp_1.offset(-1);\n                        } else {\n                            dshift_1 =\n                                (dshift_1 as c_int + s_inc_1) as c_uint;\n                        }\n                        j_1 += 1;\n                    }\n                    if sshift_1 == s_end_1 {\n                        sshift_1 = s_start_1;\n                        sp_1 = sp_1.offset(-1);\n                    } else {\n                        sshift_1 =\n                            (sshift_1 as c_int + s_inc_1) as c_uint;\n                    }\n                    i_1 = i_1.wrapping_add(1);\n                }\n            }\n            _ => {\n                let mut pixel_bytes: png_size_t = ((*row_info).pixel_depth as c_int\n                    >> 3 as c_int)\n                    as png_size_t;\n                let mut sp_2: png_bytep = row.offset(\n                    (((*row_info).width as c_uint)\n                        .wrapping_sub(1 as c_uint) as png_size_t)\n                        .wrapping_mul(pixel_bytes) as isize,\n                );\n                let mut dp_2: png_bytep = row.offset(\n                    ((final_width as c_uint).wrapping_sub(1 as c_uint)\n                        as png_size_t)\n                        .wrapping_mul(pixel_bytes) as isize,\n                );\n                let mut jstop_2: c_int =\n                    png_pass_inc[pass as usize] as c_int;\n                let mut i_2: png_uint_32 = 0;\n                i_2 = 0 as png_uint_32;\n                while i_2 < (*row_info).width {\n                    let mut v_2: [png_byte; 8] = [0; 8];\n                    let mut j_2: c_int = 0;\n                    memcpy(\n                        &raw mut v_2 as *mut png_byte as *mut c_void,\n                        sp_2 as *const c_void,\n                        pixel_bytes as size_t,\n                    );\n                    j_2 = 0 as c_int;\n                    while j_2 < jstop_2 {\n                        memcpy(\n                            dp_2 as *mut c_void,\n                            &raw mut v_2 as *mut png_byte as *const c_void,\n                            pixel_bytes as size_t,\n                        );\n                        dp_2 = dp_2.offset(-(pixel_bytes as isize));\n                        j_2 += 1;\n                    }\n                    sp_2 = sp_2.offset(-(pixel_bytes as isize));\n                    i_2 = i_2.wrapping_add(1);\n                }\n            }\n        }\n        (*row_info).width = final_width;\n        (*row_info).rowbytes =\n            if (*row_info).pixel_depth as c_int >= 8 as c_int {\n                (final_width as png_size_t)\n                    .wrapping_mul((*row_info).pixel_depth as png_size_t >> 3 as c_int)\n            } else {\n                (final_width as png_size_t)\n                    .wrapping_mul((*row_info).pixel_depth as png_size_t)\n                    .wrapping_add(7 as png_size_t)\n                    >> 3 as c_int\n            };\n    }\n} }",
+    "signature": "pub fn png_do_read_interlace(\n    mut row_info: png_row_infop,\n    mut row: png_bytep,\n    mut pass: c_int,\n    mut transformations: png_uint_32,\n)",
+    "profile": {
+      "self_time_ratio": 0.2134,
+      "call_count": null,
+      "retired_instructions": 3856914620,
+      "instructions_per_call": null,
+      "cpi": 0.331,
+      "tma": {
+        "scope": "process",
+        "retiring": 61.96259108596522,
+        "frontend_bound": 25.706056873302018,
+        "bad_speculation": 2.303737076310097,
+        "backend_bound": 10.027614964422664,
+        "memory_bound": 7.857355224782812,
+        "core_bound": 2.170259739639852,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.002
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_vec": {
+        "NonReductionValueUsedOutsideLoop": 8
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2000,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2006,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2000,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1937,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1943,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1937,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1878,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1882,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1878,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2065,
+        "message": "hoisting sub"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2050,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2059,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2068,
+        "message": "hoisting sub"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2050,
+        "message": "hoisting load"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 2000,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 1937,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 1878,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 2000,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2007,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2000,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 1937,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1944,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1937,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 1878,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1883,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1878,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 2050,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2050,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2075,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1842,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 1844,
+        "message": "load of type i8 eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1842,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2075,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2059,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2059,
+        "message": "loop not vectorized: instruction cannot be vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2059,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2050,
+        "message": "the cost-model indicates that vectorization is not beneficial"
+      },
+      {
+        "pass": "other",
+        "status": "missed",
+        "line": 2050,
+        "message": "the cost-model indicates that interleaving is not beneficial"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1882,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1888,
+        "message": "loop not vectorized: unsafe dependent memory operations in loop. Use #pragma loop distribute(enable) to allow loop distribution to attempt to isolate the offending operations into a separate loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1882,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1943,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1949,
+        "message": "loop not vectorized: unsafe dependent memory operations in loop. Use #pragma loop distribute(enable) to allow loop distribution to attempt to isolate the offending operations into a separate loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1943,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2006,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2012,
+        "message": "loop not vectorized: unsafe dependent memory operations in loop. Use #pragma loop distribute(enable) to allow loop distribution to attempt to isolate the offending operations into a separate loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2006,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2059,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2059,
+        "message": "loop not vectorized: instruction cannot be vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2059,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2050,
+        "message": "the cost-model indicates that vectorization is not beneficial"
+      },
+      {
+        "pass": "other",
+        "status": "missed",
+        "line": 2050,
+        "message": "the cost-model indicates that interleaving is not beneficial"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1882,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1888,
+        "message": "loop not vectorized: unsafe dependent memory operations in loop. Use #pragma loop distribute(enable) to allow loop distribution to attempt to isolate the offending operations into a separate loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1882,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1943,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1949,
+        "message": "loop not vectorized: unsafe dependent memory operations in loop. Use #pragma loop distribute(enable) to allow loop distribution to attempt to isolate the offending operations into a separate loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1943,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2006,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2012,
+        "message": "loop not vectorized: unsafe dependent memory operations in loop. Use #pragma loop distribute(enable) to allow loop distribution to attempt to isolate the offending operations into a separate loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2006,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2059,
+        "message": "1 spills 1.726509e+03 total spills cost 7 reloads 1.208556e+04 total reloads cost 1 folded reloads 1.726509e+03 total folded reloads cost 21 virtual registers copies 3.625668e+04 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2059,
+        "message": "3 virtual registers copies 6.474408e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2059,
+        "message": "3 spills 1.942322e+03 total spills cost 17 reloads 1.296230e+04 total reloads cost 2 folded reloads 1.834415e+03 total folded reloads cost 27 virtual registers copies 4.300086e+04 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2006,
+        "message": "2 virtual registers copies 3.453017e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2006,
+        "message": "1 reloads 5.395340e+01 total reloads cost 5 virtual registers copies 3.614877e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1943,
+        "message": "2 virtual registers copies 4.419862e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1943,
+        "message": "1 reloads 6.906035e+01 total reloads cost 5 virtual registers copies 4.627043e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1882,
+        "message": "2 virtual registers copies 4.419862e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1882,
+        "message": "1 reloads 6.906035e+01 total reloads cost 5 virtual registers copies 4.627043e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1844,
+        "message": "BasicBlock: bb96.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1844,
+        "message": "BasicBlock: bb96.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2000,
+        "message": "BasicBlock: bb36.i.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2007,
+        "message": "BasicBlock: bb40.us.i.i.us.i.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2022,
+        "message": "BasicBlock: bb39.bb44_crit_edge.us.i.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2001,
+        "message": "BasicBlock: bb38.us.i.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2007,
+        "message": "BasicBlock: bb40.us.i.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1937,
+        "message": "BasicBlock: bb22.i.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1944,
+        "message": "BasicBlock: bb26.us.i.i.us.i.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1959,
+        "message": "BasicBlock: bb25.bb30_crit_edge.us.i.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1940,
+        "message": "BasicBlock: bb24.us.i.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1944,
+        "message": "BasicBlock: bb26.us.i.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1878,
+        "message": "BasicBlock: bb8.i22.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1883,
+        "message": "BasicBlock: bb12.us.i.i.us.i.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1897,
+        "message": "BasicBlock: bb11.bb16_crit_edge.us.i.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1879,
+        "message": "BasicBlock: bb10.us.i.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1883,
+        "message": "BasicBlock: bb12.us.i.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2073,
+        "message": "BasicBlock: bb58.i.thread.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2060,
+        "message": "BasicBlock: bb54.us.i.i.us.i.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2073,
+        "message": "BasicBlock: bb58.thread.i.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2050,
+        "message": "BasicBlock: bb51.i.i.us.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2050,
+        "message": "BasicBlock: bb51.i.i.us.i.preheader.new"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2050,
+        "message": "BasicBlock: bb51.i.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2050,
+        "message": "BasicBlock: bb58.i.i.us.i.loopexit3.unr-lcssa"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2050,
+        "message": "BasicBlock: bb51.i.i.us.i.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2075,
+        "message": "BasicBlock: bb58.i.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2077,
+        "message": "BasicBlock: bb59.i.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2080,
+        "message": "BasicBlock: bb60.i.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2074,
+        "message": "BasicBlock: _ZN21optipng_0_7_7_cleaned3src6libpng8pngrutil21png_do_read_interlace17hf1c0203800786713E.exit.i.us.i"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2059,
+        "message": "1 spills 7.502941e+03 total spills cost 7 reloads 5.252059e+04 total reloads cost 1 folded reloads 7.502941e+03 total folded reloads cost 21 virtual registers copies 1.575618e+05 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2059,
+        "message": "3 virtual registers copies 2.813603e+04 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2059,
+        "message": "3 spills 8.440809e+03 total spills cost 16 reloads 5.586174e+04 total reloads cost 2 folded reloads 7.971875e+03 total folded reloads cost 26 virtual registers copies 1.864012e+05 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2006,
+        "message": "2 virtual registers copies 1.500588e+04 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2006,
+        "message": "3 virtual registers copies 1.524035e+04 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1943,
+        "message": "2 virtual registers copies 1.920753e+04 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1943,
+        "message": "3 virtual registers copies 1.950765e+04 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1882,
+        "message": "2 virtual registers copies 1.920753e+04 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1882,
+        "message": "3 virtual registers copies 1.950765e+04 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1878,
+        "message": "BasicBlock: bb8.i.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2050,
+        "message": "BasicBlock: bb58.i.i.us.i.loopexit461.unr-lcssa"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2075,
+        "message": "BasicBlock: bb58.i.i.us.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

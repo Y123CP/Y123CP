@@ -1,0 +1,226 @@
+{
+  "hot_function": {
+    "symbol": "ZopfliCalculateEntropy",
+    "location": "src/tree.rs:64-99",
+    "workload": "tree_codegen",
+    "hot_region": "src/tree.rs:64-99",
+    "rust_source": "pub unsafe fn ZopfliCalculateEntropy(\n    mut count: *const size_t,\n    mut n: size_t,\n    mut bitlengths: *mut c_double,\n) {\n    static mut kInvLog2: c_double = 1.4426950408889f64;\n    let mut sum: c_uint = 0 as c_uint;\n    let mut i: c_uint = 0;\n    let mut log2sum: c_double = 0.;\n    i = 0 as c_uint;\n    while (i as size_t) < n {\n        sum = (sum as size_t).wrapping_add(*count.offset(i as isize)) as c_uint\n            as c_uint;\n        i = i.wrapping_add(1);\n    }\n    log2sum = (if sum == 0 as c_uint {\n        log(n as c_double)\n    } else {\n        log(sum as c_double)\n    }) * kInvLog2;\n    i = 0 as c_uint;\n    while (i as size_t) < n {\n        if *count.offset(i as isize) == 0 as size_t {\n            *bitlengths.offset(i as isize) = log2sum;\n        } else {\n            *bitlengths.offset(i as isize) =\n                log2sum - log(*count.offset(i as isize) as c_double) * kInvLog2;\n        }\n        if *bitlengths.offset(i as isize) < 0 as c_int as c_double\n            && *bitlengths.offset(i as isize) > -1e-5f64\n        {\n            *bitlengths.offset(i as isize) = 0 as c_int as c_double;\n        }\n        i = i.wrapping_add(1);\n    }\n}",
+    "signature": "pub unsafe fn ZopfliCalculateEntropy(\n    mut count: *const size_t,\n    mut n: size_t,\n    mut bitlengths: *mut c_double,\n)",
+    "profile": {
+      "self_time_ratio": 0.0468,
+      "call_count": null,
+      "retired_instructions": 891954065,
+      "instructions_per_call": null,
+      "cpi": 0.315,
+      "tma": {
+        "scope": "process",
+        "retiring": 70.77338279286296,
+        "frontend_bound": 22.46719622558491,
+        "bad_speculation": 1.285734217606577,
+        "backend_bound": 5.473686763945548,
+        "memory_bound": 4.37048704125742,
+        "core_bound": 1.1031997226881276,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0021
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 80,
+        "message": "log will not be inlined into _ZN14zopfli_cleaned3src4tree22ZopfliCalculateEntropy17h70840896ba666513E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 82,
+        "message": "log will not be inlined into _ZN14zopfli_cleaned3src4tree22ZopfliCalculateEntropy17h70840896ba666513E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 90,
+        "message": "log will not be inlined into _ZN14zopfli_cleaned3src4tree22ZopfliCalculateEntropy17h70840896ba666513E because its definition is unavailable"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 90,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 86,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 83,
+        "message": "load of type double not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 86,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 90,
+        "message": "load of type double not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 92,
+        "message": "load of type double eliminated"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 74,
+        "message": "completely unrolled loop with 32 iterations"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 75,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 83,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 86,
+        "message": "1 reloads 2.028572e+01 total reloads cost 3 virtual registers copies 8.523810e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 75,
+        "message": "BasicBlock: vector.body"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 74,
+        "message": "BasicBlock: middle.block"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 82,
+        "message": "BasicBlock: bb8.thread.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 92,
+        "message": "BasicBlock: bb14.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 86,
+        "message": "BasicBlock: bb10.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 90,
+        "message": "BasicBlock: bb12.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 75,
+        "message": "BasicBlock: _ZN14zopfli_cleaned3src4tree22ZopfliCalculateEntropy17h70840896ba666513E.exit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 82,
+        "message": "BasicBlock: bb8.thread.i12"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 92,
+        "message": "BasicBlock: bb14.i26"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 86,
+        "message": "BasicBlock: bb10.i16"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 90,
+        "message": "BasicBlock: bb12.i21"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 86,
+        "message": "2 reloads 1.039840e+03 total reloads cost 3 virtual registers copies 1.679742e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 75,
+        "message": "BasicBlock: vector.body44"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 74,
+        "message": "BasicBlock: middle.block39"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 82,
+        "message": "BasicBlock: bb8.thread.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 92,
+        "message": "BasicBlock: bb14.i101"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 90,
+        "message": "BasicBlock: bb12.i97"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

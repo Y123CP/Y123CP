@@ -1,0 +1,175 @@
+{
+  "applied_rules": [
+    "III④,C3,C1"
+  ],
+  "commit_sha": "d7120e4",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -13.536280836654893,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -13.463766713882281,
+            "aggregate_ci_low_pct": -13.608794959427504,
+            "aggregate_pct": -13.536280836654893,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -14.6759,
+                "ci_low_pct": -14.9119,
+                "insns_delta_pct": -27.571,
+                "mean_delta_pct": -14.7939,
+                "op": "decode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -14.7401,
+                "ci_low_pct": -15.1151,
+                "insns_delta_pct": -27.8846,
+                "mean_delta_pct": -14.9276,
+                "op": "decode_sync_hd",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -11.8547,
+                "ci_low_pct": -12.0354,
+                "insns_delta_pct": -22.7114,
+                "mean_delta_pct": -11.945,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -12.2671,
+                "ci_low_pct": -12.6899,
+                "insns_delta_pct": -23.1341,
+                "mean_delta_pct": -12.4785,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "decode_std",
+          "decode_sync_hd",
+          "encode_hd_reset",
+          "encode_std"
+        ],
+        "reason": "accepted",
+        "triggering_op": "encode_hd_reset"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "97581190ee6f11b28337d37991fb163e326094ad",
+      "changeset_id": "legacy-e02a7af24c084242",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-3e221f66c471079f",
+          "replacement_function_source": "// Applied rules: [III④, C3, C1]\n// Skipped rules: [III③: Hit [4] is a call to aptx_reconstructed_differences_update, not a visible libc/custom bytewise memory primitive in this function body; without inspecting and inlining that callee body, III③ cannot address a concrete in-function memory-op site here.]\nunsafe fn aptx_prediction_filtering(\n    mut prediction: *mut aptx_prediction,\n    mut reconstructed_difference: int32_t,\n    mut order: c_int,\n) {\n    let mut reconstructed_sample: int32_t = 0;\n    let mut predictor: int32_t = 0;\n    let mut srd0: int32_t = 0;\n    let mut srd: int32_t = 0;\n    let mut reconstructed_differences: *mut int32_t = ::core::ptr::null_mut::<int32_t>();\n    let mut predicted_difference: int64_t = 0 as int64_t;\n    let mut i: c_int = 0;\n\n    let prediction_ref = &mut *prediction;\n    let s_weight0 = prediction_ref.s_weight[0];\n    let s_weight1 = prediction_ref.s_weight[1];\n    let previous_reconstructed_sample = prediction_ref.previous_reconstructed_sample;\n    let predicted_sample_in = prediction_ref.predicted_sample;\n\n    reconstructed_sample = clip_intp2(\n        reconstructed_difference + predicted_sample_in,\n        23 as c_uint,\n    );\n    predictor = clip_intp2(\n        ((s_weight0 as int64_t * previous_reconstructed_sample as int64_t\n            + s_weight1 as int64_t * reconstructed_sample as int64_t\n            >> 22 as c_int) as int32_t),\n        23 as c_uint,\n    );\n    prediction_ref.previous_reconstructed_sample = reconstructed_sample;\n    reconstructed_differences =\n        aptx_reconstructed_differences_update(prediction, reconstructed_difference, order);\n    srd0 = ((reconstructed_difference > 0 as int32_t) as c_int\n        - (reconstructed_difference < 0 as int32_t) as c_int) as int32_t\n        * ((1 as c_int as int32_t) << 23 as c_int);\n\n    let order_usize = order as usize;\n    let d_weight = &mut prediction_ref.d_weight[..order_usize];\n    // SAFETY: `aptx_reconstructed_differences_update` returns a cursor into the\n    // `prediction_ref.reconstructed_differences` ring buffer. This loop accesses\n    // `reconstructed_differences[-i - 1]` and `reconstructed_differences[-i]`\n    // for `i in 0..order`, so the required readable region is exactly the\n    // `order + 1` elements ending at `reconstructed_differences`. The pointer is\n    // non-null by the callee contract, and this shared slice does not alias the\n    // distinct mutable borrow of `d_weight`.\n    let reconstructed_differences_view = unsafe {\n        core::slice::from_raw_parts(\n            reconstructed_differences.sub(order_usize),\n            order_usize + 1,\n        )\n    };\n\n    i = 0 as c_int;\n    while i < order {\n        let idx = i as usize;\n        // SAFETY: `idx < order_usize` by the loop bound `i < order`, and\n        // `d_weight` was sliced to length `order_usize`.\n        let d_weight_i = unsafe { d_weight.get_unchecked_mut(idx) };\n        let rd_prev = reconstructed_differences_view[idx];\n        let rd_cur = reconstructed_differences_view[idx + 1];\n\n        srd = rd_prev >> 31 as c_int | 1 as int32_t;\n        *d_weight_i -= rshift32(*d_weight_i - srd * srd0, 8 as c_uint);\n        predicted_difference += rd_cur as int64_t * *d_weight_i as int64_t;\n        i += 1;\n    }\n    prediction_ref.predicted_difference = clip_intp2(\n        (predicted_difference >> 22 as c_int) as int32_t,\n        23 as c_uint,\n    );\n    prediction_ref.predicted_sample = clip_intp2(\n        predictor + prediction_ref.predicted_difference,\n        23 as c_uint,\n    );\n}",
+          "rule_id": "III④,C3,C1",
+          "target": {
+            "declaration_hash": "bb629d94dbe5ae5bccac4e9ab030fa0eb52da51ae4f44e29453634f4f0890241",
+            "file_hint": "src/openaptx.rs",
+            "qualified_name": "crate::aptx_prediction_filtering",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "aptx_prediction_filtering-442a2b10db2a",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "aptx_prediction_filtering",
+        "rule_id": "III④,C3,C1"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "7f0e39d4fc5153087b2606513bb04ebcf9819b1b4d1a414b188cabf7b89f3e9a",
+            "edit_id": "edit-replace-3e221f66c471079f",
+            "end_byte": 63065,
+            "operation_id": "replace-3e221f66c471079f",
+            "relative_path": "src/openaptx.rs",
+            "replacement_text": "// Applied rules: [III④, C3, C1]\n// Skipped rules: [III③: Hit [4] is a call to aptx_reconstructed_differences_update, not a visible libc/custom bytewise memory primitive in this function body; without inspecting and inlining that callee body, III③ cannot address a concrete in-function memory-op site here.]\nunsafe fn aptx_prediction_filtering(\n    mut prediction: *mut aptx_prediction,\n    mut reconstructed_difference: int32_t,\n    mut order: c_int,\n) {\n    let mut reconstructed_sample: int32_t = 0;\n    let mut predictor: int32_t = 0;\n    let mut srd0: int32_t = 0;\n    let mut srd: int32_t = 0;\n    let mut reconstructed_differences: *mut int32_t = ::core::ptr::null_mut::<int32_t>();\n    let mut predicted_difference: int64_t = 0 as int64_t;\n    let mut i: c_int = 0;\n\n    let prediction_ref = &mut *prediction;\n    let s_weight0 = prediction_ref.s_weight[0];\n    let s_weight1 = prediction_ref.s_weight[1];\n    let previous_reconstructed_sample = prediction_ref.previous_reconstructed_sample;\n    let predicted_sample_in = prediction_ref.predicted_sample;\n\n    reconstructed_sample = clip_intp2(\n        reconstructed_difference + predicted_sample_in,\n        23 as c_uint,\n    );\n    predictor = clip_intp2(\n        ((s_weight0 as int64_t * previous_reconstructed_sample as int64_t\n            + s_weight1 as int64_t * reconstructed_sample as int64_t\n            >> 22 as c_int) as int32_t),\n        23 as c_uint,\n    );\n    prediction_ref.previous_reconstructed_sample = reconstructed_sample;\n    reconstructed_differences =\n        aptx_reconstructed_differences_update(prediction, reconstructed_difference, order);\n    srd0 = ((reconstructed_difference > 0 as int32_t) as c_int\n        - (reconstructed_difference < 0 as int32_t) as c_int) as int32_t\n        * ((1 as c_int as int32_t) << 23 as c_int);\n\n    let order_usize = order as usize;\n    let d_weight = &mut prediction_ref.d_weight[..order_usize];\n    // SAFETY: `aptx_reconstructed_differences_update` returns a cursor into the\n    // `prediction_ref.reconstructed_differences` ring buffer. This loop accesses\n    // `reconstructed_differences[-i - 1]` and `reconstructed_differences[-i]`\n    // for `i in 0..order`, so the required readable region is exactly the\n    // `order + 1` elements ending at `reconstructed_differences`. The pointer is\n    // non-null by the callee contract, and this shared slice does not alias the\n    // distinct mutable borrow of `d_weight`.\n    let reconstructed_differences_view = unsafe {\n        core::slice::from_raw_parts(\n            reconstructed_differences.sub(order_usize),\n            order_usize + 1,\n        )\n    };\n\n    i = 0 as c_int;\n    while i < order {\n        let idx = i as usize;\n        // SAFETY: `idx < order_usize` by the loop bound `i < order`, and\n        // `d_weight` was sliced to length `order_usize`.\n        let d_weight_i = unsafe { d_weight.get_unchecked_mut(idx) };\n        let rd_prev = reconstructed_differences_view[idx];\n        let rd_cur = reconstructed_differences_view[idx + 1];\n\n        srd = rd_prev >> 31 as c_int | 1 as int32_t;\n        *d_weight_i -= rshift32(*d_weight_i - srd * srd0, 8 as c_uint);\n        predicted_difference += rd_cur as int64_t * *d_weight_i as int64_t;\n        i += 1;\n    }\n    prediction_ref.predicted_difference = clip_intp2(\n        (predicted_difference >> 22 as c_int) as int32_t,\n        23 as c_uint,\n    );\n    prediction_ref.predicted_sample = clip_intp2(\n        predictor + prediction_ref.predicted_difference,\n        23 as c_uint,\n    );\n}",
+            "start_byte": 60957
+          }
+        ],
+        "facts": {
+          "fn_name": "aptx_prediction_filtering",
+          "target_span_hash": "bb629d94dbe5ae5bccac4e9ab030fa0eb52da51ae4f44e29453634f4f0890241"
+        },
+        "operation_id": "replace-3e221f66c471079f"
+      }
+    ],
+    "resolved_head": "97581190ee6f11b28337d37991fb163e326094ad"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/openaptx.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

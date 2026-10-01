@@ -1,0 +1,1329 @@
+{
+  "hot_function": {
+    "symbol": "LZ4HC_InsertAndGetWiderMatch",
+    "location": "src/lz4hc.rs:1315-1679",
+    "workload": "compress_hc_decompress",
+    "hot_region": "src/lz4hc.rs:1315-1679",
+    "rust_source": "unsafe fn LZ4HC_InsertAndGetWiderMatch(\n    hc4: *mut LZ4HC_CCtx_internal,\n    ip_0: *const BYTE,\n    iLowLimit: *const BYTE,\n    iHighLimit: *const BYTE,\n    mut longest: c_int,\n    maxNbAttempts: c_int,\n    patternAnalysis: c_int,\n    chainSwap: c_int,\n    dict: dictCtx_directive,\n    favorDecSpeed: HCfavor_e,\n) -> LZ4HC_match_t {\n    let chainTable: *mut U16 = &raw mut (*hc4).chainTable as *mut U16;\n    let hashTable: *mut U32 = &raw mut (*hc4).hashTable as *mut U32;\n    let dictCtx: *const LZ4HC_CCtx_internal = (*hc4).dictCtx;\n    let prefixPtr: *const BYTE = (*hc4).prefixStart as *const BYTE;\n    let prefixIdx: U32 = (*hc4).dictLimit as U32;\n    let ipIndex: U32 =\n        (ip_0.offset_from(prefixPtr) as c_long as U32).wrapping_add(prefixIdx);\n    let withinStartDistance: c_int = ((*hc4)\n        .lowLimit\n        .wrapping_add((LZ4_DISTANCE_MAX + 1 as c_int) as LZ4_u32)\n        > ipIndex) as c_int;\n    let lowestMatchIndex: U32 = if withinStartDistance != 0 {\n        (*hc4).lowLimit as U32\n    } else {\n        ipIndex.wrapping_sub(LZ4_DISTANCE_MAX as U32)\n    };\n    let dictStart: *const BYTE = (*hc4).dictStart as *const BYTE;\n    let dictIdx: U32 = (*hc4).lowLimit as U32;\n    let dictEnd: *const BYTE = dictStart\n        .offset(prefixIdx as isize)\n        .offset(-(dictIdx as isize));\n    let lookBackLength: c_int =\n        ip_0.offset_from(iLowLimit) as c_long as c_int;\n    let mut nbAttempts: c_int = maxNbAttempts;\n    let mut matchChainPos: U32 = 0 as U32;\n    let pattern: U32 = LZ4_read32(ip_0 as *const c_void) as U32;\n    let mut matchIndex: U32 = 0;\n    let mut repeat: repeat_state_e = rep_untested;\n    let mut srcPatternLength: size_t = 0 as size_t;\n    let mut offset: c_int = 0 as c_int;\n    let mut sBack: c_int = 0 as c_int;\n    LZ4HC_Insert(hc4, ip_0);\n    matchIndex = *hashTable.offset(LZ4HC_hashPtr(ip_0 as *const c_void) as isize);\n    while matchIndex >= lowestMatchIndex && nbAttempts > 0 as c_int {\n        let mut matchLength: c_int = 0 as c_int;\n        nbAttempts -= 1;\n        if !(favorDecSpeed as c_uint != 0\n            && ipIndex.wrapping_sub(matchIndex) < 8 as U32)\n        {\n            if matchIndex >= prefixIdx {\n                let matchPtr: *const BYTE =\n                    prefixPtr.offset(matchIndex.wrapping_sub(prefixIdx) as isize);\n                if LZ4_read16(\n                    iLowLimit\n                        .offset(longest as isize)\n                        .offset(-(1 as c_int as isize))\n                        as *const c_void,\n                ) as c_int\n                    == LZ4_read16(\n                        matchPtr\n                            .offset(-(lookBackLength as isize))\n                            .offset(longest as isize)\n                            .offset(-(1 as c_int as isize))\n                            as *const c_void,\n                    ) as c_int\n                {\n                    if LZ4_read32(matchPtr as *const c_void) == pattern {\n                        let back: c_int = if lookBackLength != 0 {\n                            LZ4HC_countBack(ip_0, matchPtr, iLowLimit, prefixPtr)\n                                as c_int\n                        } else {\n                            0 as c_int\n                        };\n                        matchLength = MINMATCH\n                            + LZ4_count(\n                                ip_0.offset(MINMATCH as isize),\n                                matchPtr.offset(MINMATCH as isize),\n                                iHighLimit,\n                            ) as c_int;\n                        matchLength -= back;\n                        if matchLength > longest {\n                            longest = matchLength;\n                            offset = ipIndex.wrapping_sub(matchIndex) as c_int;\n                            sBack = back;\n                        }\n                    }\n                }\n            } else {\n                let matchPtr_0: *const BYTE =\n                    dictStart.offset(matchIndex.wrapping_sub(dictIdx) as isize);\n                if ((matchIndex <= prefixIdx.wrapping_sub(4 as U32)) as c_int\n                    != 0 as c_int) as c_int\n                    as c_long\n                    != 0\n                    && LZ4_read32(matchPtr_0 as *const c_void) == pattern\n                {\n                    let mut back_0: c_int = 0 as c_int;\n                    let mut vLimit: *const BYTE =\n                        ip_0.offset(prefixIdx.wrapping_sub(matchIndex) as isize);\n                    if vLimit > iHighLimit {\n                        vLimit = iHighLimit;\n                    }\n                    matchLength = LZ4_count(\n                        ip_0.offset(MINMATCH as isize),\n                        matchPtr_0.offset(MINMATCH as isize),\n                        vLimit,\n                    ) as c_int\n                        + MINMATCH;\n                    if ip_0.offset(matchLength as isize) == vLimit && vLimit < iHighLimit {\n                        matchLength = (matchLength as c_uint).wrapping_add(LZ4_count(\n                            ip_0.offset(matchLength as isize),\n                            prefixPtr,\n                            iHighLimit,\n                        )) as c_int\n                            as c_int;\n                    }\n                    back_0 = if lookBackLength != 0 {\n                        LZ4HC_countBack(ip_0, matchPtr_0, iLowLimit, dictStart)\n                    } else {\n                        0 as c_int\n                    };\n                    matchLength -= back_0;\n                    if matchLength > longest {\n                        longest = matchLength;\n                        offset = ipIndex.wrapping_sub(matchIndex) as c_int;\n                        sBack = back_0;\n                    }\n                }\n            }\n        }\n        if chainSwap != 0 && matchLength == longest {\n            if matchIndex.wrapping_add(longest as U32) <= ipIndex {\n                let kTrigger: c_int = 4 as c_int;\n                let mut distanceToNextMatch: U32 = 1 as U32;\n                let end: c_int = longest - MINMATCH + 1 as c_int;\n                let mut step: c_int = 1 as c_int;\n                let mut accel: c_int = (1 as c_int) << kTrigger;\n                let mut pos: c_int = 0;\n                pos = 0 as c_int;\n                while pos < end {\n                    let candidateDist: U32 = *chainTable\n                        .offset(matchIndex.wrapping_add(pos as U32) as U16 as isize)\n                        as U32;\n                    let fresh11 = accel;\n                    accel = accel + 1;\n                    step = fresh11 >> kTrigger;\n                    if candidateDist > distanceToNextMatch {\n                        distanceToNextMatch = candidateDist;\n                        matchChainPos = pos as U32;\n                        accel = (1 as c_int) << kTrigger;\n                    }\n                    pos += step;\n                }\n                if distanceToNextMatch > 1 as U32 {\n                    if distanceToNextMatch > matchIndex {\n                        break;\n                    }\n                    matchIndex = matchIndex.wrapping_sub(distanceToNextMatch);\n                    continue;\n                }\n            }\n        }\n        let distNextMatch: U32 = *chainTable.offset(matchIndex as U16 as isize) as U32;\n        if patternAnalysis != 0 && distNextMatch == 1 as U32 && matchChainPos == 0 as U32 {\n            let matchCandidateIdx: U32 = matchIndex.wrapping_sub(1 as U32);\n            if repeat as c_uint\n                == rep_untested as c_int as c_uint\n            {\n                if (pattern & 0xffff as U32 == pattern >> 16 as c_int)\n                    as c_int\n                    & (pattern & 0xff as U32 == pattern >> 24 as c_int)\n                        as c_int\n                    != 0\n                {\n                    repeat = rep_confirmed;\n                    srcPatternLength = (LZ4HC_countPattern(\n                        ip_0.offset(::core::mem::size_of::<U32>() as usize as isize),\n                        iHighLimit,\n                        pattern,\n                    ) as usize)\n                        .wrapping_add(::core::mem::size_of::<U32>() as usize)\n                        as size_t;\n                } else {\n                    repeat = rep_not;\n                }\n            }\n            if repeat as c_uint\n                == rep_confirmed as c_int as c_uint\n                && matchCandidateIdx >= lowestMatchIndex\n                && LZ4HC_protectDictEnd(prefixIdx, matchCandidateIdx) != 0\n            {\n                let extDict: c_int =\n                    (matchCandidateIdx < prefixIdx) as c_int;\n                let matchPtr_1: *const BYTE = if extDict != 0 {\n                    dictStart.offset(matchCandidateIdx.wrapping_sub(dictIdx) as isize)\n                } else {\n                    prefixPtr.offset(matchCandidateIdx.wrapping_sub(prefixIdx) as isize)\n                };\n                if LZ4_read32(matchPtr_1 as *const c_void) == pattern {\n                    let iLimit: *const BYTE = if extDict != 0 { dictEnd } else { iHighLimit };\n                    let mut forwardPatternLength: size_t = (LZ4HC_countPattern(\n                        matchPtr_1.offset(::core::mem::size_of::<U32>() as usize as isize),\n                        iLimit,\n                        pattern,\n                    ) as size_t)\n                        .wrapping_add(::core::mem::size_of::<U32>() as size_t);\n                    if extDict != 0 && matchPtr_1.offset(forwardPatternLength as isize) == iLimit {\n                        let rotatedPattern: U32 =\n                            LZ4HC_rotatePattern(forwardPatternLength, pattern) as U32;\n                        forwardPatternLength = forwardPatternLength.wrapping_add(\n                            LZ4HC_countPattern(prefixPtr, iHighLimit, rotatedPattern) as size_t,\n                        );\n                    }\n                    let lowestMatchPtr: *const BYTE =\n                        if extDict != 0 { dictStart } else { prefixPtr };\n                    let mut backLength: size_t =\n                        LZ4HC_reverseCountPattern(matchPtr_1, lowestMatchPtr, pattern) as size_t;\n                    let mut currentSegmentLength: size_t = 0;\n                    if extDict == 0\n                        && matchPtr_1.offset(-(backLength as isize)) == prefixPtr\n                        && dictIdx < prefixIdx\n                    {\n                        let rotatedPattern_0: U32 = LZ4HC_rotatePattern(\n                            -(backLength as c_int) as U32 as size_t,\n                            pattern,\n                        ) as U32;\n                        backLength = backLength.wrapping_add(LZ4HC_reverseCountPattern(\n                            dictEnd,\n                            dictStart,\n                            rotatedPattern_0,\n                        ) as size_t);\n                    }\n                    backLength = matchCandidateIdx.wrapping_sub(\n                        (if matchCandidateIdx.wrapping_sub(backLength as U32) > lowestMatchIndex {\n                            matchCandidateIdx.wrapping_sub(backLength as U32)\n                        } else {\n                            lowestMatchIndex\n                        }),\n                    ) as size_t;\n                    currentSegmentLength = backLength.wrapping_add(forwardPatternLength);\n                    if currentSegmentLength >= srcPatternLength\n                        && forwardPatternLength <= srcPatternLength\n                    {\n                        let newMatchIndex: U32 = matchCandidateIdx\n                            .wrapping_add(forwardPatternLength as U32)\n                            .wrapping_sub(srcPatternLength as U32);\n                        if LZ4HC_protectDictEnd(prefixIdx, newMatchIndex) != 0 {\n                            matchIndex = newMatchIndex;\n                        } else {\n                            matchIndex = prefixIdx;\n                        }\n                        continue;\n                    } else {\n                        let newMatchIndex_0: U32 =\n                            matchCandidateIdx.wrapping_sub(backLength as U32);\n                        if LZ4HC_protectDictEnd(prefixIdx, newMatchIndex_0) == 0 {\n                            matchIndex = prefixIdx;\n                            continue;\n                        } else {\n                            matchIndex = newMatchIndex_0;\n                            if !(lookBackLength == 0 as c_int) {\n                                continue;\n                            }\n                            let maxML: size_t = if currentSegmentLength < srcPatternLength {\n                                currentSegmentLength\n                            } else {\n                                srcPatternLength\n                            };\n                            if (longest as size_t) < maxML {\n                                if (ip_0.offset_from(prefixPtr) as c_long as size_t)\n                                    .wrapping_add(prefixIdx as size_t)\n                                    .wrapping_sub(matchIndex as size_t)\n                                    > LZ4_DISTANCE_MAX as size_t\n                                {\n                                    break;\n                                }\n                                longest = maxML as c_int;\n                                offset = ipIndex.wrapping_sub(matchIndex) as c_int;\n                            }\n                            let distToNextPattern: U32 =\n                                *chainTable.offset(matchIndex as U16 as isize) as U32;\n                            if distToNextPattern > matchIndex {\n                                break;\n                            }\n                            matchIndex = matchIndex.wrapping_sub(distToNextPattern);\n                            continue;\n                        }\n                    }\n                }\n            }\n        }\n        matchIndex = matchIndex.wrapping_sub(\n            *chainTable.offset(matchIndex.wrapping_add(matchChainPos) as U16 as isize) as U32,\n        );\n    }\n    if dict as c_uint == usingDictCtxHc as c_int as c_uint\n        && nbAttempts > 0 as c_int\n        && withinStartDistance != 0\n    {\n        let dictEndOffset: size_t = ((*dictCtx).end.offset_from((*dictCtx).prefixStart)\n            as c_long as size_t)\n            .wrapping_add((*dictCtx).dictLimit as size_t);\n        let mut dictMatchIndex: U32 =\n            (*dictCtx).hashTable[LZ4HC_hashPtr(ip_0 as *const c_void) as usize];\n        matchIndex = dictMatchIndex\n            .wrapping_add(lowestMatchIndex)\n            .wrapping_sub(dictEndOffset as U32);\n        dictMatchIndex > 0 as U32;\n        while ipIndex.wrapping_sub(matchIndex) <= LZ4_DISTANCE_MAX as U32 && {\n            let fresh12 = nbAttempts;\n            nbAttempts = nbAttempts - 1;\n            fresh12 != 0\n        } {\n            let matchPtr_2: *const BYTE = (*dictCtx)\n                .prefixStart\n                .offset(-((*dictCtx).dictLimit as isize))\n                .offset(dictMatchIndex as isize);\n            if LZ4_read32(matchPtr_2 as *const c_void) == pattern {\n                let mut mlt: c_int = 0;\n                let mut back_1: c_int = 0 as c_int;\n                let mut vLimit_0: *const BYTE =\n                    ip_0.offset(dictEndOffset.wrapping_sub(dictMatchIndex as size_t) as isize);\n                if vLimit_0 > iHighLimit {\n                    vLimit_0 = iHighLimit;\n                }\n                mlt = LZ4_count(\n                    ip_0.offset(MINMATCH as isize),\n                    matchPtr_2.offset(MINMATCH as isize),\n                    vLimit_0,\n                ) as c_int\n                    + MINMATCH;\n                back_1 = if lookBackLength != 0 {\n                    LZ4HC_countBack(\n                        ip_0,\n                        matchPtr_2,\n                        iLowLimit,\n                        (*dictCtx).prefixStart as *const BYTE,\n                    )\n                } else {\n                    0 as c_int\n                };\n                mlt -= back_1;\n                if mlt > longest {\n                    longest = mlt;\n                    offset = ipIndex.wrapping_sub(matchIndex) as c_int;\n                    sBack = back_1;\n                }\n            }\n            let nextOffset: U32 = (*dictCtx).chainTable[dictMatchIndex as U16 as usize] as U32;\n            dictMatchIndex = dictMatchIndex.wrapping_sub(nextOffset);\n            matchIndex = matchIndex.wrapping_sub(nextOffset);\n        }\n    }\n    let mut md: LZ4HC_match_t = LZ4HC_match_t {\n        off: 0,\n        len: 0,\n        back: 0,\n    };\n    md.len = longest;\n    md.off = offset;\n    md.back = sBack;\n    return md;\n}",
+    "signature": "unsafe fn LZ4HC_InsertAndGetWiderMatch(\n    hc4: *mut LZ4HC_CCtx_internal,\n    ip_0: *const BYTE,\n    iLowLimit: *const BYTE,\n    iHighLimit: *const BYTE,\n    mut longest: c_int,\n    maxNbAttempts: c_int,\n    patternAnalysis: c_int,\n    chainSwap: c_int,\n    dict: dictCtx_directive,\n    favorDecSpeed: HCfavor_e,\n) -> LZ4HC_match_t",
+    "profile": {
+      "self_time_ratio": 0.5343,
+      "call_count": null,
+      "retired_instructions": 6416668584,
+      "instructions_per_call": null,
+      "cpi": 0.481,
+      "tma": {
+        "scope": "process",
+        "retiring": 47.98748697740091,
+        "frontend_bound": 12.893058778247108,
+        "bad_speculation": 17.42838488022511,
+        "backend_bound": 21.691069364126868,
+        "memory_bound": 14.307134569924518,
+        "core_bound": 7.38393479420235,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0214
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_vec": {
+        "NonReductionValueUsedOutsideLoop": 1,
+        "CantComputeNumberOfIterations": 1
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1358,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc12LZ4HC_Insert17h4f672cf107df68c2E' inlined into '_ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE:43:5;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1419,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E' inlined into '_ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE:104:35;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1426,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E' inlined into '_ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE:111:76;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1434,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc15LZ4HC_countBack17hcbb4e36ebce2a3acE' inlined into '_ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE:119:25;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1385,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc15LZ4HC_countBack17hcbb4e36ebce2a3acE' inlined into '_ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE:70:29;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1391,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E' inlined into '_ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE:76:31;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1642,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E' inlined into '_ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE:327:23;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1649,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc15LZ4HC_countBack17hcbb4e36ebce2a3acE' inlined into '_ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE:334:21;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1492,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc18LZ4HC_countPattern17ha80319d698a8cdc3E' inlined into '_ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE' with (cost=60, threshold=250) at callsite _ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE:177:41;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1517,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc18LZ4HC_countPattern17ha80319d698a8cdc3E' inlined into '_ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE' with (cost=60, threshold=250) at callsite _ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE:202:61;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1527,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc18LZ4HC_countPattern17ha80319d698a8cdc3E' inlined into '_ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE' with (cost=-14940, threshold=250) at callsite _ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE:212:29;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1533,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc25LZ4HC_reverseCountPattern17h77b234f3cc12beffE' inlined into '_ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE' with (cost=40, threshold=250) at callsite _ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE:218:25;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1543,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc25LZ4HC_reverseCountPattern17h77b234f3cc12beffE' inlined into '_ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE' with (cost=-14960, threshold=250) at callsite _ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17ha3fb79b5b6cd4e1eE:228:62;"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1363,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1377,
+        "message": "hoisting shl"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1377,
+        "message": "hoisting ashr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1377,
+        "message": "hoisting sub"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1384,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1433,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1447,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1480,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1485,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1485,
+        "message": "hoisting lshr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1485,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1487,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1487,
+        "message": "hoisting lshr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1487,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1485,
+        "message": "hoisting or"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1577,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1632,
+        "message": "hoisting sub"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1648,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1616,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1616,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1618,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1620,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1329,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1330,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1331,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1334,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1343,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1327,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1329,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1330,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1331,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1334,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1343,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1612,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1329,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1330,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1331,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1334,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1343,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 1609,
+        "message": "load of type i16 eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1616,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1616,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1616,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1616,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1618,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1618,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1456,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1456,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1456,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1456,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1456,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1456,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1456,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1456,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1456,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1360,
+        "message": "3 spills 2.762627e+00 total spills cost 60 reloads 3.701212e+01 total reloads cost 35 folded reloads 6.240092e+01 total folded reloads cost 38 virtual registers copies 6.045521e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1625,
+        "message": "1 spills 1.350764e+00 total spills cost 16 reloads 1.215688e+01 total reloads cost 1 folded reloads 1.350764e+00 total folded reloads cost 4 virtual registers copies 2.532682e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1360,
+        "message": "9 spills 4.728358e+01 total spills cost 104 reloads 6.303904e+02 total reloads cost 35 folded reloads 2.727611e+02 total folded reloads cost 68 virtual registers copies 7.771231e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1625,
+        "message": "2 spills 1.401815e+01 total spills cost 14 reloads 1.297861e+02 total reloads cost 3 folded reloads 1.728627e+01 total folded reloads cost 13 virtual registers copies 7.993427e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1360,
+        "message": "8 spills 2.070389e+01 total spills cost 86 reloads 2.359268e+02 total reloads cost 40 folded reloads 1.577549e+02 total folded reloads cost 44 virtual registers copies 1.848684e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1625,
+        "message": "3 spills 1.019486e+01 total spills cost 15 reloads 6.972218e+01 total reloads cost 3 folded reloads 8.381092e+00 total folded reloads cost 5 virtual registers copies 2.983492e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1456,
+        "message": "4 virtual registers copies 3.248968e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1360,
+        "message": "7 spills 7.356575e+00 total spills cost 84 reloads 3.304942e+01 total reloads cost 38 folded reloads 4.494033e+01 total folded reloads cost 69 virtual registers copies 3.780377e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1625,
+        "message": "1 spills 1.166216e+00 total spills cost 17 reloads 1.071461e+01 total reloads cost 1 folded reloads 1.166216e+00 total folded reloads cost 4 virtual registers copies 4.300422e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1456,
+        "message": "1 reloads 1.053816e+02 total reloads cost 4 virtual registers copies 4.215266e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1360,
+        "message": "6 spills 2.878433e+00 total spills cost 98 reloads 1.724613e+02 total reloads cost 37 folded reloads 4.667362e+01 total folded reloads cost 55 virtual registers copies 4.905417e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1625,
+        "message": "1 spills 1.513068e+00 total spills cost 15 reloads 1.580241e+01 total reloads cost 1 folded reloads 1.513068e+00 total folded reloads cost 3 virtual registers copies 2.553302e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1456,
+        "message": "4 virtual registers copies 2.810177e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1360,
+        "message": "8 spills 7.627127e+00 total spills cost 110 reloads 3.743443e+01 total reloads cost 39 folded reloads 4.471138e+01 total folded reloads cost 58 virtual registers copies 3.311090e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1625,
+        "message": "1 spills 1.008712e+00 total spills cost 20 reloads 9.267542e+00 total reloads cost 1 folded reloads 1.008712e+00 total folded reloads cost 6 virtual registers copies 7.754474e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1407,
+        "message": "BasicBlock: bb26.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1425,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E.exit.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1396,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E.exit368.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1480,
+        "message": "BasicBlock: bb49.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1482,
+        "message": "BasicBlock: bb69.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1503,
+        "message": "BasicBlock: bb75.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1509,
+        "message": "BasicBlock: bb78.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1509,
+        "message": "BasicBlock: bb82.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1360,
+        "message": "BasicBlock: bb5.backedge.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1360,
+        "message": "BasicBlock: bb5.backedge.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1557,
+        "message": "BasicBlock: bb101.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1580,
+        "message": "BasicBlock: bb113.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1588,
+        "message": "BasicBlock: bb118.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1597,
+        "message": "BasicBlock: bb122.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1612,
+        "message": "BasicBlock: bb136.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1612,
+        "message": "BasicBlock: bb136.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1616,
+        "message": "BasicBlock: bb141.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1642,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E.exit434.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1665,
+        "message": "BasicBlock: bb159.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1627,
+        "message": "BasicBlock: bb144.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1633,
+        "message": "BasicBlock: bb145.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1407,
+        "message": "BasicBlock: bb26.i775.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1425,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E.exit.i811.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1396,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E.exit368.i728.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1438,
+        "message": "BasicBlock: bb41.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1480,
+        "message": "BasicBlock: bb49.i424.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1482,
+        "message": "BasicBlock: bb69.i456.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1503,
+        "message": "BasicBlock: bb75.i458.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1360,
+        "message": "BasicBlock: bb5.backedge.i446.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1360,
+        "message": "BasicBlock: bb5.backedge.i446.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1557,
+        "message": "BasicBlock: bb101.i510.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1580,
+        "message": "BasicBlock: bb114.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1588,
+        "message": "BasicBlock: bb118.i544.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1597,
+        "message": "BasicBlock: bb122.i534.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1612,
+        "message": "BasicBlock: bb136.i250.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1612,
+        "message": "BasicBlock: bb136.i250.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1665,
+        "message": "BasicBlock: bb159.i293.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1627,
+        "message": "BasicBlock: bb144.i280.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1633,
+        "message": "BasicBlock: bb145.i288.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1407,
+        "message": "BasicBlock: bb26.i1599.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1425,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E.exit.i1635.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1396,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E.exit368.i1530.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1438,
+        "message": "BasicBlock: bb41.i1658.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1480,
+        "message": "BasicBlock: bb49.i1209.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1482,
+        "message": "BasicBlock: bb69.i1241.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1503,
+        "message": "BasicBlock: bb75.i1243.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1509,
+        "message": "BasicBlock: bb78.i1251.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1509,
+        "message": "BasicBlock: bb82.i1260.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1360,
+        "message": "BasicBlock: bb5.backedge.i1231.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1360,
+        "message": "BasicBlock: bb5.backedge.i1231.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1557,
+        "message": "BasicBlock: bb101.i1295.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1580,
+        "message": "BasicBlock: bb114.i1316.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1588,
+        "message": "BasicBlock: bb118.i1330.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1597,
+        "message": "BasicBlock: bb122.i1320.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1612,
+        "message": "BasicBlock: bb136.i995.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1627,
+        "message": "BasicBlock: bb144.i1025.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1633,
+        "message": "BasicBlock: bb145.i1033.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1363,
+        "message": "BasicBlock: bb7.i.i.i249"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1366,
+        "message": "BasicBlock: bb11.i.i.i251"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1407,
+        "message": "BasicBlock: bb26.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1425,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E.exit.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1396,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E.exit368.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1470,
+        "message": "BasicBlock: bb58.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1471,
+        "message": "BasicBlock: bb59.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1479,
+        "message": "BasicBlock: bb66.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1480,
+        "message": "BasicBlock: bb66.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1482,
+        "message": "BasicBlock: bb69.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1503,
+        "message": "BasicBlock: bb75.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1509,
+        "message": "BasicBlock: bb82.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1360,
+        "message": "BasicBlock: bb5.backedge.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1360,
+        "message": "BasicBlock: bb5.backedge.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1557,
+        "message": "BasicBlock: bb101.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1580,
+        "message": "BasicBlock: bb113.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1588,
+        "message": "BasicBlock: bb118.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1612,
+        "message": "BasicBlock: bb136.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1612,
+        "message": "BasicBlock: bb136.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1642,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E.exit434.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1665,
+        "message": "BasicBlock: bb159.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1627,
+        "message": "BasicBlock: bb144.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1633,
+        "message": "BasicBlock: bb145.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1363,
+        "message": "BasicBlock: bb7.i.i418.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1407,
+        "message": "BasicBlock: bb26.i.i817.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1425,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E.exit.i.i853.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1396,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E.exit368.i.i771.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1439,
+        "message": "BasicBlock: bb38.i.i860.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1451,
+        "message": "BasicBlock: bb52.i.i450.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1470,
+        "message": "BasicBlock: bb58.i.i742.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1471,
+        "message": "BasicBlock: bb59.i.i744.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1479,
+        "message": "BasicBlock: bb66.i.i453.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1480,
+        "message": "BasicBlock: bb66.i.i453.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1482,
+        "message": "BasicBlock: bb69.i.i478.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1503,
+        "message": "BasicBlock: bb75.i.i480.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1509,
+        "message": "BasicBlock: bb78.i.i488.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1509,
+        "message": "BasicBlock: bb82.i.i497.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1360,
+        "message": "BasicBlock: bb5.backedge.i.i468.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1360,
+        "message": "BasicBlock: bb5.backedge.i.i468.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1557,
+        "message": "BasicBlock: bb101.i.i532.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1580,
+        "message": "BasicBlock: bb113.i.i552.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1588,
+        "message": "BasicBlock: bb118.i.i566.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1597,
+        "message": "BasicBlock: bb122.i.i556.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1363,
+        "message": "BasicBlock: bb7.i.i1170.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1407,
+        "message": "BasicBlock: bb26.i.i1569.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1451,
+        "message": "BasicBlock: bb52.i.i1202.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1470,
+        "message": "BasicBlock: bb58.i.i1494.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1471,
+        "message": "BasicBlock: bb59.i.i1496.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1479,
+        "message": "BasicBlock: bb66.i.i1205.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1480,
+        "message": "BasicBlock: bb66.i.i1205.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1482,
+        "message": "BasicBlock: bb69.i.i1230.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1503,
+        "message": "BasicBlock: bb75.i.i1232.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1509,
+        "message": "BasicBlock: bb78.i.i1240.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1509,
+        "message": "BasicBlock: bb82.i.i1249.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1360,
+        "message": "BasicBlock: bb5.backedge.i.i1220.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1360,
+        "message": "BasicBlock: bb5.backedge.i.i1220.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1425,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E.exit.i.i1605.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1396,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E.exit368.i.i1523.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1439,
+        "message": "BasicBlock: bb38.i.i1612.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1557,
+        "message": "BasicBlock: bb101.i.i1284.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1580,
+        "message": "BasicBlock: bb113.i.i1304.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1588,
+        "message": "BasicBlock: bb118.i.i1318.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1597,
+        "message": "BasicBlock: bb122.i.i1308.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1612,
+        "message": "BasicBlock: bb136.i.i267.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1642,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E.exit434.i.i350.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1665,
+        "message": "BasicBlock: bb159.i.i313.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1627,
+        "message": "BasicBlock: bb144.i.i301.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1633,
+        "message": "BasicBlock: bb145.i.i308.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1612,
+        "message": "BasicBlock: bb136.i.i1019.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1642,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc9LZ4_count17hf6611df2c8824430E.exit434.i.i1102.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1665,
+        "message": "BasicBlock: bb159.i.i1065.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1627,
+        "message": "BasicBlock: bb144.i.i1053.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1633,
+        "message": "BasicBlock: bb145.i.i1060.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

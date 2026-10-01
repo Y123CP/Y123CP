@@ -1,0 +1,340 @@
+{
+  "hot_function": {
+    "symbol": "UTF8ToHtml",
+    "location": "src/HTMLparser.rs:8420-8535",
+    "workload": "html_entity_encode",
+    "hot_region": "src/HTMLparser.rs:8420-8535",
+    "rust_source": "pub unsafe extern \"C\" fn UTF8ToHtml(\n    mut out: *mut c_uchar,\n    mut outlen: *mut c_int,\n    mut in_0: *const c_uchar,\n    mut inlen: *mut c_int,\n) -> c_int {\n    let mut processed: *const c_uchar = in_0;\n    let mut outend: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut outstart: *const c_uchar = out;\n    let mut instart: *const c_uchar = in_0;\n    let mut inend: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut c: c_uint = 0;\n    let mut d: c_uint = 0;\n    let mut trailing: c_int = 0;\n    if out.is_null() || outlen.is_null() || inlen.is_null() {\n        return -(1 as c_int);\n    }\n    if in_0.is_null() {\n        *outlen = 0 as c_int;\n        *inlen = 0 as c_int;\n        return 0 as c_int;\n    }\n    inend = in_0.offset(*inlen as isize);\n    outend = out.offset(*outlen as isize);\n    while in_0 < inend {\n        let fresh47 = in_0;\n        in_0 = in_0.offset(1);\n        d = *fresh47 as c_uint;\n        if d < 0x80 as c_uint {\n            c = d;\n            trailing = 0 as c_int;\n        } else if d < 0xc0 as c_uint {\n            *outlen = out.offset_from(outstart) as c_long as c_int;\n            *inlen = processed.offset_from(instart) as c_long as c_int;\n            return -(2 as c_int);\n        } else if d < 0xe0 as c_uint {\n            c = d & 0x1f as c_uint;\n            trailing = 1 as c_int;\n        } else if d < 0xf0 as c_uint {\n            c = d & 0xf as c_uint;\n            trailing = 2 as c_int;\n        } else if d < 0xf8 as c_uint {\n            c = d & 0x7 as c_uint;\n            trailing = 3 as c_int;\n        } else {\n            *outlen = out.offset_from(outstart) as c_long as c_int;\n            *inlen = processed.offset_from(instart) as c_long as c_int;\n            return -(2 as c_int);\n        }\n        if (inend.offset_from(in_0) as c_long) < trailing as c_long {\n            break;\n        }\n        while trailing != 0 {\n            if in_0 >= inend || {\n                let fresh48 = in_0;\n                in_0 = in_0.offset(1);\n                d = *fresh48 as c_uint;\n                d & 0xc0 as c_uint != 0x80 as c_uint\n            } {\n                break;\n            }\n            c <<= 6 as c_int;\n            c |= d & 0x3f as c_uint;\n            trailing -= 1;\n        }\n        if c < 0x80 as c_uint {\n            if out.offset(1 as c_int as isize) >= outend as *mut c_uchar {\n                break;\n            }\n            let fresh49 = out;\n            out = out.offset(1);\n            *fresh49 = c as c_uchar;\n        } else {\n            let mut len: c_int = 0;\n            let mut ent: *const htmlEntityDesc = ::core::ptr::null::<htmlEntityDesc>();\n            let mut cp: *const c_char = ::core::ptr::null::<c_char>();\n            let mut nbuf: [c_char; 16] = [0; 16];\n            ent = htmlEntityValueLookup(c);\n            if ent.is_null() {\n                snprintf(\n                    &raw mut nbuf as *mut c_char,\n                    ::core::mem::size_of::<[c_char; 16]>() as size_t,\n                    b\"#%u\\0\" as *const u8 as *const c_char,\n                    c,\n                );\n                cp = &raw mut nbuf as *mut c_char;\n            } else {\n                cp = (*ent).name;\n            }\n            len = strlen(cp) as c_int;\n            if out\n                .offset(2 as c_int as isize)\n                .offset(len as isize)\n                >= outend as *mut c_uchar\n            {\n                break;\n            }\n            let fresh50 = out;\n            out = out.offset(1);\n            *fresh50 = '&' as i32 as c_uchar;\n            memcpy(\n                out as *mut c_void,\n                cp as *const c_void,\n                len as size_t,\n            );\n            out = out.offset(len as isize);\n            let fresh51 = out;\n            out = out.offset(1);\n            *fresh51 = ';' as i32 as c_uchar;\n        }\n        processed = in_0;\n    }\n    *outlen = out.offset_from(outstart) as c_long as c_int;\n    *inlen = processed.offset_from(instart) as c_long as c_int;\n    return 0 as c_int;\n}",
+    "signature": "pub unsafe extern \"C\" fn UTF8ToHtml(\n    mut out: *mut c_uchar,\n    mut outlen: *mut c_int,\n    mut in_0: *const c_uchar,\n    mut inlen: *mut c_int,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.2594,
+      "call_count": null,
+      "retired_instructions": 5181778889,
+      "instructions_per_call": null,
+      "cpi": 0.3,
+      "tma": {
+        "scope": "process",
+        "retiring": 66.57467041859873,
+        "frontend_bound": 17.832425065641672,
+        "bad_speculation": 1.3232021395019067,
+        "backend_bound": 14.269702376257692,
+        "memory_bound": 11.128841500966663,
+        "core_bound": 3.1408608752910285,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0012
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 8499,
+        "message": "snprintf will not be inlined into UTF8ToHtml because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 8509,
+        "message": "strlen will not be inlined into UTF8ToHtml because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 8497,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser21htmlEntityValueLookup17h449fc0139557baf4E' inlined into 'UTF8ToHtml' with (cost=-14990, threshold=325) at callsite UTF8ToHtml:77:19;"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 8444,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 8447,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 8507,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8420,
+        "message": "X86 DAG->DAG Instruction Selection: Function: UTF8ToHtml: MI Instruction count changed from 0 to 231; Delta: 231"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8420,
+        "message": "Merge disjoint stack slots: Function: UTF8ToHtml: MI Instruction count changed from 231 to 228; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8420,
+        "message": "Remove dead machine instructions: Function: UTF8ToHtml: MI Instruction count changed from 228 to 226; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8420,
+        "message": "Early Machine Loop Invariant Code Motion: Function: UTF8ToHtml: MI Instruction count changed from 226 to 228; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8420,
+        "message": "Machine Common Subexpression Elimination: Function: UTF8ToHtml: MI Instruction count changed from 228 to 226; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8420,
+        "message": "Eliminate PHI nodes for register allocation: Function: UTF8ToHtml: MI Instruction count changed from 226 to 292; Delta: 66"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8420,
+        "message": "Two-Address instruction pass: Function: UTF8ToHtml: MI Instruction count changed from 292 to 315; Delta: 23"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8420,
+        "message": "Register Coalescer: Function: UTF8ToHtml: MI Instruction count changed from 315 to 212; Delta: -103"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 8473,
+        "message": "5 virtual registers copies 7.053728e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 8444,
+        "message": "1 spills 8.954726e-01 total spills cost 2 folded reloads 1.790945e+00 total folded reloads cost 18 virtual registers copies 8.225434e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 8420,
+        "message": "6 spills 2.339547e+00 total spills cost 10 reloads 1.237683e+00 total reloads cost 8 folded reloads 2.415446e+00 total folded reloads cost 30 virtual registers copies 8.392412e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8420,
+        "message": "Greedy Register Allocator: Function: UTF8ToHtml: MI Instruction count changed from 212 to 231; Delta: 19"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8420,
+        "message": "Virtual Register Rewriter: Function: UTF8ToHtml: MI Instruction count changed from 231 to 215; Delta: -16"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 8420,
+        "message": "120 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8420,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: UTF8ToHtml: MI Instruction count changed from 215 to 249; Delta: 34"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8420,
+        "message": "Control Flow Optimizer: Function: UTF8ToHtml: MI Instruction count changed from 249 to 212; Delta: -37"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8420,
+        "message": "Branch Probability Basic Block Placement: Function: UTF8ToHtml: MI Instruction count changed from 212 to 225; Delta: 13"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8420,
+        "message": "X86 LEA Fixup: Function: UTF8ToHtml: MI Instruction count changed from 225 to 226; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 8420,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: UTF8ToHtml: MI Instruction count changed from 226 to 233; Delta: 7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8434,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8437,
+        "message": "BasicBlock: bb6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8499,
+        "message": "BasicBlock: bb39"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8509,
+        "message": "BasicBlock: bb42"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8447,
+        "message": "BasicBlock: bb10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8451,
+        "message": "BasicBlock: bb12"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8455,
+        "message": "BasicBlock: bb14"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8456,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8458,
+        "message": "BasicBlock: bb16"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8459,
+        "message": "BasicBlock: bb17"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8461,
+        "message": "BasicBlock: bb18"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8462,
+        "message": "BasicBlock: bb19"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8448,
+        "message": "BasicBlock: bb26.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8472,
+        "message": "BasicBlock: bb26.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8473,
+        "message": "BasicBlock: bb29.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8476,
+        "message": "BasicBlock: bb29"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8481,
+        "message": "BasicBlock: bb31"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8485,
+        "message": "BasicBlock: bb33"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8491,
+        "message": "BasicBlock: bb36"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8496,
+        "message": "BasicBlock: bb37"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8507,
+        "message": "BasicBlock: bb41"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8438,
+        "message": "BasicBlock: bb7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8535,
+        "message": "BasicBlock: bb52"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8420,
+        "message": "200 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

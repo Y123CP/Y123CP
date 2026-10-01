@@ -1,0 +1,98 @@
+# ============================================================================
+                                                    
+                                                                         
+                                                        
+                                                         
+                                                       
+#       dataset_trans/run_validation.py dataset_trans/lil/validation_workload/purebin/study.toml
+# ============================================================================
+
+[study]
+project     = "lil"
+compare     = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+report_mode = "per_input"
+
+[builds.c]
+binary_path = "dataset_trans/lil/validation_workload/purebin/bin/lil_c"
+[builds.raw]
+binary_path = "dataset_trans/lil/validation_workload/purebin/bin/lil_raw"
+[builds.stage_a]
+binary_path = "dataset_trans/lil/validation_workload/purebin/bin/lil_stage_a"
+
+[builds.codex]
+binary_path = "dataset_trans/lil/validation_workload/purebin/bin/lil_codex"
+[builds.freeform]
+binary_path = "dataset_trans/lil/validation_workload/purebin/bin/lil_freeform"
+[builds.full]                                  # full arm = 3_perf_opt (rule-guided)
+binary_path = "dataset_trans/lil/validation_workload/purebin/bin/lil_full"
+
+[measure]
+warmup_runs  = 5
+measure_runs = 30
+required_cv  = 0.03
+max_load     = 1.0
+cv_retries   = 2
+pin_cpu      = 16
+order        = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+
+[gates]
+equivalence = "stdout_sha256"
+
+# ---------------------------------------------------------------------------
+# Operations. driver CLI: driver <op> <input> <iters>
+# ---------------------------------------------------------------------------
+
+[[operations]]
+name = "run_script"               # one real script per input, fresh interp/iter
+args = ["run_script", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "mandelbrot.lil"         # numeric loops (PBM render)
+  path = "dataset_trans/lil/validation_workload/inputs/mandelbrot.lil"
+  iters = 300
+  stdout_sha256 = "d7e59f8dca6fe1cb656d66fb59d52fa82c225ec25ccaccfa11889b45c7793341"
+  [[operations.inputs]]
+  name = "oop_animals.lil"        # OOP dispatch
+  path = "dataset_trans/lil/validation_workload/inputs/oop_animals.lil"
+  iters = 4000
+  stdout_sha256 = "b2ec332be8307efbd9b96b556ecee902cd304d9e265b6da8b23798f4ccd55704"
+  [[operations.inputs]]
+  name = "strings.lil"            # string builtins
+  path = "dataset_trans/lil/validation_workload/inputs/strings.lil"
+  iters = 3500
+  stdout_sha256 = "346e2e238e0d5a64435444dbcd8e882fc3b4c611fb14f266be0dc56ec3cf4e47"
+  [[operations.inputs]]
+  name = "lists.lil"              # list builtins
+  path = "dataset_trans/lil/validation_workload/inputs/lists.lil"
+  iters = 2500
+  stdout_sha256 = "951a713e400b4eba94505b81016d73a8a9761c2f259d6c2bbff2b56ad288d020"
+  [[operations.inputs]]
+  name = "expr.lil"               # expression engine
+  path = "dataset_trans/lil/validation_workload/inputs/expr.lil"
+  iters = 2200
+  stdout_sha256 = "47cf14a1ad6c55c54e0dba243e1cd3c8298139257c0c5428b3f89c71df654705"
+  [[operations.inputs]]
+  name = "funcs.lil"              # function definition/calls
+  path = "dataset_trans/lil/validation_workload/inputs/funcs.lil"
+  iters = 2400
+  stdout_sha256 = "c61004f2fd8384e77d8ca5c1cf58352fbc462d9b7420c167ef415603bdd035d6"
+
+[[operations]]
+name = "run_suite"                # 18 upstream demos, each in a fresh interp
+args = ["run_suite", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "suite.list"
+  path = "dataset_trans/lil/validation_workload/inputs/suite.list"
+  iters = 400
+  stdout_sha256 = "ff5d80114527f3474328bb2f0229850a1598b6cd9e535f6a5a5b76b0aa283846"
+
+[[operations]]
+name = "api_surface"              # embedding API (values/lists/env/call/expr)
+args = ["api_surface", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "api"
+  path = "dataset_trans/lil/validation_workload/inputs/suite.list"
+  iters = 18000
+  stdout_sha256 = "7829dae114873c4c64ba2710dbf3435f5baf75d02677973630eb30f47551804e"

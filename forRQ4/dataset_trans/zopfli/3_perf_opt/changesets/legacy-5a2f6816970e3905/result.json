@@ -1,0 +1,143 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 14.290636794625291,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 20.91158325609574,
+            "aggregate_ci_low_pct": 7.669690333154844,
+            "aggregate_pct": 14.290636794625291,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 20.9116,
+                "ci_low_pct": 7.6697,
+                "insns_delta_pct": 7.093,
+                "mean_delta_pct": 14.2906,
+                "op": "cache_roundtrip",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "cache_roundtrip",
+          "lz77_blocksplit_analysis",
+          "raw_deflate",
+          "zlib_compress"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "cache_roundtrip"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "b9e085c87da204ee4b086b0c9ae5c4d0acc5ad9b",
+      "changeset_id": "legacy-5a2f6816970e3905",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-27e5bf65c6e98f96",
+          "replacement_function_source": "// Applied rules: [III④, C3]\n// Skipped rules: [III②: Hits [4, 5, 6] allocate buffers that are stored into struct fields and intentionally escape this function for later use/free, so alloc/free are not paired within one local scope; RAII container rewrite would require cross-struct ownership redesign beyond this function.; III③: Hit [7] is an error-path fprintf call, not a typed memory/string primitive targeted by III③ templates; no profitable slice/string API replacement is evident within this function.]\n#[inline]\npub unsafe fn ZopfliInitCache(\n    mut blocksize: size_t,\n    mut lmc: *mut ZopfliLongestMatchCache,\n) {\n    let lmc_view: &mut ZopfliLongestMatchCache = unsafe {\n        // SAFETY: caller provided `lmc` as a valid, unique mutable pointer for the duration of this function.\n        &mut *lmc\n    };\n    let length_bytes =\n        (::core::mem::size_of::<c_ushort>() as size_t).wrapping_mul(blocksize);\n    let dist_bytes =\n        (::core::mem::size_of::<c_ushort>() as size_t).wrapping_mul(blocksize);\n    let sublen_len = (ZOPFLI_CACHE_LENGTH as size_t)\n        .wrapping_mul(blocksize)\n        .wrapping_mul(3 as size_t);\n    let sublen_bytes =\n        ((ZOPFLI_CACHE_LENGTH * 3 as c_int) as size_t).wrapping_mul(blocksize);\n\n    lmc_view.length = malloc(length_bytes) as *mut c_ushort;\n    lmc_view.dist = malloc(dist_bytes) as *mut c_ushort;\n    lmc_view.sublen = malloc(sublen_bytes) as *mut c_uchar;\n\n    let length_ptr = lmc_view.length;\n    let dist_ptr = lmc_view.dist;\n    let sublen_ptr = lmc_view.sublen;\n\n    if sublen_ptr.is_null() {\n        fprintf(\n            stderr,\n            b\"Error: Out of memory. Tried allocating %lu bytes of memory.\\n\\0\" as *const u8\n                as *const c_char,\n            (ZOPFLI_CACHE_LENGTH as size_t)\n                .wrapping_mul(3 as size_t)\n                .wrapping_mul(blocksize),\n        );\n        exit(EXIT_FAILURE);\n    }\n\n    let length_slice = unsafe {\n        // SAFETY: `length_ptr` was just allocated for `blocksize` `c_ushort` elements,\n        // is used here as the only mutable view, and `blocksize` is the exact length.\n        core::slice::from_raw_parts_mut(length_ptr, blocksize)\n    };\n    for dst in length_slice.iter_mut() {\n        *dst = 1 as c_ushort;\n    }\n\n    let dist_slice = unsafe {\n        // SAFETY: `dist_ptr` was just allocated for `blocksize` `c_ushort` elements,\n        // is used here as the only mutable view, and `blocksize` is the exact length.\n        core::slice::from_raw_parts_mut(dist_ptr, blocksize)\n    };\n    for dst in dist_slice.iter_mut() {\n        *dst = 0 as c_ushort;\n    }\n\n    let sublen_slice = unsafe {\n        // SAFETY: `sublen_ptr` was just allocated for `sublen_len` `c_uchar` elements,\n        // is used here as the only mutable view, and `sublen_len` is the exact length.\n        core::slice::from_raw_parts_mut(sublen_ptr, sublen_len)\n    };\n    for dst in sublen_slice.iter_mut() {\n        *dst = 0 as c_uchar;\n    }\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "8f916a2827299b75d5015684d0663d06befbc4f8729fb9c190c885786b753b52",
+            "file_hint": "src/cache.rs",
+            "qualified_name": "crate::ZopfliInitCache",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "ZopfliInitCache-45767e84d3c2",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "ZopfliInitCache",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "ca407c6e9666fd076760e5007573f7be4995f876d7061d8891278837acfdb22b",
+            "edit_id": "edit-replace-27e5bf65c6e98f96",
+            "end_byte": 1803,
+            "operation_id": "replace-27e5bf65c6e98f96",
+            "relative_path": "src/cache.rs",
+            "replacement_text": "// Applied rules: [III④, C3]\n// Skipped rules: [III②: Hits [4, 5, 6] allocate buffers that are stored into struct fields and intentionally escape this function for later use/free, so alloc/free are not paired within one local scope; RAII container rewrite would require cross-struct ownership redesign beyond this function.; III③: Hit [7] is an error-path fprintf call, not a typed memory/string primitive targeted by III③ templates; no profitable slice/string API replacement is evident within this function.]\n#[inline]\npub unsafe fn ZopfliInitCache(\n    mut blocksize: size_t,\n    mut lmc: *mut ZopfliLongestMatchCache,\n) {\n    let lmc_view: &mut ZopfliLongestMatchCache = unsafe {\n        // SAFETY: caller provided `lmc` as a valid, unique mutable pointer for the duration of this function.\n        &mut *lmc\n    };\n    let length_bytes =\n        (::core::mem::size_of::<c_ushort>() as size_t).wrapping_mul(blocksize);\n    let dist_bytes =\n        (::core::mem::size_of::<c_ushort>() as size_t).wrapping_mul(blocksize);\n    let sublen_len = (ZOPFLI_CACHE_LENGTH as size_t)\n        .wrapping_mul(blocksize)\n        .wrapping_mul(3 as size_t);\n    let sublen_bytes =\n        ((ZOPFLI_CACHE_LENGTH * 3 as c_int) as size_t).wrapping_mul(blocksize);\n\n    lmc_view.length = malloc(length_bytes) as *mut c_ushort;\n    lmc_view.dist = malloc(dist_bytes) as *mut c_ushort;\n    lmc_view.sublen = malloc(sublen_bytes) as *mut c_uchar;\n\n    let length_ptr = lmc_view.length;\n    let dist_ptr = lmc_view.dist;\n    let sublen_ptr = lmc_view.sublen;\n\n    if sublen_ptr.is_null() {\n        fprintf(\n            stderr,\n            b\"Error: Out of memory. Tried allocating %lu bytes of memory.\\n\\0\" as *const u8\n                as *const c_char,\n            (ZOPFLI_CACHE_LENGTH as size_t)\n                .wrapping_mul(3 as size_t)\n                .wrapping_mul(blocksize),\n        );\n        exit(EXIT_FAILURE);\n    }\n\n    let length_slice = unsafe {\n        // SAFETY: `length_ptr` was just allocated for `blocksize` `c_ushort` elements,\n        // is used here as the only mutable view, and `blocksize` is the exact length.\n        core::slice::from_raw_parts_mut(length_ptr, blocksize)\n    };\n    for dst in length_slice.iter_mut() {\n        *dst = 1 as c_ushort;\n    }\n\n    let dist_slice = unsafe {\n        // SAFETY: `dist_ptr` was just allocated for `blocksize` `c_ushort` elements,\n        // is used here as the only mutable view, and `blocksize` is the exact length.\n        core::slice::from_raw_parts_mut(dist_ptr, blocksize)\n    };\n    for dst in dist_slice.iter_mut() {\n        *dst = 0 as c_ushort;\n    }\n\n    let sublen_slice = unsafe {\n        // SAFETY: `sublen_ptr` was just allocated for `sublen_len` `c_uchar` elements,\n        // is used here as the only mutable view, and `sublen_len` is the exact length.\n        core::slice::from_raw_parts_mut(sublen_ptr, sublen_len)\n    };\n    for dst in sublen_slice.iter_mut() {\n        *dst = 0 as c_uchar;\n    }\n}",
+            "start_byte": 261
+          }
+        ],
+        "facts": {
+          "fn_name": "ZopfliInitCache",
+          "target_span_hash": "8f916a2827299b75d5015684d0663d06befbc4f8729fb9c190c885786b753b52"
+        },
+        "operation_id": "replace-27e5bf65c6e98f96"
+      }
+    ],
+    "resolved_head": "b9e085c87da204ee4b086b0c9ae5c4d0acc5ad9b"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/cache.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

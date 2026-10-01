@@ -1,0 +1,75 @@
+{
+  "harness_name": "lil_raw_harness",
+  "operations": [
+    {
+      "name": "subst_list_pipeline",
+      "needs_input": true,
+      "summary": "Builds a value from the input template, seeds interpreter variables with deterministic content, performs substitution to both list and value forms, then walks and reserializes the list. This exercises the substitution engine plus list/value allocation and cleanup paths.",
+      "api_calls": [
+        "lil_new",
+        "lil_alloc_string_len",
+        "lil_set_var",
+        "lil_subst_to_list",
+        "lil_subst_to_value",
+        "lil_list_size",
+        "lil_list_get",
+        "lil_list_to_value",
+        "lil_to_string",
+        "lil_free_list",
+        "lil_free_value",
+        "lil_free"
+      ],
+      "input_format": "A Lil substitution template as raw bytes, intended to contain variable references and ordinary text, such as \"$a/$b {$a $b}\". The harness deterministically defines variables like a, b, and c before substitution so the template is valid and expands end-to-end.",
+      "digest": "Folds the substituted list size, each substituted element's string bytes in order, and the bytes of both the list-to-value serialization and the direct subst-to-value result."
+    },
+    {
+      "name": "native_call_state",
+      "needs_input": true,
+      "summary": "Initializes interpreter state, sets variables and opaque user data, enters and exits a local environment, and directly invokes a registered native command with argv values derived from the input. This covers the non-parser call path and interpreter state/query APIs.",
+      "api_calls": [
+        "lil_new",
+        "lil_set_data",
+        "lil_get_data",
+        "lil_register",
+        "lil_alloc_string_len",
+        "lil_alloc_integer",
+        "lil_alloc_double",
+        "lil_call",
+        "lil_arg",
+        "lil_to_string",
+        "lil_to_integer",
+        "lil_to_double",
+        "lil_to_boolean",
+        "lil_set_var",
+        "lil_get_var",
+        "lil_get_var_or",
+        "lil_push_env",
+        "lil_pop_env",
+        "lil_unused_name",
+        "lil_set_error",
+        "lil_error",
+        "lil_free_value",
+        "lil_free"
+      ],
+      "input_format": "A simple argument blob, e.g. newline- or NUL-separated fields. The harness splits it deterministically into argv entries and also derives a few variable values from those fields before calling the registered native command.",
+      "digest": "Folds the native call's returned value bytes, integer and floating-point results via bit-pattern/integer conversion, boolean conversion results, presence/absence of queried variables, the generated unused-name string bytes, and any reported error code/position."
+    },
+    {
+      "name": "expr_embedded_builtins",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": ""
+    },
+    {
+      "name": "builtin_script_matrix",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": ""
+    }
+  ],
+  "seed_strategy": "For parse_registered_script, gen-seeds writes two distinct valid Lil scripts that only invoke the harness-registered command: one short script with a handful of mixed string/numeric arguments and one longer script with repeated lines, quoted strings, braces, and escaped whitespace so parsing and callback argument handling differ. For subst_list_pipeline, gen-seeds writes two distinct valid templates containing different arrangements of literal text and references like $a, $b, and $c; the harness itself supplies those variables deterministically, guaranteeing successful substitution. For native_call_state, gen-seeds writes two distinct deterministic argument blobs with different field counts and contents so direct lil_call receives different argv shapes and values. For perf input, the scalable target is parse_registered_script: generate a multi-megabyte valid script consisting of many thousands of realistic repeated command invocations with recurring tokens and varied quoted/braced arguments so the parser and callback marshalling dominate runtime inside lil_raw rather than harness setup."
+}

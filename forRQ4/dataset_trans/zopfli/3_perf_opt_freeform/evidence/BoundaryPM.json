@@ -1,0 +1,262 @@
+{
+  "hot_function": {
+    "symbol": "BoundaryPM",
+    "location": "src/katajainen.rs:42-111",
+    "workload": "tree_codegen",
+    "hot_region": "src/katajainen.rs:42-111",
+    "rust_source": "unsafe fn BoundaryPM(\n    mut lists: *mut [*mut Node; 2],\n    mut leaves: *mut Node,\n    mut numsymbols: c_int,\n    mut pool: *mut NodePool,\n    mut index: c_int,\n) {\n    let mut newchain: *mut Node = ::core::ptr::null_mut::<Node>();\n    let mut oldchain: *mut Node = ::core::ptr::null_mut::<Node>();\n    let mut lastcount: c_int =\n        (*(*lists.offset(index as isize))[1 as c_int as usize]).count;\n    if index == 0 as c_int && lastcount >= numsymbols {\n        return;\n    }\n    let fresh4 = (*pool).next;\n    (*pool).next = (*pool).next.offset(1);\n    newchain = fresh4;\n    oldchain = (*lists.offset(index as isize))[1 as c_int as usize];\n    let ref mut fresh5 = (*lists.offset(index as isize))[0 as c_int as usize];\n    *fresh5 = oldchain;\n    let ref mut fresh6 = (*lists.offset(index as isize))[1 as c_int as usize];\n    *fresh6 = newchain;\n    if index == 0 as c_int {\n        InitNode(\n            (*leaves.offset(lastcount as isize)).weight,\n            lastcount + 1 as c_int,\n            ::core::ptr::null_mut::<Node>(),\n            newchain,\n        );\n    } else {\n        let mut sum: size_t = (*(*lists.offset((index - 1 as c_int) as isize))\n            [0 as c_int as usize])\n            .weight\n            .wrapping_add(\n                (*(*lists.offset((index - 1 as c_int) as isize))\n                    [1 as c_int as usize])\n                    .weight,\n            );\n        if lastcount < numsymbols && sum > (*leaves.offset(lastcount as isize)).weight {\n            InitNode(\n                (*leaves.offset(lastcount as isize)).weight,\n                lastcount + 1 as c_int,\n                (*oldchain).tail,\n                newchain,\n            );\n        } else {\n            InitNode(\n                sum,\n                lastcount,\n                (*lists.offset((index - 1 as c_int) as isize))\n                    [1 as c_int as usize],\n                newchain,\n            );\n            BoundaryPM(\n                lists,\n                leaves,\n                numsymbols,\n                pool,\n                index - 1 as c_int,\n            );\n            BoundaryPM(\n                lists,\n                leaves,\n                numsymbols,\n                pool,\n                index - 1 as c_int,\n            );\n        }\n    };\n}",
+    "signature": "unsafe fn BoundaryPM(\n    mut lists: *mut [*mut Node; 2],\n    mut leaves: *mut Node,\n    mut numsymbols: c_int,\n    mut pool: *mut NodePool,\n    mut index: c_int,\n)",
+    "profile": {
+      "self_time_ratio": 0.3874,
+      "call_count": null,
+      "retired_instructions": 8774788689,
+      "instructions_per_call": null,
+      "cpi": 0.264,
+      "tma": {
+        "scope": "process",
+        "retiring": 70.98424598794543,
+        "frontend_bound": 22.073578733663105,
+        "bad_speculation": 1.464471895178859,
+        "backend_bound": 5.477703383212601,
+        "memory_bound": 4.104033554940115,
+        "core_bound": 1.3736698282724868,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0021
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline-cost",
+        "status": "missed",
+        "line": 95,
+        "message": "_ZN14zopfli_cleaned3src10katajainen10BoundaryPM17hd957f6b28514fc53E has uninlinable pattern (recursive) and cost is not fully computed"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 95,
+        "message": "'_ZN14zopfli_cleaned3src10katajainen10BoundaryPM17hd957f6b28514fc53E' not inlined into '_ZN14zopfli_cleaned3src10katajainen10BoundaryPM17hd957f6b28514fc53E' because it should never be inlined (cost=never): recursive"
+      },
+      {
+        "pass": "inline-cost",
+        "status": "missed",
+        "line": 102,
+        "message": "_ZN14zopfli_cleaned3src10katajainen10BoundaryPM17hd957f6b28514fc53E has uninlinable pattern (recursive) and cost is not fully computed"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 102,
+        "message": "'_ZN14zopfli_cleaned3src10katajainen10BoundaryPM17hd957f6b28514fc53E' not inlined into '_ZN14zopfli_cleaned3src10katajainen10BoundaryPM17hd957f6b28514fc53E' because it should never be inlined (cost=never): recursive"
+      },
+      {
+        "pass": "tailcallelim",
+        "status": "success",
+        "line": 102,
+        "message": "transforming tail recursion into loop"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 56,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 64,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 56,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 59,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 72,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 76,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 80,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 52,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 52,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 84,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 66,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 42,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN14zopfli_cleaned3src10katajainen10BoundaryPM17hd957f6b28514fc53E: MI Instruction count changed from 0 to 84; Delta: 84"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 42,
+        "message": "Peephole Optimizations: Function: _ZN14zopfli_cleaned3src10katajainen10BoundaryPM17hd957f6b28514fc53E: MI Instruction count changed from 84 to 85; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 42,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN14zopfli_cleaned3src10katajainen10BoundaryPM17hd957f6b28514fc53E: MI Instruction count changed from 85 to 104; Delta: 19"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 42,
+        "message": "Two-Address instruction pass: Function: _ZN14zopfli_cleaned3src10katajainen10BoundaryPM17hd957f6b28514fc53E: MI Instruction count changed from 104 to 111; Delta: 7"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 42,
+        "message": "Register Coalescer: Function: _ZN14zopfli_cleaned3src10katajainen10BoundaryPM17hd957f6b28514fc53E: MI Instruction count changed from 111 to 78; Delta: -33"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 64,
+        "message": "2 reloads 9.500000e+00 total reloads cost 5 virtual registers copies 3.160000e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 42,
+        "message": "1 spills 1.000000e+00 total spills cost 3 reloads 9.700000e+00 total reloads cost 10 virtual registers copies 3.660000e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 42,
+        "message": "Greedy Register Allocator: Function: _ZN14zopfli_cleaned3src10katajainen10BoundaryPM17hd957f6b28514fc53E: MI Instruction count changed from 78 to 80; Delta: 2"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 42,
+        "message": "56 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 42,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN14zopfli_cleaned3src10katajainen10BoundaryPM17hd957f6b28514fc53E: MI Instruction count changed from 80 to 112; Delta: 32"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 42,
+        "message": "Control Flow Optimizer: Function: _ZN14zopfli_cleaned3src10katajainen10BoundaryPM17hd957f6b28514fc53E: MI Instruction count changed from 112 to 105; Delta: -7"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 42,
+        "message": "X86 LEA Fixup: Function: _ZN14zopfli_cleaned3src10katajainen10BoundaryPM17hd957f6b28514fc53E: MI Instruction count changed from 105 to 107; Delta: 2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 53,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 72,
+        "message": "BasicBlock: bb5"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 80,
+        "message": "BasicBlock: bb6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 53,
+        "message": "BasicBlock: bb9"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 66,
+        "message": "BasicBlock: bb4"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 84,
+        "message": "BasicBlock: bb7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 111,
+        "message": "BasicBlock: bb13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 42,
+        "message": "87 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "hot_function": {
+    "symbol": "ZopfliSublenToCache",
+    "location": "src/cache.rs:64-110",
+    "workload": "cache_roundtrip",
+    "hot_region": "src/cache.rs:64-110",
+    "rust_source": "pub unsafe fn ZopfliSublenToCache(\n    mut sublen: *const c_ushort,\n    mut pos: size_t,\n    mut length: size_t,\n    mut lmc: *mut ZopfliLongestMatchCache,\n) {\n    let lmc_view: &ZopfliLongestMatchCache = unsafe { &*lmc };\n    let mut i: size_t = 0;\n    let mut j: size_t = 0 as size_t;\n    let mut bestlength: c_uint = 0 as c_uint;\n    let mut cache: *mut c_uchar = ::core::ptr::null_mut::<c_uchar>();\n    cache = lmc_view.sublen.offset(\n        (ZOPFLI_CACHE_LENGTH as size_t)\n            .wrapping_mul(pos)\n            .wrapping_mul(3 as size_t) as isize,\n    ) as *mut c_uchar;\n    if length < 3 as size_t {\n        return;\n    }\n    i = 3 as size_t;\n    while i <= length {\n        if i == length\n            || *sublen.offset(i as isize) as c_int\n                != *sublen.offset(i.wrapping_add(1 as size_t) as isize) as c_int\n        {\n            *cache.offset(j.wrapping_mul(3 as size_t) as isize) =\n                i.wrapping_sub(3 as size_t) as c_uchar;\n            *cache.offset(j.wrapping_mul(3 as size_t).wrapping_add(1 as size_t) as isize) =\n                (*sublen.offset(i as isize) as c_int % 256 as c_int)\n                    as c_uchar;\n            *cache.offset(j.wrapping_mul(3 as size_t).wrapping_add(2 as size_t) as isize) =\n                ((*sublen.offset(i as isize) as c_int >> 8 as c_int)\n                    % 256 as c_int) as c_uchar;\n            bestlength = i as c_uint;\n            j = j.wrapping_add(1);\n            if j >= ZOPFLI_CACHE_LENGTH as size_t {\n                break;\n            }\n        }\n        i = i.wrapping_add(1);\n    }\n    if j < ZOPFLI_CACHE_LENGTH as size_t {\n        *cache.offset(\n            ((ZOPFLI_CACHE_LENGTH - 1 as c_int) * 3 as c_int) as isize,\n        ) = bestlength.wrapping_sub(3 as c_uint) as c_uchar;\n    }\n}",
+    "signature": "pub unsafe fn ZopfliSublenToCache(\n    mut sublen: *const c_ushort,\n    mut pos: size_t,\n    mut length: size_t,\n    mut lmc: *mut ZopfliLongestMatchCache,\n)",
+    "profile": {
+      "self_time_ratio": 0.1956,
+      "call_count": null,
+      "retired_instructions": 3204004201,
+      "instructions_per_call": null,
+      "cpi": 0.343,
+      "tma": {
+        "scope": "process",
+        "retiring": 69.02870319882084,
+        "frontend_bound": 20.900695807784746,
+        "bad_speculation": 1.475546985659856,
+        "backend_bound": 8.595054007734566,
+        "memory_bound": 5.342356041394446,
+        "core_bound": 3.2526979663401203,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0026
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 92,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 95,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 92,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 92,
+        "message": "failed to hoist load with loop-invariant address because load is conditionally executed"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 85,
+        "message": "4 virtual registers copies 6.582082e-01 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 85,
+        "message": "BasicBlock: bb4.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 86,
+        "message": "BasicBlock: bb6.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 105,
+        "message": "BasicBlock: bb15.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 106,
+        "message": "BasicBlock: bb16.i.i"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 85,
+        "message": "4 virtual registers copies 2.472763e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 86,
+        "message": "BasicBlock: bb6.i.i21"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 85,
+        "message": "4 virtual registers copies 1.575630e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 85,
+        "message": "BasicBlock: bb4.i95"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 92,
+        "message": "BasicBlock: bb4.i95.bb7.i99_crit_edge"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 86,
+        "message": "BasicBlock: bb6.i96"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 105,
+        "message": "BasicBlock: bb15.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 106,
+        "message": "BasicBlock: bb16.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

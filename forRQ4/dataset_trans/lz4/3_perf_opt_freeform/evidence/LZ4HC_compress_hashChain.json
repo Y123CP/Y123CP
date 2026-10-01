@@ -1,0 +1,238 @@
+{
+  "hot_function": {
+    "symbol": "LZ4HC_compress_hashChain",
+    "location": "src/lz4hc.rs:1703-2132",
+    "workload": "hc_legacy",
+    "hot_region": "src/lz4hc.rs:1703-2132",
+    "rust_source": "unsafe fn LZ4HC_compress_hashChain(\n    ctx: *mut LZ4HC_CCtx_internal,\n    src: *const c_char,\n    dst: *mut c_char,\n    mut srcSizePtr: *mut c_int,\n    maxOutputSize: c_int,\n    mut maxNbAttempts: c_int,\n    limit: limitedOutput_directive,\n    dict: dictCtx_directive,\n) -> c_int {\n    let mut current_block: u64;\n    let inputSize: c_int = *srcSizePtr;\n    let patternAnalysis: c_int =\n        (maxNbAttempts > 128 as c_int) as c_int;\n    let mut ip_0: *const BYTE = src as *const BYTE;\n    let mut anchor_0: *const BYTE = ip_0;\n    let iend: *const BYTE = ip_0.offset(inputSize as isize);\n    let mflimit: *const BYTE = iend.offset(-(MFLIMIT as isize));\n    let matchlimit: *const BYTE = iend.offset(-(LASTLITERALS as isize));\n    let mut optr: *mut BYTE = dst as *mut BYTE;\n    let mut op_0: *mut BYTE = dst as *mut BYTE;\n    let mut oend: *mut BYTE = op_0.offset(maxOutputSize as isize);\n    let mut start0: *const BYTE = ::core::ptr::null::<BYTE>();\n    let mut start2: *const BYTE = ::core::ptr::null::<BYTE>();\n    let mut start3: *const BYTE = ::core::ptr::null::<BYTE>();\n    let mut m0: LZ4HC_match_t = LZ4HC_match_t {\n        off: 0,\n        len: 0,\n        back: 0,\n    };\n    let mut m1: LZ4HC_match_t = LZ4HC_match_t {\n        off: 0,\n        len: 0,\n        back: 0,\n    };\n    let mut m2: LZ4HC_match_t = LZ4HC_match_t {\n        off: 0,\n        len: 0,\n        back: 0,\n    };\n    let mut m3: LZ4HC_match_t = LZ4HC_match_t {\n        off: 0,\n        len: 0,\n        back: 0,\n    };\n    let nomatch: LZ4HC_match_t = LZ4HC_match_t {\n        off: 0 as c_int,\n        len: 0 as c_int,\n        back: 0 as c_int,\n    };\n    *srcSizePtr = 0 as c_int;\n    if limit as c_uint == fillOutput as c_int as c_uint {\n        oend = oend.offset(-(LASTLITERALS as isize));\n    }\n    if inputSize < LZ4_minLength {\n        current_block = 1525518218708800755;\n    } else {\n        current_block = 11050875288958768710;\n    }\n    '__last_literals: loop {\n        match current_block {\n            11050875288958768710 => {\n                if !(ip_0 <= mflimit) {\n                    current_block = 1525518218708800755;\n                    continue;\n                }\n                m1 = LZ4HC_InsertAndFindBestMatch(\n                    ctx,\n                    ip_0,\n                    matchlimit,\n                    maxNbAttempts,\n                    patternAnalysis,\n                    dict,\n                );\n                if m1.len < MINMATCH {\n                    ip_0 = ip_0.offset(1);\n                    current_block = 11050875288958768710;\n                } else {\n                    start0 = ip_0;\n                    m0 = m1;\n                    's_97: loop {\n                        if ip_0.offset(m1.len as isize) <= mflimit {\n                            start2 = ip_0\n                                .offset(m1.len as isize)\n                                .offset(-(2 as c_int as isize));\n                            m2 = LZ4HC_InsertAndGetWiderMatch(\n                                ctx,\n                                start2,\n                                ip_0.offset(0 as c_int as isize),\n                                matchlimit,\n                                m1.len,\n                                maxNbAttempts,\n                                patternAnalysis,\n                                0 as c_int,\n                                dict,\n                                favorCompressionRatio,\n                            );\n                            start2 = start2.offset(m2.back as isize);\n                        } else {\n                            m2 = nomatch;\n                        }\n                        if m2.len <= m1.len {\n                            optr = op_0;\n                            if LZ4HC_encodeSequence(\n                                &raw mut ip_0,\n                                &raw mut op_0,\n                                &raw mut anchor_0,\n                                m1.len,\n                                m1.off,\n                                limit,\n                                oend,\n                            ) != 0\n                            {\n                                current_block = 1719972829996836699;\n                                break;\n                            } else {\n                                current_block = 11050875288958768710;\n                                continue '__last_literals;\n                            }\n                        } else {\n                            if start0 < ip_0 {\n                                if start2 < ip_0.offset(m0.len as isize) {\n                                    ip_0 = start0;\n                                    m1 = m0;\n                                }\n                            }\n                            if (start2.offset_from(ip_0) as c_long)\n                                < 3 as c_long\n                            {\n                                ip_0 = start2;\n                                m1 = m2;\n                            } else {\n                                loop {\n                                    if (start2.offset_from(ip_0) as c_long)\n                                        < OPTIMAL_ML as c_long\n                                    {\n                                        let mut correction: c_int = 0;\n                                        let mut new_ml: c_int = m1.len;\n                                        if new_ml > OPTIMAL_ML {\n                                            new_ml = OPTIMAL_ML;\n                                        }\n                                        if ip_0.offset(new_ml as isize)\n                                            > start2\n                                                .offset(m2.len as isize)\n                                                .offset(-(MINMATCH as isize))\n                                        {\n                                            new_ml = start2.offset_from(ip_0) as c_long\n                                                as c_int\n                                                + m2.len\n                                                - MINMATCH;\n                                        }\n                                        correction = new_ml\n                                            - start2.offset_from(ip_0) as c_long\n                                                as c_int;\n                                        if correction > 0 as c_int {\n                                            start2 = start2.offset(correction as isize);\n                                            m2.len -= correction;\n                                        }\n                                    }\n                                    if start2.offset(m2.len as isize) <= mflimit {\n                                        start3 = start2\n                                            .offset(m2.len as isize)\n                                            .offset(-(3 as c_int as isize));\n                                        m3 = LZ4HC_InsertAndGetWiderMatch(\n                                            ctx,\n                                            start3,\n                                            start2,\n                                            matchlimit,\n                                            m2.len,\n                                            maxNbAttempts,\n                                            patternAnalysis,\n                                            0 as c_int,\n                                            dict,\n                                            favorCompressionRatio,\n                                        );\n                                        start3 = start3.offset(m3.back as isize);\n                                    } else {\n                                        m3 = nomatch;\n                                    }\n                                    if m3.len <= m2.len {\n                                        if start2 < ip_0.offset(m1.len as isize) {\n                                            m1.len = start2.offset_from(ip_0) as c_long\n                                                as c_int;\n                                        }\n                                        optr = op_0;\n                                        if LZ4HC_encodeSequence(\n                                            &raw mut ip_0,\n                                            &raw mut op_0,\n                                            &raw mut anchor_0,\n                                            m1.len,\n                                            m1.off,\n                                            limit,\n                                            oend,\n                                        ) != 0\n                                        {\n                                            current_block = 1719972829996836699;\n                                            break 's_97;\n                                        } else {\n                                            current_block = 2290177392965769716;\n                                            break 's_97;\n                                        }\n                                    } else if start3\n                                        < ip_0\n                                            .offset(m1.len as isize)\n                                            .offset(3 as c_int as isize)\n                                    {\n                                        if start3 >= ip_0.offset(m1.len as isize) {\n                                            if start2 < ip_0.offset(m1.len as isize) {\n                                                let mut correction_0: c_int = ip_0\n                                                    .offset(m1.len as isize)\n                                                    .offset_from(start2)\n                                                    as c_long\n                                                    as c_int;\n                                                start2 = start2.offset(correction_0 as isize);\n                                                m2.len -= correction_0;\n                                                if m2.len < MINMATCH {\n                                                    start2 = start3;\n                                                    m2 = m3;\n                                                }\n                                            }\n                                            optr = op_0;\n                                            if LZ4HC_encodeSequence(\n                                                &raw mut ip_0,\n                                                &raw mut op_0,\n                                                &raw mut anchor_0,\n                                                m1.len,\n                                                m1.off,\n                                                limit,\n                                                oend,\n                                            ) != 0\n                                            {\n                                                current_block = 1719972829996836699;\n                                                break 's_97;\n                                            }\n                                            ip_0 = start3;\n                                            m1 = m3;\n                                            start0 = start2;\n                                            m0 = m2;\n                                            break;\n                                        } else {\n                                            start2 = start3;\n                                            m2 = m3;\n                                        }\n                                    } else {\n                                        if start2 < ip_0.offset(m1.len as isize) {\n                                            if (start2.offset_from(ip_0) as c_long)\n                                                < OPTIMAL_ML as c_long\n                                            {\n                                                let mut correction_1: c_int = 0;\n                                                if m1.len > OPTIMAL_ML {\n                                                    m1.len = OPTIMAL_ML;\n                                                }\n                                                if ip_0.offset(m1.len as isize)\n                                                    > start2\n                                                        .offset(m2.len as isize)\n                                                        .offset(-(MINMATCH as isize))\n                                                {\n                                                    m1.len = start2.offset_from(ip_0)\n                                                        as c_long\n                                                        as c_int\n                                                        + m2.len\n                                                        - MINMATCH;\n                                                }\n                                                correction_1 = m1.len\n                                                    - start2.offset_from(ip_0)\n                                                        as c_long\n                                                        as c_int;\n                                                if correction_1 > 0 as c_int {\n                                                    start2 = start2.offset(correction_1 as isize);\n                                                    m2.len -= correction_1;\n                                                }\n                                            } else {\n                                                m1.len = start2.offset_from(ip_0)\n                                                    as c_long\n                                                    as c_int;\n                                            }\n                                        }\n                                        optr = op_0;\n                                        if LZ4HC_encodeSequence(\n                                            &raw mut ip_0,\n                                            &raw mut op_0,\n                                            &raw mut anchor_0,\n                                            m1.len,\n                                            m1.off,\n                                            limit,\n                                            oend,\n                                        ) != 0\n                                        {\n                                            current_block = 1719972829996836699;\n                                            break 's_97;\n                                        }\n                                        ip_0 = start2;\n                                        m1 = m2;\n                                        start2 = start3;\n                                        m2 = m3;\n                                    }\n                                }\n                            }\n                        }\n                    }\n                    match current_block {\n                        2290177392965769716 => {\n                            ip_0 = start2;\n                            optr = op_0;\n                            if !(LZ4HC_encodeSequence(\n                                &raw mut ip_0,\n                                &raw mut op_0,\n                                &raw mut anchor_0,\n                                m2.len,\n                                m2.off,\n                                limit,\n                                oend,\n                            ) != 0)\n                            {\n                                current_block = 11050875288958768710;\n                                continue;\n                            }\n                            m1 = m2;\n                        }\n                        _ => {}\n                    }\n                    if limit as c_uint\n                        == fillOutput as c_int as c_uint\n                    {\n                        let ll: size_t =\n                            ip_0.offset_from(anchor_0) as c_long as size_t;\n                        let ll_addbytes: size_t =\n                            ll.wrapping_add(240 as size_t).wrapping_div(255 as size_t);\n                        let ll_totalCost: size_t =\n                            (1 as size_t).wrapping_add(ll_addbytes).wrapping_add(ll);\n                        let maxLitPos: *mut BYTE = oend.offset(-(3 as c_int as isize));\n                        op_0 = optr;\n                        if op_0.offset(ll_totalCost as isize) <= maxLitPos {\n                            let bytesLeftForMl: size_t = maxLitPos\n                                .offset_from(op_0.offset(ll_totalCost as isize))\n                                as c_long\n                                as size_t;\n                            let maxMlSize: size_t = ((MINMATCH as c_uint)\n                                .wrapping_add(ML_MASK.wrapping_sub(1 as c_uint))\n                                as size_t)\n                                .wrapping_add(bytesLeftForMl.wrapping_mul(255 as size_t));\n                            if m1.len as size_t > maxMlSize {\n                                m1.len = maxMlSize as c_int;\n                            }\n                            if oend.offset(LASTLITERALS as isize).offset_from(\n                                op_0.offset(ll_totalCost as isize)\n                                    .offset(2 as c_int as isize),\n                            ) as c_long\n                                - 1 as c_long\n                                + m1.len as c_long\n                                >= MFLIMIT as c_long\n                            {\n                                LZ4HC_encodeSequence(\n                                    &raw mut ip_0,\n                                    &raw mut op_0,\n                                    &raw mut anchor_0,\n                                    m1.len,\n                                    m1.off,\n                                    notLimited,\n                                    oend,\n                                );\n                            }\n                        }\n                        current_block = 1525518218708800755;\n                    } else {\n                        return 0 as c_int;\n                    }\n                }\n            }\n            _ => {\n                let mut lastRunSize: size_t =\n                    iend.offset_from(anchor_0) as c_long as size_t;\n                let mut llAdd: size_t = lastRunSize\n                    .wrapping_add(255 as size_t)\n                    .wrapping_sub(RUN_MASK as size_t)\n                    .wrapping_div(255 as size_t);\n                let totalSize: size_t = (1 as size_t).wrapping_add(llAdd).wrapping_add(lastRunSize);\n                if limit as c_uint\n                    == fillOutput as c_int as c_uint\n                {\n                    oend = oend.offset(LASTLITERALS as isize);\n                }\n                if limit as c_uint != 0 && op_0.offset(totalSize as isize) > oend {\n                    if limit as c_uint\n                        == limitedOutput as c_int as c_uint\n                    {\n                        return 0 as c_int;\n                    }\n                    lastRunSize = (oend.offset_from(op_0) as c_long as size_t)\n                        .wrapping_sub(1 as size_t);\n                    llAdd = lastRunSize\n                        .wrapping_add(256 as size_t)\n                        .wrapping_sub(RUN_MASK as size_t)\n                        .wrapping_div(256 as size_t);\n                    lastRunSize = lastRunSize.wrapping_sub(llAdd);\n                }\n                ip_0 = anchor_0.offset(lastRunSize as isize);\n                if lastRunSize >= RUN_MASK as size_t {\n                    let mut accumulator: size_t = lastRunSize.wrapping_sub(RUN_MASK as size_t);\n                    let fresh13 = op_0;\n                    op_0 = op_0.offset(1);\n                    *fresh13 = (RUN_MASK << ML_BITS) as BYTE;\n                    while accumulator >= 255 as size_t {\n                        let fresh14 = op_0;\n                        op_0 = op_0.offset(1);\n                        *fresh14 = 255 as BYTE;\n                        accumulator = accumulator.wrapping_sub(255 as size_t);\n                    }\n                    let fresh15 = op_0;\n                    op_0 = op_0.offset(1);\n                    *fresh15 = accumulator as BYTE;\n                } else {\n                    let fresh16 = op_0;\n                    op_0 = op_0.offset(1);\n                    *fresh16 = (lastRunSize << ML_BITS) as BYTE;\n                }\n                ::libc::memcpy(\n                    op_0 as *mut c_void,\n                    anchor_0 as *const c_void,\n                    lastRunSize as ::libc::size_t,\n                );\n                op_0 = op_0.offset(lastRunSize as isize);\n                *srcSizePtr = (ip_0 as *const c_char).offset_from(src)\n                    as c_long as c_int;\n                return (op_0 as *mut c_char).offset_from(dst) as c_long\n                    as c_int;\n            }\n        }\n    }\n}",
+    "signature": "unsafe fn LZ4HC_compress_hashChain(\n    ctx: *mut LZ4HC_CCtx_internal,\n    src: *const c_char,\n    dst: *mut c_char,\n    mut srcSizePtr: *mut c_int,\n    maxOutputSize: c_int,\n    mut maxNbAttempts: c_int,\n    limit: limitedOutput_directive,\n    dict: dictCtx_directive,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.2382,
+      "call_count": null,
+      "retired_instructions": 2794172938,
+      "instructions_per_call": null,
+      "cpi": 0.482,
+      "tma": {
+        "scope": "process",
+        "retiring": 40.75161865511238,
+        "frontend_bound": 20.610900626669796,
+        "bad_speculation": 33.34414590473939,
+        "backend_bound": 5.293334813478424,
+        "memory_bound": 2.963427164568506,
+        "core_bound": 2.3299076489099178,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0487
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1788,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17h52fa3d13817baec4E' inlined into '_ZN11lz4_cleaned3src5lz4hc24LZ4HC_compress_hashChain17hd2f5cac2acc4983eE': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc24LZ4HC_compress_hashChain17hd2f5cac2acc4983eE:85:34;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1806,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc20LZ4HC_encodeSequence17hf96f5738ccc0f0c5E' inlined into '_ZN11lz4_cleaned3src5lz4hc24LZ4HC_compress_hashChain17hd2f5cac2acc4983eE': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc24LZ4HC_compress_hashChain17hd2f5cac2acc4983eE:103:32;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1866,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17h52fa3d13817baec4E' inlined into '_ZN11lz4_cleaned3src5lz4hc24LZ4HC_compress_hashChain17hd2f5cac2acc4983eE': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc24LZ4HC_compress_hashChain17hd2f5cac2acc4983eE:163:46;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1888,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc20LZ4HC_encodeSequence17hf96f5738ccc0f0c5E' inlined into '_ZN11lz4_cleaned3src5lz4hc24LZ4HC_compress_hashChain17hd2f5cac2acc4983eE': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc24LZ4HC_compress_hashChain17hd2f5cac2acc4983eE:185:44;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1981,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc20LZ4HC_encodeSequence17hf96f5738ccc0f0c5E' inlined into '_ZN11lz4_cleaned3src5lz4hc24LZ4HC_compress_hashChain17hd2f5cac2acc4983eE': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc24LZ4HC_compress_hashChain17hd2f5cac2acc4983eE:278:44;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1924,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc20LZ4HC_encodeSequence17hf96f5738ccc0f0c5E' inlined into '_ZN11lz4_cleaned3src5lz4hc24LZ4HC_compress_hashChain17hd2f5cac2acc4983eE': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc24LZ4HC_compress_hashChain17hd2f5cac2acc4983eE:221:48;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2007,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc20LZ4HC_encodeSequence17hf96f5738ccc0f0c5E' inlined into '_ZN11lz4_cleaned3src5lz4hc24LZ4HC_compress_hashChain17hd2f5cac2acc4983eE': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc24LZ4HC_compress_hashChain17hd2f5cac2acc4983eE:304:34;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2055,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc20LZ4HC_encodeSequence17hf96f5738ccc0f0c5E' inlined into '_ZN11lz4_cleaned3src5lz4hc24LZ4HC_compress_hashChain17hd2f5cac2acc4983eE': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc24LZ4HC_compress_hashChain17hd2f5cac2acc4983eE:352:33;"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1765,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 1763,
+        "message": "peeled loop by 1 iterations"
+      },
+      {
+        "pass": "loop-idiom",
+        "status": "success",
+        "line": 2108,
+        "message": "Transformed loop-strided store in _ZN11lz4_cleaned3src5lz4hc24LZ4HC_compress_hashChain17hd2f5cac2acc4983eE function into a call to llvm.memset.p0.i64() intrinsic"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 2105,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1714,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1784,
+        "message": "48 spills 1.689866e+02 total spills cost 7 folded spills 1.424424e+01 total folded spills cost 157 reloads 7.989329e+02 total reloads cost 51 folded reloads 3.300540e+02 total folded reloads cost 105 virtual registers copies 7.891717e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1836,
+        "message": "51 spills 8.245224e+01 total spills cost 8 folded spills 7.174088e+00 total folded spills cost 131 reloads 4.284542e+02 total reloads cost 55 folded reloads 1.973719e+02 total folded reloads cost 94 virtual registers copies 3.014923e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1836,
+        "message": "74 spills 8.534772e+01 total spills cost 8 folded spills 7.174088e+00 total folded spills cost 162 reloads 4.298294e+02 total reloads cost 60 folded reloads 1.977883e+02 total folded reloads cost 114 virtual registers copies 3.027853e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1784,
+        "message": "142 spills 2.567124e+02 total spills cost 15 folded spills 2.141833e+01 total folded spills cost 347 reloads 1.230918e+03 total reloads cost 116 folded reloads 5.284776e+02 total folded reloads cost 237 virtual registers copies 1.093041e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1754,
+        "message": "BasicBlock: bb7.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2105,
+        "message": "BasicBlock: bb120.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2113,
+        "message": "BasicBlock: bb121.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1763,
+        "message": "BasicBlock: bb6.outer.split.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1800,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17h52fa3d13817baec4E.exit946.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1804,
+        "message": "BasicBlock: bb17.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1823,
+        "message": "BasicBlock: bb22.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1823,
+        "message": "BasicBlock: bb31.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1846,
+        "message": "BasicBlock: bb32.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1878,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc28LZ4HC_InsertAndGetWiderMatch17h52fa3d13817baec4E.exit1807.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1882,
+        "message": "BasicBlock: bb47.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1904,
+        "message": "BasicBlock: bb55.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1947,
+        "message": "BasicBlock: bb68.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1883,
+        "message": "BasicBlock: bb48.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2117,
+        "message": "BasicBlock: bb122.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

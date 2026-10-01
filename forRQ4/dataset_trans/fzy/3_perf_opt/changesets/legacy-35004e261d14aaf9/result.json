@@ -1,0 +1,142 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 11.905565918956112,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 14.722635800670917,
+            "aggregate_ci_low_pct": 9.088496037241308,
+            "aggregate_pct": 11.905565918956112,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 14.7226,
+                "ci_low_pct": 9.0885,
+                "insns_delta_pct": -2.1409,
+                "mean_delta_pct": 11.9056,
+                "op": "choices_fread_search",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "choices_add_search",
+          "choices_fread_search",
+          "match_primitives"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "choices_fread_search"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "c2b0c073d04e3bf88c0c86c16cbb8cbd04b76a55",
+      "changeset_id": "legacy-35004e261d14aaf9",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-ee98508e79d3916a",
+          "replacement_function_source": "#[export_name = \"match\"]\npub unsafe extern \"C\" fn match_0(\n    mut needle: *const c_char,\n    mut haystack: *const c_char,\n) -> score_t {\n    // Applied rules: [C1]\n    // Skipped rules: []\n    if *needle == 0 {\n        return -::core::f32::INFINITY as score_t;\n    }\n    let mut match_1: match_struct = match_struct {\n        needle_len: 0,\n        haystack_len: 0,\n        lower_needle: [0; 1024],\n        lower_haystack: [0; 1024],\n        match_bonus: [0.; 1024],\n    };\n    setup_match_struct(&raw mut match_1, needle, haystack);\n\n    let n: c_int = match_1.needle_len;\n    let m: c_int = match_1.haystack_len;\n\n    if m > MATCH_MAX_LEN || n > m {\n        return -::core::f32::INFINITY as score_t;\n    } else if n == m {\n        return ::core::f32::INFINITY as score_t;\n    }\n\n    let mut D: [score_t; 1024] = [0.; 1024];\n    let mut M: [score_t; 1024] = [0.; 1024];\n    let d_ptr: *mut score_t = D.as_mut_ptr();\n    let m_ptr: *mut score_t = M.as_mut_ptr();\n\n    let mut i: c_int = 0;\n    while i < n {\n        match_row(&raw mut match_1, i, d_ptr, m_ptr, d_ptr, m_ptr);\n        i += 1;\n    }\n\n    // SAFETY: earlier checks guarantee n <= m <= MATCH_MAX_LEN <= 1024, and this\n    // path excludes n == m, so m < 1024 and m > 0; therefore (m - 1) as usize is\n    // within the bounds of M.\n    unsafe { *M.get_unchecked((m - 1) as usize) }\n}",
+          "rule_id": "C1",
+          "target": {
+            "declaration_hash": "20697834e726dda3f8ff94f8d2da52ca4e315b560f252e63b9eee2b4be51a973",
+            "file_hint": "src/match.rs",
+            "qualified_name": "crate::match_0",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "match-1e821602e97b",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "match_0",
+        "rule_id": "C1"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "8f8e451c069136172ec2b7f4e14653bfd66a8d8770f51965adac244d68e1b4ea",
+            "edit_id": "edit-replace-ee98508e79d3916a",
+            "end_byte": 9021,
+            "operation_id": "replace-ee98508e79d3916a",
+            "relative_path": "src/match.rs",
+            "replacement_text": "#[export_name = \"match\"]\npub unsafe extern \"C\" fn match_0(\n    mut needle: *const c_char,\n    mut haystack: *const c_char,\n) -> score_t {\n    // Applied rules: [C1]\n    // Skipped rules: []\n    if *needle == 0 {\n        return -::core::f32::INFINITY as score_t;\n    }\n    let mut match_1: match_struct = match_struct {\n        needle_len: 0,\n        haystack_len: 0,\n        lower_needle: [0; 1024],\n        lower_haystack: [0; 1024],\n        match_bonus: [0.; 1024],\n    };\n    setup_match_struct(&raw mut match_1, needle, haystack);\n\n    let n: c_int = match_1.needle_len;\n    let m: c_int = match_1.haystack_len;\n\n    if m > MATCH_MAX_LEN || n > m {\n        return -::core::f32::INFINITY as score_t;\n    } else if n == m {\n        return ::core::f32::INFINITY as score_t;\n    }\n\n    let mut D: [score_t; 1024] = [0.; 1024];\n    let mut M: [score_t; 1024] = [0.; 1024];\n    let d_ptr: *mut score_t = D.as_mut_ptr();\n    let m_ptr: *mut score_t = M.as_mut_ptr();\n\n    let mut i: c_int = 0;\n    while i < n {\n        match_row(&raw mut match_1, i, d_ptr, m_ptr, d_ptr, m_ptr);\n        i += 1;\n    }\n\n    // SAFETY: earlier checks guarantee n <= m <= MATCH_MAX_LEN <= 1024, and this\n    // path excludes n == m, so m < 1024 and m > 0; therefore (m - 1) as usize is\n    // within the bounds of M.\n    unsafe { *M.get_unchecked((m - 1) as usize) }\n}",
+            "start_byte": 7813
+          }
+        ],
+        "facts": {
+          "fn_name": "match_0",
+          "target_span_hash": "20697834e726dda3f8ff94f8d2da52ca4e315b560f252e63b9eee2b4be51a973"
+        },
+        "operation_id": "replace-ee98508e79d3916a"
+      }
+    ],
+    "resolved_head": "c2b0c073d04e3bf88c0c86c16cbb8cbd04b76a55"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/match.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "harness_name": "libxml2_raw_harness",
+  "operations": [
+    {
+      "name": "html_parse_dump",
+      "needs_input": true,
+      "summary": "Parses a complete HTML document from memory, inspects a few document properties, then serializes the parsed tree back to memory. This drives the main HTML parser and tree dumper end-to-end on valid documents.",
+      "api_calls": [
+        "htmlInitAutoClose",
+        "htmlParseDoc",
+        "htmlGetMetaEncoding",
+        "htmlDocDumpMemoryFormat",
+        "xmlFreeDoc",
+        "xmlMemFree",
+        "xmlGetLastError",
+        "xmlResetLastError"
+      ],
+      "input_format": "A complete HTML document as raw bytes, intended to be valid libxml2 HTML input and accepted by htmlParseDoc.",
+      "digest": "Fold parse success/nullness, last-error code if any, whether a meta encoding was found, serialized output length, and a checksum over the serialized output bytes."
+    },
+    {
+      "name": "html_push_parse",
+      "needs_input": true,
+      "summary": "Feeds a valid HTML document through the incremental push-parser interface in deterministic chunks, then queries parser progress/state before cleanup. This exercises the streaming HTML parser path rather than the one-shot parser.",
+      "api_calls": [
+        "htmlCreatePushParserCtxt",
+        "htmlParseChunk",
+        "xmlByteConsumed",
+        "xmlCtxtGetLastError",
+        "htmlFreeParserCtxt"
+      ],
+      "input_format": "A complete HTML document as raw bytes; the runner splits it into fixed-size chunks and submits them with a final terminate call.",
+      "digest": "Fold creation success, each htmlParseChunk return code, final xmlByteConsumed value, final parser error code if present, and a loop-invariant checksum of the original input bytes."
+    },
+    {
+      "name": "html_entity_encode",
+      "needs_input": true,
+      "summary": "Converts UTF-8 text into HTML-safe escaped output using libxml2's HTML entity encoder. This is a linear text-processing workload with realistic markup-heavy and non-ASCII inputs.",
+      "api_calls": [
+        "htmlEncodeEntities",
+        "UTF8ToHtml"
+      ],
+      "input_format": "UTF-8 text bytes, typically prose mixed with HTML-sensitive characters like <, >, &, quotes, and non-ASCII characters.",
+      "digest": "Fold both encoder return codes, consumed input lengths, produced output lengths, and checksums over the encoded output buffers."
+    },
+    {
+      "name": "uri_roundtrip",
+      "needs_input": true,
+      "summary": "Parses a URI, normalizes it through libxml2's URI machinery, and emits the saved/escaped form. This covers URI parsing and serialization logic on valid absolute and relative references.",
+      "api_calls": [
+        "xmlParseURI",
+        "xmlSaveUri",
+        "xmlURIEscapeStr",
+        "xmlBuildURI",
+        "xmlBuildRelativeURI",
+        "xmlFreeURI",
+        "xmlMemFree"
+      ],
+      "input_format": "UTF-8 text containing one URI or two newline-separated URI strings interpreted as reference and base.",
+      "digest": "Fold parse success, saved-URI length and checksum, escaped/build-relative success flags, and checksums of any returned URI strings after serialization."
+    },
+    {
+      "name": "buf_strings_chars",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": ""
+    },
+    {
+      "name": "encoding_suite",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": ""
+    },
+    {
+      "name": "entities_tree_valid",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": ""
+    },
+    {
+      "name": "globals_threads_memory",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": ""
+    },
+    {
+      "name": "regexp_pattern",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": ""
+    },
+    {
+      "name": "schema_suite",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": ""
+    },
+    {
+      "name": "writer_save",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": ""
+    }
+  ],
+  "seed_strategy": "Generate two deterministic valid files per operation. For html_parse_dump and html_push_parse, write two distinct full HTML documents: one small but well-formed document with head/meta/title/body, entities, comments, attributes, and nested tags; and one larger document with many repeated list/table/card sections, mixed text, links, script/style-like attributes, and non-ASCII text so the parser and serializer take different paths and produce different digests. For html_entity_encode, write two UTF-8 text corpora rather than random bytes: one short multilingual snippet with characters requiring escaping and one larger realistic HTML-adjacent prose block with many repeated tags, attribute-like fragments, ampersands, quotes, and accented characters; these are valid inputs for both UTF8ToHtml and htmlEncodeEntities. For uri_roundtrip, write two valid URI inputs: one absolute URI with query and fragment, and one two-line reference/base pair exercising relative resolution. All files are synthesized deterministically from fixed literal templates and repeated structured sections, not randomness."
+}

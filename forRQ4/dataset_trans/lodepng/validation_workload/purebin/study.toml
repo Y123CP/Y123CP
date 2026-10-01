@@ -1,0 +1,172 @@
+# ============================================================================
+                                                        
+                                                                         
+                                                        
+                                                                
+                                                                     
+                                            
+                                                         
+                                                       
+#       dataset_trans/run_validation.py dataset_trans/lodepng/validation_workload/purebin/study.toml
+# ============================================================================
+
+[study]
+project     = "lodepng"
+compare     = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+report_mode = "per_input"
+
+[builds.c]
+binary_path = "dataset_trans/lodepng/validation_workload/purebin/bin/lodepng_c"
+[builds.raw]
+binary_path = "dataset_trans/lodepng/validation_workload/purebin/bin/lodepng_raw"
+[builds.stage_a]
+binary_path = "dataset_trans/lodepng/validation_workload/purebin/bin/lodepng_stage_a"
+
+[builds.codex]
+binary_path = "dataset_trans/lodepng/validation_workload/purebin/bin/lodepng_codex"
+[builds.freeform]
+binary_path = "dataset_trans/lodepng/validation_workload/purebin/bin/lodepng_freeform"
+[builds.full]                                  # full arm = 3_perf_opt (rule-guided)
+binary_path = "dataset_trans/lodepng/validation_workload/purebin/bin/lodepng_full"
+
+[measure]
+warmup_runs  = 5
+measure_runs = 30
+required_cv  = 0.03
+max_load     = 1.0
+cv_retries   = 2
+pin_cpu      = 16
+order        = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+
+[gates]
+equivalence = "stdout_sha256"
+
+[[operations]]
+name = "decode32"                 # PNG -> RGBA32 (inflate + unfilter + convert)
+args = ["decode32", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "islands.png"
+  path = "dataset_trans/lodepng/validation_workload/inputs/islands.png"
+  iters = 20
+  stdout_sha256 = "ef5c46cec91241b0dfb9d4f84af4385a7b0908b5236c507e8aa0431f6863ed62"
+  [[operations.inputs]]
+  name = "generator.png"
+  path = "dataset_trans/lodepng/validation_workload/inputs/generator.png"
+  iters = 25
+  stdout_sha256 = "6c6be7fadccaaf7d9a48bb9ffe984e8a913e970d138f90e2be131ca18068a14f"
+
+[[operations]]
+name = "decode_keep"              # state decode, no color conversion
+args = ["decode_keep", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "islands.png"
+  path = "dataset_trans/lodepng/validation_workload/inputs/islands.png"
+  iters = 25
+  stdout_sha256 = "0c42b651108739c81bf7dd1049b5dfa0cdcfa76b8128844f345a05624b420a57"
+  [[operations.inputs]]
+  name = "generator.png"
+  path = "dataset_trans/lodepng/validation_workload/inputs/generator.png"
+  iters = 25
+  stdout_sha256 = "682a6454dad2c9c7ed1518a527f31b4a7d20263f14d18194aaf024852880bd64"
+  [[operations.inputs]]
+  name = "generator_palette.png"
+  path = "dataset_trans/lodepng/validation_workload/inputs/generator_palette.png"
+  iters = 120
+  stdout_sha256 = "5012d35ef25010ec19fa510c18913f2da100616e21d1abddd6ebc53ec56408ef"
+  [[operations.inputs]]
+  name = "generator_grey16.png"
+  path = "dataset_trans/lodepng/validation_workload/inputs/generator_grey16.png"
+  iters = 30
+  stdout_sha256 = "5c0ee523864f0c1f14af34aced03e5ea66592f710ab5820c0460b79745a8e272"
+  [[operations.inputs]]
+  name = "generator_interlaced.png"
+  path = "dataset_trans/lodepng/validation_workload/inputs/generator_interlaced.png"
+  iters = 20
+  stdout_sha256 = "b90e6157209c39ab83d40bd3b9f0c50e33652af54b6b04ec1bbc9834640b06da"
+  [[operations.inputs]]
+  name = "generator_meta.png"
+  path = "dataset_trans/lodepng/validation_workload/inputs/generator_meta.png"
+  iters = 25
+  stdout_sha256 = "76b594db74c88500118955e72b84ab7ed4c30c5147d0e0546b9a4c0c1ad921b8"
+
+[[operations]]
+name = "decode_file"              # file-path entry point (page-cached I/O)
+args = ["decode_file", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "islands.png"
+  path = "dataset_trans/lodepng/validation_workload/inputs/islands.png"
+  iters = 20
+  stdout_sha256 = "4ff836fc1cc09589eb0a1b3efe61bad80c6834f2f2977093097dfc1d110d59fc"
+
+[[operations]]
+name = "encode32"                 # RGBA -> PNG (filter + deflate)
+args = ["encode32", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "islands.rgba"
+  path = "dataset_trans/lodepng/validation_workload/inputs/islands.rgba"
+  iters = 2
+  stdout_sha256 = "e9dc2af4adf3edf29c34a3410a572251d6bd02f2fd5db121b8e9de4909d0ec27"
+  [[operations.inputs]]
+  name = "generator.rgba"
+  path = "dataset_trans/lodepng/validation_workload/inputs/generator.rgba"
+  iters = 3
+  stdout_sha256 = "4e2fd18a193aaf225d9df50cd153c744ef5121f0fffdbcc0047a370a6048ce80"
+
+[[operations]]
+name = "encode_meta"              # ancillary chunks (tEXt+zTXt+iTXt/gAMA/...)
+args = ["encode_meta", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "generator.rgba"
+  path = "dataset_trans/lodepng/validation_workload/inputs/generator.rgba"
+  iters = 3
+  stdout_sha256 = "8e03eae9630f88fa98f09e35bd41bd6ec689fd9558ed5ebd8a48daa0a63c1640"
+
+[[operations]]
+name = "encode_settings"          # filter strategies x zlib btypes matrix
+args = ["encode_settings", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "islands-tile.rgba"
+  path = "dataset_trans/lodepng/validation_workload/inputs/islands-tile.rgba"
+  iters = 2
+  stdout_sha256 = "6503e95b0c0ca921cf15f5d800aaf9bb7b98505a3f51b6c02eb837feed33cf10"
+
+[[operations]]
+name = "zlib_roundtrip"           # lodepng zlib compress/decompress/inflate
+args = ["zlib_roundtrip", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "islands-tile.rgba"
+  path = "dataset_trans/lodepng/validation_workload/inputs/islands-tile.rgba"
+  iters = 80
+  stdout_sha256 = "179ae4ed59dba51917fbfe753df2319c6396a8d1b220cedf709209a0b20ff589"
+
+[[operations]]
+name = "convert"                  # RGBA -> RGB/grey/grey16/RGBA16
+args = ["convert", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "generator.rgba"
+  path = "dataset_trans/lodepng/validation_workload/inputs/generator.rgba"
+  iters = 9
+  stdout_sha256 = "287281d709364e3e31e3f7dbbbf67d09866bb609bbf5da8f87aeb79eb7f05edc"
+
+[[operations]]
+name = "chunk_crc"                # chunk walk/surgery + inspect + crc32 + utils
+args = ["chunk_crc", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "islands.png"
+  path = "dataset_trans/lodepng/validation_workload/inputs/islands.png"
+  iters = 500
+  stdout_sha256 = "a96d2d98c57dfc47d5983d2918c6e45c4455d0c666bba6db596e1e901468d877"
+  [[operations.inputs]]
+  name = "generator_meta.png"
+  path = "dataset_trans/lodepng/validation_workload/inputs/generator_meta.png"
+  iters = 1500
+  stdout_sha256 = "1645c400faffde311a710267ca07274eadbb9d2ae5ecd0075f29abb958eac6c6"

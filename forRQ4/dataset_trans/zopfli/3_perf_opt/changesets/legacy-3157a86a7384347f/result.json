@@ -1,0 +1,238 @@
+{
+  "applied_rules": [
+    "III④"
+  ],
+  "commit_sha": "b9e085c",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -2.3216675682614776,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -1.8104249286527623,
+            "aggregate_ci_low_pct": -2.832910207870193,
+            "aggregate_pct": -2.3216675682614776,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -7.5741,
+                "ci_low_pct": -11.6426,
+                "insns_delta_pct": -0.0032,
+                "mean_delta_pct": -9.6084,
+                "op": "cache_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.283,
+                "ci_low_pct": -0.6073,
+                "insns_delta_pct": -0.2371,
+                "mean_delta_pct": -0.4451,
+                "op": "lz77_blocksplit_analysis",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.4171,
+                "ci_low_pct": 0.2709,
+                "insns_delta_pct": -0.076,
+                "mean_delta_pct": 0.344,
+                "op": "raw_deflate",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.5331,
+                "ci_low_pct": 0.3126,
+                "insns_delta_pct": -0.0684,
+                "mean_delta_pct": 0.4229,
+                "op": "zlib_compress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -9.502715309844868,
+            "aggregate_ci_low_pct": -10.107712731772812,
+            "aggregate_pct": -9.80521402080884,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -7.8852,
+                "ci_low_pct": -10.7414,
+                "insns_delta_pct": 0.0023,
+                "mean_delta_pct": -9.3133,
+                "op": "cache_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -7.084,
+                "ci_low_pct": -7.6666,
+                "insns_delta_pct": -4.4342,
+                "mean_delta_pct": -7.3753,
+                "op": "lz77_blocksplit_analysis",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.1824,
+                "ci_low_pct": -1.3627,
+                "insns_delta_pct": -1.2932,
+                "mean_delta_pct": -1.2726,
+                "op": "raw_deflate",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -29.3115,
+                "ci_low_pct": -30.4641,
+                "insns_delta_pct": -16.7312,
+                "mean_delta_pct": -29.8878,
+                "op": "tree_codegen",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.1058,
+                "ci_low_pct": -1.2484,
+                "insns_delta_pct": -1.278,
+                "mean_delta_pct": -1.1771,
+                "op": "zlib_compress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "cache_roundtrip",
+          "lz77_blocksplit_analysis",
+          "raw_deflate",
+          "zlib_compress"
+        ],
+        "reason": "accepted",
+        "triggering_op": "zlib_compress"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "b9fdc8fcee9868a2f292c1931d75dd5030ca59c8",
+      "changeset_id": "legacy-3157a86a7384347f",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-a83ae0918885230b",
+          "replacement_function_source": "// Applied rules: [III④]\n// Skipped rules: [C3: Subsumed by III④ body-local slice rewrite plus per-iteration local caching of `sublen[i]`: the clobbered raw loads at hits [0,1] are the same accesses as III④ hits [6,8], and there is no separate loop-invariant field load/writeback opportunity worth an independent S2-only rewrite. S1 signature lift is possible in principle but unnecessary for this localized hot loop and would require caller analysis.]\n#[inline]\npub unsafe fn ZopfliSublenToCache(\n    mut sublen: *const c_ushort,\n    mut pos: size_t,\n    mut length: size_t,\n    mut lmc: *mut ZopfliLongestMatchCache,\n) {\n    let lmc_view: &ZopfliLongestMatchCache = unsafe { &*lmc };\n    let mut j: size_t = 0 as size_t;\n    let mut bestlength: c_uint = 0 as c_uint;\n\n    let cache_ptr = lmc_view.sublen.wrapping_add(\n        (ZOPFLI_CACHE_LENGTH as size_t)\n            .wrapping_mul(pos)\n            .wrapping_mul(3 as size_t),\n    );\n\n    if length < 3 as size_t {\n        return;\n    }\n\n    // SAFETY: `sublen` is read at indices `i` and `i + 1` for `i` in `3..=length`,\n    // so the caller-visible access pattern requires validity for at least `length + 2`\n    // `c_ushort` elements. `sublen` is non-null for these accesses by the same caller\n    // invariant, and this immutable slice does not alias the mutable `cache` region.\n    let sublen_slice = unsafe {\n        core::slice::from_raw_parts(sublen, length.wrapping_add(2 as size_t))\n    };\n    // SAFETY: `cache_ptr` is derived from `lmc_view.sublen` at offset\n    // `ZOPFLI_CACHE_LENGTH * pos * 3`, and this function accesses entries within the\n    // fixed region of `ZOPFLI_CACHE_LENGTH * 3` bytes from that base. The caller/data\n    // structure invariants must provide a non-null allocation covering that region for\n    // this `pos`. No other reference to this cache region is live across this mutable\n    // reborrow.\n    let cache = unsafe {\n        core::slice::from_raw_parts_mut(\n            cache_ptr,\n            (ZOPFLI_CACHE_LENGTH as size_t).wrapping_mul(3 as size_t),\n        )\n    };\n\n    let mut i = 3 as size_t;\n    while i <= length {\n        let curr = *unsafe { sublen_slice.get_unchecked(i) };\n        let boundary =\n            i == length || curr as c_int != *unsafe { sublen_slice.get_unchecked(i + 1) } as c_int;\n\n        if boundary {\n            let base = j.wrapping_mul(3 as size_t);\n            let curr_i = curr as c_int;\n            *unsafe { cache.get_unchecked_mut(base) } = i.wrapping_sub(3 as size_t) as c_uchar;\n            *unsafe { cache.get_unchecked_mut(base + 1) } = (curr_i % 256 as c_int) as c_uchar;\n            *unsafe { cache.get_unchecked_mut(base + 2) } =\n                ((curr_i >> 8 as c_int) % 256 as c_int) as c_uchar;\n            bestlength = i as c_uint;\n            j = j.wrapping_add(1);\n            if j >= ZOPFLI_CACHE_LENGTH as size_t {\n                break;\n            }\n        }\n        i = i.wrapping_add(1);\n    }\n\n    if j < ZOPFLI_CACHE_LENGTH as size_t {\n        *unsafe {\n            cache.get_unchecked_mut(((ZOPFLI_CACHE_LENGTH - 1 as c_int) * 3 as c_int) as usize)\n        } = bestlength.wrapping_sub(3 as c_uint) as c_uchar;\n    }\n}",
+          "rule_id": "III④",
+          "target": {
+            "declaration_hash": "09140b5925f304cf2163a6f476be2051ad4db917852ba022f933360122293def",
+            "file_hint": "src/cache.rs",
+            "qualified_name": "crate::ZopfliSublenToCache",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "ZopfliSublenToCache-2342f15258f0",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "ZopfliSublenToCache",
+        "rule_id": "III④"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "bace5cad464e576b033646cf5f9327916baaf6dff16a911df364d0164fef78c8",
+            "edit_id": "edit-replace-a83ae0918885230b",
+            "end_byte": 3868,
+            "operation_id": "replace-a83ae0918885230b",
+            "relative_path": "src/cache.rs",
+            "replacement_text": "// Applied rules: [III④]\n// Skipped rules: [C3: Subsumed by III④ body-local slice rewrite plus per-iteration local caching of `sublen[i]`: the clobbered raw loads at hits [0,1] are the same accesses as III④ hits [6,8], and there is no separate loop-invariant field load/writeback opportunity worth an independent S2-only rewrite. S1 signature lift is possible in principle but unnecessary for this localized hot loop and would require caller analysis.]\n#[inline]\npub unsafe fn ZopfliSublenToCache(\n    mut sublen: *const c_ushort,\n    mut pos: size_t,\n    mut length: size_t,\n    mut lmc: *mut ZopfliLongestMatchCache,\n) {\n    let lmc_view: &ZopfliLongestMatchCache = unsafe { &*lmc };\n    let mut j: size_t = 0 as size_t;\n    let mut bestlength: c_uint = 0 as c_uint;\n\n    let cache_ptr = lmc_view.sublen.wrapping_add(\n        (ZOPFLI_CACHE_LENGTH as size_t)\n            .wrapping_mul(pos)\n            .wrapping_mul(3 as size_t),\n    );\n\n    if length < 3 as size_t {\n        return;\n    }\n\n    // SAFETY: `sublen` is read at indices `i` and `i + 1` for `i` in `3..=length`,\n    // so the caller-visible access pattern requires validity for at least `length + 2`\n    // `c_ushort` elements. `sublen` is non-null for these accesses by the same caller\n    // invariant, and this immutable slice does not alias the mutable `cache` region.\n    let sublen_slice = unsafe {\n        core::slice::from_raw_parts(sublen, length.wrapping_add(2 as size_t))\n    };\n    // SAFETY: `cache_ptr` is derived from `lmc_view.sublen` at offset\n    // `ZOPFLI_CACHE_LENGTH * pos * 3`, and this function accesses entries within the\n    // fixed region of `ZOPFLI_CACHE_LENGTH * 3` bytes from that base. The caller/data\n    // structure invariants must provide a non-null allocation covering that region for\n    // this `pos`. No other reference to this cache region is live across this mutable\n    // reborrow.\n    let cache = unsafe {\n        core::slice::from_raw_parts_mut(\n            cache_ptr,\n            (ZOPFLI_CACHE_LENGTH as size_t).wrapping_mul(3 as size_t),\n        )\n    };\n\n    let mut i = 3 as size_t;\n    while i <= length {\n        let curr = *unsafe { sublen_slice.get_unchecked(i) };\n        let boundary =\n            i == length || curr as c_int != *unsafe { sublen_slice.get_unchecked(i + 1) } as c_int;\n\n        if boundary {\n            let base = j.wrapping_mul(3 as size_t);\n            let curr_i = curr as c_int;\n            *unsafe { cache.get_unchecked_mut(base) } = i.wrapping_sub(3 as size_t) as c_uchar;\n            *unsafe { cache.get_unchecked_mut(base + 1) } = (curr_i % 256 as c_int) as c_uchar;\n            *unsafe { cache.get_unchecked_mut(base + 2) } =\n                ((curr_i >> 8 as c_int) % 256 as c_int) as c_uchar;\n            bestlength = i as c_uint;\n            j = j.wrapping_add(1);\n            if j >= ZOPFLI_CACHE_LENGTH as size_t {\n                break;\n            }\n        }\n        i = i.wrapping_add(1);\n    }\n\n    if j < ZOPFLI_CACHE_LENGTH as size_t {\n        *unsafe {\n            cache.get_unchecked_mut(((ZOPFLI_CACHE_LENGTH - 1 as c_int) * 3 as c_int) as usize)\n        } = bestlength.wrapping_sub(3 as c_uint) as c_uchar;\n    }\n}",
+            "start_byte": 2075
+          }
+        ],
+        "facts": {
+          "fn_name": "ZopfliSublenToCache",
+          "target_span_hash": "09140b5925f304cf2163a6f476be2051ad4db917852ba022f933360122293def"
+        },
+        "operation_id": "replace-a83ae0918885230b"
+      }
+    ],
+    "resolved_head": "b9fdc8fcee9868a2f292c1931d75dd5030ca59c8"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/cache.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

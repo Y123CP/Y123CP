@@ -1,0 +1,220 @@
+{
+  "hot_function": {
+    "symbol": "XXH32_endian_align",
+    "location": "src/xxhash.rs:413-479",
+    "workload": "xxhash_digest",
+    "hot_region": "src/xxhash.rs:413-479",
+    "rust_source": "unsafe fn XXH32_endian_align(\n    mut input: *const c_void,\n    mut len: size_t,\n    mut seed: U32,\n    mut endian: XXH_endianness,\n    mut align: XXH_alignment,\n) -> U32 {\n    let mut p: *const BYTE = input as *const BYTE;\n    let mut bEnd: *const BYTE = p.offset(len as isize);\n    let mut h32: U32 = 0;\n    if len >= 16 as size_t {\n        let limit: *const BYTE = bEnd.offset(-(15 as c_int as isize));\n        let mut v1: U32 = seed.wrapping_add(PRIME32_1).wrapping_add(PRIME32_2);\n        let mut v2: U32 = seed.wrapping_add(PRIME32_2);\n        let mut v3: U32 = seed.wrapping_add(0 as U32);\n        let mut v4: U32 = seed.wrapping_sub(PRIME32_1);\n        loop {\n            v1 = XXH32_round(\n                v1,\n                XXH_readLE32_align(p as *const c_void, endian, align),\n            );\n            p = p.offset(4 as c_int as isize);\n            v2 = XXH32_round(\n                v2,\n                XXH_readLE32_align(p as *const c_void, endian, align),\n            );\n            p = p.offset(4 as c_int as isize);\n            v3 = XXH32_round(\n                v3,\n                XXH_readLE32_align(p as *const c_void, endian, align),\n            );\n            p = p.offset(4 as c_int as isize);\n            v4 = XXH32_round(\n                v4,\n                XXH_readLE32_align(p as *const c_void, endian, align),\n            );\n            p = p.offset(4 as c_int as isize);\n            if !(p < limit) {\n                break;\n            }\n        }\n        h32 = (v1 << 1 as c_int\n            | v1 >> 32 as c_int - 1 as c_int)\n            .wrapping_add(\n                v2 << 7 as c_int\n                    | v2 >> 32 as c_int - 7 as c_int,\n            )\n            .wrapping_add(\n                v3 << 12 as c_int\n                    | v3 >> 32 as c_int - 12 as c_int,\n            )\n            .wrapping_add(\n                v4 << 18 as c_int\n                    | v4 >> 32 as c_int - 18 as c_int,\n            );\n    } else {\n        h32 = seed.wrapping_add(PRIME32_5);\n    }\n    h32 = h32.wrapping_add(len as U32);\n    return XXH32_finalize(\n        h32,\n        p as *const c_void,\n        len & 15 as size_t,\n        endian,\n        align,\n    );\n}",
+    "signature": "unsafe fn XXH32_endian_align(\n    mut input: *const c_void,\n    mut len: size_t,\n    mut seed: U32,\n    mut endian: XXH_endianness,\n    mut align: XXH_alignment,\n) -> U32",
+    "profile": {
+      "self_time_ratio": 0.1933,
+      "call_count": null,
+      "retired_instructions": 479757860,
+      "instructions_per_call": null,
+      "cpi": 2.201,
+      "tma": {
+        "scope": "process",
+        "retiring": 30.33514840001406,
+        "frontend_bound": 0.06011720454688246,
+        "bad_speculation": 0.02631849542826513,
+        "backend_bound": 69.57841590001078,
+        "memory_bound": 58.507415417645134,
+        "core_bound": 11.07100048236565,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0002
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "memory_bound",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 432,
+        "message": "'_ZN11lz4_cleaned3src6xxhash18XXH_readLE32_align17h90e1c9252385a284E' inlined into '_ZN11lz4_cleaned3src6xxhash18XXH32_endian_align17h7f1ecea2db935606E': always inline attribute at callsite _ZN11lz4_cleaned3src6xxhash18XXH32_endian_align17h7f1ecea2db935606E:19:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 437,
+        "message": "'_ZN11lz4_cleaned3src6xxhash18XXH_readLE32_align17h90e1c9252385a284E' inlined into '_ZN11lz4_cleaned3src6xxhash18XXH32_endian_align17h7f1ecea2db935606E': always inline attribute at callsite _ZN11lz4_cleaned3src6xxhash18XXH32_endian_align17h7f1ecea2db935606E:24:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 442,
+        "message": "'_ZN11lz4_cleaned3src6xxhash18XXH_readLE32_align17h90e1c9252385a284E' inlined into '_ZN11lz4_cleaned3src6xxhash18XXH32_endian_align17h7f1ecea2db935606E': always inline attribute at callsite _ZN11lz4_cleaned3src6xxhash18XXH32_endian_align17h7f1ecea2db935606E:29:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 447,
+        "message": "'_ZN11lz4_cleaned3src6xxhash18XXH_readLE32_align17h90e1c9252385a284E' inlined into '_ZN11lz4_cleaned3src6xxhash18XXH32_endian_align17h7f1ecea2db935606E': always inline attribute at callsite _ZN11lz4_cleaned3src6xxhash18XXH32_endian_align17h7f1ecea2db935606E:34:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 472,
+        "message": "'_ZN11lz4_cleaned3src6xxhash14XXH32_finalize17hcdabed9a682069dcE' not inlined into '_ZN11lz4_cleaned3src6xxhash18XXH32_endian_align17h7f1ecea2db935606E' because too costly to inline (cost=605, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 472,
+        "message": "'_ZN11lz4_cleaned3src6xxhash14XXH32_finalize17hcdabed9a682069dcE' not inlined into '_ZN11lz4_cleaned3src8lz4frame19LZ4F_headerChecksum17h42c19d042f09e3c6E' because too costly to inline (cost=605, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 472,
+        "message": "'_ZN11lz4_cleaned3src6xxhash14XXH32_finalize17hcdabed9a682069dcE' not inlined into '_ZN11lz4_cleaned3src8lz4frame15LZ4F_decompress17hee745a17deec5fbaE' because too costly to inline (cost=605, threshold=250)"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 469,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 425,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 425,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 469,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 425,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 425,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 472,
+        "message": "'_ZN11lz4_cleaned3src6xxhash14XXH32_finalize17hcdabed9a682069dcE' not inlined into '_ZN11lz4_cleaned3src8lz4frame27LZ4F_compressBegin_internal17h640793315a94ce49E' because too costly to inline (cost=605, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 472,
+        "message": "'_ZN11lz4_cleaned3src6xxhash14XXH32_finalize17hcdabed9a682069dcE' not inlined into '_ZN11lz4_cleaned3src8lz4frame14LZ4F_makeBlock17h9e5397b62d76675bE' because too costly to inline (cost=605, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 472,
+        "message": "_ZN11lz4_cleaned3src6xxhash14XXH32_finalize17hcdabed9a682069dcE will not be inlined into _ZN11lz4_cleaned3src6xxhash18XXH32_endian_align17h7f1ecea2db935606E because its definition is unavailable"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 429,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 472,
+        "message": "_ZN11lz4_cleaned3src6xxhash14XXH32_finalize17hcdabed9a682069dcE will not be inlined into _ZN11lz4_harness16op_xxhash_digest17h9330eec1616d768dE because its definition is unavailable"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 423,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 471,
+        "message": "hoisting trunc"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 475,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 429,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 429,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 429,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 429,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 429,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 454,
+        "message": "BasicBlock: bb8.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 454,
+        "message": "BasicBlock: bb8.i.i103"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 454,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src6xxhash18XXH32_endian_align17h7f1ecea2db935606E.exit"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

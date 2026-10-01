@@ -1,0 +1,235 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.019296472106495245,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.1905077797213978,
+            "aggregate_ci_low_pct": -0.22910072393438827,
+            "aggregate_pct": -0.019296472106495245,
+            "checkpoint": 40,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.0166,
+                "ci_low_pct": -0.0054,
+                "insns_delta_pct": 0.002,
+                "mean_delta_pct": 0.0056,
+                "op": "api_sweep",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2567,
+                "ci_low_pct": -0.7011,
+                "insns_delta_pct": -0.011,
+                "mean_delta_pct": -0.2222,
+                "op": "decode_buffer",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.3464,
+                "ci_low_pct": -0.1722,
+                "insns_delta_pct": 0.0244,
+                "mean_delta_pct": 0.0871,
+                "op": "encode_buffer",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 1.4573,
+                "ci_low_pct": -0.8032,
+                "insns_delta_pct": -0.6488,
+                "mean_delta_pct": 0.327,
+                "op": "lowlevel_probe",
+                "samples": 40,
+                "state": "active",
+                "stop_reason": "per_op_uncertain"
+              },
+              {
+                "ci_high_pct": 0.0042,
+                "ci_low_pct": -0.0391,
+                "insns_delta_pct": -0.0229,
+                "mean_delta_pct": -0.0174,
+                "op": "shared_dict_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.0148,
+                "ci_low_pct": -0.5769,
+                "insns_delta_pct": 0.0596,
+                "mean_delta_pct": -0.2958,
+                "op": "stream_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.25466545229882864,
+            "aggregate_ci_low_pct": -0.1616828428744977,
+            "aggregate_pct": 0.04649130471216548,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.8273,
+                "ci_low_pct": -0.3981,
+                "insns_delta_pct": -0.0234,
+                "mean_delta_pct": 0.2146,
+                "op": "encode_buffer",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.0789,
+                "ci_low_pct": -0.023,
+                "insns_delta_pct": 0.0421,
+                "mean_delta_pct": 0.0279,
+                "op": "shared_dict_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.055,
+                "ci_low_pct": -0.2611,
+                "insns_delta_pct": -0.0067,
+                "mean_delta_pct": -0.103,
+                "op": "stream_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_buffer",
+          "shared_dict_roundtrip",
+          "stream_roundtrip"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "lowlevel_probe"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be",
+      "changeset_id": "legacy-f77817c951d3df5a",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-d58a2d1a9c8490f6",
+          "replacement_function_source": "#[inline(always)]\nunsafe extern \"C\" fn FindMatchLengthWithLimit(\n    mut s1: *const uint8_t,\n    mut s2: *const uint8_t,\n    mut limit: size_t,\n) -> size_t {\n    let s1_orig: *const uint8_t = s1;\n\n    while limit >= 8 as size_t {\n        let x: uint64_t =\n            BrotliUnalignedRead64(s2 as *const c_void) ^ BrotliUnalignedRead64(s1 as *const c_void);\n        if x != 0 as uint64_t {\n            let matching_bits: size_t =\n                (x as c_ulonglong).trailing_zeros() as i32 as size_t;\n            return (s1.offset_from(s1_orig) as c_long as size_t)\n                .wrapping_add(matching_bits >> 3 as c_int);\n        }\n        // SAFETY: The caller guarantees that `s1` and `s2` are valid to read up to `limit`\n        // bytes; in this branch `limit >= 8`, so advancing both pointers by 8 stays within\n        // the same valid compared range.\n        s1 = unsafe { s1.add(8) };\n        // SAFETY: Same precondition as above; advancing by 8 is within the remaining `limit`.\n        s2 = unsafe { s2.add(8) };\n        limit = limit.wrapping_sub(8 as size_t);\n    }\n\n    while limit != 0 {\n        // SAFETY: The loop invariant maintains that both pointers are valid for at least one\n        // byte while `limit != 0`, so dereferencing each pointer is valid.\n        if unsafe { *s1 } != unsafe { *s2 } {\n            break;\n        }\n        limit = limit.wrapping_sub(1);\n        // SAFETY: After consuming one compared byte, advancing by 1 remains within the valid\n        // range tracked by `limit`.\n        s1 = unsafe { s1.add(1) };\n        // SAFETY: Same as for `s1`; advancing by 1 stays within the valid compared range.\n        s2 = unsafe { s2.add(1) };\n    }\n\n    s1.offset_from(s1_orig) as c_long as size_t\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "f036b7e8567ab573fa3d8fb2f4e3f8e4da4d96bc71bf0cc72263723dbb8e9703",
+            "file_hint": "src/enc/backward_references.rs",
+            "qualified_name": "crate::FindMatchLengthWithLimit",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "FindMatchLengthWithLimit-23d857038e4d",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "FindMatchLengthWithLimit",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "eadd602431fe5eced4aa24fe1a9eea4dd619028559895b9eadd69496fce45ca0",
+            "edit_id": "edit-replace-d58a2d1a9c8490f6",
+            "end_byte": 12046,
+            "operation_id": "replace-d58a2d1a9c8490f6",
+            "relative_path": "src/enc/backward_references.rs",
+            "replacement_text": "#[inline(always)]\nunsafe extern \"C\" fn FindMatchLengthWithLimit(\n    mut s1: *const uint8_t,\n    mut s2: *const uint8_t,\n    mut limit: size_t,\n) -> size_t {\n    let s1_orig: *const uint8_t = s1;\n\n    while limit >= 8 as size_t {\n        let x: uint64_t =\n            BrotliUnalignedRead64(s2 as *const c_void) ^ BrotliUnalignedRead64(s1 as *const c_void);\n        if x != 0 as uint64_t {\n            let matching_bits: size_t =\n                (x as c_ulonglong).trailing_zeros() as i32 as size_t;\n            return (s1.offset_from(s1_orig) as c_long as size_t)\n                .wrapping_add(matching_bits >> 3 as c_int);\n        }\n        // SAFETY: The caller guarantees that `s1` and `s2` are valid to read up to `limit`\n        // bytes; in this branch `limit >= 8`, so advancing both pointers by 8 stays within\n        // the same valid compared range.\n        s1 = unsafe { s1.add(8) };\n        // SAFETY: Same precondition as above; advancing by 8 is within the remaining `limit`.\n        s2 = unsafe { s2.add(8) };\n        limit = limit.wrapping_sub(8 as size_t);\n    }\n\n    while limit != 0 {\n        // SAFETY: The loop invariant maintains that both pointers are valid for at least one\n        // byte while `limit != 0`, so dereferencing each pointer is valid.\n        if unsafe { *s1 } != unsafe { *s2 } {\n            break;\n        }\n        limit = limit.wrapping_sub(1);\n        // SAFETY: After consuming one compared byte, advancing by 1 remains within the valid\n        // range tracked by `limit`.\n        s1 = unsafe { s1.add(1) };\n        // SAFETY: Same as for `s1`; advancing by 1 stays within the valid compared range.\n        s2 = unsafe { s2.add(1) };\n    }\n\n    s1.offset_from(s1_orig) as c_long as size_t\n}",
+            "start_byte": 10999
+          }
+        ],
+        "facts": {
+          "fn_name": "FindMatchLengthWithLimit",
+          "target_span_hash": "f036b7e8567ab573fa3d8fb2f4e3f8e4da4d96bc71bf0cc72263723dbb8e9703"
+        },
+        "operation_id": "replace-d58a2d1a9c8490f6"
+      }
+    ],
+    "resolved_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/enc/backward_references.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

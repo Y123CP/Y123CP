@@ -1,0 +1,217 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.5330964151597747,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.6577869216578276,
+            "aggregate_ci_low_pct": 0.4084059086617218,
+            "aggregate_pct": 0.5330964151597747,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -0.6625,
+                "ci_low_pct": -1.5129,
+                "insns_delta_pct": -2.1768,
+                "mean_delta_pct": -1.0877,
+                "op": "chunk_ops",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 3.782,
+                "ci_low_pct": 3.5031,
+                "insns_delta_pct": -5.7773,
+                "mean_delta_pct": 3.6426,
+                "op": "color_convert",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              },
+              {
+                "ci_high_pct": 9.9384,
+                "ci_low_pct": 9.8346,
+                "insns_delta_pct": -0.4565,
+                "mean_delta_pct": 9.8865,
+                "op": "decode24_png",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              },
+              {
+                "ci_high_pct": -4.3522,
+                "ci_low_pct": -4.663,
+                "insns_delta_pct": -5.9718,
+                "mean_delta_pct": -4.5076,
+                "op": "decode32_png",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.171,
+                "ci_low_pct": -0.4622,
+                "insns_delta_pct": -0.6803,
+                "mean_delta_pct": -0.3166,
+                "op": "file_codec",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.6607,
+                "ci_low_pct": -0.8149,
+                "insns_delta_pct": -0.6182,
+                "mean_delta_pct": -0.7378,
+                "op": "memory_codec",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.7486,
+                "ci_low_pct": -0.8646,
+                "insns_delta_pct": -0.9816,
+                "mean_delta_pct": -0.058,
+                "op": "raw_deflate_inflate",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -2.0224,
+                "ci_low_pct": -3.0908,
+                "insns_delta_pct": -7.8974,
+                "mean_delta_pct": -2.5566,
+                "op": "zlib_decompress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "chunk_ops",
+          "color_convert",
+          "decode24_png",
+          "decode32_png",
+          "file_codec",
+          "memory_codec",
+          "raw_deflate_inflate",
+          "zlib_decompress"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "decode24_png"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "82d05ac3096ea0ecd944c83b1a53160908225cff",
+      "changeset_id": "legacy-0bd0f42fd1474a0e",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-686dd6652b111641",
+          "replacement_function_source": "// Applied rules: [III④]\n// Skipped rules: [C3: The only concrete C3 hit is a per-iteration source-byte load inside the same raw-pointer copy loop. There is no loop-invariant field/value read to hoist (S2 has no leverage), and S1 signature lift would require caller-wide proof for a low-level memcpy-like routine where overlap semantics must be checked separately. III④ body-local slice conversion subsumes the concrete raw access sites [1,2] that induce the aliasing gap, so no standalone C3 rewrite is planned.]\nunsafe fn lodepng_memcpy(\n    mut dst: *mut c_void,\n    mut src: *const c_void,\n    mut size: size_t,\n) {\n    // SAFETY: `size` is the explicit L1 length parameter for this copy region; callers of\n    // this unsafe function must provide `src` as non-null and valid for reads of `size`\n    // bytes, and `dst` as non-null and valid for writes of `size` bytes. This body-local\n    // reborrow creates shared/mutable slice views only for the duration of this function.\n    // As a memcpy-like routine, callers must also uphold the non-aliasing requirement for\n    // these slice references over the rewrite region.\n    let src = unsafe { core::slice::from_raw_parts(src as *const u8, size as usize) };\n    // SAFETY: `size` is the explicit L1 length parameter for this copy region; callers of\n    // this unsafe function must provide `dst` as non-null and valid for writes of `size`\n    // bytes. The mutable slice is confined to this function body, and callers must uphold\n    // that no other live references alias this region during the copy.\n    let dst = unsafe { core::slice::from_raw_parts_mut(dst as *mut u8, size as usize) };\n\n    dst.copy_from_slice(src);\n}",
+          "rule_id": "III④",
+          "target": {
+            "declaration_hash": "cdd1bb36fe97fc881d60494f1d312f2bba8fed7929dadfc3df14452761657652",
+            "file_hint": "src/lodepng.rs",
+            "qualified_name": "crate::lodepng_memcpy",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "lodepng_memcpy-6f9f47ae297a",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "lodepng_memcpy",
+        "rule_id": "III④"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "96311b363625e3692613be11402faac3500a9dcb01499552c0b9bc7bc0ee36bd",
+            "edit_id": "edit-replace-686dd6652b111641",
+            "end_byte": 8913,
+            "operation_id": "replace-686dd6652b111641",
+            "relative_path": "src/lodepng.rs",
+            "replacement_text": "// Applied rules: [III④]\n// Skipped rules: [C3: The only concrete C3 hit is a per-iteration source-byte load inside the same raw-pointer copy loop. There is no loop-invariant field/value read to hoist (S2 has no leverage), and S1 signature lift would require caller-wide proof for a low-level memcpy-like routine where overlap semantics must be checked separately. III④ body-local slice conversion subsumes the concrete raw access sites [1,2] that induce the aliasing gap, so no standalone C3 rewrite is planned.]\nunsafe fn lodepng_memcpy(\n    mut dst: *mut c_void,\n    mut src: *const c_void,\n    mut size: size_t,\n) {\n    // SAFETY: `size` is the explicit L1 length parameter for this copy region; callers of\n    // this unsafe function must provide `src` as non-null and valid for reads of `size`\n    // bytes, and `dst` as non-null and valid for writes of `size` bytes. This body-local\n    // reborrow creates shared/mutable slice views only for the duration of this function.\n    // As a memcpy-like routine, callers must also uphold the non-aliasing requirement for\n    // these slice references over the rewrite region.\n    let src = unsafe { core::slice::from_raw_parts(src as *const u8, size as usize) };\n    // SAFETY: `size` is the explicit L1 length parameter for this copy region; callers of\n    // this unsafe function must provide `dst` as non-null and valid for writes of `size`\n    // bytes. The mutable slice is confined to this function body, and callers must uphold\n    // that no other live references alias this region during the copy.\n    let dst = unsafe { core::slice::from_raw_parts_mut(dst as *mut u8, size as usize) };\n\n    dst.copy_from_slice(src);\n}",
+            "start_byte": 8593
+          }
+        ],
+        "facts": {
+          "fn_name": "lodepng_memcpy",
+          "target_span_hash": "cdd1bb36fe97fc881d60494f1d312f2bba8fed7929dadfc3df14452761657652"
+        },
+        "operation_id": "replace-686dd6652b111641"
+      }
+    ],
+    "resolved_head": "82d05ac3096ea0ecd944c83b1a53160908225cff"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/lodepng.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

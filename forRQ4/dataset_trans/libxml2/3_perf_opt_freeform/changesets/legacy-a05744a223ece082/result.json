@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.2749215321705046,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.5472190457910446,
+            "aggregate_ci_low_pct": 0.0026240185499645796,
+            "aggregate_pct": 0.2749215321705046,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.5472,
+                "ci_low_pct": 0.0026,
+                "insns_delta_pct": 0.0166,
+                "mean_delta_pct": 0.2749,
+                "op": "buf_strings_chars",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "buf_strings_chars"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "buf_strings_chars"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "2bf521cbc8497b7694f557a33a7a24595118d6ae",
+      "changeset_id": "legacy-a05744a223ece082",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-49683c59a499d4eb",
+          "replacement_function_source": "#[inline]\npub unsafe fn xmlCharStrndup(\n    mut cur: *const c_char,\n    mut len: c_int,\n) -> *mut xmlChar {\n    if cur.is_null() || len < 0 as c_int {\n        return ::core::ptr::null_mut::<xmlChar>();\n    }\n\n    let ret = xmlMallocAtomic.expect(\"non-null function pointer\")(\n        (len as size_t).wrapping_add(1 as size_t),\n    ) as *mut xmlChar;\n    if ret.is_null() {\n        return ::core::ptr::null_mut::<xmlChar>();\n    }\n\n    let len_usize = len as usize;\n    let src = cur as *const u8;\n    let dst = ret;\n\n    let mut i = 0usize;\n    while i < len_usize {\n        let b = unsafe { *src.add(i) }; // SAFETY: `cur` is assumed valid for reads as required by the original function; `i < len_usize == len as usize`.\n        unsafe { *dst.add(i) = b }; // SAFETY: `ret` points to an allocation of `len + 1` bytes, so writing at `i < len` is in-bounds.\n        if b == 0 {\n            return ret;\n        }\n        i += 1;\n    }\n\n    unsafe { *dst.add(len_usize) = 0 as xmlChar }; // SAFETY: `ret` points to an allocation of `len + 1` bytes, so index `len` is in-bounds.\n    ret\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "50373782e0cf18db34ae96741326752aa0a4110debada7697b598bdbde0defba",
+            "file_hint": "src/xmlstring.rs",
+            "qualified_name": "crate::xmlCharStrndup",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "xmlCharStrndup-eed8569d6711",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "xmlCharStrndup",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "1810748240add5ccaeb57bbf3e8066cf870775855201779e8e72a047cc5a7335",
+            "edit_id": "edit-replace-49683c59a499d4eb",
+            "end_byte": 2133,
+            "operation_id": "replace-49683c59a499d4eb",
+            "relative_path": "src/xmlstring.rs",
+            "replacement_text": "#[inline]\npub unsafe fn xmlCharStrndup(\n    mut cur: *const c_char,\n    mut len: c_int,\n) -> *mut xmlChar {\n    if cur.is_null() || len < 0 as c_int {\n        return ::core::ptr::null_mut::<xmlChar>();\n    }\n\n    let ret = xmlMallocAtomic.expect(\"non-null function pointer\")(\n        (len as size_t).wrapping_add(1 as size_t),\n    ) as *mut xmlChar;\n    if ret.is_null() {\n        return ::core::ptr::null_mut::<xmlChar>();\n    }\n\n    let len_usize = len as usize;\n    let src = cur as *const u8;\n    let dst = ret;\n\n    let mut i = 0usize;\n    while i < len_usize {\n        let b = unsafe { *src.add(i) }; // SAFETY: `cur` is assumed valid for reads as required by the original function; `i < len_usize == len as usize`.\n        unsafe { *dst.add(i) = b }; // SAFETY: `ret` points to an allocation of `len + 1` bytes, so writing at `i < len` is in-bounds.\n        if b == 0 {\n            return ret;\n        }\n        i += 1;\n    }\n\n    unsafe { *dst.add(len_usize) = 0 as xmlChar }; // SAFETY: `ret` points to an allocation of `len + 1` bytes, so index `len` is in-bounds.\n    ret\n}",
+            "start_byte": 1325
+          }
+        ],
+        "facts": {
+          "fn_name": "xmlCharStrndup",
+          "target_span_hash": "50373782e0cf18db34ae96741326752aa0a4110debada7697b598bdbde0defba"
+        },
+        "operation_id": "replace-49683c59a499d4eb"
+      }
+    ],
+    "resolved_head": "2bf521cbc8497b7694f557a33a7a24595118d6ae"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/xmlstring.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,647 @@
+{
+  "hot_function": {
+    "symbol": "htmlParseCharDataInternal",
+    "location": "src/HTMLparser.rs:9950-10091",
+    "workload": "html_push_parse",
+    "hot_region": "src/HTMLparser.rs:9950-10091",
+    "rust_source": "fn htmlParseCharDataInternal(\n    mut ctxt: htmlParserCtxtPtr,\n    mut readahead: c_int,\n) { unsafe {\n    let mut buf: [xmlChar; 1006] = [0; 1006];\n    let mut nbchar: c_int = 0 as c_int;\n    let mut cur: c_int = 0;\n    let mut l: c_int = 0;\n    if readahead != 0 {\n        let fresh1 = nbchar;\n        nbchar = nbchar + 1;\n        buf[fresh1 as usize] = readahead as xmlChar;\n    }\n    cur = htmlCurrentChar(ctxt as xmlParserCtxtPtr, &raw mut l);\n    while (cur != '<' as i32 || (*ctxt).token == '<' as i32)\n        && (cur != '&' as i32 || (*ctxt).token == '&' as i32)\n        && cur != 0 as c_int\n    {\n        if if cur < 0x100 as c_int {\n            (0x9 as c_int <= cur && cur <= 0xa as c_int\n                || cur == 0xd as c_int\n                || 0x20 as c_int <= cur) as c_int\n        } else {\n            (0x100 as c_int <= cur && cur <= 0xd7ff as c_int\n                || 0xe000 as c_int <= cur && cur <= 0xfffd as c_int\n                || 0x10000 as c_int <= cur && cur <= 0x10ffff as c_int)\n                as c_int\n        } == 0\n        {\n            htmlParseErrInt(\n                ctxt as xmlParserCtxtPtr,\n                XML_ERR_INVALID_CHAR,\n                b\"Invalid char in CDATA 0x%X\\n\\0\" as *const u8 as *const c_char,\n                cur,\n            );\n        } else if l == 1 as c_int {\n            let fresh2 = nbchar;\n            nbchar = nbchar + 1;\n            buf[fresh2 as usize] = cur as xmlChar;\n        } else {\n            nbchar += xmlCopyChar(\n                l,\n                (&raw mut buf as *mut xmlChar).offset(nbchar as isize) as *mut xmlChar,\n                cur,\n            );\n        }\n        if *(*(*ctxt).input).cur as c_int == '\\n' as i32 {\n            (*(*ctxt).input).line += 1;\n            (*(*ctxt).input).col = 1 as c_int;\n        } else {\n            (*(*ctxt).input).col += 1;\n        }\n        (*ctxt).token = 0 as c_int;\n        (*(*ctxt).input).cur = (*(*ctxt).input).cur.offset(l as isize);\n        if nbchar >= HTML_PARSER_BIG_BUFFER_SIZE {\n            buf[nbchar as usize] = 0 as xmlChar;\n            if !(*ctxt).sax.is_null() && (*ctxt).disableSAX == 0 {\n                if areBlanks(ctxt, &raw mut buf as *mut xmlChar, nbchar) != 0 {\n                    if (*ctxt).keepBlanks != 0 {\n                        if (*(*ctxt).sax).characters.is_some() {\n                            (*(*ctxt).sax)\n                                .characters\n                                .expect(\"non-null function pointer\")(\n                                (*ctxt).userData,\n                                &raw mut buf as *mut xmlChar,\n                                nbchar,\n                            );\n                        }\n                    } else if (*(*ctxt).sax).ignorableWhitespace.is_some() {\n                        (*(*ctxt).sax)\n                            .ignorableWhitespace\n                            .expect(\"non-null function pointer\")(\n                            (*ctxt).userData,\n                            &raw mut buf as *mut xmlChar,\n                            nbchar,\n                        );\n                    }\n                } else {\n                    htmlCheckParagraph(ctxt);\n                    if (*(*ctxt).sax).characters.is_some() {\n                        (*(*ctxt).sax)\n                            .characters\n                            .expect(\"non-null function pointer\")(\n                            (*ctxt).userData,\n                            &raw mut buf as *mut xmlChar,\n                            nbchar,\n                        );\n                    }\n                }\n            }\n            nbchar = 0 as c_int;\n            if (*(*ctxt).input).cur.offset_from((*(*ctxt).input).base) as c_long\n                > (2 as c_int * INPUT_CHUNK) as c_long\n                && ((*(*ctxt).input).end.offset_from((*(*ctxt).input).cur) as c_long)\n                    < (2 as c_int * INPUT_CHUNK) as c_long\n            {\n                xmlParserShrink(ctxt as xmlParserCtxtPtr);\n            }\n        }\n        cur = htmlCurrentChar(ctxt as xmlParserCtxtPtr, &raw mut l);\n    }\n    if (*ctxt).instate as c_int == XML_PARSER_EOF as c_int {\n        return;\n    }\n    if nbchar != 0 as c_int {\n        buf[nbchar as usize] = 0 as xmlChar;\n        if !(*ctxt).sax.is_null() && (*ctxt).disableSAX == 0 {\n            if areBlanks(ctxt, &raw mut buf as *mut xmlChar, nbchar) != 0 {\n                if (*ctxt).keepBlanks != 0 {\n                    if (*(*ctxt).sax).characters.is_some() {\n                        (*(*ctxt).sax)\n                            .characters\n                            .expect(\"non-null function pointer\")(\n                            (*ctxt).userData,\n                            &raw mut buf as *mut xmlChar,\n                            nbchar,\n                        );\n                    }\n                } else if (*(*ctxt).sax).ignorableWhitespace.is_some() {\n                    (*(*ctxt).sax)\n                        .ignorableWhitespace\n                        .expect(\"non-null function pointer\")(\n                        (*ctxt).userData,\n                        &raw mut buf as *mut xmlChar,\n                        nbchar,\n                    );\n                }\n            } else {\n                htmlCheckParagraph(ctxt);\n                if (*(*ctxt).sax).characters.is_some() {\n                    (*(*ctxt).sax)\n                        .characters\n                        .expect(\"non-null function pointer\")(\n                        (*ctxt).userData,\n                        &raw mut buf as *mut xmlChar,\n                        nbchar,\n                    );\n                }\n            }\n        }\n    }\n} }",
+    "signature": "fn htmlParseCharDataInternal(\n    mut ctxt: htmlParserCtxtPtr,\n    mut readahead: c_int,\n)",
+    "profile": {
+      "self_time_ratio": 0.0479,
+      "call_count": null,
+      "retired_instructions": 798734645,
+      "instructions_per_call": null,
+      "cpi": 0.353,
+      "tma": {
+        "scope": "process",
+        "retiring": 54.808562443006146,
+        "frontend_bound": 30.369517990542167,
+        "bad_speculation": 4.6621107565871585,
+        "backend_bound": 10.159808809864533,
+        "memory_bound": 5.620025594600058,
+        "core_bound": 4.539783215264475,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0044
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C1": 3,
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 10055,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN15libxml2_cleaned3src10HTMLparser25htmlParseCharDataInternal17h7576084af6af65c9E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 9988,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN15libxml2_cleaned3src10HTMLparser25htmlParseCharDataInternal17h7576084af6af65c9E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 10005,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN15libxml2_cleaned3src10HTMLparser25htmlParseCharDataInternal17h7576084af6af65c9E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 9963,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser25htmlParseCharDataInternal17h7576084af6af65c9E' because too costly to inline (cost=2125, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 10057,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser9areBlanks17h9f5f2ee42c6829acE' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser25htmlParseCharDataInternal17h7576084af6af65c9E' because too costly to inline (cost=1945, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 10078,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser18htmlCheckParagraph17h544c07bd2f623fbdE' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser25htmlParseCharDataInternal17h7576084af6af65c9E' because too costly to inline (cost=410, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 9979,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser15htmlParseErrInt17h1ad515a342c425c1E' inlined into '_ZN15libxml2_cleaned3src10HTMLparser25htmlParseCharDataInternal17h7576084af6af65c9E' with (cost=230, threshold=250) at callsite _ZN15libxml2_cleaned3src10HTMLparser25htmlParseCharDataInternal17h7576084af6af65c9E:29:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 10049,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser25htmlParseCharDataInternal17h7576084af6af65c9E' because too costly to inline (cost=2125, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 10007,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser9areBlanks17h9f5f2ee42c6829acE' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser25htmlParseCharDataInternal17h7576084af6af65c9E' because too costly to inline (cost=1945, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 10028,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser18htmlCheckParagraph17h544c07bd2f623fbdE' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser25htmlParseCharDataInternal17h7576084af6af65c9E' because too costly to inline (cost=400, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 10046,
+        "message": "'xmlParserShrink' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser25htmlParseCharDataInternal17h7576084af6af65c9E' because too costly to inline (cost=535, threshold=250)"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 9985,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 10003,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 10006,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 10029,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9965,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 9965,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9964,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 9964,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 9996,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 9996,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 9998,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 10002,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 10003,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 10006,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 10006,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 10008,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 10008,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 10013,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 10013,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 10022,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 10022,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 10033,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 10033,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 10041,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 9964,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9965,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9964,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 10051,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 10056,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 10056,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 10058,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 10063,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 10072,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 10079,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 10083,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9985,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9996,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 9998,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 10003,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 10003,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 10006,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 10006,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 10008,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 10013,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 10022,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 10029,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 10033,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 10041,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 10046,
+        "message": "'xmlParserShrink' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser17htmlParseCharData17h29bfe34cd79015b7E' because too costly to inline (cost=535, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 10028,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser18htmlCheckParagraph17h544c07bd2f623fbdE' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser17htmlParseCharData17h29bfe34cd79015b7E' because too costly to inline (cost=400, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 10007,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser9areBlanks17h9f5f2ee42c6829acE' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser17htmlParseCharData17h29bfe34cd79015b7E' because too costly to inline (cost=1945, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 10049,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser17htmlParseCharData17h29bfe34cd79015b7E' because too costly to inline (cost=2125, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 10078,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser18htmlCheckParagraph17h544c07bd2f623fbdE' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser17htmlParseCharData17h29bfe34cd79015b7E' because too costly to inline (cost=400, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 10057,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser9areBlanks17h9f5f2ee42c6829acE' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser17htmlParseCharData17h29bfe34cd79015b7E' because too costly to inline (cost=1945, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 9963,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser15htmlCurrentChar17h4acd1d709f20c5d4E' not inlined into '_ZN15libxml2_cleaned3src10HTMLparser17htmlParseCharData17h29bfe34cd79015b7E' because too costly to inline (cost=2125, threshold=250)"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 9964,
+        "message": "18 virtual registers copies 1.350264e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10049,
+        "message": "BasicBlock: bb76.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9964,
+        "message": "BasicBlock: bb5.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9968,
+        "message": "BasicBlock: bb12.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9969,
+        "message": "BasicBlock: bb13.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9971,
+        "message": "BasicBlock: bb37.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9965,
+        "message": "BasicBlock: bb10.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9964,
+        "message": "BasicBlock: bb7.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9985,
+        "message": "BasicBlock: bb40.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9988,
+        "message": "BasicBlock: bb41.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9987,
+        "message": "BasicBlock: bb42.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9973,
+        "message": "BasicBlock: bb22.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9996,
+        "message": "BasicBlock: bb44.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9997,
+        "message": "BasicBlock: bb45.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10000,
+        "message": "BasicBlock: bb46.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10002,
+        "message": "BasicBlock: bb47.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10005,
+        "message": "BasicBlock: bb49.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10006,
+        "message": "BasicBlock: bb51.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10007,
+        "message": "BasicBlock: bb52.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10008,
+        "message": "BasicBlock: bb54.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10028,
+        "message": "BasicBlock: bb63.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10041,
+        "message": "BasicBlock: bb69.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10043,
+        "message": "BasicBlock: bb70.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10046,
+        "message": "BasicBlock: bb71.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10051,
+        "message": "BasicBlock: bb81.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10054,
+        "message": "BasicBlock: bb83.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10055,
+        "message": "BasicBlock: bb84.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10055,
+        "message": "BasicBlock: bb86.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10056,
+        "message": "BasicBlock: bb88.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10058,
+        "message": "BasicBlock: bb91.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10078,
+        "message": "BasicBlock: bb100.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10005,
+        "message": "BasicBlock: panic17.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 9988,
+        "message": "BasicBlock: panic13.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10055,
+        "message": "BasicBlock: panic6.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

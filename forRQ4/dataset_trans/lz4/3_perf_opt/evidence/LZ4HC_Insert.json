@@ -1,0 +1,364 @@
+{
+  "hot_function": {
+    "symbol": "LZ4HC_Insert",
+    "location": "src/lz4hc.rs:1194-1214",
+    "workload": "streaming_hc_compress",
+    "hot_region": "src/lz4hc.rs:1194-1214",
+    "rust_source": "unsafe fn LZ4HC_Insert(mut hc4: *mut LZ4HC_CCtx_internal, mut ip_0: *const BYTE) {\n    let chainTable: *mut U16 = &raw mut (*hc4).chainTable as *mut U16;\n    let hashTable: *mut U32 = &raw mut (*hc4).hashTable as *mut U32;\n    let prefixPtr: *const BYTE = (*hc4).prefixStart as *const BYTE;\n    let prefixIdx: U32 = (*hc4).dictLimit as U32;\n    let target: U32 =\n        (ip_0.offset_from(prefixPtr) as c_long as U32).wrapping_add(prefixIdx);\n    let mut idx: U32 = (*hc4).nextToUpdate as U32;\n    while idx < target {\n        let h: U32 = LZ4HC_hashPtr(prefixPtr.offset(idx as isize).offset(-(prefixIdx as isize))\n            as *const c_void) as U32;\n        let mut delta: size_t = idx.wrapping_sub(*hashTable.offset(h as isize)) as size_t;\n        if delta > LZ4_DISTANCE_MAX as size_t {\n            delta = LZ4_DISTANCE_MAX as size_t;\n        }\n        *chainTable.offset(idx as U16 as isize) = delta as U16;\n        *hashTable.offset(h as isize) = idx;\n        idx = idx.wrapping_add(1);\n    }\n    (*hc4).nextToUpdate = target as LZ4_u32;\n}",
+    "signature": "unsafe fn LZ4HC_Insert(mut hc4: *mut LZ4HC_CCtx_internal, mut ip_0: *const BYTE)",
+    "profile": {
+      "self_time_ratio": 0.1137,
+      "call_count": null,
+      "retired_instructions": 1701524591,
+      "instructions_per_call": null,
+      "cpi": 0.364,
+      "tma": {
+        "scope": "process",
+        "retiring": 45.862313283998226,
+        "frontend_bound": 16.309177304524095,
+        "bad_speculation": 25.584302495389245,
+        "backend_bound": 12.24420691608843,
+        "memory_bound": 6.768570301996737,
+        "core_bound": 5.475636614091693,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0418
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1203,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1203,
+        "message": "hoisting sub"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1201,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1201,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1201,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1202,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1198,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1197,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1202,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1202,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1202,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1202,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1202,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1202,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1202,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1202,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1202,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1202,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1202,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1202,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1202,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 1202,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1202,
+        "message": "2 virtual registers copies 5.004405e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1202,
+        "message": "BasicBlock: bb2.i.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1202,
+        "message": "BasicBlock: bb2.i.preheader"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1202,
+        "message": "2 virtual registers copies 1.459228e-01 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1202,
+        "message": "BasicBlock: bb2.lr.ph.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1202,
+        "message": "BasicBlock: bb2.i.i.i.prol.loopexit"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1202,
+        "message": "2 virtual registers copies 3.128834e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1202,
+        "message": "BasicBlock: bb2.lr.ph.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1202,
+        "message": "BasicBlock: bb2.i.i.prol.loopexit"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1202,
+        "message": "2 virtual registers copies 1.098040e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1202,
+        "message": "2 virtual registers copies 5.697698e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1202,
+        "message": "2 virtual registers copies 2.762478e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1202,
+        "message": "2 virtual registers copies 9.480208e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1202,
+        "message": "2 virtual registers copies 1.229978e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1202,
+        "message": "2 virtual registers copies 8.199853e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1202,
+        "message": "BasicBlock: bb2.i.i.i.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1202,
+        "message": "BasicBlock: bb2.i.i932.i.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1202,
+        "message": "BasicBlock: bb2.i.i1793.i.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1202,
+        "message": "BasicBlock: bb2.lr.ph.i.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1202,
+        "message": "BasicBlock: bb2.i.i.i.i.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1202,
+        "message": "BasicBlock: bb2.i.i.i973.i.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1202,
+        "message": "BasicBlock: bb2.i.i.i1725.i.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1213,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc12LZ4HC_Insert17h4f672cf107df68c2E.exit.i.i1007.i"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1202,
+        "message": "3 virtual registers copies 1.187171e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1202,
+        "message": "2 virtual registers copies 2.602513e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1213,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc14LZ4_loadDictHC17hf3e990e0bfa98c65E.exit"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1202,
+        "message": "3 virtual registers copies 3.749971e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1213,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src8lz4frame25LZ4F_createCDict_advanced17h60dc6ec30fe4e475E.exit"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1202,
+        "message": "3 virtual registers copies 1.449556e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1213,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc14LZ4_loadDictHC17hf3e990e0bfa98c65E.exit"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1202,
+        "message": "3 virtual registers copies 9.354064e+01 total copies cost generated in loop"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

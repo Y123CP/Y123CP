@@ -1,0 +1,226 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.02904459395946459,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.1115172678121868,
+            "aggregate_ci_low_pct": -0.05342807989325762,
+            "aggregate_pct": 0.02904459395946459,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.2511,
+                "ci_low_pct": -0.0858,
+                "insns_delta_pct": -0.0212,
+                "mean_delta_pct": 0.0826,
+                "op": "decode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.138,
+                "ci_low_pct": -0.1121,
+                "insns_delta_pct": -0.004,
+                "mean_delta_pct": 0.013,
+                "op": "decode_sync_hd",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2192,
+                "ci_low_pct": -0.2065,
+                "insns_delta_pct": 0.0097,
+                "mean_delta_pct": 0.0064,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2253,
+                "ci_low_pct": -0.1969,
+                "insns_delta_pct": 0.0123,
+                "mean_delta_pct": 0.0142,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.02182026210929682,
+            "aggregate_ci_low_pct": -0.10087852299535705,
+            "aggregate_pct": -0.039529130443030115,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.0327,
+                "ci_low_pct": -0.1439,
+                "insns_delta_pct": 0.0013,
+                "mean_delta_pct": -0.0556,
+                "op": "decode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.1356,
+                "ci_low_pct": -0.0883,
+                "insns_delta_pct": -0.0177,
+                "mean_delta_pct": 0.0237,
+                "op": "decode_sync_hd",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.058,
+                "ci_low_pct": -0.2958,
+                "insns_delta_pct": -0.0477,
+                "mean_delta_pct": -0.1189,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.1412,
+                "ci_low_pct": -0.1558,
+                "insns_delta_pct": -0.0041,
+                "mean_delta_pct": -0.0073,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "decode_std",
+          "decode_sync_hd",
+          "encode_hd_reset",
+          "encode_std"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "decode_std"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "e8131785ed847292ebe3493a5feefa2ccb74f732",
+      "changeset_id": "legacy-0a1e106354ba6c35",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-18a95dc4084ff528",
+          "replacement_function_source": "#[inline]\nunsafe fn aptx_qmf_convolution(\n    mut signal: *const aptx_filter_signal,\n    mut coeffs: *const int32_t,\n    mut shift: c_uint,\n) -> int32_t {\n    let signal_view: &aptx_filter_signal = unsafe { &*signal }; // SAFETY: caller provides a valid pointer to aptx_filter_signal, matching the original function's contract.\n    let sig = unsafe {\n        (&raw const signal_view.buffer as *const int32_t).add(signal_view.pos as usize)\n    }; // SAFETY: original code performs the same pointer derivation; pos is assumed valid by the caller/original contract.\n\n    let mut e: int64_t = 0;\n\n    let mut i = 0usize;\n    while i + 4 <= FILTER_TAPS as usize {\n        e += unsafe { *sig.add(i) as int64_t * *coeffs.add(i) as int64_t }; // SAFETY: i < FILTER_TAPS, matching original indexed access preconditions.\n        e += unsafe { *sig.add(i + 1) as int64_t * *coeffs.add(i + 1) as int64_t }; // SAFETY: i + 1 < FILTER_TAPS in this unrolled block.\n        e += unsafe { *sig.add(i + 2) as int64_t * *coeffs.add(i + 2) as int64_t }; // SAFETY: i + 2 < FILTER_TAPS in this unrolled block.\n        e += unsafe { *sig.add(i + 3) as int64_t * *coeffs.add(i + 3) as int64_t }; // SAFETY: i + 3 < FILTER_TAPS in this unrolled block.\n        i += 4;\n    }\n    while i < FILTER_TAPS as usize {\n        e += unsafe { *sig.add(i) as int64_t * *coeffs.add(i) as int64_t }; // SAFETY: i < FILTER_TAPS, matching original indexed access preconditions.\n        i += 1;\n    }\n\n    rshift64_clip24(e, shift)\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "9e785e07fa5e0825262c5a46288f4c6f9b82d63650d8c3fa85945f3a886befda",
+            "file_hint": "src/openaptx.rs",
+            "qualified_name": "crate::aptx_qmf_convolution",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "aptx_qmf_convolution-f053e5fce79f",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "aptx_qmf_convolution",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "740b1755bf447a144bb4cef0b7feb45b1fee2b570624277aa82dffded3ef1223",
+            "edit_id": "edit-replace-18a95dc4084ff528",
+            "end_byte": 47286,
+            "operation_id": "replace-18a95dc4084ff528",
+            "relative_path": "src/openaptx.rs",
+            "replacement_text": "#[inline]\nunsafe fn aptx_qmf_convolution(\n    mut signal: *const aptx_filter_signal,\n    mut coeffs: *const int32_t,\n    mut shift: c_uint,\n) -> int32_t {\n    let signal_view: &aptx_filter_signal = unsafe { &*signal }; // SAFETY: caller provides a valid pointer to aptx_filter_signal, matching the original function's contract.\n    let sig = unsafe {\n        (&raw const signal_view.buffer as *const int32_t).add(signal_view.pos as usize)\n    }; // SAFETY: original code performs the same pointer derivation; pos is assumed valid by the caller/original contract.\n\n    let mut e: int64_t = 0;\n\n    let mut i = 0usize;\n    while i + 4 <= FILTER_TAPS as usize {\n        e += unsafe { *sig.add(i) as int64_t * *coeffs.add(i) as int64_t }; // SAFETY: i < FILTER_TAPS, matching original indexed access preconditions.\n        e += unsafe { *sig.add(i + 1) as int64_t * *coeffs.add(i + 1) as int64_t }; // SAFETY: i + 1 < FILTER_TAPS in this unrolled block.\n        e += unsafe { *sig.add(i + 2) as int64_t * *coeffs.add(i + 2) as int64_t }; // SAFETY: i + 2 < FILTER_TAPS in this unrolled block.\n        e += unsafe { *sig.add(i + 3) as int64_t * *coeffs.add(i + 3) as int64_t }; // SAFETY: i + 3 < FILTER_TAPS in this unrolled block.\n        i += 4;\n    }\n    while i < FILTER_TAPS as usize {\n        e += unsafe { *sig.add(i) as int64_t * *coeffs.add(i) as int64_t }; // SAFETY: i < FILTER_TAPS, matching original indexed access preconditions.\n        i += 1;\n    }\n\n    rshift64_clip24(e, shift)\n}",
+            "start_byte": 46632
+          }
+        ],
+        "facts": {
+          "fn_name": "aptx_qmf_convolution",
+          "target_span_hash": "9e785e07fa5e0825262c5a46288f4c6f9b82d63650d8c3fa85945f3a886befda"
+        },
+        "operation_id": "replace-18a95dc4084ff528"
+      }
+    ],
+    "resolved_head": "e8131785ed847292ebe3493a5feefa2ccb74f732"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/openaptx.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

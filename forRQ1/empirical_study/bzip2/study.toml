@@ -1,0 +1,213 @@
+# =============================================================================
+# Empirical-study measurement manifest — bzip2
+# =============================================================================
+# Single source of truth for the empirical study (RQ1 gap / RQ2 why / RQ3
+# patterns) on bzip2. Kept under empirical_study/ (isolated from the pipeline's
+# dataset_trans_process/.../workloads/). Inputs are REFERENCED, not copied.
+#
+# SCOPE OF THE EMPIRICAL STUDY  (per user, 2026-07-01):
+#   The comparison is **C  vs  c2rust_raw** — i.e. how much the raw c2rust
+#   translation costs (or gains) vs native C. This is the WHOLE PROBLEM being
+#   characterized. "ours" (Stage A / our method) is NOT part of the empirical
+#   study — it belongs to the method-validation phase on the separate 10-project
+#   validation set. So this manifest has TWO builds only: c, c2rust_raw.
+#
+# WHOLE-PROJECT FUNCTIONALITY (per user):
+#   Measure the entire project, not one path. bzip2 has two hot paths —
+#   COMPRESS (mainSort/BWT/MTF/Huffman) and DECOMPRESS (BZ2_decompress/
+#   huffman-decode). Both are measured, each as its own per-input sweep.
+#
+# INPUT POOLING (per user):
+#   The pipeline's W1/W2/W3 split existed for train/test of the optimizer;
+#   the empirical study trains nothing, so we POOL every sizable input and
+#   report PER-INPUT. tiny correctness inputs stay a gate only (not timed).
+#
+# FAIR BUILD — this manifest conforms to docs/perf_tree_design.md §2.8:
+#   · §2.8.1  uniform -O3 -flto -march=native across C and Rust
+#   · §2.8.2  Rust needs explicit [profile.release] lto=fat + codegen-units=1
+#             + .cargo/config.toml target-cpu=native (rlib LTO can't go via RUSTFLAGS)
+#   · §2.8.2.bis  C build_cmd uses `make CFLAGS='...'` OVERRIDE (not env-export)
+#                 + -DNDEBUG, to dodge bzip2's Makefile `CFLAGS=` clobber
+#   · §2.8.4  protocol: warmup 5 / measure 30 / median / >1.5·IQR outlier drop /
+#             CV≤0.03 / order C→c2rust_raw
+#   · §2.8.6  bzip2's -O3 anti-optimization was a GCC-12 phenomenon (gcc -O3 -flto
+#             ~9.7% slower than -O2 via icache thrash from cross-TU inlining), which
+#             is why old gcc-based reports showed "c2rust_raw 3.56% FASTER than C".
+#             THIS STUDY builds C with clang-17 (LLVM 17.0.6 == rustc's backend), so
+#             that gcc-specific artifact does not apply; with the backend controlled,
+#             the bzip2 C-vs-c2rust_raw gap is expected to be ~0 (to be RE-MEASURED —
+#             do not carry the old gcc numbers). Backend choice is disclosed per §2.8.5.
+#
+# All relative paths resolve from the project root
+#   /home/anonymous/artifact/PerfTrans  (host 37.2).
+# Driven on 37.2 via perf_run.sh (freq-pinned) + taskset -c 16.
+# =============================================================================
+
+[study]
+project      = "bzip2-1.0.8"
+binary       = "bzip2"
+compare      = ["c", "c2rust_raw"]     # empirical study: C vs raw translation only
+report_mode  = "per_input"             # never pool tiny+big into one number
+
+# -----------------------------------------------------------------------------
+# The two builds compared. c2rust_raw = 0_raw — the LITERAL, unmodified c2rust
+# transpile output (NOT 1_cleaned: Stage-1 restructures ~10k lines + extracts
+# ffi.rs/c_*.rs, which is no longer "raw translation"). For bzip2, 0_raw compiles
+# cleanly under rustc 1.77.2 (verified 2026-07-01: 15.7s, 3 unused-var warnings,
+# 0 errors) and already carries the fair-build config, so no patching is needed.
+# PER-PROJECT CAVEAT: some projects' 0_raw does not compile under rustc 1.77
+# (c2rust 0.22.1 bugs); those need a separate decision (minimal compile-only
+# patch vs disclosure). bzip2 is clean.
+# PREREQUISITE (fair_build, §2.8.2): 0_raw must carry Cargo.toml [profile.release]
+#   {opt-level=3, lto="fat", codegen-units=1, debug=false, panic="abort"} AND
+#   .cargo/config.toml rustflags target-cpu=native — VERIFIED present for bzip2.
+# -----------------------------------------------------------------------------
+[builds.c]
+kind        = "c_reference"
+compiler    = "clang-17"     # /usr/bin/clang-17 = LLVM 17.0.6 == rustc 1.77.2's backend
+source_dir  = "empirical_study/bzip2/c_ref"
+# Build C with clang-17 (NOT gcc/make) so C and Rust share the SAME LLVM 17
+# backend. The C-vs-c2rust_raw gap then isolates the c2rust TRANSLATION, not a
+# gcc-vs-LLVM codegen difference. Single-shot LTO over the bzip2 binary's own
+# sources = bzip2.c + 7 lib .c; test/util mains excluded (bz_exhaustive_driver,
+# dlltest, mk251, spewG, unzcrash, bzip2recover). Output name is distinct so it
+# never clobbers the upstream `bzip2`.
+build_cmd   = "bash empirical_study/bzip2/c_ref/build.sh"
+flags       = "-O3 -flto -march=native -DNDEBUG  (clang-17 / LLVM 17.0.6)"
+binary_path = "empirical_study/bzip2/bin/bzip2_cref17"
+# OPTIONAL ablation baseline (§2.8.6): the same sources via gcc-12 -O3 -flto.
+# gcc-12 over-inlines bzip2 at -O3 (icache thrash) → ~9.7% slower than -O2, which
+# is WHY c2rust_raw looked "3.56% faster than C" in the old gcc-based reports.
+# With clang-17 backend parity that artifact disappears — expect the bzip2 gap to
+# shrink toward ~0. Add a [builds.c_gcc] block only if we want the backend ablation.
+
+[builds.c2rust_raw]
+kind        = "cargo_crate"
+crate_dir   = "empirical_study/bzip2/rust_raw"    # TRUE raw c2rust output (0_raw snapshot) — no Stage-1 cleanup
+# Force nightly-2024-01-15 = rustc 1.77 / LLVM 17.0.6 (0_raw's own rust-toolchain.toml
+# pins nightly-2023-04-15 = 1.70 / LLVM 16, which would MISMATCH the clang-17/LLVM17
+# C side — the library harnesses already pin 2024-01-15, so this makes bzip2 consistent).
+build_cmd   = "( cd empirical_study/bzip2/rust_raw && cargo +nightly-2024-01-15 build --release )"
+flags       = "opt-level=3, lto=fat, codegen-units=1, panic=abort, target-cpu=native (from rust_raw's own Cargo.toml + .cargo/config.toml)"
+binary_path = "empirical_study/bzip2/rust_raw/target/release/bzip2"
+
+# -----------------------------------------------------------------------------
+# Measurement protocol — docs §2.8.4.
+# -----------------------------------------------------------------------------
+[measure]
+warmup_runs      = 5
+measure_runs     = 30
+metric           = "median"
+outlier_rule     = "drop >1.5*IQR"
+required_cv      = 0.03
+min_runtime_ms   = 100          # was 500 (over-conservative); decompress xml/dickens at 116/405ms have <4% startup noise — reliable
+timeout_s        = 300
+pin_cpu          = 16          # kernel-isolated (isolcpus/nohz_full 16,34)
+order            = ["c", "c2rust_raw"]
+paired           = true        # alternate per rep to cancel drift
+freq_pin         = true        # run under perf_run.sh (performance gov + turbo off)
+
+[profile]                      # RQ2: TMA + IC/IPC via profiling/pipeline.py + toplev
+call_graph_mode  = "dwarf"
+frequency        = 99
+
+# =============================================================================
+# OPERATION 1 — COMPRESS.  args = -c -z -9 -k <raw>  (stdout hashed).
+# Inputs = all sizable raw files (4 experiment + former-W2 pipeline). Reported
+# per-input. stdout_sha256 = sha256 of the C-compressed bytes; BOTH builds must
+# match it (equivalence gate).
+# =============================================================================
+[[operations]]
+name = "compress"
+args = ["-c", "-z", "-9", "-k", "$INPUT"]
+
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "empirical_study/bzip2/inputs/experiment/silesia-xml"
+  size = "5.1M"
+  character = "structured XML"
+  stdout_sha256 = "0aabaf9f4690cba2e8e8bb922cc386fc202e93bb1980747530cd8408a6ee4215"
+
+  [[operations.inputs]]
+  name = "silesia-dickens"
+  path = "empirical_study/bzip2/inputs/experiment/silesia-dickens"
+  size = "9.8M"
+  character = "English text"
+  stdout_sha256 = "192e654a7c26c02a7d4ca741f60d4d0ec1fd450df4387a600a864c8a1d45e9c8"
+
+  [[operations.inputs]]
+  name = "silesia-samba"
+  path = "empirical_study/bzip2/inputs/experiment/silesia-samba"
+  size = "21M"
+  character = "C source"
+  stdout_sha256 = "8dd75980eae4783d11e5beca713ec4210d03dc88b4d362c4d2613319806781e2"
+
+  [[operations.inputs]]
+  name = "silesia-mozilla"
+  path = "empirical_study/bzip2/inputs/experiment/silesia-mozilla"
+  size = "49M"
+  character = "binary executable"
+  stdout_sha256 = "3f1375c1f9ec1a3d9cef9e9fe8dbdc3e8872c176590d8e06e14d507a6935b430"
+
+  [[operations.inputs]]
+  name = "silesia-w2"
+  path = "empirical_study/bzip2/inputs/pipeline/silesia-w2.ref"
+  size = "16M"
+  character = "mixed (ooffice+osdb)"
+  stdout_sha256 = "9342c644f764d743139d73d79f0bb1d202943bd6bca3b35168823debb5c6dd94"
+
+# =============================================================================
+# OPERATION 2 — DECOMPRESS.  args = -c -d <bz2>  (stdout hashed).
+# Exercises the OTHER half of bzip2 (huffman-decode / inverse-BWT) so the study
+# covers the whole project, not just compress.
+# STATUS: inputs TO BE GENERATED — only a 79-byte tiny.bz2 exists today. The
+# driver (or a gen step) must produce silesia-*.bz2 by compressing each raw with
+# the C reference `bzip2 -9`, storing under empirical_study/bzip2/inputs/decompress/.
+# DECOMPRESS ORACLE: decompressing X.bz2 must reproduce the original raw X, whose
+# sha256 is the input_sha256 from inputs/experiment/EXPECTED_HASHES.txt (below).
+# =============================================================================
+[[operations]]
+name   = "decompress"
+args   = ["-c", "-d", "$INPUT"]
+status = "ready"     # silesia-*.bz2 generated 2026-07-01 (C-ref bzip2 -9), oracle verified
+
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "empirical_study/bzip2/inputs/decompress/silesia-xml.bz2"
+  stdout_sha256 = "0e82e54e695c1938e4193448022543845b33020c8be6bf3bf3ead2224903e08c"  # = raw xml sha256
+
+  [[operations.inputs]]
+  name = "silesia-dickens"
+  path = "empirical_study/bzip2/inputs/decompress/silesia-dickens.bz2"
+  stdout_sha256 = "b24c37886142e11d0ee687db6ab06f936207aa7f2ea1fd1d9a36763c7a507e6a"
+
+  [[operations.inputs]]
+  name = "silesia-samba"
+  path = "empirical_study/bzip2/inputs/decompress/silesia-samba.bz2"
+  stdout_sha256 = "93ba07bc44d8267789c1d911992f40b089ffa2140b4a160fac11ccae9a40e7b2"
+
+  [[operations.inputs]]
+  name = "silesia-mozilla"
+  path = "empirical_study/bzip2/inputs/decompress/silesia-mozilla.bz2"
+  stdout_sha256 = "657fc3764b0c75ac9de9623125705831ebbfbe08fed248df73bc2dc66e2a963b"
+
+# -----------------------------------------------------------------------------
+# Correctness gate (equivalence only — NOT timed, NOT in the sweeps above).
+# Both builds must pass these before any perf number is trusted; also counted
+# in the coverage union.
+# -----------------------------------------------------------------------------
+[oracle]
+exit_code = 0
+correctness_manifests = []   # those were PIPELINE W1 gates (dataset_trans_process/.../workloads,
+                             # "invoked after every fn lift inside stage 2-6") — not empirical-study
+                             # assets and not read by run_study.py; equivalence is gated per-input
+                             # via stdout_sha256 above. Consistent with the other 7 projects.
+
+# -----------------------------------------------------------------------------
+# Workload-validity gates — checked BEFORE trusting RQ1/RQ2 numbers.
+# (code coverage != perf representativeness.)
+# -----------------------------------------------------------------------------
+[gates]
+coverage_line_min = 60   # gcov line %, RE-MEASURED on exactly the inputs above
+coverage_fn_min   = 70   # gcov function %
+self_time_own_min = 70   # % of profiled self-time in bzip2's OWN fns (not libc/std)

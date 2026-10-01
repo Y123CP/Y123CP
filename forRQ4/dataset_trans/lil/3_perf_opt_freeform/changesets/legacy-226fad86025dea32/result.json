@@ -1,0 +1,162 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.18950982471114744,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.31420293657407755,
+            "aggregate_ci_low_pct": 0.06481671284821733,
+            "aggregate_pct": 0.18950982471114744,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.106,
+                "ci_low_pct": -0.0764,
+                "insns_delta_pct": -0.1,
+                "mean_delta_pct": 0.0148,
+                "op": "builtin_script_matrix",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.189,
+                "ci_low_pct": -0.374,
+                "insns_delta_pct": -0.0104,
+                "mean_delta_pct": -0.0925,
+                "op": "native_call_state",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.892,
+                "ci_low_pct": 0.4005,
+                "insns_delta_pct": 0.0528,
+                "mean_delta_pct": 0.6462,
+                "op": "subst_list_pipeline",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "builtin_script_matrix",
+          "native_call_state",
+          "subst_list_pipeline"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "subst_list_pipeline"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "48eae7f70e1c39cadc748b0f591154f3a40d9f7d",
+      "changeset_id": "legacy-226fad86025dea32",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-2287fe3c2491cb28",
+          "replacement_function_source": "#[inline]\npub fn lil_append_char(\n    mut val: lil_value_t,\n    mut ch: c_char,\n) -> c_int {\n    unsafe {\n        // SAFETY: `val` is assumed valid by the original function's contract; we only read/write its fields.\n        let len = (*val).l;\n        let new_len = len.wrapping_add(1);\n        let new = realloc((*val).d as *mut c_void, len.wrapping_add(2)) as *mut c_char;\n        if new.is_null() {\n            return 0 as c_int;\n        }\n        // SAFETY: successful `realloc` returns a buffer of at least `len + 2` bytes, so writing at `len` and `len + 1` is in-bounds.\n        *new.add(len) = ch;\n        // SAFETY: same allocation-size reasoning as above.\n        *new.add(new_len) = 0 as c_char;\n        // SAFETY: `val` is valid and we are updating its fields consistently with the original behavior.\n        (*val).l = new_len;\n        (*val).d = new;\n        1 as c_int\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "afbcc570dd5a76c7586bb2526e5dfb47b3b66a45c778270137736670c8bd9ffc",
+            "file_hint": "src/lil.rs",
+            "qualified_name": "crate::lil_append_char",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "lil_append_char-fe375c49e9b2",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "lil_append_char",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "5f17a192cac1125dbe645029de43ccf2a287dad85a08732f55f3a96072242a53",
+            "edit_id": "edit-replace-2287fe3c2491cb28",
+            "end_byte": 11548,
+            "operation_id": "replace-2287fe3c2491cb28",
+            "relative_path": "src/lil.rs",
+            "replacement_text": "#[inline]\npub fn lil_append_char(\n    mut val: lil_value_t,\n    mut ch: c_char,\n) -> c_int {\n    unsafe {\n        // SAFETY: `val` is assumed valid by the original function's contract; we only read/write its fields.\n        let len = (*val).l;\n        let new_len = len.wrapping_add(1);\n        let new = realloc((*val).d as *mut c_void, len.wrapping_add(2)) as *mut c_char;\n        if new.is_null() {\n            return 0 as c_int;\n        }\n        // SAFETY: successful `realloc` returns a buffer of at least `len + 2` bytes, so writing at `len` and `len + 1` is in-bounds.\n        *new.add(len) = ch;\n        // SAFETY: same allocation-size reasoning as above.\n        *new.add(new_len) = 0 as c_char;\n        // SAFETY: `val` is valid and we are updating its fields consistently with the original behavior.\n        (*val).l = new_len;\n        (*val).d = new;\n        1 as c_int\n    }\n}",
+            "start_byte": 11046
+          }
+        ],
+        "facts": {
+          "fn_name": "lil_append_char",
+          "target_span_hash": "afbcc570dd5a76c7586bb2526e5dfb47b3b66a45c778270137736670c8bd9ffc"
+        },
+        "operation_id": "replace-2287fe3c2491cb28"
+      }
+    ],
+    "resolved_head": "48eae7f70e1c39cadc748b0f591154f3a40d9f7d"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/lil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

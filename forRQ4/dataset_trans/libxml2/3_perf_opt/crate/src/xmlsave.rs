@@ -1,0 +1,4477 @@
+use core::ffi::*;
+use crate::src::globals::__xmlGenericError;
+use crate::src::globals::__xmlGenericErrorContext;
+use crate::src::globals::__xmlIndentTreeOutput;
+use crate::src::globals::__xmlSaveNoEmptyTags;
+use crate::src::globals::__xmlTreeIndentString;
+use crate::src::HTMLtree::htmlIsBooleanAttr;
+use crate::src::buf::xmlBufAdd;
+use crate::src::buf::xmlBufBackToBuffer;
+use crate::src::buf::xmlBufContent;
+use crate::src::buf::xmlBufCreate;
+use crate::src::buf::xmlBufFree;
+use crate::src::buf::xmlBufFromBuffer;
+use crate::src::buf::xmlBufGetAllocationScheme;
+use crate::src::buf::xmlBufMergeBuffer;
+use crate::src::buf::xmlBufSetAllocationScheme;
+use crate::src::buf::xmlBufUse;
+use crate::src::buf::xmlBufWriteQuotedString;
+use crate::src::tree::xmlBufferCreate;
+use crate::src::tree::xmlBufferSetAllocationScheme;
+use crate::src::encoding::xmlCharEncCloseFunc;
+use crate::src::valid::xmlDumpNotationTable;
+use crate::src::encoding::xmlFindCharEncodingHandler;
+use crate::src::threads::xmlInitParser;
+use crate::src::tree::xmlIsXHTML;
+use crate::src::encoding::xmlParseCharEncoding;
+use crate::src::xmlstring::xmlStrEqual;
+use crate::src::xmlstring::xmlStrcasecmp;
+use crate::src::xmlstring::xmlStrdup;
+use crate::src::xmlstring::xmlStrndup;
+pub use crate::src::ffi::*;
+pub use crate::src::c_consts::*;
+pub use crate::src::c_structs::*;
+pub use crate::src::c_types::*;
+pub use crate::src::c_extern_types::*;
+pub use crate::src::dict::_xmlDict;
+pub use crate::src::hash::_xmlHashTable;
+pub use crate::src::buf::_xmlBuf;
+pub use crate::src::xmlregexp::_xmlRegexp;
+extern "C" {
+    fn xmlGetIntSubset(doc: *const xmlDoc) -> xmlDtdPtr;
+    fn xmlNewDocText(doc: *const xmlDoc, content: *const xmlChar) -> xmlNodePtr;
+    fn xmlFreeNode(cur: xmlNodePtr);
+    fn xmlGetProp(node: *const xmlNode, name: *const xmlChar) -> *mut xmlChar;
+    fn xmlDumpElementDecl(buf: xmlBufferPtr, elem: xmlElementPtr);
+    fn xmlDumpAttributeDecl(buf: xmlBufferPtr, attr: xmlAttributePtr);
+    fn xmlDumpEntityDecl(buf: xmlBufferPtr, ent: xmlEntityPtr);
+    fn xmlAllocOutputBuffer(encoder: xmlCharEncodingHandlerPtr) -> xmlOutputBufferPtr;
+    fn xmlOutputBufferCreateFilename(
+        URI: *const c_char,
+        encoder: xmlCharEncodingHandlerPtr,
+        compression: c_int,
+    ) -> xmlOutputBufferPtr;
+    fn xmlOutputBufferCreateFile(
+        file: *mut FILE,
+        encoder: xmlCharEncodingHandlerPtr,
+    ) -> xmlOutputBufferPtr;
+    fn xmlOutputBufferCreateBuffer(
+        buffer: xmlBufferPtr,
+        encoder: xmlCharEncodingHandlerPtr,
+    ) -> xmlOutputBufferPtr;
+    fn xmlOutputBufferCreateFd(
+        fd: c_int,
+        encoder: xmlCharEncodingHandlerPtr,
+    ) -> xmlOutputBufferPtr;
+    fn xmlOutputBufferCreateIO(
+        iowrite: xmlOutputWriteCallback,
+        ioclose: xmlOutputCloseCallback,
+        ioctx: *mut c_void,
+        encoder: xmlCharEncodingHandlerPtr,
+    ) -> xmlOutputBufferPtr;
+    fn xmlOutputBufferWrite(
+        out: xmlOutputBufferPtr,
+        len: c_int,
+        buf: *const c_char,
+    ) -> c_int;
+    fn xmlOutputBufferWriteString(
+        out: xmlOutputBufferPtr,
+        str: *const c_char,
+    ) -> c_int;
+    fn xmlOutputBufferWriteEscape(
+        out: xmlOutputBufferPtr,
+        str: *const xmlChar,
+        escaping: xmlCharEncodingOutputFunc,
+    ) -> c_int;
+    fn xmlOutputBufferFlush(out: xmlOutputBufferPtr) -> c_int;
+    fn xmlOutputBufferClose(out: xmlOutputBufferPtr) -> c_int;
+    fn htmlGetMetaEncoding(doc: htmlDocPtr) -> *const xmlChar;
+    fn htmlSetMetaEncoding(doc: htmlDocPtr, encoding: *const xmlChar) -> c_int;
+    fn htmlNodeDumpFormatOutput(
+        buf: xmlOutputBufferPtr,
+        doc: xmlDocPtr,
+        cur: xmlNodePtr,
+        encoding: *const c_char,
+        format: c_int,
+    );
+    fn htmlDocContentDumpFormatOutput(
+        buf: xmlOutputBufferPtr,
+        cur: xmlDocPtr,
+        encoding: *const c_char,
+        format: c_int,
+    );
+    fn htmlNodeDumpOutput(
+        buf: xmlOutputBufferPtr,
+        doc: xmlDocPtr,
+        cur: xmlNodePtr,
+        encoding: *const c_char,
+    );
+    fn xmlCharEncOutput(output: xmlOutputBufferPtr, init: c_int)
+        -> c_int;
+    fn __xmlSimpleError(
+        domain: c_int,
+        code: c_int,
+        node: *mut _xmlNode,
+        msg: *const c_char,
+        extra: *const c_char,
+    );
+}
+
+pub type xmlRegexp = _xmlRegexp;
+pub type xmlRegexpPtr = *mut xmlRegexp;
+pub type xmlBufPtr = *mut xmlBuf;
+pub type xmlBuf = _xmlBuf;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _xmlOutputBuffer {
+    pub context: *mut c_void,
+    pub writecallback: xmlOutputWriteCallback,
+    pub closecallback: xmlOutputCloseCallback,
+    pub encoder: xmlCharEncodingHandlerPtr,
+    pub buffer: xmlBufPtr,
+    pub conv: xmlBufPtr,
+    pub written: c_int,
+    pub error: c_int,
+}
+
+pub type xmlOutputBuffer = _xmlOutputBuffer;
+pub type xmlOutputBufferPtr = *mut xmlOutputBuffer;
+pub type xmlEntityPtr = *mut xmlEntity;
+pub type xmlEntity = _xmlEntity;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _xmlEntity {
+    pub _private: *mut c_void,
+    pub type_0: xmlElementType,
+    pub name: *const xmlChar,
+    pub children: *mut _xmlNode,
+    pub last: *mut _xmlNode,
+    pub parent: *mut _xmlDtd,
+    pub next: *mut _xmlNode,
+    pub prev: *mut _xmlNode,
+    pub doc: *mut _xmlDoc,
+    pub orig: *mut xmlChar,
+    pub content: *mut xmlChar,
+    pub length: c_int,
+    pub etype: xmlEntityType,
+    pub ExternalID: *const xmlChar,
+    pub SystemID: *const xmlChar,
+    pub nexte: *mut _xmlEntity,
+    pub URI: *const xmlChar,
+    pub owner: c_int,
+    pub flags: c_int,
+    pub expandedSize: c_ulong,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _xmlDoc {
+    pub _private: *mut c_void,
+    pub type_0: xmlElementType,
+    pub name: *mut c_char,
+    pub children: *mut _xmlNode,
+    pub last: *mut _xmlNode,
+    pub parent: *mut _xmlNode,
+    pub next: *mut _xmlNode,
+    pub prev: *mut _xmlNode,
+    pub doc: *mut _xmlDoc,
+    pub compression: c_int,
+    pub standalone: c_int,
+    pub intSubset: *mut _xmlDtd,
+    pub extSubset: *mut _xmlDtd,
+    pub oldNs: *mut _xmlNs,
+    pub version: *const xmlChar,
+    pub encoding: *const xmlChar,
+    pub ids: *mut c_void,
+    pub refs: *mut c_void,
+    pub URL: *const xmlChar,
+    pub charset: c_int,
+    pub dict: *mut _xmlDict,
+    pub psvi: *mut c_void,
+    pub parseFlags: c_int,
+    pub properties: c_int,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _xmlNs {
+    pub next: *mut _xmlNs,
+    pub type_0: xmlNsType,
+    pub href: *const xmlChar,
+    pub prefix: *const xmlChar,
+    pub _private: *mut c_void,
+    pub context: *mut _xmlDoc,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _xmlDtd {
+    pub _private: *mut c_void,
+    pub type_0: xmlElementType,
+    pub name: *const xmlChar,
+    pub children: *mut _xmlNode,
+    pub last: *mut _xmlNode,
+    pub parent: *mut _xmlDoc,
+    pub next: *mut _xmlNode,
+    pub prev: *mut _xmlNode,
+    pub doc: *mut _xmlDoc,
+    pub notations: *mut c_void,
+    pub elements: *mut c_void,
+    pub attributes: *mut c_void,
+    pub entities: *mut c_void,
+    pub ExternalID: *const xmlChar,
+    pub SystemID: *const xmlChar,
+    pub pentities: *mut c_void,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _xmlNode {
+    pub _private: *mut c_void,
+    pub type_0: xmlElementType,
+    pub name: *const xmlChar,
+    pub children: *mut _xmlNode,
+    pub last: *mut _xmlNode,
+    pub parent: *mut _xmlNode,
+    pub next: *mut _xmlNode,
+    pub prev: *mut _xmlNode,
+    pub doc: *mut _xmlDoc,
+    pub ns: *mut xmlNs,
+    pub content: *mut xmlChar,
+    pub properties: *mut _xmlAttr,
+    pub nsDef: *mut xmlNs,
+    pub psvi: *mut c_void,
+    pub line: c_ushort,
+    pub extra: c_ushort,
+}
+pub type xmlNs = _xmlNs;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _xmlAttr {
+    pub _private: *mut c_void,
+    pub type_0: xmlElementType,
+    pub name: *const xmlChar,
+    pub children: *mut _xmlNode,
+    pub last: *mut _xmlNode,
+    pub parent: *mut _xmlNode,
+    pub next: *mut _xmlAttr,
+    pub prev: *mut _xmlAttr,
+    pub doc: *mut _xmlDoc,
+    pub ns: *mut xmlNs,
+    pub atype: xmlAttributeType,
+    pub psvi: *mut c_void,
+}
+
+pub type xmlAttrPtr = *mut xmlAttr;
+pub type xmlAttr = _xmlAttr;
+pub type xmlNodePtr = *mut xmlNode;
+pub type xmlNode = _xmlNode;
+pub type xmlDocPtr = *mut xmlDoc;
+pub type xmlDoc = _xmlDoc;
+
+pub const XML_ATTRIBUTE_FIXED: xmlAttributeDefault = 4;
+pub const XML_ATTRIBUTE_IMPLIED: xmlAttributeDefault = 3;
+pub const XML_ATTRIBUTE_REQUIRED: xmlAttributeDefault = 2;
+pub const XML_ATTRIBUTE_NONE: xmlAttributeDefault = 1;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _xmlAttribute {
+    pub _private: *mut c_void,
+    pub type_0: xmlElementType,
+    pub name: *const xmlChar,
+    pub children: *mut _xmlNode,
+    pub last: *mut _xmlNode,
+    pub parent: *mut _xmlDtd,
+    pub next: *mut _xmlNode,
+    pub prev: *mut _xmlNode,
+    pub doc: *mut _xmlDoc,
+    pub nexth: *mut _xmlAttribute,
+    pub atype: xmlAttributeType,
+    pub def: xmlAttributeDefault,
+    pub defaultValue: *const xmlChar,
+    pub tree: xmlEnumerationPtr,
+    pub prefix: *const xmlChar,
+    pub elem: *const xmlChar,
+}
+pub type xmlAttribute = _xmlAttribute;
+pub type xmlAttributePtr = *mut xmlAttribute;
+
+pub const XML_ELEMENT_TYPE_ELEMENT: xmlElementTypeVal = 4;
+pub const XML_ELEMENT_TYPE_MIXED: xmlElementTypeVal = 3;
+pub const XML_ELEMENT_TYPE_ANY: xmlElementTypeVal = 2;
+pub const XML_ELEMENT_TYPE_EMPTY: xmlElementTypeVal = 1;
+pub const XML_ELEMENT_TYPE_UNDEFINED: xmlElementTypeVal = 0;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _xmlElement {
+    pub _private: *mut c_void,
+    pub type_0: xmlElementType,
+    pub name: *const xmlChar,
+    pub children: *mut _xmlNode,
+    pub last: *mut _xmlNode,
+    pub parent: *mut _xmlDtd,
+    pub next: *mut _xmlNode,
+    pub prev: *mut _xmlNode,
+    pub doc: *mut _xmlDoc,
+    pub etype: xmlElementTypeVal,
+    pub content: xmlElementContentPtr,
+    pub attributes: xmlAttributePtr,
+    pub prefix: *const xmlChar,
+    pub contModel: xmlRegexpPtr,
+}
+pub type xmlElement = _xmlElement;
+pub type xmlElementPtr = *mut xmlElement;
+pub type xmlNsPtr = *mut xmlNs;
+pub type xmlDtd = _xmlDtd;
+pub type xmlDtdPtr = *mut xmlDtd;
+pub const XML_SAVE_CHAR_INVALID: C2RustUnnamed_htdd24ee73 = 1401;
+pub const XML_FROM_OUTPUT: C2RustUnnamed_htdd24ee73 = 7;
+pub const XML_SAVE_NO_DOCTYPE: C2RustUnnamed_htdd24ee73 = 1402;
+pub const XML_SAVE_UNKNOWN_ENCODING: C2RustUnnamed_htdd24ee73 = 1403;
+pub const XML_SAVE_NOT_UTF8: C2RustUnnamed_htdd24ee73 = 1400;
+pub const XML_ERR_NO_MEMORY: C2RustUnnamed_htdd24ee73 = 2;
+pub type xmlSaveCtxt = _xmlSaveCtxt;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct _xmlSaveCtxt {
+    pub _private: *mut c_void,
+    pub type_0: c_int,
+    pub fd: c_int,
+    pub filename: *const xmlChar,
+    pub encoding: *const xmlChar,
+    pub handler: xmlCharEncodingHandlerPtr,
+    pub buf: xmlOutputBufferPtr,
+    pub options: c_int,
+    pub level: c_int,
+    pub format: c_int,
+    pub indent: [c_char; 61],
+    pub indent_nr: c_int,
+    pub indent_size: c_int,
+    pub escape: xmlCharEncodingOutputFunc,
+    pub escapeAttr: xmlCharEncodingOutputFunc,
+}
+pub type xmlSaveCtxtPtr = *mut xmlSaveCtxt;
+pub const XML_SAVE_NO_EMPTY: C2RustUnnamed_htdd24ee73 = 4;
+pub type xmlNotationTablePtr = *mut xmlNotationTable;
+pub type xmlNotationTable = _xmlHashTable;
+pub const XML_SAVE_NO_XHTML: C2RustUnnamed_htdd24ee73 = 8;
+pub const XML_SAVE_XHTML: C2RustUnnamed_htdd24ee73 = 16;
+pub const XML_SAVE_NO_DECL: C2RustUnnamed_htdd24ee73 = 2;
+
+pub const XML_CHAR_ENCODING_ASCII: xmlCharEncoding = 22;
+
+pub const XML_CHAR_ENCODING_EUC_JP: xmlCharEncoding = 21;
+pub const XML_CHAR_ENCODING_SHIFT_JIS: xmlCharEncoding = 20;
+pub const XML_CHAR_ENCODING_2022_JP: xmlCharEncoding = 19;
+pub const XML_CHAR_ENCODING_8859_9: xmlCharEncoding = 18;
+pub const XML_CHAR_ENCODING_8859_8: xmlCharEncoding = 17;
+pub const XML_CHAR_ENCODING_8859_7: xmlCharEncoding = 16;
+pub const XML_CHAR_ENCODING_8859_6: xmlCharEncoding = 15;
+pub const XML_CHAR_ENCODING_8859_5: xmlCharEncoding = 14;
+pub const XML_CHAR_ENCODING_8859_4: xmlCharEncoding = 13;
+pub const XML_CHAR_ENCODING_8859_3: xmlCharEncoding = 12;
+pub const XML_CHAR_ENCODING_8859_2: xmlCharEncoding = 11;
+pub const XML_CHAR_ENCODING_8859_1: xmlCharEncoding = 10;
+pub const XML_CHAR_ENCODING_UCS2: xmlCharEncoding = 9;
+pub const XML_CHAR_ENCODING_UCS4_3412: xmlCharEncoding = 8;
+pub const XML_CHAR_ENCODING_UCS4_2143: xmlCharEncoding = 7;
+pub const XML_CHAR_ENCODING_EBCDIC: xmlCharEncoding = 6;
+pub const XML_CHAR_ENCODING_UCS4BE: xmlCharEncoding = 5;
+pub const XML_CHAR_ENCODING_UCS4LE: xmlCharEncoding = 4;
+pub const XML_CHAR_ENCODING_UTF16BE: xmlCharEncoding = 3;
+pub const XML_CHAR_ENCODING_UTF16LE: xmlCharEncoding = 2;
+pub const XML_CHAR_ENCODING_UTF8: xmlCharEncoding = 1;
+pub const XML_CHAR_ENCODING_NONE: xmlCharEncoding = 0;
+pub const XML_CHAR_ENCODING_ERROR: xmlCharEncoding = -1;
+pub const XML_SAVE_AS_XML: C2RustUnnamed_htdd24ee73 = 32;
+pub const XML_SAVE_FORMAT: C2RustUnnamed_htdd24ee73 = 1;
+pub type htmlDocPtr = xmlDocPtr;
+pub const XML_SAVE_AS_HTML: C2RustUnnamed_htdd24ee73 = 64;
+pub type C2RustUnnamed_htdd24ee73 = c_uint;
+pub const XML_FROM_URI: C2RustUnnamed_htdd24ee73 = 30;
+pub const XML_FROM_BUFFER: C2RustUnnamed_htdd24ee73 = 29;
+pub const XML_FROM_SCHEMATRONV: C2RustUnnamed_htdd24ee73 = 28;
+pub const XML_FROM_I18N: C2RustUnnamed_htdd24ee73 = 27;
+pub const XML_FROM_MODULE: C2RustUnnamed_htdd24ee73 = 26;
+pub const XML_FROM_WRITER: C2RustUnnamed_htdd24ee73 = 25;
+pub const XML_FROM_CHECK: C2RustUnnamed_htdd24ee73 = 24;
+pub const XML_FROM_VALID: C2RustUnnamed_htdd24ee73 = 23;
+pub const XML_FROM_XSLT: C2RustUnnamed_htdd24ee73 = 22;
+pub const XML_FROM_C14N: C2RustUnnamed_htdd24ee73 = 21;
+pub const XML_FROM_CATALOG: C2RustUnnamed_htdd24ee73 = 20;
+pub const XML_FROM_RELAXNGV: C2RustUnnamed_htdd24ee73 = 19;
+pub const XML_FROM_RELAXNGP: C2RustUnnamed_htdd24ee73 = 18;
+pub const XML_FROM_SCHEMASV: C2RustUnnamed_htdd24ee73 = 17;
+pub const XML_FROM_SCHEMASP: C2RustUnnamed_htdd24ee73 = 16;
+pub const XML_FROM_DATATYPE: C2RustUnnamed_htdd24ee73 = 15;
+pub const XML_FROM_REGEXP: C2RustUnnamed_htdd24ee73 = 14;
+pub const XML_FROM_XPOINTER: C2RustUnnamed_htdd24ee73 = 13;
+pub const XML_FROM_XPATH: C2RustUnnamed_htdd24ee73 = 12;
+pub const XML_FROM_XINCLUDE: C2RustUnnamed_htdd24ee73 = 11;
+pub const XML_FROM_HTTP: C2RustUnnamed_htdd24ee73 = 10;
+pub const XML_FROM_FTP: C2RustUnnamed_htdd24ee73 = 9;
+pub const XML_FROM_IO: C2RustUnnamed_htdd24ee73 = 8;
+pub const XML_FROM_MEMORY: C2RustUnnamed_htdd24ee73 = 6;
+pub const XML_FROM_HTML: C2RustUnnamed_htdd24ee73 = 5;
+pub const XML_FROM_DTD: C2RustUnnamed_htdd24ee73 = 4;
+pub const XML_FROM_NAMESPACE: C2RustUnnamed_htdd24ee73 = 3;
+pub const XML_FROM_TREE: C2RustUnnamed_htdd24ee73 = 2;
+pub const XML_FROM_PARSER: C2RustUnnamed_htdd24ee73 = 1;
+pub const XML_FROM_NONE: C2RustUnnamed_htdd24ee73 = 0;
+pub const XML_BUF_OVERFLOW: C2RustUnnamed_htdd24ee73 = 7000;
+pub const XML_I18N_NO_OUTPUT: C2RustUnnamed_htdd24ee73 = 6004;
+pub const XML_I18N_CONV_FAILED: C2RustUnnamed_htdd24ee73 = 6003;
+pub const XML_I18N_EXCESS_HANDLER: C2RustUnnamed_htdd24ee73 = 6002;
+pub const XML_I18N_NO_HANDLER: C2RustUnnamed_htdd24ee73 = 6001;
+pub const XML_I18N_NO_NAME: C2RustUnnamed_htdd24ee73 = 6000;
+pub const XML_CHECK_NAME_NOT_NULL: C2RustUnnamed_htdd24ee73 = 5037;
+pub const XML_CHECK_WRONG_NAME: C2RustUnnamed_htdd24ee73 = 5036;
+pub const XML_CHECK_OUTSIDE_DICT: C2RustUnnamed_htdd24ee73 = 5035;
+pub const XML_CHECK_NOT_NCNAME: C2RustUnnamed_htdd24ee73 = 5034;
+pub const XML_CHECK_NO_DICT: C2RustUnnamed_htdd24ee73 = 5033;
+pub const XML_CHECK_NOT_UTF8: C2RustUnnamed_htdd24ee73 = 5032;
+pub const XML_CHECK_NS_ANCESTOR: C2RustUnnamed_htdd24ee73 = 5031;
+pub const XML_CHECK_NS_SCOPE: C2RustUnnamed_htdd24ee73 = 5030;
+pub const XML_CHECK_WRONG_PARENT: C2RustUnnamed_htdd24ee73 = 5029;
+pub const XML_CHECK_NO_HREF: C2RustUnnamed_htdd24ee73 = 5028;
+pub const XML_CHECK_NOT_NS_DECL: C2RustUnnamed_htdd24ee73 = 5027;
+pub const XML_CHECK_NOT_ENTITY_DECL: C2RustUnnamed_htdd24ee73 = 5026;
+pub const XML_CHECK_NOT_ELEM_DECL: C2RustUnnamed_htdd24ee73 = 5025;
+pub const XML_CHECK_NOT_ATTR_DECL: C2RustUnnamed_htdd24ee73 = 5024;
+pub const XML_CHECK_NOT_ATTR: C2RustUnnamed_htdd24ee73 = 5023;
+pub const XML_CHECK_NOT_DTD: C2RustUnnamed_htdd24ee73 = 5022;
+pub const XML_CHECK_WRONG_NEXT: C2RustUnnamed_htdd24ee73 = 5021;
+pub const XML_CHECK_NO_NEXT: C2RustUnnamed_htdd24ee73 = 5020;
+pub const XML_CHECK_WRONG_PREV: C2RustUnnamed_htdd24ee73 = 5019;
+pub const XML_CHECK_NO_PREV: C2RustUnnamed_htdd24ee73 = 5018;
+pub const XML_CHECK_WRONG_DOC: C2RustUnnamed_htdd24ee73 = 5017;
+pub const XML_CHECK_NO_ELEM: C2RustUnnamed_htdd24ee73 = 5016;
+pub const XML_CHECK_NO_NAME: C2RustUnnamed_htdd24ee73 = 5015;
+pub const XML_CHECK_NO_DOC: C2RustUnnamed_htdd24ee73 = 5014;
+pub const XML_CHECK_NO_PARENT: C2RustUnnamed_htdd24ee73 = 5013;
+pub const XML_CHECK_ENTITY_TYPE: C2RustUnnamed_htdd24ee73 = 5012;
+pub const XML_CHECK_UNKNOWN_NODE: C2RustUnnamed_htdd24ee73 = 5011;
+pub const XML_CHECK_FOUND_NOTATION: C2RustUnnamed_htdd24ee73 = 5010;
+pub const XML_CHECK_FOUND_FRAGMENT: C2RustUnnamed_htdd24ee73 = 5009;
+pub const XML_CHECK_FOUND_DOCTYPE: C2RustUnnamed_htdd24ee73 = 5008;
+pub const XML_CHECK_FOUND_COMMENT: C2RustUnnamed_htdd24ee73 = 5007;
+pub const XML_CHECK_FOUND_PI: C2RustUnnamed_htdd24ee73 = 5006;
+pub const XML_CHECK_FOUND_ENTITY: C2RustUnnamed_htdd24ee73 = 5005;
+pub const XML_CHECK_FOUND_ENTITYREF: C2RustUnnamed_htdd24ee73 = 5004;
+pub const XML_CHECK_FOUND_CDATA: C2RustUnnamed_htdd24ee73 = 5003;
+pub const XML_CHECK_FOUND_TEXT: C2RustUnnamed_htdd24ee73 = 5002;
+pub const XML_CHECK_FOUND_ATTRIBUTE: C2RustUnnamed_htdd24ee73 = 5001;
+pub const XML_CHECK_FOUND_ELEMENT: C2RustUnnamed_htdd24ee73 = 5000;
+pub const XML_MODULE_CLOSE: C2RustUnnamed_htdd24ee73 = 4901;
+pub const XML_MODULE_OPEN: C2RustUnnamed_htdd24ee73 = 4900;
+pub const XML_SCHEMATRONV_REPORT: C2RustUnnamed_htdd24ee73 = 4001;
+pub const XML_SCHEMATRONV_ASSERT: C2RustUnnamed_htdd24ee73 = 4000;
+pub const XML_SCHEMAP_COS_ALL_LIMITED: C2RustUnnamed_htdd24ee73 = 3091;
+pub const XML_SCHEMAP_A_PROPS_CORRECT_3: C2RustUnnamed_htdd24ee73 = 3090;
+pub const XML_SCHEMAP_AU_PROPS_CORRECT: C2RustUnnamed_htdd24ee73 = 3089;
+pub const XML_SCHEMAP_COS_CT_EXTENDS_1_2: C2RustUnnamed_htdd24ee73 = 3088;
+pub const XML_SCHEMAP_AG_PROPS_CORRECT: C2RustUnnamed_htdd24ee73 = 3087;
+pub const XML_SCHEMAP_WARN_ATTR_POINTLESS_PROH: C2RustUnnamed_htdd24ee73 = 3086;
+pub const XML_SCHEMAP_WARN_ATTR_REDECL_PROH: C2RustUnnamed_htdd24ee73 = 3085;
+pub const XML_SCHEMAP_WARN_UNLOCATED_SCHEMA: C2RustUnnamed_htdd24ee73 = 3084;
+pub const XML_SCHEMAP_WARN_SKIP_SCHEMA: C2RustUnnamed_htdd24ee73 = 3083;
+pub const XML_SCHEMAP_SRC_IMPORT: C2RustUnnamed_htdd24ee73 = 3082;
+pub const XML_SCHEMAP_SRC_REDEFINE: C2RustUnnamed_htdd24ee73 = 3081;
+pub const XML_SCHEMAP_C_PROPS_CORRECT: C2RustUnnamed_htdd24ee73 = 3080;
+pub const XML_SCHEMAP_A_PROPS_CORRECT_2: C2RustUnnamed_htdd24ee73 = 3079;
+pub const XML_SCHEMAP_AU_PROPS_CORRECT_2: C2RustUnnamed_htdd24ee73 = 3078;
+pub const XML_SCHEMAP_DERIVATION_OK_RESTRICTION_2_1_3: C2RustUnnamed_htdd24ee73 = 3077;
+pub const XML_SCHEMAP_SRC_CT_1: C2RustUnnamed_htdd24ee73 = 3076;
+pub const XML_SCHEMAP_MG_PROPS_CORRECT_2: C2RustUnnamed_htdd24ee73 = 3075;
+pub const XML_SCHEMAP_MG_PROPS_CORRECT_1: C2RustUnnamed_htdd24ee73 = 3074;
+pub const XML_SCHEMAP_SRC_ATTRIBUTE_GROUP_3: C2RustUnnamed_htdd24ee73 = 3073;
+pub const XML_SCHEMAP_SRC_ATTRIBUTE_GROUP_2: C2RustUnnamed_htdd24ee73 = 3072;
+pub const XML_SCHEMAP_SRC_ATTRIBUTE_GROUP_1: C2RustUnnamed_htdd24ee73 = 3071;
+pub const XML_SCHEMAP_NOT_DETERMINISTIC: C2RustUnnamed_htdd24ee73 = 3070;
+pub const XML_SCHEMAP_INTERNAL: C2RustUnnamed_htdd24ee73 = 3069;
+pub const XML_SCHEMAP_SRC_IMPORT_2_2: C2RustUnnamed_htdd24ee73 = 3068;
+pub const XML_SCHEMAP_SRC_IMPORT_2_1: C2RustUnnamed_htdd24ee73 = 3067;
+pub const XML_SCHEMAP_SRC_IMPORT_2: C2RustUnnamed_htdd24ee73 = 3066;
+pub const XML_SCHEMAP_SRC_IMPORT_1_2: C2RustUnnamed_htdd24ee73 = 3065;
+pub const XML_SCHEMAP_SRC_IMPORT_1_1: C2RustUnnamed_htdd24ee73 = 3064;
+pub const XML_SCHEMAP_COS_CT_EXTENDS_1_1: C2RustUnnamed_htdd24ee73 = 3063;
+pub const XML_SCHEMAP_CVC_SIMPLE_TYPE: C2RustUnnamed_htdd24ee73 = 3062;
+pub const XML_SCHEMAP_COS_VALID_DEFAULT_2_2_2: C2RustUnnamed_htdd24ee73 = 3061;
+pub const XML_SCHEMAP_COS_VALID_DEFAULT_2_2_1: C2RustUnnamed_htdd24ee73 = 3060;
+pub const XML_SCHEMAP_COS_VALID_DEFAULT_2_1: C2RustUnnamed_htdd24ee73 = 3059;
+pub const XML_SCHEMAP_COS_VALID_DEFAULT_1: C2RustUnnamed_htdd24ee73 = 3058;
+pub const XML_SCHEMAP_NO_XSI: C2RustUnnamed_htdd24ee73 = 3057;
+pub const XML_SCHEMAP_NO_XMLNS: C2RustUnnamed_htdd24ee73 = 3056;
+pub const XML_SCHEMAP_SRC_ATTRIBUTE_4: C2RustUnnamed_htdd24ee73 = 3055;
+pub const XML_SCHEMAP_SRC_ATTRIBUTE_3_2: C2RustUnnamed_htdd24ee73 = 3054;
+pub const XML_SCHEMAP_SRC_ATTRIBUTE_3_1: C2RustUnnamed_htdd24ee73 = 3053;
+pub const XML_SCHEMAP_SRC_ATTRIBUTE_2: C2RustUnnamed_htdd24ee73 = 3052;
+pub const XML_SCHEMAP_SRC_ATTRIBUTE_1: C2RustUnnamed_htdd24ee73 = 3051;
+pub const XML_SCHEMAP_SRC_INCLUDE: C2RustUnnamed_htdd24ee73 = 3050;
+pub const XML_SCHEMAP_E_PROPS_CORRECT_6: C2RustUnnamed_htdd24ee73 = 3049;
+pub const XML_SCHEMAP_E_PROPS_CORRECT_5: C2RustUnnamed_htdd24ee73 = 3048;
+pub const XML_SCHEMAP_E_PROPS_CORRECT_4: C2RustUnnamed_htdd24ee73 = 3047;
+pub const XML_SCHEMAP_E_PROPS_CORRECT_3: C2RustUnnamed_htdd24ee73 = 3046;
+pub const XML_SCHEMAP_E_PROPS_CORRECT_2: C2RustUnnamed_htdd24ee73 = 3045;
+pub const XML_SCHEMAP_P_PROPS_CORRECT_2_2: C2RustUnnamed_htdd24ee73 = 3044;
+pub const XML_SCHEMAP_P_PROPS_CORRECT_2_1: C2RustUnnamed_htdd24ee73 = 3043;
+pub const XML_SCHEMAP_P_PROPS_CORRECT_1: C2RustUnnamed_htdd24ee73 = 3042;
+pub const XML_SCHEMAP_SRC_ELEMENT_3: C2RustUnnamed_htdd24ee73 = 3041;
+pub const XML_SCHEMAP_SRC_ELEMENT_2_2: C2RustUnnamed_htdd24ee73 = 3040;
+pub const XML_SCHEMAP_SRC_ELEMENT_2_1: C2RustUnnamed_htdd24ee73 = 3039;
+pub const XML_SCHEMAP_SRC_ELEMENT_1: C2RustUnnamed_htdd24ee73 = 3038;
+pub const XML_SCHEMAP_S4S_ATTR_INVALID_VALUE: C2RustUnnamed_htdd24ee73 = 3037;
+pub const XML_SCHEMAP_S4S_ATTR_MISSING: C2RustUnnamed_htdd24ee73 = 3036;
+pub const XML_SCHEMAP_S4S_ATTR_NOT_ALLOWED: C2RustUnnamed_htdd24ee73 = 3035;
+pub const XML_SCHEMAP_S4S_ELEM_MISSING: C2RustUnnamed_htdd24ee73 = 3034;
+pub const XML_SCHEMAP_S4S_ELEM_NOT_ALLOWED: C2RustUnnamed_htdd24ee73 = 3033;
+pub const XML_SCHEMAP_COS_ST_DERIVED_OK_2_2: C2RustUnnamed_htdd24ee73 = 3032;
+pub const XML_SCHEMAP_COS_ST_DERIVED_OK_2_1: C2RustUnnamed_htdd24ee73 = 3031;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_3_3_2_5: C2RustUnnamed_htdd24ee73 = 3030;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_3_3_2_4: C2RustUnnamed_htdd24ee73 = 3029;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_3_3_2_3: C2RustUnnamed_htdd24ee73 = 3028;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_3_3_2_1: C2RustUnnamed_htdd24ee73 = 3027;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_3_3_2_2: C2RustUnnamed_htdd24ee73 = 3026;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_3_3_1_2: C2RustUnnamed_htdd24ee73 = 3025;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_3_3_1: C2RustUnnamed_htdd24ee73 = 3024;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_3_1: C2RustUnnamed_htdd24ee73 = 3023;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_2_3_2_5: C2RustUnnamed_htdd24ee73 = 3022;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_2_3_2_4: C2RustUnnamed_htdd24ee73 = 3021;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_2_3_2_3: C2RustUnnamed_htdd24ee73 = 3020;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_2_3_2_2: C2RustUnnamed_htdd24ee73 = 3019;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_2_3_2_1: C2RustUnnamed_htdd24ee73 = 3018;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_2_3_1_2: C2RustUnnamed_htdd24ee73 = 3017;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_2_3_1_1: C2RustUnnamed_htdd24ee73 = 3016;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_2_1: C2RustUnnamed_htdd24ee73 = 3015;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_1_3_2: C2RustUnnamed_htdd24ee73 = 3014;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_1_3_1: C2RustUnnamed_htdd24ee73 = 3013;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_1_2: C2RustUnnamed_htdd24ee73 = 3012;
+pub const XML_SCHEMAP_COS_ST_RESTRICTS_1_1: C2RustUnnamed_htdd24ee73 = 3011;
+pub const XML_SCHEMAP_ST_PROPS_CORRECT_3: C2RustUnnamed_htdd24ee73 = 3010;
+pub const XML_SCHEMAP_ST_PROPS_CORRECT_2: C2RustUnnamed_htdd24ee73 = 3009;
+pub const XML_SCHEMAP_ST_PROPS_CORRECT_1: C2RustUnnamed_htdd24ee73 = 3008;
+pub const XML_SCHEMAP_SRC_UNION_MEMBERTYPES_OR_SIMPLETYPES: C2RustUnnamed_htdd24ee73 = 3007;
+pub const XML_SCHEMAP_SRC_LIST_ITEMTYPE_OR_SIMPLETYPE: C2RustUnnamed_htdd24ee73 = 3006;
+pub const XML_SCHEMAP_SRC_RESTRICTION_BASE_OR_SIMPLETYPE: C2RustUnnamed_htdd24ee73 = 3005;
+pub const XML_SCHEMAP_SRC_RESOLVE: C2RustUnnamed_htdd24ee73 = 3004;
+pub const XML_SCHEMAP_SRC_SIMPLE_TYPE_4: C2RustUnnamed_htdd24ee73 = 3003;
+pub const XML_SCHEMAP_SRC_SIMPLE_TYPE_3: C2RustUnnamed_htdd24ee73 = 3002;
+pub const XML_SCHEMAP_SRC_SIMPLE_TYPE_2: C2RustUnnamed_htdd24ee73 = 3001;
+pub const XML_SCHEMAP_SRC_SIMPLE_TYPE_1: C2RustUnnamed_htdd24ee73 = 3000;
+pub const XML_HTTP_UNKNOWN_HOST: C2RustUnnamed_htdd24ee73 = 2022;
+pub const XML_HTTP_USE_IP: C2RustUnnamed_htdd24ee73 = 2021;
+pub const XML_HTTP_URL_SYNTAX: C2RustUnnamed_htdd24ee73 = 2020;
+pub const XML_FTP_URL_SYNTAX: C2RustUnnamed_htdd24ee73 = 2003;
+pub const XML_FTP_ACCNT: C2RustUnnamed_htdd24ee73 = 2002;
+pub const XML_FTP_EPSV_ANSWER: C2RustUnnamed_htdd24ee73 = 2001;
+pub const XML_FTP_PASV_ANSWER: C2RustUnnamed_htdd24ee73 = 2000;
+pub const XML_C14N_RELATIVE_NAMESPACE: C2RustUnnamed_htdd24ee73 = 1955;
+pub const XML_C14N_UNKNOW_NODE: C2RustUnnamed_htdd24ee73 = 1954;
+pub const XML_C14N_INVALID_NODE: C2RustUnnamed_htdd24ee73 = 1953;
+pub const XML_C14N_CREATE_STACK: C2RustUnnamed_htdd24ee73 = 1952;
+pub const XML_C14N_REQUIRES_UTF8: C2RustUnnamed_htdd24ee73 = 1951;
+pub const XML_C14N_CREATE_CTXT: C2RustUnnamed_htdd24ee73 = 1950;
+pub const XML_XPTR_EXTRA_OBJECTS: C2RustUnnamed_htdd24ee73 = 1903;
+pub const XML_XPTR_EVAL_FAILED: C2RustUnnamed_htdd24ee73 = 1902;
+pub const XML_XPTR_CHILDSEQ_START: C2RustUnnamed_htdd24ee73 = 1901;
+pub const XML_XPTR_UNKNOWN_SCHEME: C2RustUnnamed_htdd24ee73 = 1900;
+pub const XML_SCHEMAV_MISC: C2RustUnnamed_htdd24ee73 = 1879;
+pub const XML_SCHEMAV_CVC_WILDCARD: C2RustUnnamed_htdd24ee73 = 1878;
+pub const XML_SCHEMAV_CVC_IDC: C2RustUnnamed_htdd24ee73 = 1877;
+pub const XML_SCHEMAV_CVC_TYPE_2: C2RustUnnamed_htdd24ee73 = 1876;
+pub const XML_SCHEMAV_CVC_TYPE_1: C2RustUnnamed_htdd24ee73 = 1875;
+pub const XML_SCHEMAV_CVC_AU: C2RustUnnamed_htdd24ee73 = 1874;
+pub const XML_SCHEMAV_CVC_COMPLEX_TYPE_1: C2RustUnnamed_htdd24ee73 = 1873;
+pub const XML_SCHEMAV_DOCUMENT_ELEMENT_MISSING: C2RustUnnamed_htdd24ee73 = 1872;
+pub const XML_SCHEMAV_ELEMENT_CONTENT: C2RustUnnamed_htdd24ee73 = 1871;
+pub const XML_SCHEMAV_CVC_COMPLEX_TYPE_5_2: C2RustUnnamed_htdd24ee73 = 1870;
+pub const XML_SCHEMAV_CVC_COMPLEX_TYPE_5_1: C2RustUnnamed_htdd24ee73 = 1869;
+pub const XML_SCHEMAV_CVC_COMPLEX_TYPE_4: C2RustUnnamed_htdd24ee73 = 1868;
+pub const XML_SCHEMAV_CVC_COMPLEX_TYPE_3_2_2: C2RustUnnamed_htdd24ee73 = 1867;
+pub const XML_SCHEMAV_CVC_COMPLEX_TYPE_3_2_1: C2RustUnnamed_htdd24ee73 = 1866;
+pub const XML_SCHEMAV_CVC_COMPLEX_TYPE_3_1: C2RustUnnamed_htdd24ee73 = 1865;
+pub const XML_SCHEMAV_CVC_ATTRIBUTE_4: C2RustUnnamed_htdd24ee73 = 1864;
+pub const XML_SCHEMAV_CVC_ATTRIBUTE_3: C2RustUnnamed_htdd24ee73 = 1863;
+pub const XML_SCHEMAV_CVC_ATTRIBUTE_2: C2RustUnnamed_htdd24ee73 = 1862;
+pub const XML_SCHEMAV_CVC_ATTRIBUTE_1: C2RustUnnamed_htdd24ee73 = 1861;
+pub const XML_SCHEMAV_CVC_ELT_7: C2RustUnnamed_htdd24ee73 = 1860;
+pub const XML_SCHEMAV_CVC_ELT_6: C2RustUnnamed_htdd24ee73 = 1859;
+pub const XML_SCHEMAV_CVC_ELT_5_2_2_2_2: C2RustUnnamed_htdd24ee73 = 1858;
+pub const XML_SCHEMAV_CVC_ELT_5_2_2_2_1: C2RustUnnamed_htdd24ee73 = 1857;
+pub const XML_SCHEMAV_CVC_ELT_5_2_2_1: C2RustUnnamed_htdd24ee73 = 1856;
+pub const XML_SCHEMAV_CVC_ELT_5_2_1: C2RustUnnamed_htdd24ee73 = 1855;
+pub const XML_SCHEMAV_CVC_ELT_5_1_2: C2RustUnnamed_htdd24ee73 = 1854;
+pub const XML_SCHEMAV_CVC_ELT_5_1_1: C2RustUnnamed_htdd24ee73 = 1853;
+pub const XML_SCHEMAV_CVC_ELT_4_3: C2RustUnnamed_htdd24ee73 = 1852;
+pub const XML_SCHEMAV_CVC_ELT_4_2: C2RustUnnamed_htdd24ee73 = 1851;
+pub const XML_SCHEMAV_CVC_ELT_4_1: C2RustUnnamed_htdd24ee73 = 1850;
+pub const XML_SCHEMAV_CVC_ELT_3_2_2: C2RustUnnamed_htdd24ee73 = 1849;
+pub const XML_SCHEMAV_CVC_ELT_3_2_1: C2RustUnnamed_htdd24ee73 = 1848;
+pub const XML_SCHEMAV_CVC_ELT_3_1: C2RustUnnamed_htdd24ee73 = 1847;
+pub const XML_SCHEMAV_CVC_ELT_2: C2RustUnnamed_htdd24ee73 = 1846;
+pub const XML_SCHEMAV_CVC_ELT_1: C2RustUnnamed_htdd24ee73 = 1845;
+pub const XML_SCHEMAV_CVC_COMPLEX_TYPE_2_4: C2RustUnnamed_htdd24ee73 = 1844;
+pub const XML_SCHEMAV_CVC_COMPLEX_TYPE_2_3: C2RustUnnamed_htdd24ee73 = 1843;
+pub const XML_SCHEMAV_CVC_COMPLEX_TYPE_2_2: C2RustUnnamed_htdd24ee73 = 1842;
+pub const XML_SCHEMAV_CVC_COMPLEX_TYPE_2_1: C2RustUnnamed_htdd24ee73 = 1841;
+pub const XML_SCHEMAV_CVC_ENUMERATION_VALID: C2RustUnnamed_htdd24ee73 = 1840;
+pub const XML_SCHEMAV_CVC_PATTERN_VALID: C2RustUnnamed_htdd24ee73 = 1839;
+pub const XML_SCHEMAV_CVC_FRACTIONDIGITS_VALID: C2RustUnnamed_htdd24ee73 = 1838;
+pub const XML_SCHEMAV_CVC_TOTALDIGITS_VALID: C2RustUnnamed_htdd24ee73 = 1837;
+pub const XML_SCHEMAV_CVC_MAXEXCLUSIVE_VALID: C2RustUnnamed_htdd24ee73 = 1836;
+pub const XML_SCHEMAV_CVC_MINEXCLUSIVE_VALID: C2RustUnnamed_htdd24ee73 = 1835;
+pub const XML_SCHEMAV_CVC_MAXINCLUSIVE_VALID: C2RustUnnamed_htdd24ee73 = 1834;
+pub const XML_SCHEMAV_CVC_MININCLUSIVE_VALID: C2RustUnnamed_htdd24ee73 = 1833;
+pub const XML_SCHEMAV_CVC_MAXLENGTH_VALID: C2RustUnnamed_htdd24ee73 = 1832;
+pub const XML_SCHEMAV_CVC_MINLENGTH_VALID: C2RustUnnamed_htdd24ee73 = 1831;
+pub const XML_SCHEMAV_CVC_LENGTH_VALID: C2RustUnnamed_htdd24ee73 = 1830;
+pub const XML_SCHEMAV_CVC_FACET_VALID: C2RustUnnamed_htdd24ee73 = 1829;
+pub const XML_SCHEMAV_CVC_TYPE_3_1_2: C2RustUnnamed_htdd24ee73 = 1828;
+pub const XML_SCHEMAV_CVC_TYPE_3_1_1: C2RustUnnamed_htdd24ee73 = 1827;
+pub const XML_SCHEMAV_CVC_DATATYPE_VALID_1_2_3: C2RustUnnamed_htdd24ee73 = 1826;
+pub const XML_SCHEMAV_CVC_DATATYPE_VALID_1_2_2: C2RustUnnamed_htdd24ee73 = 1825;
+pub const XML_SCHEMAV_CVC_DATATYPE_VALID_1_2_1: C2RustUnnamed_htdd24ee73 = 1824;
+pub const XML_SCHEMAV_FACET: C2RustUnnamed_htdd24ee73 = 1823;
+pub const XML_SCHEMAV_VALUE: C2RustUnnamed_htdd24ee73 = 1822;
+pub const XML_SCHEMAV_ATTRINVALID: C2RustUnnamed_htdd24ee73 = 1821;
+pub const XML_SCHEMAV_ATTRUNKNOWN: C2RustUnnamed_htdd24ee73 = 1820;
+pub const XML_SCHEMAV_NOTSIMPLE: C2RustUnnamed_htdd24ee73 = 1819;
+pub const XML_SCHEMAV_INTERNAL: C2RustUnnamed_htdd24ee73 = 1818;
+pub const XML_SCHEMAV_CONSTRUCT: C2RustUnnamed_htdd24ee73 = 1817;
+pub const XML_SCHEMAV_NOTDETERMINIST: C2RustUnnamed_htdd24ee73 = 1816;
+pub const XML_SCHEMAV_INVALIDELEM: C2RustUnnamed_htdd24ee73 = 1815;
+pub const XML_SCHEMAV_INVALIDATTR: C2RustUnnamed_htdd24ee73 = 1814;
+pub const XML_SCHEMAV_EXTRACONTENT: C2RustUnnamed_htdd24ee73 = 1813;
+pub const XML_SCHEMAV_NOTNILLABLE: C2RustUnnamed_htdd24ee73 = 1812;
+pub const XML_SCHEMAV_HAVEDEFAULT: C2RustUnnamed_htdd24ee73 = 1811;
+pub const XML_SCHEMAV_ELEMCONT: C2RustUnnamed_htdd24ee73 = 1810;
+pub const XML_SCHEMAV_NOTEMPTY: C2RustUnnamed_htdd24ee73 = 1809;
+pub const XML_SCHEMAV_ISABSTRACT: C2RustUnnamed_htdd24ee73 = 1808;
+pub const XML_SCHEMAV_NOROLLBACK: C2RustUnnamed_htdd24ee73 = 1807;
+pub const XML_SCHEMAV_NOTYPE: C2RustUnnamed_htdd24ee73 = 1806;
+pub const XML_SCHEMAV_WRONGELEM: C2RustUnnamed_htdd24ee73 = 1805;
+pub const XML_SCHEMAV_MISSING: C2RustUnnamed_htdd24ee73 = 1804;
+pub const XML_SCHEMAV_NOTTOPLEVEL: C2RustUnnamed_htdd24ee73 = 1803;
+pub const XML_SCHEMAV_UNDECLAREDELEM: C2RustUnnamed_htdd24ee73 = 1802;
+pub const XML_SCHEMAV_NOROOT: C2RustUnnamed_htdd24ee73 = 1801;
+pub const XML_SCHEMAP_COS_CT_EXTENDS_1_3: C2RustUnnamed_htdd24ee73 = 1800;
+pub const XML_SCHEMAP_DERIVATION_OK_RESTRICTION_4_3: C2RustUnnamed_htdd24ee73 = 1799;
+pub const XML_SCHEMAP_DERIVATION_OK_RESTRICTION_4_2: C2RustUnnamed_htdd24ee73 = 1798;
+pub const XML_SCHEMAP_DERIVATION_OK_RESTRICTION_4_1: C2RustUnnamed_htdd24ee73 = 1797;
+pub const XML_SCHEMAP_SRC_IMPORT_3_2: C2RustUnnamed_htdd24ee73 = 1796;
+pub const XML_SCHEMAP_SRC_IMPORT_3_1: C2RustUnnamed_htdd24ee73 = 1795;
+pub const XML_SCHEMAP_UNION_NOT_EXPRESSIBLE: C2RustUnnamed_htdd24ee73 = 1794;
+pub const XML_SCHEMAP_INTERSECTION_NOT_EXPRESSIBLE: C2RustUnnamed_htdd24ee73 = 1793;
+pub const XML_SCHEMAP_WILDCARD_INVALID_NS_MEMBER: C2RustUnnamed_htdd24ee73 = 1792;
+pub const XML_SCHEMAP_DERIVATION_OK_RESTRICTION_3: C2RustUnnamed_htdd24ee73 = 1791;
+pub const XML_SCHEMAP_DERIVATION_OK_RESTRICTION_2_2: C2RustUnnamed_htdd24ee73 = 1790;
+pub const XML_SCHEMAP_DERIVATION_OK_RESTRICTION_2_1_2: C2RustUnnamed_htdd24ee73 = 1789;
+pub const XML_SCHEMAP_DERIVATION_OK_RESTRICTION_2_1_1: C2RustUnnamed_htdd24ee73 = 1788;
+pub const XML_SCHEMAP_DERIVATION_OK_RESTRICTION_1: C2RustUnnamed_htdd24ee73 = 1787;
+pub const XML_SCHEMAP_CT_PROPS_CORRECT_5: C2RustUnnamed_htdd24ee73 = 1786;
+pub const XML_SCHEMAP_CT_PROPS_CORRECT_4: C2RustUnnamed_htdd24ee73 = 1785;
+pub const XML_SCHEMAP_CT_PROPS_CORRECT_3: C2RustUnnamed_htdd24ee73 = 1784;
+pub const XML_SCHEMAP_CT_PROPS_CORRECT_2: C2RustUnnamed_htdd24ee73 = 1783;
+pub const XML_SCHEMAP_CT_PROPS_CORRECT_1: C2RustUnnamed_htdd24ee73 = 1782;
+pub const XML_SCHEMAP_REF_AND_CONTENT: C2RustUnnamed_htdd24ee73 = 1781;
+pub const XML_SCHEMAP_INVALID_ATTR_NAME: C2RustUnnamed_htdd24ee73 = 1780;
+pub const XML_SCHEMAP_MISSING_SIMPLETYPE_CHILD: C2RustUnnamed_htdd24ee73 = 1779;
+pub const XML_SCHEMAP_INVALID_ATTR_INLINE_COMBINATION: C2RustUnnamed_htdd24ee73 = 1778;
+pub const XML_SCHEMAP_INVALID_ATTR_COMBINATION: C2RustUnnamed_htdd24ee73 = 1777;
+pub const XML_SCHEMAP_SUPERNUMEROUS_LIST_ITEM_TYPE: C2RustUnnamed_htdd24ee73 = 1776;
+pub const XML_SCHEMAP_RECURSIVE: C2RustUnnamed_htdd24ee73 = 1775;
+pub const XML_SCHEMAP_INVALID_ATTR_USE: C2RustUnnamed_htdd24ee73 = 1774;
+pub const XML_SCHEMAP_UNKNOWN_MEMBER_TYPE: C2RustUnnamed_htdd24ee73 = 1773;
+pub const XML_SCHEMAP_NOT_SCHEMA: C2RustUnnamed_htdd24ee73 = 1772;
+pub const XML_SCHEMAP_INCLUDE_SCHEMA_NO_URI: C2RustUnnamed_htdd24ee73 = 1771;
+pub const XML_SCHEMAP_INCLUDE_SCHEMA_NOT_URI: C2RustUnnamed_htdd24ee73 = 1770;
+pub const XML_SCHEMAP_UNKNOWN_INCLUDE_CHILD: C2RustUnnamed_htdd24ee73 = 1769;
+pub const XML_SCHEMAP_DEF_AND_PREFIX: C2RustUnnamed_htdd24ee73 = 1768;
+pub const XML_SCHEMAP_UNKNOWN_PREFIX: C2RustUnnamed_htdd24ee73 = 1767;
+pub const XML_SCHEMAP_FAILED_PARSE: C2RustUnnamed_htdd24ee73 = 1766;
+pub const XML_SCHEMAP_REDEFINED_NOTATION: C2RustUnnamed_htdd24ee73 = 1765;
+pub const XML_SCHEMAP_REDEFINED_ATTR: C2RustUnnamed_htdd24ee73 = 1764;
+pub const XML_SCHEMAP_REDEFINED_ATTRGROUP: C2RustUnnamed_htdd24ee73 = 1763;
+pub const XML_SCHEMAP_REDEFINED_ELEMENT: C2RustUnnamed_htdd24ee73 = 1762;
+pub const XML_SCHEMAP_REDEFINED_TYPE: C2RustUnnamed_htdd24ee73 = 1761;
+pub const XML_SCHEMAP_REDEFINED_GROUP: C2RustUnnamed_htdd24ee73 = 1760;
+pub const XML_SCHEMAP_NOROOT: C2RustUnnamed_htdd24ee73 = 1759;
+pub const XML_SCHEMAP_NOTHING_TO_PARSE: C2RustUnnamed_htdd24ee73 = 1758;
+pub const XML_SCHEMAP_FAILED_LOAD: C2RustUnnamed_htdd24ee73 = 1757;
+pub const XML_SCHEMAP_REGEXP_INVALID: C2RustUnnamed_htdd24ee73 = 1756;
+pub const XML_SCHEMAP_ELEM_DEFAULT_FIXED: C2RustUnnamed_htdd24ee73 = 1755;
+pub const XML_SCHEMAP_UNKNOWN_UNION_CHILD: C2RustUnnamed_htdd24ee73 = 1754;
+pub const XML_SCHEMAP_UNKNOWN_TYPE: C2RustUnnamed_htdd24ee73 = 1753;
+pub const XML_SCHEMAP_UNKNOWN_SIMPLETYPE_CHILD: C2RustUnnamed_htdd24ee73 = 1752;
+pub const XML_SCHEMAP_UNKNOWN_SIMPLECONTENT_CHILD: C2RustUnnamed_htdd24ee73 = 1751;
+pub const XML_SCHEMAP_UNKNOWN_SEQUENCE_CHILD: C2RustUnnamed_htdd24ee73 = 1750;
+pub const XML_SCHEMAP_UNKNOWN_SCHEMAS_CHILD: C2RustUnnamed_htdd24ee73 = 1749;
+pub const XML_SCHEMAP_UNKNOWN_RESTRICTION_CHILD: C2RustUnnamed_htdd24ee73 = 1748;
+pub const XML_SCHEMAP_UNKNOWN_REF: C2RustUnnamed_htdd24ee73 = 1747;
+pub const XML_SCHEMAP_UNKNOWN_PROCESSCONTENT_CHILD: C2RustUnnamed_htdd24ee73 = 1746;
+pub const XML_SCHEMAP_UNKNOWN_NOTATION_CHILD: C2RustUnnamed_htdd24ee73 = 1745;
+pub const XML_SCHEMAP_UNKNOWN_LIST_CHILD: C2RustUnnamed_htdd24ee73 = 1744;
+pub const XML_SCHEMAP_UNKNOWN_IMPORT_CHILD: C2RustUnnamed_htdd24ee73 = 1743;
+pub const XML_SCHEMAP_UNKNOWN_GROUP_CHILD: C2RustUnnamed_htdd24ee73 = 1742;
+pub const XML_SCHEMAP_UNKNOWN_FACET_TYPE: C2RustUnnamed_htdd24ee73 = 1741;
+pub const XML_SCHEMAP_UNKNOWN_FACET_CHILD: C2RustUnnamed_htdd24ee73 = 1740;
+pub const XML_SCHEMAP_UNKNOWN_EXTENSION_CHILD: C2RustUnnamed_htdd24ee73 = 1739;
+pub const XML_SCHEMAP_UNKNOWN_ELEM_CHILD: C2RustUnnamed_htdd24ee73 = 1738;
+pub const XML_SCHEMAP_UNKNOWN_COMPLEXTYPE_CHILD: C2RustUnnamed_htdd24ee73 = 1737;
+pub const XML_SCHEMAP_UNKNOWN_COMPLEXCONTENT_CHILD: C2RustUnnamed_htdd24ee73 = 1736;
+pub const XML_SCHEMAP_UNKNOWN_CHOICE_CHILD: C2RustUnnamed_htdd24ee73 = 1735;
+pub const XML_SCHEMAP_UNKNOWN_BASE_TYPE: C2RustUnnamed_htdd24ee73 = 1734;
+pub const XML_SCHEMAP_UNKNOWN_ATTRIBUTE_GROUP: C2RustUnnamed_htdd24ee73 = 1733;
+pub const XML_SCHEMAP_UNKNOWN_ATTRGRP_CHILD: C2RustUnnamed_htdd24ee73 = 1732;
+pub const XML_SCHEMAP_UNKNOWN_ATTR_CHILD: C2RustUnnamed_htdd24ee73 = 1731;
+pub const XML_SCHEMAP_UNKNOWN_ANYATTRIBUTE_CHILD: C2RustUnnamed_htdd24ee73 = 1730;
+pub const XML_SCHEMAP_UNKNOWN_ALL_CHILD: C2RustUnnamed_htdd24ee73 = 1729;
+pub const XML_SCHEMAP_TYPE_AND_SUBTYPE: C2RustUnnamed_htdd24ee73 = 1728;
+pub const XML_SCHEMAP_SIMPLETYPE_NONAME: C2RustUnnamed_htdd24ee73 = 1727;
+pub const XML_SCHEMAP_RESTRICTION_NONAME_NOREF: C2RustUnnamed_htdd24ee73 = 1726;
+pub const XML_SCHEMAP_REF_AND_SUBTYPE: C2RustUnnamed_htdd24ee73 = 1725;
+pub const XML_SCHEMAP_NOTYPE_NOREF: C2RustUnnamed_htdd24ee73 = 1724;
+pub const XML_SCHEMAP_NOTATION_NO_NAME: C2RustUnnamed_htdd24ee73 = 1723;
+pub const XML_SCHEMAP_NOATTR_NOREF: C2RustUnnamed_htdd24ee73 = 1722;
+pub const XML_SCHEMAP_INVALID_WHITE_SPACE: C2RustUnnamed_htdd24ee73 = 1721;
+pub const XML_SCHEMAP_INVALID_REF_AND_SUBTYPE: C2RustUnnamed_htdd24ee73 = 1720;
+pub const XML_SCHEMAP_INVALID_MINOCCURS: C2RustUnnamed_htdd24ee73 = 1719;
+pub const XML_SCHEMAP_INVALID_MAXOCCURS: C2RustUnnamed_htdd24ee73 = 1718;
+pub const XML_SCHEMAP_INVALID_FACET_VALUE: C2RustUnnamed_htdd24ee73 = 1717;
+pub const XML_SCHEMAP_INVALID_FACET: C2RustUnnamed_htdd24ee73 = 1716;
+pub const XML_SCHEMAP_INVALID_ENUM: C2RustUnnamed_htdd24ee73 = 1715;
+pub const XML_SCHEMAP_INVALID_BOOLEAN: C2RustUnnamed_htdd24ee73 = 1714;
+pub const XML_SCHEMAP_IMPORT_SCHEMA_NOT_URI: C2RustUnnamed_htdd24ee73 = 1713;
+pub const XML_SCHEMAP_IMPORT_REDEFINE_NSNAME: C2RustUnnamed_htdd24ee73 = 1712;
+pub const XML_SCHEMAP_IMPORT_NAMESPACE_NOT_URI: C2RustUnnamed_htdd24ee73 = 1711;
+pub const XML_SCHEMAP_GROUP_NONAME_NOREF: C2RustUnnamed_htdd24ee73 = 1710;
+pub const XML_SCHEMAP_FAILED_BUILD_IMPORT: C2RustUnnamed_htdd24ee73 = 1709;
+pub const XML_SCHEMAP_FACET_NO_VALUE: C2RustUnnamed_htdd24ee73 = 1708;
+pub const XML_SCHEMAP_EXTENSION_NO_BASE: C2RustUnnamed_htdd24ee73 = 1707;
+pub const XML_SCHEMAP_ELEM_NONAME_NOREF: C2RustUnnamed_htdd24ee73 = 1706;
+pub const XML_SCHEMAP_ELEMFORMDEFAULT_VALUE: C2RustUnnamed_htdd24ee73 = 1705;
+pub const XML_SCHEMAP_COMPLEXTYPE_NONAME_NOREF: C2RustUnnamed_htdd24ee73 = 1704;
+pub const XML_SCHEMAP_ATTR_NONAME_NOREF: C2RustUnnamed_htdd24ee73 = 1703;
+pub const XML_SCHEMAP_ATTRGRP_NONAME_NOREF: C2RustUnnamed_htdd24ee73 = 1702;
+pub const XML_SCHEMAP_ATTRFORMDEFAULT_VALUE: C2RustUnnamed_htdd24ee73 = 1701;
+pub const XML_SCHEMAP_PREFIX_UNDEFINED: C2RustUnnamed_htdd24ee73 = 1700;
+pub const XML_CATALOG_RECURSION: C2RustUnnamed_htdd24ee73 = 1654;
+pub const XML_CATALOG_NOT_CATALOG: C2RustUnnamed_htdd24ee73 = 1653;
+pub const XML_CATALOG_PREFER_VALUE: C2RustUnnamed_htdd24ee73 = 1652;
+pub const XML_CATALOG_ENTRY_BROKEN: C2RustUnnamed_htdd24ee73 = 1651;
+pub const XML_CATALOG_MISSING_ATTR: C2RustUnnamed_htdd24ee73 = 1650;
+pub const XML_XINCLUDE_FRAGMENT_ID: C2RustUnnamed_htdd24ee73 = 1618;
+pub const XML_XINCLUDE_DEPRECATED_NS: C2RustUnnamed_htdd24ee73 = 1617;
+pub const XML_XINCLUDE_FALLBACK_NOT_IN_INCLUDE: C2RustUnnamed_htdd24ee73 = 1616;
+pub const XML_XINCLUDE_FALLBACKS_IN_INCLUDE: C2RustUnnamed_htdd24ee73 = 1615;
+pub const XML_XINCLUDE_INCLUDE_IN_INCLUDE: C2RustUnnamed_htdd24ee73 = 1614;
+pub const XML_XINCLUDE_XPTR_RESULT: C2RustUnnamed_htdd24ee73 = 1613;
+pub const XML_XINCLUDE_XPTR_FAILED: C2RustUnnamed_htdd24ee73 = 1612;
+pub const XML_XINCLUDE_MULTIPLE_ROOT: C2RustUnnamed_htdd24ee73 = 1611;
+pub const XML_XINCLUDE_UNKNOWN_ENCODING: C2RustUnnamed_htdd24ee73 = 1610;
+pub const XML_XINCLUDE_BUILD_FAILED: C2RustUnnamed_htdd24ee73 = 1609;
+pub const XML_XINCLUDE_INVALID_CHAR: C2RustUnnamed_htdd24ee73 = 1608;
+pub const XML_XINCLUDE_TEXT_DOCUMENT: C2RustUnnamed_htdd24ee73 = 1607;
+pub const XML_XINCLUDE_TEXT_FRAGMENT: C2RustUnnamed_htdd24ee73 = 1606;
+pub const XML_XINCLUDE_HREF_URI: C2RustUnnamed_htdd24ee73 = 1605;
+pub const XML_XINCLUDE_NO_FALLBACK: C2RustUnnamed_htdd24ee73 = 1604;
+pub const XML_XINCLUDE_NO_HREF: C2RustUnnamed_htdd24ee73 = 1603;
+pub const XML_XINCLUDE_ENTITY_DEF_MISMATCH: C2RustUnnamed_htdd24ee73 = 1602;
+pub const XML_XINCLUDE_PARSE_VALUE: C2RustUnnamed_htdd24ee73 = 1601;
+pub const XML_XINCLUDE_RECURSION: C2RustUnnamed_htdd24ee73 = 1600;
+pub const XML_IO_EAFNOSUPPORT: C2RustUnnamed_htdd24ee73 = 1556;
+pub const XML_IO_EALREADY: C2RustUnnamed_htdd24ee73 = 1555;
+pub const XML_IO_EADDRINUSE: C2RustUnnamed_htdd24ee73 = 1554;
+pub const XML_IO_ENETUNREACH: C2RustUnnamed_htdd24ee73 = 1553;
+pub const XML_IO_ECONNREFUSED: C2RustUnnamed_htdd24ee73 = 1552;
+pub const XML_IO_EISCONN: C2RustUnnamed_htdd24ee73 = 1551;
+pub const XML_IO_ENOTSOCK: C2RustUnnamed_htdd24ee73 = 1550;
+pub const XML_IO_LOAD_ERROR: C2RustUnnamed_htdd24ee73 = 1549;
+pub const XML_IO_BUFFER_FULL: C2RustUnnamed_htdd24ee73 = 1548;
+pub const XML_IO_NO_INPUT: C2RustUnnamed_htdd24ee73 = 1547;
+pub const XML_IO_WRITE: C2RustUnnamed_htdd24ee73 = 1546;
+pub const XML_IO_FLUSH: C2RustUnnamed_htdd24ee73 = 1545;
+pub const XML_IO_ENCODER: C2RustUnnamed_htdd24ee73 = 1544;
+pub const XML_IO_NETWORK_ATTEMPT: C2RustUnnamed_htdd24ee73 = 1543;
+pub const XML_IO_EXDEV: C2RustUnnamed_htdd24ee73 = 1542;
+pub const XML_IO_ETIMEDOUT: C2RustUnnamed_htdd24ee73 = 1541;
+pub const XML_IO_ESRCH: C2RustUnnamed_htdd24ee73 = 1540;
+pub const XML_IO_ESPIPE: C2RustUnnamed_htdd24ee73 = 1539;
+pub const XML_IO_EROFS: C2RustUnnamed_htdd24ee73 = 1538;
+pub const XML_IO_ERANGE: C2RustUnnamed_htdd24ee73 = 1537;
+pub const XML_IO_EPIPE: C2RustUnnamed_htdd24ee73 = 1536;
+pub const XML_IO_EPERM: C2RustUnnamed_htdd24ee73 = 1535;
+pub const XML_IO_ENXIO: C2RustUnnamed_htdd24ee73 = 1534;
+pub const XML_IO_ENOTTY: C2RustUnnamed_htdd24ee73 = 1533;
+pub const XML_IO_ENOTSUP: C2RustUnnamed_htdd24ee73 = 1532;
+pub const XML_IO_ENOTEMPTY: C2RustUnnamed_htdd24ee73 = 1531;
+pub const XML_IO_ENOTDIR: C2RustUnnamed_htdd24ee73 = 1530;
+pub const XML_IO_ENOSYS: C2RustUnnamed_htdd24ee73 = 1529;
+pub const XML_IO_ENOSPC: C2RustUnnamed_htdd24ee73 = 1528;
+pub const XML_IO_ENOMEM: C2RustUnnamed_htdd24ee73 = 1527;
+pub const XML_IO_ENOLCK: C2RustUnnamed_htdd24ee73 = 1526;
+pub const XML_IO_ENOEXEC: C2RustUnnamed_htdd24ee73 = 1525;
+pub const XML_IO_ENOENT: C2RustUnnamed_htdd24ee73 = 1524;
+pub const XML_IO_ENODEV: C2RustUnnamed_htdd24ee73 = 1523;
+pub const XML_IO_ENFILE: C2RustUnnamed_htdd24ee73 = 1522;
+pub const XML_IO_ENAMETOOLONG: C2RustUnnamed_htdd24ee73 = 1521;
+pub const XML_IO_EMSGSIZE: C2RustUnnamed_htdd24ee73 = 1520;
+pub const XML_IO_EMLINK: C2RustUnnamed_htdd24ee73 = 1519;
+pub const XML_IO_EMFILE: C2RustUnnamed_htdd24ee73 = 1518;
+pub const XML_IO_EISDIR: C2RustUnnamed_htdd24ee73 = 1517;
+pub const XML_IO_EIO: C2RustUnnamed_htdd24ee73 = 1516;
+pub const XML_IO_EINVAL: C2RustUnnamed_htdd24ee73 = 1515;
+pub const XML_IO_EINTR: C2RustUnnamed_htdd24ee73 = 1514;
+pub const XML_IO_EINPROGRESS: C2RustUnnamed_htdd24ee73 = 1513;
+pub const XML_IO_EFBIG: C2RustUnnamed_htdd24ee73 = 1512;
+pub const XML_IO_EFAULT: C2RustUnnamed_htdd24ee73 = 1511;
+pub const XML_IO_EEXIST: C2RustUnnamed_htdd24ee73 = 1510;
+pub const XML_IO_EDOM: C2RustUnnamed_htdd24ee73 = 1509;
+pub const XML_IO_EDEADLK: C2RustUnnamed_htdd24ee73 = 1508;
+pub const XML_IO_ECHILD: C2RustUnnamed_htdd24ee73 = 1507;
+pub const XML_IO_ECANCELED: C2RustUnnamed_htdd24ee73 = 1506;
+pub const XML_IO_EBUSY: C2RustUnnamed_htdd24ee73 = 1505;
+pub const XML_IO_EBADMSG: C2RustUnnamed_htdd24ee73 = 1504;
+pub const XML_IO_EBADF: C2RustUnnamed_htdd24ee73 = 1503;
+pub const XML_IO_EAGAIN: C2RustUnnamed_htdd24ee73 = 1502;
+pub const XML_IO_EACCES: C2RustUnnamed_htdd24ee73 = 1501;
+pub const XML_IO_UNKNOWN: C2RustUnnamed_htdd24ee73 = 1500;
+pub const XML_REGEXP_COMPILE_ERROR: C2RustUnnamed_htdd24ee73 = 1450;
+pub const XML_TREE_NOT_UTF8: C2RustUnnamed_htdd24ee73 = 1303;
+pub const XML_TREE_UNTERMINATED_ENTITY: C2RustUnnamed_htdd24ee73 = 1302;
+pub const XML_TREE_INVALID_DEC: C2RustUnnamed_htdd24ee73 = 1301;
+pub const XML_TREE_INVALID_HEX: C2RustUnnamed_htdd24ee73 = 1300;
+pub const XML_XPATH_INVALID_CHAR_ERROR: C2RustUnnamed_htdd24ee73 = 1221;
+pub const XML_XPATH_ENCODING_ERROR: C2RustUnnamed_htdd24ee73 = 1220;
+pub const XML_XPATH_UNDEF_PREFIX_ERROR: C2RustUnnamed_htdd24ee73 = 1219;
+pub const XML_XPTR_SUB_RESOURCE_ERROR: C2RustUnnamed_htdd24ee73 = 1218;
+pub const XML_XPTR_RESOURCE_ERROR: C2RustUnnamed_htdd24ee73 = 1217;
+pub const XML_XPTR_SYNTAX_ERROR: C2RustUnnamed_htdd24ee73 = 1216;
+pub const XML_XPATH_MEMORY_ERROR: C2RustUnnamed_htdd24ee73 = 1215;
+pub const XML_XPATH_INVALID_CTXT_POSITION: C2RustUnnamed_htdd24ee73 = 1214;
+pub const XML_XPATH_INVALID_CTXT_SIZE: C2RustUnnamed_htdd24ee73 = 1213;
+pub const XML_XPATH_INVALID_ARITY: C2RustUnnamed_htdd24ee73 = 1212;
+pub const XML_XPATH_INVALID_TYPE: C2RustUnnamed_htdd24ee73 = 1211;
+pub const XML_XPATH_INVALID_OPERAND: C2RustUnnamed_htdd24ee73 = 1210;
+pub const XML_XPATH_UNKNOWN_FUNC_ERROR: C2RustUnnamed_htdd24ee73 = 1209;
+pub const XML_XPATH_UNCLOSED_ERROR: C2RustUnnamed_htdd24ee73 = 1208;
+pub const XML_XPATH_EXPR_ERROR: C2RustUnnamed_htdd24ee73 = 1207;
+pub const XML_XPATH_INVALID_PREDICATE_ERROR: C2RustUnnamed_htdd24ee73 = 1206;
+pub const XML_XPATH_UNDEF_VARIABLE_ERROR: C2RustUnnamed_htdd24ee73 = 1205;
+pub const XML_XPATH_VARIABLE_REF_ERROR: C2RustUnnamed_htdd24ee73 = 1204;
+pub const XML_XPATH_START_LITERAL_ERROR: C2RustUnnamed_htdd24ee73 = 1203;
+pub const XML_XPATH_UNFINISHED_LITERAL_ERROR: C2RustUnnamed_htdd24ee73 = 1202;
+pub const XML_XPATH_NUMBER_ERROR: C2RustUnnamed_htdd24ee73 = 1201;
+pub const XML_XPATH_EXPRESSION_OK: C2RustUnnamed_htdd24ee73 = 1200;
+pub const XML_RNGP_XML_NS: C2RustUnnamed_htdd24ee73 = 1122;
+pub const XML_RNGP_XMLNS_NAME: C2RustUnnamed_htdd24ee73 = 1121;
+pub const XML_RNGP_VALUE_NO_CONTENT: C2RustUnnamed_htdd24ee73 = 1120;
+pub const XML_RNGP_VALUE_EMPTY: C2RustUnnamed_htdd24ee73 = 1119;
+pub const XML_RNGP_URI_NOT_ABSOLUTE: C2RustUnnamed_htdd24ee73 = 1118;
+pub const XML_RNGP_URI_FRAGMENT: C2RustUnnamed_htdd24ee73 = 1117;
+pub const XML_RNGP_UNKNOWN_TYPE_LIB: C2RustUnnamed_htdd24ee73 = 1116;
+pub const XML_RNGP_UNKNOWN_CONSTRUCT: C2RustUnnamed_htdd24ee73 = 1115;
+pub const XML_RNGP_UNKNOWN_COMBINE: C2RustUnnamed_htdd24ee73 = 1114;
+pub const XML_RNGP_UNKNOWN_ATTRIBUTE: C2RustUnnamed_htdd24ee73 = 1113;
+pub const XML_RNGP_TYPE_VALUE: C2RustUnnamed_htdd24ee73 = 1112;
+pub const XML_RNGP_TYPE_NOT_FOUND: C2RustUnnamed_htdd24ee73 = 1111;
+pub const XML_RNGP_TYPE_MISSING: C2RustUnnamed_htdd24ee73 = 1110;
+pub const XML_RNGP_TEXT_HAS_CHILD: C2RustUnnamed_htdd24ee73 = 1109;
+pub const XML_RNGP_TEXT_EXPECTED: C2RustUnnamed_htdd24ee73 = 1108;
+pub const XML_RNGP_START_MISSING: C2RustUnnamed_htdd24ee73 = 1107;
+pub const XML_RNGP_START_EMPTY: C2RustUnnamed_htdd24ee73 = 1106;
+pub const XML_RNGP_START_CONTENT: C2RustUnnamed_htdd24ee73 = 1105;
+pub const XML_RNGP_START_CHOICE_AND_INTERLEAVE: C2RustUnnamed_htdd24ee73 = 1104;
+pub const XML_RNGP_REF_NOT_EMPTY: C2RustUnnamed_htdd24ee73 = 1103;
+pub const XML_RNGP_REF_NO_NAME: C2RustUnnamed_htdd24ee73 = 1102;
+pub const XML_RNGP_REF_NO_DEF: C2RustUnnamed_htdd24ee73 = 1101;
+pub const XML_RNGP_REF_NAME_INVALID: C2RustUnnamed_htdd24ee73 = 1100;
+pub const XML_RNGP_REF_CYCLE: C2RustUnnamed_htdd24ee73 = 1099;
+pub const XML_RNGP_REF_CREATE_FAILED: C2RustUnnamed_htdd24ee73 = 1098;
+pub const XML_RNGP_PREFIX_UNDEFINED: C2RustUnnamed_htdd24ee73 = 1097;
+pub const XML_RNGP_PAT_START_VALUE: C2RustUnnamed_htdd24ee73 = 1096;
+pub const XML_RNGP_PAT_START_TEXT: C2RustUnnamed_htdd24ee73 = 1095;
+pub const XML_RNGP_PAT_START_ONEMORE: C2RustUnnamed_htdd24ee73 = 1094;
+pub const XML_RNGP_PAT_START_LIST: C2RustUnnamed_htdd24ee73 = 1093;
+pub const XML_RNGP_PAT_START_INTERLEAVE: C2RustUnnamed_htdd24ee73 = 1092;
+pub const XML_RNGP_PAT_START_GROUP: C2RustUnnamed_htdd24ee73 = 1091;
+pub const XML_RNGP_PAT_START_EMPTY: C2RustUnnamed_htdd24ee73 = 1090;
+pub const XML_RNGP_PAT_START_DATA: C2RustUnnamed_htdd24ee73 = 1089;
+pub const XML_RNGP_PAT_START_ATTR: C2RustUnnamed_htdd24ee73 = 1088;
+pub const XML_RNGP_PAT_ONEMORE_INTERLEAVE_ATTR: C2RustUnnamed_htdd24ee73 = 1087;
+pub const XML_RNGP_PAT_ONEMORE_GROUP_ATTR: C2RustUnnamed_htdd24ee73 = 1086;
+pub const XML_RNGP_PAT_NSNAME_EXCEPT_NSNAME: C2RustUnnamed_htdd24ee73 = 1085;
+pub const XML_RNGP_PAT_NSNAME_EXCEPT_ANYNAME: C2RustUnnamed_htdd24ee73 = 1084;
+pub const XML_RNGP_PAT_LIST_TEXT: C2RustUnnamed_htdd24ee73 = 1083;
+pub const XML_RNGP_PAT_LIST_REF: C2RustUnnamed_htdd24ee73 = 1082;
+pub const XML_RNGP_PAT_LIST_LIST: C2RustUnnamed_htdd24ee73 = 1081;
+pub const XML_RNGP_PAT_LIST_INTERLEAVE: C2RustUnnamed_htdd24ee73 = 1080;
+pub const XML_RNGP_PAT_LIST_ELEM: C2RustUnnamed_htdd24ee73 = 1079;
+pub const XML_RNGP_PAT_LIST_ATTR: C2RustUnnamed_htdd24ee73 = 1078;
+pub const XML_RNGP_PAT_DATA_EXCEPT_TEXT: C2RustUnnamed_htdd24ee73 = 1077;
+pub const XML_RNGP_PAT_DATA_EXCEPT_REF: C2RustUnnamed_htdd24ee73 = 1076;
+pub const XML_RNGP_PAT_DATA_EXCEPT_ONEMORE: C2RustUnnamed_htdd24ee73 = 1075;
+pub const XML_RNGP_PAT_DATA_EXCEPT_LIST: C2RustUnnamed_htdd24ee73 = 1074;
+pub const XML_RNGP_PAT_DATA_EXCEPT_INTERLEAVE: C2RustUnnamed_htdd24ee73 = 1073;
+pub const XML_RNGP_PAT_DATA_EXCEPT_GROUP: C2RustUnnamed_htdd24ee73 = 1072;
+pub const XML_RNGP_PAT_DATA_EXCEPT_EMPTY: C2RustUnnamed_htdd24ee73 = 1071;
+pub const XML_RNGP_PAT_DATA_EXCEPT_ELEM: C2RustUnnamed_htdd24ee73 = 1070;
+pub const XML_RNGP_PAT_DATA_EXCEPT_ATTR: C2RustUnnamed_htdd24ee73 = 1069;
+pub const XML_RNGP_PAT_ATTR_ELEM: C2RustUnnamed_htdd24ee73 = 1068;
+pub const XML_RNGP_PAT_ATTR_ATTR: C2RustUnnamed_htdd24ee73 = 1067;
+pub const XML_RNGP_PAT_ANYNAME_EXCEPT_ANYNAME: C2RustUnnamed_htdd24ee73 = 1066;
+pub const XML_RNGP_PARSE_ERROR: C2RustUnnamed_htdd24ee73 = 1065;
+pub const XML_RNGP_PARENTREF_NOT_EMPTY: C2RustUnnamed_htdd24ee73 = 1064;
+pub const XML_RNGP_PARENTREF_NO_PARENT: C2RustUnnamed_htdd24ee73 = 1063;
+pub const XML_RNGP_PARENTREF_NO_NAME: C2RustUnnamed_htdd24ee73 = 1062;
+pub const XML_RNGP_PARENTREF_NAME_INVALID: C2RustUnnamed_htdd24ee73 = 1061;
+pub const XML_RNGP_PARENTREF_CREATE_FAILED: C2RustUnnamed_htdd24ee73 = 1060;
+pub const XML_RNGP_PARAM_NAME_MISSING: C2RustUnnamed_htdd24ee73 = 1059;
+pub const XML_RNGP_PARAM_FORBIDDEN: C2RustUnnamed_htdd24ee73 = 1058;
+pub const XML_RNGP_NSNAME_NO_NS: C2RustUnnamed_htdd24ee73 = 1057;
+pub const XML_RNGP_NSNAME_ATTR_ANCESTOR: C2RustUnnamed_htdd24ee73 = 1056;
+pub const XML_RNGP_NOTALLOWED_NOT_EMPTY: C2RustUnnamed_htdd24ee73 = 1055;
+pub const XML_RNGP_NEED_COMBINE: C2RustUnnamed_htdd24ee73 = 1054;
+pub const XML_RNGP_NAME_MISSING: C2RustUnnamed_htdd24ee73 = 1053;
+pub const XML_RNGP_MISSING_HREF: C2RustUnnamed_htdd24ee73 = 1052;
+pub const XML_RNGP_INVALID_VALUE: C2RustUnnamed_htdd24ee73 = 1051;
+pub const XML_RNGP_INVALID_URI: C2RustUnnamed_htdd24ee73 = 1050;
+pub const XML_RNGP_INVALID_DEFINE_NAME: C2RustUnnamed_htdd24ee73 = 1049;
+pub const XML_RNGP_INTERLEAVE_NO_CONTENT: C2RustUnnamed_htdd24ee73 = 1048;
+pub const XML_RNGP_INTERLEAVE_EMPTY: C2RustUnnamed_htdd24ee73 = 1047;
+pub const XML_RNGP_INTERLEAVE_CREATE_FAILED: C2RustUnnamed_htdd24ee73 = 1046;
+pub const XML_RNGP_INTERLEAVE_ADD: C2RustUnnamed_htdd24ee73 = 1045;
+pub const XML_RNGP_INCLUDE_RECURSE: C2RustUnnamed_htdd24ee73 = 1044;
+pub const XML_RNGP_INCLUDE_FAILURE: C2RustUnnamed_htdd24ee73 = 1043;
+pub const XML_RNGP_INCLUDE_EMPTY: C2RustUnnamed_htdd24ee73 = 1042;
+pub const XML_RNGP_HREF_ERROR: C2RustUnnamed_htdd24ee73 = 1041;
+pub const XML_RNGP_GROUP_ATTR_CONFLICT: C2RustUnnamed_htdd24ee73 = 1040;
+pub const XML_RNGP_GRAMMAR_NO_START: C2RustUnnamed_htdd24ee73 = 1039;
+pub const XML_RNGP_GRAMMAR_MISSING: C2RustUnnamed_htdd24ee73 = 1038;
+pub const XML_RNGP_GRAMMAR_EMPTY: C2RustUnnamed_htdd24ee73 = 1037;
+pub const XML_RNGP_GRAMMAR_CONTENT: C2RustUnnamed_htdd24ee73 = 1036;
+pub const XML_RNGP_FOREIGN_ELEMENT: C2RustUnnamed_htdd24ee73 = 1035;
+pub const XML_RNGP_FORBIDDEN_ATTRIBUTE: C2RustUnnamed_htdd24ee73 = 1034;
+pub const XML_RNGP_EXTERNALREF_RECURSE: C2RustUnnamed_htdd24ee73 = 1033;
+pub const XML_RNGP_EXTERNAL_REF_FAILURE: C2RustUnnamed_htdd24ee73 = 1032;
+pub const XML_RNGP_EXTERNALREF_EMTPY: C2RustUnnamed_htdd24ee73 = 1031;
+pub const XML_RNGP_EXCEPT_NO_CONTENT: C2RustUnnamed_htdd24ee73 = 1030;
+pub const XML_RNGP_EXCEPT_MULTIPLE: C2RustUnnamed_htdd24ee73 = 1029;
+pub const XML_RNGP_EXCEPT_MISSING: C2RustUnnamed_htdd24ee73 = 1028;
+pub const XML_RNGP_EXCEPT_EMPTY: C2RustUnnamed_htdd24ee73 = 1027;
+pub const XML_RNGP_ERROR_TYPE_LIB: C2RustUnnamed_htdd24ee73 = 1026;
+pub const XML_RNGP_EMPTY_NOT_EMPTY: C2RustUnnamed_htdd24ee73 = 1025;
+pub const XML_RNGP_EMPTY_CONTENT: C2RustUnnamed_htdd24ee73 = 1024;
+pub const XML_RNGP_EMPTY_CONSTRUCT: C2RustUnnamed_htdd24ee73 = 1023;
+pub const XML_RNGP_EMPTY: C2RustUnnamed_htdd24ee73 = 1022;
+pub const XML_RNGP_ELEM_TEXT_CONFLICT: C2RustUnnamed_htdd24ee73 = 1021;
+pub const XML_RNGP_ELEMENT_NO_CONTENT: C2RustUnnamed_htdd24ee73 = 1020;
+pub const XML_RNGP_ELEMENT_NAME: C2RustUnnamed_htdd24ee73 = 1019;
+pub const XML_RNGP_ELEMENT_CONTENT: C2RustUnnamed_htdd24ee73 = 1018;
+pub const XML_RNGP_ELEMENT_EMPTY: C2RustUnnamed_htdd24ee73 = 1017;
+pub const XML_RNGP_ELEM_CONTENT_ERROR: C2RustUnnamed_htdd24ee73 = 1016;
+pub const XML_RNGP_ELEM_CONTENT_EMPTY: C2RustUnnamed_htdd24ee73 = 1015;
+pub const XML_RNGP_DEFINE_NAME_MISSING: C2RustUnnamed_htdd24ee73 = 1014;
+pub const XML_RNGP_DEFINE_MISSING: C2RustUnnamed_htdd24ee73 = 1013;
+pub const XML_RNGP_DEFINE_EMPTY: C2RustUnnamed_htdd24ee73 = 1012;
+pub const XML_RNGP_DEFINE_CREATE_FAILED: C2RustUnnamed_htdd24ee73 = 1011;
+pub const XML_RNGP_DEF_CHOICE_AND_INTERLEAVE: C2RustUnnamed_htdd24ee73 = 1010;
+pub const XML_RNGP_DATA_CONTENT: C2RustUnnamed_htdd24ee73 = 1009;
+pub const XML_RNGP_CREATE_FAILURE: C2RustUnnamed_htdd24ee73 = 1008;
+pub const XML_RNGP_CHOICE_EMPTY: C2RustUnnamed_htdd24ee73 = 1007;
+pub const XML_RNGP_CHOICE_CONTENT: C2RustUnnamed_htdd24ee73 = 1006;
+pub const XML_RNGP_ATTRIBUTE_NOOP: C2RustUnnamed_htdd24ee73 = 1005;
+pub const XML_RNGP_ATTRIBUTE_EMPTY: C2RustUnnamed_htdd24ee73 = 1004;
+pub const XML_RNGP_ATTRIBUTE_CONTENT: C2RustUnnamed_htdd24ee73 = 1003;
+pub const XML_RNGP_ATTRIBUTE_CHILDREN: C2RustUnnamed_htdd24ee73 = 1002;
+pub const XML_RNGP_ATTR_CONFLICT: C2RustUnnamed_htdd24ee73 = 1001;
+pub const XML_RNGP_ANYNAME_ATTR_ANCESTOR: C2RustUnnamed_htdd24ee73 = 1000;
+pub const XML_HTML_INCORRECTLY_OPENED_COMMENT: C2RustUnnamed_htdd24ee73 = 802;
+pub const XML_HTML_UNKNOWN_TAG: C2RustUnnamed_htdd24ee73 = 801;
+pub const XML_HTML_STRUCURE_ERROR: C2RustUnnamed_htdd24ee73 = 800;
+pub const XML_DTD_DUP_TOKEN: C2RustUnnamed_htdd24ee73 = 541;
+pub const XML_DTD_XMLID_TYPE: C2RustUnnamed_htdd24ee73 = 540;
+pub const XML_DTD_XMLID_VALUE: C2RustUnnamed_htdd24ee73 = 539;
+pub const XML_DTD_STANDALONE_DEFAULTED: C2RustUnnamed_htdd24ee73 = 538;
+pub const XML_DTD_UNKNOWN_NOTATION: C2RustUnnamed_htdd24ee73 = 537;
+pub const XML_DTD_UNKNOWN_ID: C2RustUnnamed_htdd24ee73 = 536;
+pub const XML_DTD_UNKNOWN_ENTITY: C2RustUnnamed_htdd24ee73 = 535;
+pub const XML_DTD_UNKNOWN_ELEM: C2RustUnnamed_htdd24ee73 = 534;
+pub const XML_DTD_UNKNOWN_ATTRIBUTE: C2RustUnnamed_htdd24ee73 = 533;
+pub const XML_DTD_STANDALONE_WHITE_SPACE: C2RustUnnamed_htdd24ee73 = 532;
+pub const XML_DTD_ROOT_NAME: C2RustUnnamed_htdd24ee73 = 531;
+pub const XML_DTD_NOT_STANDALONE: C2RustUnnamed_htdd24ee73 = 530;
+pub const XML_DTD_NOT_PCDATA: C2RustUnnamed_htdd24ee73 = 529;
+pub const XML_DTD_NOT_EMPTY: C2RustUnnamed_htdd24ee73 = 528;
+pub const XML_DTD_NOTATION_VALUE: C2RustUnnamed_htdd24ee73 = 527;
+pub const XML_DTD_NOTATION_REDEFINED: C2RustUnnamed_htdd24ee73 = 526;
+pub const XML_DTD_NO_ROOT: C2RustUnnamed_htdd24ee73 = 525;
+pub const XML_DTD_NO_PREFIX: C2RustUnnamed_htdd24ee73 = 524;
+pub const XML_DTD_NO_ELEM_NAME: C2RustUnnamed_htdd24ee73 = 523;
+pub const XML_DTD_NO_DTD: C2RustUnnamed_htdd24ee73 = 522;
+pub const XML_DTD_NO_DOC: C2RustUnnamed_htdd24ee73 = 521;
+pub const XML_DTD_MULTIPLE_ID: C2RustUnnamed_htdd24ee73 = 520;
+pub const XML_DTD_MIXED_CORRUPT: C2RustUnnamed_htdd24ee73 = 519;
+pub const XML_DTD_MISSING_ATTRIBUTE: C2RustUnnamed_htdd24ee73 = 518;
+pub const XML_DTD_LOAD_ERROR: C2RustUnnamed_htdd24ee73 = 517;
+pub const XML_DTD_INVALID_DEFAULT: C2RustUnnamed_htdd24ee73 = 516;
+pub const XML_DTD_INVALID_CHILD: C2RustUnnamed_htdd24ee73 = 515;
+pub const XML_DTD_ID_SUBSET: C2RustUnnamed_htdd24ee73 = 514;
+pub const XML_DTD_ID_REDEFINED: C2RustUnnamed_htdd24ee73 = 513;
+pub const XML_DTD_ID_FIXED: C2RustUnnamed_htdd24ee73 = 512;
+pub const XML_DTD_ENTITY_TYPE: C2RustUnnamed_htdd24ee73 = 511;
+pub const XML_DTD_EMPTY_NOTATION: C2RustUnnamed_htdd24ee73 = 510;
+pub const XML_DTD_ELEM_REDEFINED: C2RustUnnamed_htdd24ee73 = 509;
+pub const XML_DTD_ELEM_NAMESPACE: C2RustUnnamed_htdd24ee73 = 508;
+pub const XML_DTD_ELEM_DEFAULT_NAMESPACE: C2RustUnnamed_htdd24ee73 = 507;
+pub const XML_DTD_DIFFERENT_PREFIX: C2RustUnnamed_htdd24ee73 = 506;
+pub const XML_DTD_CONTENT_NOT_DETERMINIST: C2RustUnnamed_htdd24ee73 = 505;
+pub const XML_DTD_CONTENT_MODEL: C2RustUnnamed_htdd24ee73 = 504;
+pub const XML_DTD_CONTENT_ERROR: C2RustUnnamed_htdd24ee73 = 503;
+pub const XML_DTD_ATTRIBUTE_VALUE: C2RustUnnamed_htdd24ee73 = 502;
+pub const XML_DTD_ATTRIBUTE_REDEFINED: C2RustUnnamed_htdd24ee73 = 501;
+pub const XML_DTD_ATTRIBUTE_DEFAULT: C2RustUnnamed_htdd24ee73 = 500;
+pub const XML_NS_ERR_COLON: C2RustUnnamed_htdd24ee73 = 205;
+pub const XML_NS_ERR_EMPTY: C2RustUnnamed_htdd24ee73 = 204;
+pub const XML_NS_ERR_ATTRIBUTE_REDEFINED: C2RustUnnamed_htdd24ee73 = 203;
+pub const XML_NS_ERR_QNAME: C2RustUnnamed_htdd24ee73 = 202;
+pub const XML_NS_ERR_UNDEFINED_NAMESPACE: C2RustUnnamed_htdd24ee73 = 201;
+pub const XML_NS_ERR_XML_NAMESPACE: C2RustUnnamed_htdd24ee73 = 200;
+pub const XML_WAR_ENCODING_MISMATCH: C2RustUnnamed_htdd24ee73 = 113;
+pub const XML_ERR_COMMENT_ABRUPTLY_ENDED: C2RustUnnamed_htdd24ee73 = 112;
+pub const XML_ERR_USER_STOP: C2RustUnnamed_htdd24ee73 = 111;
+pub const XML_ERR_NAME_TOO_LONG: C2RustUnnamed_htdd24ee73 = 110;
+pub const XML_ERR_VERSION_MISMATCH: C2RustUnnamed_htdd24ee73 = 109;
+pub const XML_ERR_UNKNOWN_VERSION: C2RustUnnamed_htdd24ee73 = 108;
+pub const XML_WAR_ENTITY_REDEFINED: C2RustUnnamed_htdd24ee73 = 107;
+pub const XML_WAR_NS_COLUMN: C2RustUnnamed_htdd24ee73 = 106;
+pub const XML_ERR_NOTATION_PROCESSING: C2RustUnnamed_htdd24ee73 = 105;
+pub const XML_ERR_ENTITY_PROCESSING: C2RustUnnamed_htdd24ee73 = 104;
+pub const XML_ERR_NOT_STANDALONE: C2RustUnnamed_htdd24ee73 = 103;
+pub const XML_WAR_SPACE_VALUE: C2RustUnnamed_htdd24ee73 = 102;
+pub const XML_ERR_MISSING_ENCODING: C2RustUnnamed_htdd24ee73 = 101;
+pub const XML_WAR_NS_URI_RELATIVE: C2RustUnnamed_htdd24ee73 = 100;
+pub const XML_WAR_NS_URI: C2RustUnnamed_htdd24ee73 = 99;
+pub const XML_WAR_LANG_VALUE: C2RustUnnamed_htdd24ee73 = 98;
+pub const XML_WAR_UNKNOWN_VERSION: C2RustUnnamed_htdd24ee73 = 97;
+pub const XML_ERR_VERSION_MISSING: C2RustUnnamed_htdd24ee73 = 96;
+pub const XML_ERR_CONDSEC_INVALID_KEYWORD: C2RustUnnamed_htdd24ee73 = 95;
+pub const XML_ERR_NO_DTD: C2RustUnnamed_htdd24ee73 = 94;
+pub const XML_WAR_CATALOG_PI: C2RustUnnamed_htdd24ee73 = 93;
+pub const XML_ERR_URI_FRAGMENT: C2RustUnnamed_htdd24ee73 = 92;
+pub const XML_ERR_INVALID_URI: C2RustUnnamed_htdd24ee73 = 91;
+pub const XML_ERR_ENTITY_BOUNDARY: C2RustUnnamed_htdd24ee73 = 90;
+pub const XML_ERR_ENTITY_LOOP: C2RustUnnamed_htdd24ee73 = 89;
+pub const XML_ERR_ENTITY_PE_INTERNAL: C2RustUnnamed_htdd24ee73 = 88;
+pub const XML_ERR_ENTITY_CHAR_ERROR: C2RustUnnamed_htdd24ee73 = 87;
+pub const XML_ERR_EXTRA_CONTENT: C2RustUnnamed_htdd24ee73 = 86;
+pub const XML_ERR_NOT_WELL_BALANCED: C2RustUnnamed_htdd24ee73 = 85;
+pub const XML_ERR_VALUE_REQUIRED: C2RustUnnamed_htdd24ee73 = 84;
+pub const XML_ERR_CONDSEC_INVALID: C2RustUnnamed_htdd24ee73 = 83;
+pub const XML_ERR_EXT_ENTITY_STANDALONE: C2RustUnnamed_htdd24ee73 = 82;
+pub const XML_ERR_INVALID_ENCODING: C2RustUnnamed_htdd24ee73 = 81;
+pub const XML_ERR_HYPHEN_IN_COMMENT: C2RustUnnamed_htdd24ee73 = 80;
+pub const XML_ERR_ENCODING_NAME: C2RustUnnamed_htdd24ee73 = 79;
+pub const XML_ERR_STANDALONE_VALUE: C2RustUnnamed_htdd24ee73 = 78;
+pub const XML_ERR_TAG_NOT_FINISHED: C2RustUnnamed_htdd24ee73 = 77;
+pub const XML_ERR_TAG_NAME_MISMATCH: C2RustUnnamed_htdd24ee73 = 76;
+pub const XML_ERR_EQUAL_REQUIRED: C2RustUnnamed_htdd24ee73 = 75;
+pub const XML_ERR_LTSLASH_REQUIRED: C2RustUnnamed_htdd24ee73 = 74;
+pub const XML_ERR_GT_REQUIRED: C2RustUnnamed_htdd24ee73 = 73;
+pub const XML_ERR_LT_REQUIRED: C2RustUnnamed_htdd24ee73 = 72;
+pub const XML_ERR_PUBID_REQUIRED: C2RustUnnamed_htdd24ee73 = 71;
+pub const XML_ERR_URI_REQUIRED: C2RustUnnamed_htdd24ee73 = 70;
+pub const XML_ERR_PCDATA_REQUIRED: C2RustUnnamed_htdd24ee73 = 69;
+pub const XML_ERR_NAME_REQUIRED: C2RustUnnamed_htdd24ee73 = 68;
+pub const XML_ERR_NMTOKEN_REQUIRED: C2RustUnnamed_htdd24ee73 = 67;
+pub const XML_ERR_SEPARATOR_REQUIRED: C2RustUnnamed_htdd24ee73 = 66;
+pub const XML_ERR_SPACE_REQUIRED: C2RustUnnamed_htdd24ee73 = 65;
+pub const XML_ERR_RESERVED_XML_NAME: C2RustUnnamed_htdd24ee73 = 64;
+pub const XML_ERR_CDATA_NOT_FINISHED: C2RustUnnamed_htdd24ee73 = 63;
+pub const XML_ERR_MISPLACED_CDATA_END: C2RustUnnamed_htdd24ee73 = 62;
+pub const XML_ERR_DOCTYPE_NOT_FINISHED: C2RustUnnamed_htdd24ee73 = 61;
+pub const XML_ERR_EXT_SUBSET_NOT_FINISHED: C2RustUnnamed_htdd24ee73 = 60;
+pub const XML_ERR_CONDSEC_NOT_FINISHED: C2RustUnnamed_htdd24ee73 = 59;
+pub const XML_ERR_CONDSEC_NOT_STARTED: C2RustUnnamed_htdd24ee73 = 58;
+pub const XML_ERR_XMLDECL_NOT_FINISHED: C2RustUnnamed_htdd24ee73 = 57;
+pub const XML_ERR_XMLDECL_NOT_STARTED: C2RustUnnamed_htdd24ee73 = 56;
+pub const XML_ERR_ELEMCONTENT_NOT_FINISHED: C2RustUnnamed_htdd24ee73 = 55;
+pub const XML_ERR_ELEMCONTENT_NOT_STARTED: C2RustUnnamed_htdd24ee73 = 54;
+pub const XML_ERR_MIXED_NOT_FINISHED: C2RustUnnamed_htdd24ee73 = 53;
+pub const XML_ERR_MIXED_NOT_STARTED: C2RustUnnamed_htdd24ee73 = 52;
+pub const XML_ERR_ATTLIST_NOT_FINISHED: C2RustUnnamed_htdd24ee73 = 51;
+pub const XML_ERR_ATTLIST_NOT_STARTED: C2RustUnnamed_htdd24ee73 = 50;
+pub const XML_ERR_NOTATION_NOT_FINISHED: C2RustUnnamed_htdd24ee73 = 49;
+pub const XML_ERR_NOTATION_NOT_STARTED: C2RustUnnamed_htdd24ee73 = 48;
+pub const XML_ERR_PI_NOT_FINISHED: C2RustUnnamed_htdd24ee73 = 47;
+pub const XML_ERR_PI_NOT_STARTED: C2RustUnnamed_htdd24ee73 = 46;
+pub const XML_ERR_COMMENT_NOT_FINISHED: C2RustUnnamed_htdd24ee73 = 45;
+pub const XML_ERR_LITERAL_NOT_FINISHED: C2RustUnnamed_htdd24ee73 = 44;
+pub const XML_ERR_LITERAL_NOT_STARTED: C2RustUnnamed_htdd24ee73 = 43;
+pub const XML_ERR_ATTRIBUTE_REDEFINED: C2RustUnnamed_htdd24ee73 = 42;
+pub const XML_ERR_ATTRIBUTE_WITHOUT_VALUE: C2RustUnnamed_htdd24ee73 = 41;
+pub const XML_ERR_ATTRIBUTE_NOT_FINISHED: C2RustUnnamed_htdd24ee73 = 40;
+pub const XML_ERR_ATTRIBUTE_NOT_STARTED: C2RustUnnamed_htdd24ee73 = 39;
+pub const XML_ERR_LT_IN_ATTRIBUTE: C2RustUnnamed_htdd24ee73 = 38;
+pub const XML_ERR_ENTITY_NOT_FINISHED: C2RustUnnamed_htdd24ee73 = 37;
+pub const XML_ERR_ENTITY_NOT_STARTED: C2RustUnnamed_htdd24ee73 = 36;
+pub const XML_ERR_NS_DECL_ERROR: C2RustUnnamed_htdd24ee73 = 35;
+pub const XML_ERR_STRING_NOT_CLOSED: C2RustUnnamed_htdd24ee73 = 34;
+pub const XML_ERR_STRING_NOT_STARTED: C2RustUnnamed_htdd24ee73 = 33;
+pub const XML_ERR_UNSUPPORTED_ENCODING: C2RustUnnamed_htdd24ee73 = 32;
+pub const XML_ERR_UNKNOWN_ENCODING: C2RustUnnamed_htdd24ee73 = 31;
+pub const XML_ERR_ENTITY_IS_PARAMETER: C2RustUnnamed_htdd24ee73 = 30;
+pub const XML_ERR_ENTITY_IS_EXTERNAL: C2RustUnnamed_htdd24ee73 = 29;
+pub const XML_ERR_UNPARSED_ENTITY: C2RustUnnamed_htdd24ee73 = 28;
+pub const XML_WAR_UNDECLARED_ENTITY: C2RustUnnamed_htdd24ee73 = 27;
+pub const XML_ERR_UNDECLARED_ENTITY: C2RustUnnamed_htdd24ee73 = 26;
+pub const XML_ERR_PEREF_SEMICOL_MISSING: C2RustUnnamed_htdd24ee73 = 25;
+pub const XML_ERR_PEREF_NO_NAME: C2RustUnnamed_htdd24ee73 = 24;
+pub const XML_ERR_ENTITYREF_SEMICOL_MISSING: C2RustUnnamed_htdd24ee73 = 23;
+pub const XML_ERR_ENTITYREF_NO_NAME: C2RustUnnamed_htdd24ee73 = 22;
+pub const XML_ERR_PEREF_IN_INT_SUBSET: C2RustUnnamed_htdd24ee73 = 21;
+pub const XML_ERR_PEREF_IN_EPILOG: C2RustUnnamed_htdd24ee73 = 20;
+pub const XML_ERR_PEREF_IN_PROLOG: C2RustUnnamed_htdd24ee73 = 19;
+pub const XML_ERR_PEREF_AT_EOF: C2RustUnnamed_htdd24ee73 = 18;
+pub const XML_ERR_ENTITYREF_IN_DTD: C2RustUnnamed_htdd24ee73 = 17;
+pub const XML_ERR_ENTITYREF_IN_EPILOG: C2RustUnnamed_htdd24ee73 = 16;
+pub const XML_ERR_ENTITYREF_IN_PROLOG: C2RustUnnamed_htdd24ee73 = 15;
+pub const XML_ERR_ENTITYREF_AT_EOF: C2RustUnnamed_htdd24ee73 = 14;
+pub const XML_ERR_CHARREF_IN_DTD: C2RustUnnamed_htdd24ee73 = 13;
+pub const XML_ERR_CHARREF_IN_EPILOG: C2RustUnnamed_htdd24ee73 = 12;
+pub const XML_ERR_CHARREF_IN_PROLOG: C2RustUnnamed_htdd24ee73 = 11;
+pub const XML_ERR_CHARREF_AT_EOF: C2RustUnnamed_htdd24ee73 = 10;
+pub const XML_ERR_INVALID_CHAR: C2RustUnnamed_htdd24ee73 = 9;
+pub const XML_ERR_INVALID_CHARREF: C2RustUnnamed_htdd24ee73 = 8;
+pub const XML_ERR_INVALID_DEC_CHARREF: C2RustUnnamed_htdd24ee73 = 7;
+pub const XML_ERR_INVALID_HEX_CHARREF: C2RustUnnamed_htdd24ee73 = 6;
+pub const XML_ERR_DOCUMENT_END: C2RustUnnamed_htdd24ee73 = 5;
+pub const XML_ERR_DOCUMENT_EMPTY: C2RustUnnamed_htdd24ee73 = 4;
+pub const XML_ERR_DOCUMENT_START: C2RustUnnamed_htdd24ee73 = 3;
+pub const XML_ERR_INTERNAL_ERROR: C2RustUnnamed_htdd24ee73 = 1;
+pub const XML_ERR_OK: C2RustUnnamed_htdd24ee73 = 0;
+pub const XML_SAVE_WSNONSIG: C2RustUnnamed_htdd24ee73 = 128;
+
+pub const MAX_INDENT: c_int = 60 as c_int;
+unsafe fn xmlSaveErrMemory(mut extra: *const c_char) {
+    __xmlSimpleError(
+        XML_FROM_OUTPUT as c_int,
+        XML_ERR_NO_MEMORY as c_int,
+        ::core::ptr::null_mut::<_xmlNode>(),
+        ::core::ptr::null::<c_char>(),
+        extra,
+    );
+}
+unsafe fn xmlSaveErr(
+    mut code: c_int,
+    mut node: xmlNodePtr,
+    mut extra: *const c_char,
+) {
+    let mut msg: *const c_char = ::core::ptr::null::<c_char>();
+    match code {
+        1400 => {
+            msg = b"string is not in UTF-8\n\0" as *const u8 as *const c_char;
+        }
+        1401 => {
+            msg = b"invalid character value\n\0" as *const u8 as *const c_char;
+        }
+        1403 => {
+            msg = b"unknown encoding %s\n\0" as *const u8 as *const c_char;
+        }
+        1402 => {
+            msg = b"document has no DOCTYPE\n\0" as *const u8 as *const c_char;
+        }
+        _ => {
+            msg = b"unexpected error number\n\0" as *const u8 as *const c_char;
+        }
+    }
+    __xmlSimpleError(
+        XML_FROM_OUTPUT as c_int,
+        code,
+        node as *mut _xmlNode,
+        msg,
+        extra,
+    );
+}
+unsafe fn xmlSerializeHexCharRef(
+    mut out: *mut c_uchar,
+    mut val: c_int,
+) -> *mut c_uchar {
+    let mut ptr: *mut c_uchar = ::core::ptr::null_mut::<c_uchar>();
+    let fresh0 = out;
+    out = out.offset(1);
+    *fresh0 = '&' as i32 as c_uchar;
+    let fresh1 = out;
+    out = out.offset(1);
+    *fresh1 = '#' as i32 as c_uchar;
+    let fresh2 = out;
+    out = out.offset(1);
+    *fresh2 = 'x' as i32 as c_uchar;
+    if val < 0x10 as c_int {
+        ptr = out;
+    } else if val < 0x100 as c_int {
+        ptr = out.offset(1 as c_int as isize);
+    } else if val < 0x1000 as c_int {
+        ptr = out.offset(2 as c_int as isize);
+    } else if val < 0x10000 as c_int {
+        ptr = out.offset(3 as c_int as isize);
+    } else if val < 0x100000 as c_int {
+        ptr = out.offset(4 as c_int as isize);
+    } else {
+        ptr = out.offset(5 as c_int as isize);
+    }
+    out = ptr.offset(1 as c_int as isize);
+    while val > 0 as c_int {
+        match val & 0xf as c_int {
+            0 => {
+                let fresh3 = ptr;
+                ptr = ptr.offset(-1);
+                *fresh3 = '0' as i32 as c_uchar;
+            }
+            1 => {
+                let fresh4 = ptr;
+                ptr = ptr.offset(-1);
+                *fresh4 = '1' as i32 as c_uchar;
+            }
+            2 => {
+                let fresh5 = ptr;
+                ptr = ptr.offset(-1);
+                *fresh5 = '2' as i32 as c_uchar;
+            }
+            3 => {
+                let fresh6 = ptr;
+                ptr = ptr.offset(-1);
+                *fresh6 = '3' as i32 as c_uchar;
+            }
+            4 => {
+                let fresh7 = ptr;
+                ptr = ptr.offset(-1);
+                *fresh7 = '4' as i32 as c_uchar;
+            }
+            5 => {
+                let fresh8 = ptr;
+                ptr = ptr.offset(-1);
+                *fresh8 = '5' as i32 as c_uchar;
+            }
+            6 => {
+                let fresh9 = ptr;
+                ptr = ptr.offset(-1);
+                *fresh9 = '6' as i32 as c_uchar;
+            }
+            7 => {
+                let fresh10 = ptr;
+                ptr = ptr.offset(-1);
+                *fresh10 = '7' as i32 as c_uchar;
+            }
+            8 => {
+                let fresh11 = ptr;
+                ptr = ptr.offset(-1);
+                *fresh11 = '8' as i32 as c_uchar;
+            }
+            9 => {
+                let fresh12 = ptr;
+                ptr = ptr.offset(-1);
+                *fresh12 = '9' as i32 as c_uchar;
+            }
+            10 => {
+                let fresh13 = ptr;
+                ptr = ptr.offset(-1);
+                *fresh13 = 'A' as i32 as c_uchar;
+            }
+            11 => {
+                let fresh14 = ptr;
+                ptr = ptr.offset(-1);
+                *fresh14 = 'B' as i32 as c_uchar;
+            }
+            12 => {
+                let fresh15 = ptr;
+                ptr = ptr.offset(-1);
+                *fresh15 = 'C' as i32 as c_uchar;
+            }
+            13 => {
+                let fresh16 = ptr;
+                ptr = ptr.offset(-1);
+                *fresh16 = 'D' as i32 as c_uchar;
+            }
+            14 => {
+                let fresh17 = ptr;
+                ptr = ptr.offset(-1);
+                *fresh17 = 'E' as i32 as c_uchar;
+            }
+            15 => {
+                let fresh18 = ptr;
+                ptr = ptr.offset(-1);
+                *fresh18 = 'F' as i32 as c_uchar;
+            }
+            _ => {
+                let fresh19 = ptr;
+                ptr = ptr.offset(-1);
+                *fresh19 = '0' as i32 as c_uchar;
+            }
+        }
+        val >>= 4 as c_int;
+    }
+    let fresh20 = out;
+    out = out.offset(1);
+    *fresh20 = ';' as i32 as c_uchar;
+    *out = 0 as c_uchar;
+    return out;
+}
+unsafe extern "C" fn xmlEscapeEntities(
+    mut out: *mut c_uchar,
+    mut outlen: *mut c_int,
+    mut in_0: *const xmlChar,
+    mut inlen: *mut c_int,
+) -> c_int {
+    let mut current_block: u64;
+    let mut outstart: *mut c_uchar = out;
+    let mut base: *const c_uchar = in_0 as *const c_uchar;
+    let mut outend: *mut c_uchar = out.offset(*outlen as isize);
+    let mut inend: *const c_uchar = ::core::ptr::null::<c_uchar>();
+    let mut val: c_int = 0;
+    inend = in_0.offset(*inlen as isize) as *const c_uchar;
+    loop {
+        if !(in_0 < inend && out < outend) {
+            current_block = 2520131295878969859;
+            break;
+        }
+        if *in_0 as c_int == '<' as i32 {
+            if (outend.offset_from(out) as c_long) < 4 as c_long {
+                current_block = 2520131295878969859;
+                break;
+            }
+            let fresh21 = out;
+            out = out.offset(1);
+            *fresh21 = '&' as i32 as c_uchar;
+            let fresh22 = out;
+            out = out.offset(1);
+            *fresh22 = 'l' as i32 as c_uchar;
+            let fresh23 = out;
+            out = out.offset(1);
+            *fresh23 = 't' as i32 as c_uchar;
+            let fresh24 = out;
+            out = out.offset(1);
+            *fresh24 = ';' as i32 as c_uchar;
+            in_0 = in_0.offset(1);
+        } else if *in_0 as c_int == '>' as i32 {
+            if (outend.offset_from(out) as c_long) < 4 as c_long {
+                current_block = 2520131295878969859;
+                break;
+            }
+            let fresh25 = out;
+            out = out.offset(1);
+            *fresh25 = '&' as i32 as c_uchar;
+            let fresh26 = out;
+            out = out.offset(1);
+            *fresh26 = 'g' as i32 as c_uchar;
+            let fresh27 = out;
+            out = out.offset(1);
+            *fresh27 = 't' as i32 as c_uchar;
+            let fresh28 = out;
+            out = out.offset(1);
+            *fresh28 = ';' as i32 as c_uchar;
+            in_0 = in_0.offset(1);
+        } else if *in_0 as c_int == '&' as i32 {
+            if (outend.offset_from(out) as c_long) < 5 as c_long {
+                current_block = 2520131295878969859;
+                break;
+            }
+            let fresh29 = out;
+            out = out.offset(1);
+            *fresh29 = '&' as i32 as c_uchar;
+            let fresh30 = out;
+            out = out.offset(1);
+            *fresh30 = 'a' as i32 as c_uchar;
+            let fresh31 = out;
+            out = out.offset(1);
+            *fresh31 = 'm' as i32 as c_uchar;
+            let fresh32 = out;
+            out = out.offset(1);
+            *fresh32 = 'p' as i32 as c_uchar;
+            let fresh33 = out;
+            out = out.offset(1);
+            *fresh33 = ';' as i32 as c_uchar;
+            in_0 = in_0.offset(1);
+        } else if *in_0 as c_int >= 0x20 as c_int
+            && (*in_0 as c_int) < 0x80 as c_int
+            || *in_0 as c_int == '\n' as i32
+            || *in_0 as c_int == '\t' as i32
+        {
+            let fresh34 = in_0;
+            in_0 = in_0.offset(1);
+            let fresh35 = out;
+            out = out.offset(1);
+            *fresh35 = *fresh34 as c_uchar;
+        } else if *in_0 as c_int >= 0x80 as c_int {
+            if (outend.offset_from(out) as c_long) < 11 as c_long {
+                current_block = 2520131295878969859;
+                break;
+            }
+            if (*in_0 as c_int) < 0xc0 as c_int {
+                xmlSaveErr(
+                    XML_SAVE_NOT_UTF8 as c_int,
+                    ::core::ptr::null_mut::<xmlNode>(),
+                    ::core::ptr::null::<c_char>(),
+                );
+                in_0 = in_0.offset(1);
+                current_block = 16866584857336060735;
+                break;
+            } else {
+                if (*in_0 as c_int) < 0xe0 as c_int {
+                    if (inend.offset_from(in_0) as c_long) < 2 as c_long {
+                        current_block = 2520131295878969859;
+                        break;
+                    }
+                    val = *in_0.offset(0 as c_int as isize) as c_int
+                        & 0x1f as c_int;
+                    val <<= 6 as c_int;
+                    val |= *in_0.offset(1 as c_int as isize) as c_int
+                        & 0x3f as c_int;
+                    in_0 = in_0.offset(2 as c_int as isize);
+                } else if (*in_0 as c_int) < 0xf0 as c_int {
+                    if (inend.offset_from(in_0) as c_long) < 3 as c_long {
+                        current_block = 2520131295878969859;
+                        break;
+                    }
+                    val = *in_0.offset(0 as c_int as isize) as c_int
+                        & 0xf as c_int;
+                    val <<= 6 as c_int;
+                    val |= *in_0.offset(1 as c_int as isize) as c_int
+                        & 0x3f as c_int;
+                    val <<= 6 as c_int;
+                    val |= *in_0.offset(2 as c_int as isize) as c_int
+                        & 0x3f as c_int;
+                    in_0 = in_0.offset(3 as c_int as isize);
+                } else if (*in_0 as c_int) < 0xf8 as c_int {
+                    if (inend.offset_from(in_0) as c_long) < 4 as c_long {
+                        current_block = 2520131295878969859;
+                        break;
+                    }
+                    val = *in_0.offset(0 as c_int as isize) as c_int
+                        & 0x7 as c_int;
+                    val <<= 6 as c_int;
+                    val |= *in_0.offset(1 as c_int as isize) as c_int
+                        & 0x3f as c_int;
+                    val <<= 6 as c_int;
+                    val |= *in_0.offset(2 as c_int as isize) as c_int
+                        & 0x3f as c_int;
+                    val <<= 6 as c_int;
+                    val |= *in_0.offset(3 as c_int as isize) as c_int
+                        & 0x3f as c_int;
+                    in_0 = in_0.offset(4 as c_int as isize);
+                } else {
+                    xmlSaveErr(
+                        XML_SAVE_CHAR_INVALID as c_int,
+                        ::core::ptr::null_mut::<xmlNode>(),
+                        ::core::ptr::null::<c_char>(),
+                    );
+                    in_0 = in_0.offset(1);
+                    current_block = 16866584857336060735;
+                    break;
+                }
+                if if val < 0x100 as c_int {
+                    (0x9 as c_int <= val && val <= 0xa as c_int
+                        || val == 0xd as c_int
+                        || 0x20 as c_int <= val)
+                        as c_int
+                } else {
+                    (0x100 as c_int <= val && val <= 0xd7ff as c_int
+                        || 0xe000 as c_int <= val
+                            && val <= 0xfffd as c_int
+                        || 0x10000 as c_int <= val
+                            && val <= 0x10ffff as c_int)
+                        as c_int
+                } == 0
+                {
+                    xmlSaveErr(
+                        XML_SAVE_CHAR_INVALID as c_int,
+                        ::core::ptr::null_mut::<xmlNode>(),
+                        ::core::ptr::null::<c_char>(),
+                    );
+                    in_0 = in_0.offset(1);
+                    current_block = 16866584857336060735;
+                    break;
+                } else {
+                    out = xmlSerializeHexCharRef(out, val);
+                }
+            }
+        } else if 0x9 as c_int <= *in_0 as c_int
+            && *in_0 as c_int <= 0xa as c_int
+            || *in_0 as c_int == 0xd as c_int
+            || 0x20 as c_int <= *in_0 as c_int
+        {
+            if (outend.offset_from(out) as c_long) < 6 as c_long {
+                current_block = 2520131295878969859;
+                break;
+            }
+            let fresh36 = in_0;
+            in_0 = in_0.offset(1);
+            out = xmlSerializeHexCharRef(out, *fresh36 as c_int);
+        } else {
+            (*__xmlGenericError()).expect("non-null function pointer")(
+                *__xmlGenericErrorContext(),
+                b"xmlEscapeEntities : char out of range\n\0" as *const u8
+                    as *const c_char,
+            );
+            in_0 = in_0.offset(1);
+            current_block = 16866584857336060735;
+            break;
+        }
+    }
+    match current_block {
+        16866584857336060735 => {
+            *outlen = out.offset_from(outstart) as c_long as c_int;
+            *inlen = in_0.offset_from(base) as c_long as c_int;
+            return -(1 as c_int);
+        }
+        _ => {
+            *outlen = out.offset_from(outstart) as c_long as c_int;
+            *inlen = in_0.offset_from(base) as c_long as c_int;
+            return 0 as c_int;
+        }
+    };
+}
+fn xmlSaveCtxtInit(mut ctxt: xmlSaveCtxtPtr) { unsafe {
+    let mut i: c_int = 0;
+    let mut len: c_int = 0;
+    if ctxt.is_null() {
+        return;
+    }
+    if (*ctxt).encoding.is_null() && (*ctxt).escape.is_none() {
+        (*ctxt).escape = Some(
+            xmlEscapeEntities
+                as unsafe extern "C" fn(
+                    *mut c_uchar,
+                    *mut c_int,
+                    *const xmlChar,
+                    *mut c_int,
+                ) -> c_int,
+        ) as xmlCharEncodingOutputFunc;
+    }
+    len = xmlStrlen(*__xmlTreeIndentString() as *mut xmlChar);
+    if (*__xmlTreeIndentString()).is_null() || len == 0 as c_int {
+        memset(
+            (&raw mut (*ctxt).indent as *mut c_char)
+                .offset(0 as c_int as isize) as *mut c_char
+                as *mut c_void,
+            0 as c_int,
+            (MAX_INDENT + 1 as c_int) as size_t,
+        );
+    } else {
+        (*ctxt).indent_size = len;
+        (*ctxt).indent_nr = MAX_INDENT / (*ctxt).indent_size;
+        i = 0 as c_int;
+        while i < (*ctxt).indent_nr {
+            memcpy(
+                (&raw mut (*ctxt).indent as *mut c_char)
+                    .offset((i * (*ctxt).indent_size) as isize)
+                    as *mut c_char as *mut c_void,
+                *__xmlTreeIndentString() as *const c_void,
+                (*ctxt).indent_size as size_t,
+            );
+            i += 1;
+        }
+        (*ctxt).indent[((*ctxt).indent_nr * (*ctxt).indent_size) as usize] =
+            0 as c_char;
+    }
+    if *__xmlSaveNoEmptyTags() != 0 {
+        (*ctxt).options |= XML_SAVE_NO_EMPTY as c_int;
+    }
+} }
+fn xmlFreeSaveCtxt(mut ctxt: xmlSaveCtxtPtr) { unsafe {
+    if ctxt.is_null() {
+        return;
+    }
+    if !(*ctxt).encoding.is_null() {
+        xmlFree.expect("non-null function pointer")(
+            (*ctxt).encoding as *mut c_char as *mut c_void,
+        );
+    }
+    if !(*ctxt).buf.is_null() {
+        xmlOutputBufferClose((*ctxt).buf);
+    }
+    xmlFree.expect("non-null function pointer")(ctxt as *mut c_void);
+} }
+unsafe fn xmlNewSaveCtxt(
+    mut encoding: *const c_char,
+    mut options: c_int,
+) -> xmlSaveCtxtPtr {
+    let mut ret: xmlSaveCtxtPtr = ::core::ptr::null_mut::<xmlSaveCtxt>();
+    ret = xmlMalloc.expect("non-null function pointer")(
+        ::core::mem::size_of::<xmlSaveCtxt>() as size_t
+    ) as xmlSaveCtxtPtr;
+    if ret.is_null() {
+        xmlSaveErrMemory(b"creating saving context\0" as *const u8 as *const c_char);
+        return ::core::ptr::null_mut::<xmlSaveCtxt>();
+    }
+    memset(
+        ret as *mut c_void,
+        0 as c_int,
+        ::core::mem::size_of::<xmlSaveCtxt>() as size_t,
+    );
+    if !encoding.is_null() {
+        (*ret).handler = xmlFindCharEncodingHandler(encoding);
+        if (*ret).handler.is_null() {
+            xmlSaveErr(
+                XML_SAVE_UNKNOWN_ENCODING as c_int,
+                ::core::ptr::null_mut::<xmlNode>(),
+                encoding,
+            );
+            xmlFreeSaveCtxt(ret);
+            return ::core::ptr::null_mut::<xmlSaveCtxt>();
+        }
+        (*ret).encoding = xmlStrdup(encoding as *const xmlChar);
+        (*ret).escape = None;
+    }
+    xmlSaveCtxtInit(ret);
+    if (*ret).options & XML_SAVE_NO_EMPTY as c_int != 0
+        && options & XML_SAVE_NO_EMPTY as c_int == 0
+    {
+        options |= XML_SAVE_NO_EMPTY as c_int;
+    }
+    (*ret).options = options;
+    if options & XML_SAVE_FORMAT as c_int != 0 {
+        (*ret).format = 1 as c_int;
+    } else if options & XML_SAVE_WSNONSIG as c_int != 0 {
+        (*ret).format = 2 as c_int;
+    }
+    return ret;
+}
+fn xmlAttrSerializeContent(mut buf: xmlOutputBufferPtr, mut attr: xmlAttrPtr) { unsafe {
+    let mut children: xmlNodePtr = ::core::ptr::null_mut::<xmlNode>();
+    children = (*attr).children as xmlNodePtr;
+    while !children.is_null() {
+        match (*children).type_0 as c_uint {
+            3 => {
+                xmlBufAttrSerializeTxtContent(
+                    (*buf).buffer,
+                    (*attr).doc as xmlDocPtr,
+                    attr,
+                    (*children).content,
+                );
+            }
+            5 => {
+                xmlBufAdd(
+                    (*buf).buffer,
+                    b"&\0" as *const u8 as *const c_char as *mut xmlChar,
+                    1 as c_int,
+                );
+                xmlBufAdd((*buf).buffer, (*children).name, xmlStrlen((*children).name));
+                xmlBufAdd(
+                    (*buf).buffer,
+                    b";\0" as *const u8 as *const c_char as *mut xmlChar,
+                    1 as c_int,
+                );
+            }
+            _ => {}
+        }
+        children = (*children).next as xmlNodePtr;
+    }
+} }
+fn xmlBufDumpNotationTable(mut buf: xmlBufPtr, mut table: xmlNotationTablePtr) { {
+    let mut buffer: xmlBufferPtr = ::core::ptr::null_mut::<xmlBuffer>();
+    buffer = xmlBufferCreate();
+    if buffer.is_null() {
+        return;
+    }
+    xmlBufferSetAllocationScheme(buffer, XML_BUFFER_ALLOC_DOUBLEIT);
+    xmlDumpNotationTable(buffer, table);
+    xmlBufMergeBuffer(buf, buffer);
+} }
+fn xmlBufDumpElementDecl(mut buf: xmlBufPtr, mut elem: xmlElementPtr) { unsafe {
+    let mut buffer: xmlBufferPtr = ::core::ptr::null_mut::<xmlBuffer>();
+    buffer = xmlBufferCreate();
+    if buffer.is_null() {
+        return;
+    }
+    xmlBufferSetAllocationScheme(buffer, XML_BUFFER_ALLOC_DOUBLEIT);
+    xmlDumpElementDecl(buffer, elem);
+    xmlBufMergeBuffer(buf, buffer);
+} }
+fn xmlBufDumpAttributeDecl(mut buf: xmlBufPtr, mut attr: xmlAttributePtr) { unsafe {
+    let mut buffer: xmlBufferPtr = ::core::ptr::null_mut::<xmlBuffer>();
+    buffer = xmlBufferCreate();
+    if buffer.is_null() {
+        return;
+    }
+    xmlBufferSetAllocationScheme(buffer, XML_BUFFER_ALLOC_DOUBLEIT);
+    xmlDumpAttributeDecl(buffer, attr);
+    xmlBufMergeBuffer(buf, buffer);
+} }
+fn xmlBufDumpEntityDecl(mut buf: xmlBufPtr, mut ent: xmlEntityPtr) { unsafe {
+    let mut buffer: xmlBufferPtr = ::core::ptr::null_mut::<xmlBuffer>();
+    buffer = xmlBufferCreate();
+    if buffer.is_null() {
+        return;
+    }
+    xmlBufferSetAllocationScheme(buffer, XML_BUFFER_ALLOC_DOUBLEIT);
+    xmlDumpEntityDecl(buffer, ent);
+    xmlBufMergeBuffer(buf, buffer);
+} }
+unsafe fn xmlSaveSwitchEncoding(
+    mut ctxt: xmlSaveCtxtPtr,
+    mut encoding: *const c_char,
+) -> c_int {
+    let mut buf: xmlOutputBufferPtr = (*ctxt).buf;
+    if !encoding.is_null() && (*buf).encoder.is_null() && (*buf).conv.is_null() {
+        (*buf).encoder = xmlFindCharEncodingHandler(encoding);
+        if (*buf).encoder.is_null() {
+            xmlSaveErr(
+                XML_SAVE_UNKNOWN_ENCODING as c_int,
+                ::core::ptr::null_mut::<xmlNode>(),
+                encoding,
+            );
+            return -(1 as c_int);
+        }
+        (*buf).conv = xmlBufCreate();
+        if (*buf).conv.is_null() {
+            xmlCharEncCloseFunc((*buf).encoder as *mut xmlCharEncodingHandler);
+            xmlSaveErrMemory(
+                b"creating encoding buffer\0" as *const u8 as *const c_char,
+            );
+            return -(1 as c_int);
+        }
+        xmlCharEncOutput(buf, 1 as c_int);
+    }
+    return 0 as c_int;
+}
+fn xmlSaveClearEncoding(mut ctxt: xmlSaveCtxtPtr) -> c_int { unsafe {
+    let mut buf: xmlOutputBufferPtr = (*ctxt).buf;
+    xmlOutputBufferFlush(buf);
+    xmlCharEncCloseFunc((*buf).encoder as *mut xmlCharEncodingHandler);
+    xmlBufFree((*buf).conv);
+    (*buf).encoder = ::core::ptr::null_mut::<xmlCharEncodingHandler>();
+    (*buf).conv = ::core::ptr::null_mut::<xmlBuf>();
+    return 0 as c_int;
+} }
+fn xmlOutputBufferWriteWSNonSig(
+    mut ctxt: xmlSaveCtxtPtr,
+    mut extra: c_int,
+) { unsafe {
+    let mut i: c_int = 0;
+    if ctxt.is_null() || (*ctxt).buf.is_null() {
+        return;
+    }
+    xmlOutputBufferWrite(
+        (*ctxt).buf,
+        1 as c_int,
+        b"\n\0" as *const u8 as *const c_char,
+    );
+    i = 0 as c_int;
+    while i < (*ctxt).level + extra {
+        xmlOutputBufferWrite(
+            (*ctxt).buf,
+            (*ctxt).indent_size
+                * (if (*ctxt).level + extra - i > (*ctxt).indent_nr {
+                    (*ctxt).indent_nr
+                } else {
+                    (*ctxt).level + extra - i
+                }),
+            &raw mut (*ctxt).indent as *mut c_char,
+        );
+        i += (*ctxt).indent_nr;
+    }
+} }
+fn xmlNsDumpOutput(
+    mut buf: xmlOutputBufferPtr,
+    mut cur: xmlNsPtr,
+    mut ctxt: xmlSaveCtxtPtr,
+) { unsafe {
+    if cur.is_null() || buf.is_null() {
+        return;
+    }
+    if (*cur).type_0 as c_uint
+        == XML_NAMESPACE_DECL as c_int as c_uint
+        && !(*cur).href.is_null()
+    {
+        if xmlStrEqual(
+            (*cur).prefix,
+            b"xml\0" as *const u8 as *const c_char as *mut xmlChar,
+        ) != 0
+        {
+            return;
+        }
+        if !ctxt.is_null() && (*ctxt).format == 2 as c_int {
+            xmlOutputBufferWriteWSNonSig(ctxt, 2 as c_int);
+        } else {
+            xmlOutputBufferWrite(
+                buf,
+                1 as c_int,
+                b" \0" as *const u8 as *const c_char,
+            );
+        }
+        if !(*cur).prefix.is_null() {
+            xmlOutputBufferWrite(
+                buf,
+                6 as c_int,
+                b"xmlns:\0" as *const u8 as *const c_char,
+            );
+            xmlOutputBufferWriteString(buf, (*cur).prefix as *const c_char);
+        } else {
+            xmlOutputBufferWrite(
+                buf,
+                5 as c_int,
+                b"xmlns\0" as *const u8 as *const c_char,
+            );
+        }
+        xmlOutputBufferWrite(
+            buf,
+            1 as c_int,
+            b"=\0" as *const u8 as *const c_char,
+        );
+        xmlBufWriteQuotedString((*buf).buffer, (*cur).href);
+    }
+} }
+fn xmlNsDumpOutputCtxt(mut ctxt: xmlSaveCtxtPtr, mut cur: xmlNsPtr) { unsafe {
+    xmlNsDumpOutput((*ctxt).buf, cur, ctxt);
+} }
+fn xmlNsListDumpOutputCtxt(mut ctxt: xmlSaveCtxtPtr, mut cur: xmlNsPtr) { unsafe {
+    while !cur.is_null() {
+        xmlNsDumpOutput((*ctxt).buf, cur, ctxt);
+        cur = (*cur).next as xmlNsPtr;
+    }
+} }
+#[no_mangle]
+pub extern "C" fn xmlNsListDumpOutput(mut buf: xmlOutputBufferPtr, mut cur: xmlNsPtr) { unsafe {
+    while !cur.is_null() {
+        xmlNsDumpOutput(buf, cur, ::core::ptr::null_mut::<xmlSaveCtxt>());
+        cur = (*cur).next as xmlNsPtr;
+    }
+} }
+fn xmlDtdDumpOutput(mut ctxt: xmlSaveCtxtPtr, mut dtd: xmlDtdPtr) { unsafe {
+    let mut buf: xmlOutputBufferPtr = ::core::ptr::null_mut::<xmlOutputBuffer>();
+    let mut cur: xmlNodePtr = ::core::ptr::null_mut::<xmlNode>();
+    let mut format: c_int = 0;
+    let mut level: c_int = 0;
+    if dtd.is_null() {
+        return;
+    }
+    if ctxt.is_null() || (*ctxt).buf.is_null() {
+        return;
+    }
+    buf = (*ctxt).buf;
+    xmlOutputBufferWrite(
+        buf,
+        10 as c_int,
+        b"<!DOCTYPE \0" as *const u8 as *const c_char,
+    );
+    xmlOutputBufferWriteString(buf, (*dtd).name as *const c_char);
+    if !(*dtd).ExternalID.is_null() {
+        xmlOutputBufferWrite(
+            buf,
+            8 as c_int,
+            b" PUBLIC \0" as *const u8 as *const c_char,
+        );
+        xmlBufWriteQuotedString((*buf).buffer, (*dtd).ExternalID);
+        xmlOutputBufferWrite(
+            buf,
+            1 as c_int,
+            b" \0" as *const u8 as *const c_char,
+        );
+        xmlBufWriteQuotedString((*buf).buffer, (*dtd).SystemID);
+    } else if !(*dtd).SystemID.is_null() {
+        xmlOutputBufferWrite(
+            buf,
+            8 as c_int,
+            b" SYSTEM \0" as *const u8 as *const c_char,
+        );
+        xmlBufWriteQuotedString((*buf).buffer, (*dtd).SystemID);
+    }
+    if (*dtd).entities.is_null()
+        && (*dtd).elements.is_null()
+        && (*dtd).attributes.is_null()
+        && (*dtd).notations.is_null()
+        && (*dtd).pentities.is_null()
+    {
+        xmlOutputBufferWrite(
+            buf,
+            1 as c_int,
+            b">\0" as *const u8 as *const c_char,
+        );
+        return;
+    }
+    xmlOutputBufferWrite(
+        buf,
+        3 as c_int,
+        b" [\n\0" as *const u8 as *const c_char,
+    );
+    if !(*dtd).notations.is_null() && ((*dtd).doc.is_null() || (*(*dtd).doc).intSubset == dtd) {
+        xmlBufDumpNotationTable((*buf).buffer, (*dtd).notations as xmlNotationTablePtr);
+    }
+    format = (*ctxt).format;
+    level = (*ctxt).level;
+    (*ctxt).format = 0 as c_int;
+    (*ctxt).level = -(1 as c_int);
+    cur = (*dtd).children as xmlNodePtr;
+    while !cur.is_null() {
+        xmlNodeDumpOutputInternal(ctxt, cur);
+        cur = (*cur).next as xmlNodePtr;
+    }
+    (*ctxt).format = format;
+    (*ctxt).level = level;
+    xmlOutputBufferWrite(
+        buf,
+        2 as c_int,
+        b"]>\0" as *const u8 as *const c_char,
+    );
+} }
+fn xmlAttrDumpOutput(mut ctxt: xmlSaveCtxtPtr, mut cur: xmlAttrPtr) { unsafe {
+    let mut buf: xmlOutputBufferPtr = ::core::ptr::null_mut::<xmlOutputBuffer>();
+    if cur.is_null() {
+        return;
+    }
+    buf = (*ctxt).buf;
+    if buf.is_null() {
+        return;
+    }
+    if (*ctxt).format == 2 as c_int {
+        xmlOutputBufferWriteWSNonSig(ctxt, 2 as c_int);
+    } else {
+        xmlOutputBufferWrite(
+            buf,
+            1 as c_int,
+            b" \0" as *const u8 as *const c_char,
+        );
+    }
+    if !(*cur).ns.is_null() && !(*(*cur).ns).prefix.is_null() {
+        xmlOutputBufferWriteString(buf, (*(*cur).ns).prefix as *const c_char);
+        xmlOutputBufferWrite(
+            buf,
+            1 as c_int,
+            b":\0" as *const u8 as *const c_char,
+        );
+    }
+    xmlOutputBufferWriteString(buf, (*cur).name as *const c_char);
+    xmlOutputBufferWrite(
+        buf,
+        2 as c_int,
+        b"=\"\0" as *const u8 as *const c_char,
+    );
+    xmlAttrSerializeContent(buf, cur);
+    xmlOutputBufferWrite(
+        buf,
+        1 as c_int,
+        b"\"\0" as *const u8 as *const c_char,
+    );
+} }
+fn htmlNodeDumpOutputInternal(
+    mut ctxt: xmlSaveCtxtPtr,
+    mut cur: xmlNodePtr,
+) -> c_int { unsafe {
+    let mut oldenc: *const xmlChar = ::core::ptr::null::<xmlChar>();
+    let mut oldctxtenc: *const xmlChar = (*ctxt).encoding;
+    let mut encoding: *const xmlChar = (*ctxt).encoding;
+    let mut buf: xmlOutputBufferPtr = (*ctxt).buf;
+    let mut switched_encoding: c_int = 0 as c_int;
+    let mut doc: xmlDocPtr = ::core::ptr::null_mut::<xmlDoc>();
+    xmlInitParser();
+    doc = (*cur).doc as xmlDocPtr;
+    if !doc.is_null() {
+        oldenc = (*doc).encoding;
+        if !(*ctxt).encoding.is_null() {
+            (*doc).encoding = (*ctxt).encoding as *mut xmlChar;
+        } else if !(*doc).encoding.is_null() {
+            encoding = (*doc).encoding;
+        }
+    }
+    if !encoding.is_null() && !doc.is_null() {
+        htmlSetMetaEncoding(doc as htmlDocPtr, encoding);
+    }
+    if encoding.is_null() && !doc.is_null() {
+        encoding = htmlGetMetaEncoding(doc as htmlDocPtr);
+    }
+    if encoding.is_null() {
+        encoding = b"HTML\0" as *const u8 as *const c_char as *mut xmlChar;
+    }
+    if !encoding.is_null()
+        && oldctxtenc.is_null()
+        && (*buf).encoder.is_null()
+        && (*buf).conv.is_null()
+    {
+        if xmlSaveSwitchEncoding(ctxt, encoding as *const c_char)
+            < 0 as c_int
+        {
+            (*doc).encoding = oldenc;
+            return -(1 as c_int);
+        }
+        switched_encoding = 1 as c_int;
+    }
+    if (*ctxt).options & XML_SAVE_FORMAT as c_int != 0 {
+        htmlNodeDumpFormatOutput(
+            buf,
+            doc,
+            cur,
+            encoding as *const c_char,
+            1 as c_int,
+        );
+    } else {
+        htmlNodeDumpFormatOutput(
+            buf,
+            doc,
+            cur,
+            encoding as *const c_char,
+            0 as c_int,
+        );
+    }
+    if switched_encoding != 0 && oldctxtenc.is_null() {
+        xmlSaveClearEncoding(ctxt);
+    }
+    if !doc.is_null() {
+        (*doc).encoding = oldenc;
+    }
+    return 0 as c_int;
+} }
+fn xmlNodeDumpOutputInternal(mut ctxt: xmlSaveCtxtPtr, mut cur: xmlNodePtr) { unsafe {
+    let mut format: c_int = (*ctxt).format;
+    let mut tmp: xmlNodePtr = ::core::ptr::null_mut::<xmlNode>();
+    let mut root: xmlNodePtr = ::core::ptr::null_mut::<xmlNode>();
+    let mut unformattedNode: xmlNodePtr = ::core::ptr::null_mut::<xmlNode>();
+    let mut parent: xmlNodePtr = ::core::ptr::null_mut::<xmlNode>();
+    let mut attr: xmlAttrPtr = ::core::ptr::null_mut::<xmlAttr>();
+    let mut start: *mut xmlChar = ::core::ptr::null_mut::<xmlChar>();
+    let mut end: *mut xmlChar = ::core::ptr::null_mut::<xmlChar>();
+    let mut buf: xmlOutputBufferPtr = ::core::ptr::null_mut::<xmlOutputBuffer>();
+    if cur.is_null() {
+        return;
+    }
+    buf = (*ctxt).buf;
+    root = cur;
+    parent = (*cur).parent as xmlNodePtr;
+    loop {
+        match (*cur).type_0 as c_uint {
+            9 | 13 => {
+                xmlDocContentDumpOutput(ctxt, cur as xmlDocPtr);
+            }
+            14 => {
+                xmlDtdDumpOutput(ctxt, cur as xmlDtdPtr);
+            }
+            11 => {
+                if (*cur).parent == parent && !(*cur).children.is_null() {
+                    parent = cur;
+                    cur = (*cur).children as xmlNodePtr;
+                    continue;
+                }
+            }
+            15 => {
+                xmlBufDumpElementDecl((*buf).buffer, cur as xmlElementPtr);
+            }
+            16 => {
+                xmlBufDumpAttributeDecl((*buf).buffer, cur as xmlAttributePtr);
+            }
+            17 => {
+                xmlBufDumpEntityDecl((*buf).buffer, cur as xmlEntityPtr);
+            }
+            1 => {
+                if cur != root
+                    && (*ctxt).format == 1 as c_int
+                    && *__xmlIndentTreeOutput() != 0
+                {
+                    xmlOutputBufferWrite(
+                        buf,
+                        (*ctxt).indent_size
+                            * (if (*ctxt).level > (*ctxt).indent_nr {
+                                (*ctxt).indent_nr
+                            } else {
+                                (*ctxt).level
+                            }),
+                        &raw mut (*ctxt).indent as *mut c_char,
+                    );
+                }
+                if (*cur).parent != parent && !(*cur).children.is_null() {
+                    xmlNodeDumpOutputInternal(ctxt, cur);
+                } else {
+                    xmlOutputBufferWrite(
+                        buf,
+                        1 as c_int,
+                        b"<\0" as *const u8 as *const c_char,
+                    );
+                    if !(*cur).ns.is_null() && !(*(*cur).ns).prefix.is_null() {
+                        xmlOutputBufferWriteString(
+                            buf,
+                            (*(*cur).ns).prefix as *const c_char,
+                        );
+                        xmlOutputBufferWrite(
+                            buf,
+                            1 as c_int,
+                            b":\0" as *const u8 as *const c_char,
+                        );
+                    }
+                    xmlOutputBufferWriteString(buf, (*cur).name as *const c_char);
+                    if !(*cur).nsDef.is_null() {
+                        xmlNsListDumpOutputCtxt(ctxt, (*cur).nsDef as xmlNsPtr);
+                    }
+                    attr = (*cur).properties as xmlAttrPtr;
+                    while !attr.is_null() {
+                        xmlAttrDumpOutput(ctxt, attr);
+                        attr = (*attr).next as xmlAttrPtr;
+                    }
+                    if (*cur).children.is_null() {
+                        if (*ctxt).options & XML_SAVE_NO_EMPTY as c_int
+                            == 0 as c_int
+                        {
+                            if (*ctxt).format == 2 as c_int {
+                                xmlOutputBufferWriteWSNonSig(ctxt, 0 as c_int);
+                            }
+                            xmlOutputBufferWrite(
+                                buf,
+                                2 as c_int,
+                                b"/>\0" as *const u8 as *const c_char,
+                            );
+                        } else {
+                            if (*ctxt).format == 2 as c_int {
+                                xmlOutputBufferWriteWSNonSig(ctxt, 1 as c_int);
+                            }
+                            xmlOutputBufferWrite(
+                                buf,
+                                3 as c_int,
+                                b"></\0" as *const u8 as *const c_char,
+                            );
+                            if !(*cur).ns.is_null() && !(*(*cur).ns).prefix.is_null() {
+                                xmlOutputBufferWriteString(
+                                    buf,
+                                    (*(*cur).ns).prefix as *const c_char,
+                                );
+                                xmlOutputBufferWrite(
+                                    buf,
+                                    1 as c_int,
+                                    b":\0" as *const u8 as *const c_char,
+                                );
+                            }
+                            xmlOutputBufferWriteString(
+                                buf,
+                                (*cur).name as *const c_char,
+                            );
+                            if (*ctxt).format == 2 as c_int {
+                                xmlOutputBufferWriteWSNonSig(ctxt, 0 as c_int);
+                            }
+                            xmlOutputBufferWrite(
+                                buf,
+                                1 as c_int,
+                                b">\0" as *const u8 as *const c_char,
+                            );
+                        }
+                    } else {
+                        if (*ctxt).format == 1 as c_int {
+                            tmp = (*cur).children as xmlNodePtr;
+                            while !tmp.is_null() {
+                                if (*tmp).type_0 as c_uint
+                                    == XML_TEXT_NODE as c_int as c_uint
+                                    || (*tmp).type_0 as c_uint
+                                        == XML_CDATA_SECTION_NODE as c_int
+                                            as c_uint
+                                    || (*tmp).type_0 as c_uint
+                                        == XML_ENTITY_REF_NODE as c_int
+                                            as c_uint
+                                {
+                                    (*ctxt).format = 0 as c_int;
+                                    unformattedNode = cur;
+                                    break;
+                                } else {
+                                    tmp = (*tmp).next as xmlNodePtr;
+                                }
+                            }
+                        }
+                        if (*ctxt).format == 2 as c_int {
+                            xmlOutputBufferWriteWSNonSig(ctxt, 1 as c_int);
+                        }
+                        xmlOutputBufferWrite(
+                            buf,
+                            1 as c_int,
+                            b">\0" as *const u8 as *const c_char,
+                        );
+                        if (*ctxt).format == 1 as c_int {
+                            xmlOutputBufferWrite(
+                                buf,
+                                1 as c_int,
+                                b"\n\0" as *const u8 as *const c_char,
+                            );
+                        }
+                        if (*ctxt).level >= 0 as c_int {
+                            (*ctxt).level += 1;
+                        }
+                        parent = cur;
+                        cur = (*cur).children as xmlNodePtr;
+                        continue;
+                    }
+                }
+            }
+            3 => {
+                if !(*cur).content.is_null() {
+                    if (*cur).name != &raw const xmlStringTextNoenc as *const xmlChar {
+                        xmlOutputBufferWriteEscape(buf, (*cur).content, (*ctxt).escape);
+                    } else {
+                        xmlOutputBufferWriteString(
+                            buf,
+                            (*cur).content as *const c_char,
+                        );
+                    }
+                }
+            }
+            7 => {
+                if cur != root
+                    && (*ctxt).format == 1 as c_int
+                    && *__xmlIndentTreeOutput() != 0
+                {
+                    xmlOutputBufferWrite(
+                        buf,
+                        (*ctxt).indent_size
+                            * (if (*ctxt).level > (*ctxt).indent_nr {
+                                (*ctxt).indent_nr
+                            } else {
+                                (*ctxt).level
+                            }),
+                        &raw mut (*ctxt).indent as *mut c_char,
+                    );
+                }
+                if !(*cur).content.is_null() {
+                    xmlOutputBufferWrite(
+                        buf,
+                        2 as c_int,
+                        b"<?\0" as *const u8 as *const c_char,
+                    );
+                    xmlOutputBufferWriteString(buf, (*cur).name as *const c_char);
+                    if !(*cur).content.is_null() {
+                        if (*ctxt).format == 2 as c_int {
+                            xmlOutputBufferWriteWSNonSig(ctxt, 0 as c_int);
+                        } else {
+                            xmlOutputBufferWrite(
+                                buf,
+                                1 as c_int,
+                                b" \0" as *const u8 as *const c_char,
+                            );
+                        }
+                        xmlOutputBufferWriteString(
+                            buf,
+                            (*cur).content as *const c_char,
+                        );
+                    }
+                    xmlOutputBufferWrite(
+                        buf,
+                        2 as c_int,
+                        b"?>\0" as *const u8 as *const c_char,
+                    );
+                } else {
+                    xmlOutputBufferWrite(
+                        buf,
+                        2 as c_int,
+                        b"<?\0" as *const u8 as *const c_char,
+                    );
+                    xmlOutputBufferWriteString(buf, (*cur).name as *const c_char);
+                    if (*ctxt).format == 2 as c_int {
+                        xmlOutputBufferWriteWSNonSig(ctxt, 0 as c_int);
+                    }
+                    xmlOutputBufferWrite(
+                        buf,
+                        2 as c_int,
+                        b"?>\0" as *const u8 as *const c_char,
+                    );
+                }
+            }
+            8 => {
+                if cur != root
+                    && (*ctxt).format == 1 as c_int
+                    && *__xmlIndentTreeOutput() != 0
+                {
+                    xmlOutputBufferWrite(
+                        buf,
+                        (*ctxt).indent_size
+                            * (if (*ctxt).level > (*ctxt).indent_nr {
+                                (*ctxt).indent_nr
+                            } else {
+                                (*ctxt).level
+                            }),
+                        &raw mut (*ctxt).indent as *mut c_char,
+                    );
+                }
+                if !(*cur).content.is_null() {
+                    xmlOutputBufferWrite(
+                        buf,
+                        4 as c_int,
+                        b"<!--\0" as *const u8 as *const c_char,
+                    );
+                    xmlOutputBufferWriteString(buf, (*cur).content as *const c_char);
+                    xmlOutputBufferWrite(
+                        buf,
+                        3 as c_int,
+                        b"-->\0" as *const u8 as *const c_char,
+                    );
+                }
+            }
+            5 => {
+                xmlOutputBufferWrite(
+                    buf,
+                    1 as c_int,
+                    b"&\0" as *const u8 as *const c_char,
+                );
+                xmlOutputBufferWriteString(buf, (*cur).name as *const c_char);
+                xmlOutputBufferWrite(
+                    buf,
+                    1 as c_int,
+                    b";\0" as *const u8 as *const c_char,
+                );
+            }
+            4 => {
+                if (*cur).content.is_null() || *(*cur).content as c_int == '\0' as i32
+                {
+                    xmlOutputBufferWrite(
+                        buf,
+                        12 as c_int,
+                        b"<![CDATA[]]>\0" as *const u8 as *const c_char,
+                    );
+                } else {
+                    end = (*cur).content;
+                    start = end;
+                    while *end as c_int != '\0' as i32 {
+                        if *end as c_int == ']' as i32
+                            && *end.offset(1 as c_int as isize) as c_int
+                                == ']' as i32
+                            && *end.offset(2 as c_int as isize) as c_int
+                                == '>' as i32
+                        {
+                            end = end.offset(2 as c_int as isize);
+                            xmlOutputBufferWrite(
+                                buf,
+                                9 as c_int,
+                                b"<![CDATA[\0" as *const u8 as *const c_char,
+                            );
+                            xmlOutputBufferWrite(
+                                buf,
+                                end.offset_from(start) as c_long as c_int,
+                                start as *const c_char,
+                            );
+                            xmlOutputBufferWrite(
+                                buf,
+                                3 as c_int,
+                                b"]]>\0" as *const u8 as *const c_char,
+                            );
+                            start = end;
+                        }
+                        end = end.offset(1);
+                    }
+                    if start != end {
+                        xmlOutputBufferWrite(
+                            buf,
+                            9 as c_int,
+                            b"<![CDATA[\0" as *const u8 as *const c_char,
+                        );
+                        xmlOutputBufferWriteString(buf, start as *const c_char);
+                        xmlOutputBufferWrite(
+                            buf,
+                            3 as c_int,
+                            b"]]>\0" as *const u8 as *const c_char,
+                        );
+                    }
+                }
+            }
+            2 => {
+                xmlAttrDumpOutput(ctxt, cur as xmlAttrPtr);
+            }
+            18 => {
+                xmlNsDumpOutputCtxt(ctxt, cur as xmlNsPtr);
+            }
+            _ => {}
+        }
+        loop {
+            if cur == root {
+                return;
+            }
+            if (*ctxt).format == 1 as c_int
+                && (*cur).type_0 as c_uint
+                    != XML_XINCLUDE_START as c_int as c_uint
+                && (*cur).type_0 as c_uint
+                    != XML_XINCLUDE_END as c_int as c_uint
+            {
+                xmlOutputBufferWrite(
+                    buf,
+                    1 as c_int,
+                    b"\n\0" as *const u8 as *const c_char,
+                );
+            }
+            if !(*cur).next.is_null() {
+                cur = (*cur).next as xmlNodePtr;
+                break;
+            } else {
+                cur = parent;
+                parent = (*cur).parent as xmlNodePtr;
+                if (*cur).type_0 as c_uint
+                    == XML_ELEMENT_NODE as c_int as c_uint
+                {
+                    if (*ctxt).level > 0 as c_int {
+                        (*ctxt).level -= 1;
+                    }
+                    if *__xmlIndentTreeOutput() != 0 && (*ctxt).format == 1 as c_int {
+                        xmlOutputBufferWrite(
+                            buf,
+                            (*ctxt).indent_size
+                                * (if (*ctxt).level > (*ctxt).indent_nr {
+                                    (*ctxt).indent_nr
+                                } else {
+                                    (*ctxt).level
+                                }),
+                            &raw mut (*ctxt).indent as *mut c_char,
+                        );
+                    }
+                    xmlOutputBufferWrite(
+                        buf,
+                        2 as c_int,
+                        b"</\0" as *const u8 as *const c_char,
+                    );
+                    if !(*cur).ns.is_null() && !(*(*cur).ns).prefix.is_null() {
+                        xmlOutputBufferWriteString(
+                            buf,
+                            (*(*cur).ns).prefix as *const c_char,
+                        );
+                        xmlOutputBufferWrite(
+                            buf,
+                            1 as c_int,
+                            b":\0" as *const u8 as *const c_char,
+                        );
+                    }
+                    xmlOutputBufferWriteString(buf, (*cur).name as *const c_char);
+                    if (*ctxt).format == 2 as c_int {
+                        xmlOutputBufferWriteWSNonSig(ctxt, 0 as c_int);
+                    }
+                    xmlOutputBufferWrite(
+                        buf,
+                        1 as c_int,
+                        b">\0" as *const u8 as *const c_char,
+                    );
+                    if cur == unformattedNode {
+                        (*ctxt).format = format;
+                        unformattedNode = ::core::ptr::null_mut::<xmlNode>();
+                    }
+                }
+            }
+        }
+    }
+} }
+fn xmlDocContentDumpOutput(
+    mut ctxt: xmlSaveCtxtPtr,
+    mut cur: xmlDocPtr,
+) -> c_int { unsafe {
+    let mut dtd: xmlDtdPtr = ::core::ptr::null_mut::<xmlDtd>();
+    let mut is_xhtml: c_int = 0 as c_int;
+    let mut oldenc: *const xmlChar = (*cur).encoding;
+    let mut oldctxtenc: *const xmlChar = (*ctxt).encoding;
+    let mut encoding: *const xmlChar = (*ctxt).encoding;
+    let mut oldescape: xmlCharEncodingOutputFunc = (*ctxt).escape;
+    let mut oldescapeAttr: xmlCharEncodingOutputFunc = (*ctxt).escapeAttr;
+    let mut buf: xmlOutputBufferPtr = (*ctxt).buf;
+    let mut enc: xmlCharEncoding = XML_CHAR_ENCODING_NONE;
+    let mut switched_encoding: c_int = 0 as c_int;
+    xmlInitParser();
+    if (*cur).type_0 as c_uint
+        != XML_HTML_DOCUMENT_NODE as c_int as c_uint
+        && (*cur).type_0 as c_uint
+            != XML_DOCUMENT_NODE as c_int as c_uint
+    {
+        return -(1 as c_int);
+    }
+    if !(*ctxt).encoding.is_null() {
+        (*cur).encoding = (*ctxt).encoding as *mut xmlChar;
+    } else if !(*cur).encoding.is_null() {
+        encoding = (*cur).encoding;
+    }
+    if (*cur).type_0 as c_uint
+        == XML_HTML_DOCUMENT_NODE as c_int as c_uint
+        && (*ctxt).options & XML_SAVE_AS_XML as c_int == 0 as c_int
+        && (*ctxt).options & XML_SAVE_XHTML as c_int == 0 as c_int
+        || (*ctxt).options & XML_SAVE_AS_HTML as c_int != 0
+    {
+        if !encoding.is_null() {
+            htmlSetMetaEncoding(cur as htmlDocPtr, encoding);
+        }
+        if encoding.is_null() {
+            encoding = htmlGetMetaEncoding(cur as htmlDocPtr);
+        }
+        if encoding.is_null() {
+            encoding = b"HTML\0" as *const u8 as *const c_char as *mut xmlChar;
+        }
+        if !encoding.is_null()
+            && oldctxtenc.is_null()
+            && (*buf).encoder.is_null()
+            && (*buf).conv.is_null()
+        {
+            if xmlSaveSwitchEncoding(ctxt, encoding as *const c_char)
+                < 0 as c_int
+            {
+                (*cur).encoding = oldenc;
+                return -(1 as c_int);
+            }
+        }
+        if (*ctxt).options & XML_SAVE_FORMAT as c_int != 0 {
+            htmlDocContentDumpFormatOutput(
+                buf,
+                cur,
+                encoding as *const c_char,
+                1 as c_int,
+            );
+        } else {
+            htmlDocContentDumpFormatOutput(
+                buf,
+                cur,
+                encoding as *const c_char,
+                0 as c_int,
+            );
+        }
+        if !(*ctxt).encoding.is_null() {
+            (*cur).encoding = oldenc;
+        }
+        return 0 as c_int;
+    } else if (*cur).type_0 as c_uint
+        == XML_DOCUMENT_NODE as c_int as c_uint
+        || (*ctxt).options & XML_SAVE_AS_XML as c_int != 0
+        || (*ctxt).options & XML_SAVE_XHTML as c_int != 0
+    {
+        enc = xmlParseCharEncoding(encoding as *const c_char);
+        if !encoding.is_null()
+            && oldctxtenc.is_null()
+            && (*buf).encoder.is_null()
+            && (*buf).conv.is_null()
+            && (*ctxt).options & XML_SAVE_NO_DECL as c_int == 0 as c_int
+        {
+            if enc as c_int != XML_CHAR_ENCODING_UTF8 as c_int
+                && enc as c_int != XML_CHAR_ENCODING_NONE as c_int
+                && enc as c_int != XML_CHAR_ENCODING_ASCII as c_int
+            {
+                if xmlSaveSwitchEncoding(ctxt, encoding as *const c_char)
+                    < 0 as c_int
+                {
+                    (*cur).encoding = oldenc;
+                    return -(1 as c_int);
+                }
+                switched_encoding = 1 as c_int;
+            }
+            if (*ctxt).escape
+                == Some(
+                    xmlEscapeEntities
+                        as unsafe extern "C" fn(
+                            *mut c_uchar,
+                            *mut c_int,
+                            *const xmlChar,
+                            *mut c_int,
+                        ) -> c_int,
+                )
+            {
+                (*ctxt).escape = None;
+            }
+            if (*ctxt).escapeAttr
+                == Some(
+                    xmlEscapeEntities
+                        as unsafe extern "C" fn(
+                            *mut c_uchar,
+                            *mut c_int,
+                            *const xmlChar,
+                            *mut c_int,
+                        ) -> c_int,
+                )
+            {
+                (*ctxt).escapeAttr = None;
+            }
+        }
+        if (*ctxt).options & XML_SAVE_NO_DECL as c_int == 0 as c_int {
+            xmlOutputBufferWrite(
+                buf,
+                14 as c_int,
+                b"<?xml version=\0" as *const u8 as *const c_char,
+            );
+            if !(*cur).version.is_null() {
+                xmlBufWriteQuotedString((*buf).buffer, (*cur).version);
+            } else {
+                xmlOutputBufferWrite(
+                    buf,
+                    5 as c_int,
+                    b"\"1.0\"\0" as *const u8 as *const c_char,
+                );
+            }
+            if !encoding.is_null() {
+                xmlOutputBufferWrite(
+                    buf,
+                    10 as c_int,
+                    b" encoding=\0" as *const u8 as *const c_char,
+                );
+                xmlBufWriteQuotedString((*buf).buffer, encoding as *mut xmlChar);
+            }
+            match (*cur).standalone {
+                0 => {
+                    xmlOutputBufferWrite(
+                        buf,
+                        16 as c_int,
+                        b" standalone=\"no\"\0" as *const u8 as *const c_char,
+                    );
+                }
+                1 => {
+                    xmlOutputBufferWrite(
+                        buf,
+                        17 as c_int,
+                        b" standalone=\"yes\"\0" as *const u8 as *const c_char,
+                    );
+                }
+                _ => {}
+            }
+            xmlOutputBufferWrite(
+                buf,
+                3 as c_int,
+                b"?>\n\0" as *const u8 as *const c_char,
+            );
+        }
+        if (*ctxt).options & XML_SAVE_XHTML as c_int != 0 {
+            is_xhtml = 1 as c_int;
+        }
+        if (*ctxt).options & XML_SAVE_NO_XHTML as c_int == 0 as c_int {
+            dtd = xmlGetIntSubset(cur as *const xmlDoc);
+            if !dtd.is_null() {
+                is_xhtml = xmlIsXHTML((*dtd).SystemID, (*dtd).ExternalID);
+                if is_xhtml < 0 as c_int {
+                    is_xhtml = 0 as c_int;
+                }
+            }
+        }
+        if !(*cur).children.is_null() {
+            let mut child: xmlNodePtr = (*cur).children as xmlNodePtr;
+            while !child.is_null() {
+                (*ctxt).level = 0 as c_int;
+                if is_xhtml != 0 {
+                    xhtmlNodeDumpOutput(ctxt, child);
+                } else {
+                    xmlNodeDumpOutputInternal(ctxt, child);
+                }
+                if (*child).type_0 as c_uint
+                    != XML_XINCLUDE_START as c_int as c_uint
+                    && (*child).type_0 as c_uint
+                        != XML_XINCLUDE_END as c_int as c_uint
+                {
+                    xmlOutputBufferWrite(
+                        buf,
+                        1 as c_int,
+                        b"\n\0" as *const u8 as *const c_char,
+                    );
+                }
+                child = (*child).next as xmlNodePtr;
+            }
+        }
+    }
+    if switched_encoding != 0 && oldctxtenc.is_null() {
+        xmlSaveClearEncoding(ctxt);
+        (*ctxt).escape = oldescape;
+        (*ctxt).escapeAttr = oldescapeAttr;
+    }
+    (*cur).encoding = oldenc;
+    return 0 as c_int;
+} }
+fn xhtmlIsEmpty(mut node: xmlNodePtr) -> c_int { unsafe {
+    if node.is_null() {
+        return -(1 as c_int);
+    }
+    if (*node).type_0 as c_uint
+        != XML_ELEMENT_NODE as c_int as c_uint
+    {
+        return 0 as c_int;
+    }
+    if !(*node).ns.is_null()
+        && xmlStrEqual(
+            (*(*node).ns).href,
+            b"http://www.w3.org/1999/xhtml\0" as *const u8 as *const c_char
+                as *mut xmlChar,
+        ) == 0
+    {
+        return 0 as c_int;
+    }
+    if !(*node).children.is_null() {
+        return 0 as c_int;
+    }
+    match *(*node).name.offset(0 as c_int as isize) as c_int {
+        97 => {
+            if xmlStrEqual(
+                (*node).name,
+                b"area\0" as *const u8 as *const c_char as *mut xmlChar,
+            ) != 0
+            {
+                return 1 as c_int;
+            }
+            return 0 as c_int;
+        }
+        98 => {
+            if xmlStrEqual(
+                (*node).name,
+                b"br\0" as *const u8 as *const c_char as *mut xmlChar,
+            ) != 0
+            {
+                return 1 as c_int;
+            }
+            if xmlStrEqual(
+                (*node).name,
+                b"base\0" as *const u8 as *const c_char as *mut xmlChar,
+            ) != 0
+            {
+                return 1 as c_int;
+            }
+            if xmlStrEqual(
+                (*node).name,
+                b"basefont\0" as *const u8 as *const c_char as *mut xmlChar,
+            ) != 0
+            {
+                return 1 as c_int;
+            }
+            return 0 as c_int;
+        }
+        99 => {
+            if xmlStrEqual(
+                (*node).name,
+                b"col\0" as *const u8 as *const c_char as *mut xmlChar,
+            ) != 0
+            {
+                return 1 as c_int;
+            }
+            return 0 as c_int;
+        }
+        102 => {
+            if xmlStrEqual(
+                (*node).name,
+                b"frame\0" as *const u8 as *const c_char as *mut xmlChar,
+            ) != 0
+            {
+                return 1 as c_int;
+            }
+            return 0 as c_int;
+        }
+        104 => {
+            if xmlStrEqual(
+                (*node).name,
+                b"hr\0" as *const u8 as *const c_char as *mut xmlChar,
+            ) != 0
+            {
+                return 1 as c_int;
+            }
+            return 0 as c_int;
+        }
+        105 => {
+            if xmlStrEqual(
+                (*node).name,
+                b"img\0" as *const u8 as *const c_char as *mut xmlChar,
+            ) != 0
+            {
+                return 1 as c_int;
+            }
+            if xmlStrEqual(
+                (*node).name,
+                b"input\0" as *const u8 as *const c_char as *mut xmlChar,
+            ) != 0
+            {
+                return 1 as c_int;
+            }
+            if xmlStrEqual(
+                (*node).name,
+                b"isindex\0" as *const u8 as *const c_char as *mut xmlChar,
+            ) != 0
+            {
+                return 1 as c_int;
+            }
+            return 0 as c_int;
+        }
+        108 => {
+            if xmlStrEqual(
+                (*node).name,
+                b"link\0" as *const u8 as *const c_char as *mut xmlChar,
+            ) != 0
+            {
+                return 1 as c_int;
+            }
+            return 0 as c_int;
+        }
+        109 => {
+            if xmlStrEqual(
+                (*node).name,
+                b"meta\0" as *const u8 as *const c_char as *mut xmlChar,
+            ) != 0
+            {
+                return 1 as c_int;
+            }
+            return 0 as c_int;
+        }
+        112 => {
+            if xmlStrEqual(
+                (*node).name,
+                b"param\0" as *const u8 as *const c_char as *mut xmlChar,
+            ) != 0
+            {
+                return 1 as c_int;
+            }
+            return 0 as c_int;
+        }
+        _ => {}
+    }
+    return 0 as c_int;
+} }
+fn xhtmlAttrListDumpOutput(mut ctxt: xmlSaveCtxtPtr, mut cur: xmlAttrPtr) { unsafe {
+    let mut xml_lang: xmlAttrPtr = ::core::ptr::null_mut::<xmlAttr>();
+    let mut lang: xmlAttrPtr = ::core::ptr::null_mut::<xmlAttr>();
+    let mut name: xmlAttrPtr = ::core::ptr::null_mut::<xmlAttr>();
+    let mut id: xmlAttrPtr = ::core::ptr::null_mut::<xmlAttr>();
+    let mut parent: xmlNodePtr = ::core::ptr::null_mut::<xmlNode>();
+    let mut buf: xmlOutputBufferPtr = ::core::ptr::null_mut::<xmlOutputBuffer>();
+    if cur.is_null() {
+        return;
+    }
+    buf = (*ctxt).buf;
+    parent = (*cur).parent as xmlNodePtr;
+    while !cur.is_null() {
+        if (*cur).ns.is_null()
+            && xmlStrEqual(
+                (*cur).name,
+                b"id\0" as *const u8 as *const c_char as *mut xmlChar,
+            ) != 0
+        {
+            id = cur;
+        } else if (*cur).ns.is_null()
+            && xmlStrEqual(
+                (*cur).name,
+                b"name\0" as *const u8 as *const c_char as *mut xmlChar,
+            ) != 0
+        {
+            name = cur;
+        } else if (*cur).ns.is_null()
+            && xmlStrEqual(
+                (*cur).name,
+                b"lang\0" as *const u8 as *const c_char as *mut xmlChar,
+            ) != 0
+        {
+            lang = cur;
+        } else if !(*cur).ns.is_null()
+            && xmlStrEqual(
+                (*cur).name,
+                b"lang\0" as *const u8 as *const c_char as *mut xmlChar,
+            ) != 0
+            && xmlStrEqual(
+                (*(*cur).ns).prefix,
+                b"xml\0" as *const u8 as *const c_char as *mut xmlChar,
+            ) != 0
+        {
+            xml_lang = cur;
+        } else if (*cur).ns.is_null()
+            && ((*cur).children.is_null()
+                || (*(*cur).children).content.is_null()
+                || *(*(*cur).children)
+                    .content
+                    .offset(0 as c_int as isize)
+                    as c_int
+                    == 0 as c_int)
+            && htmlIsBooleanAttr((*cur).name) != 0
+        {
+            if !(*cur).children.is_null() {
+                xmlFreeNode((*cur).children as xmlNodePtr);
+            }
+            (*cur).children = xmlNewDocText((*cur).doc, (*cur).name) as *mut _xmlNode;
+            if !(*cur).children.is_null() {
+                (*(*cur).children).parent = cur as xmlNodePtr as *mut _xmlNode;
+            }
+        }
+        xmlAttrDumpOutput(ctxt, cur);
+        cur = (*cur).next as xmlAttrPtr;
+    }
+    if !name.is_null() && id.is_null() {
+        if !parent.is_null()
+            && !(*parent).name.is_null()
+            && (xmlStrEqual(
+                (*parent).name,
+                b"a\0" as *const u8 as *const c_char as *mut xmlChar,
+            ) != 0
+                || xmlStrEqual(
+                    (*parent).name,
+                    b"p\0" as *const u8 as *const c_char as *mut xmlChar,
+                ) != 0
+                || xmlStrEqual(
+                    (*parent).name,
+                    b"div\0" as *const u8 as *const c_char as *mut xmlChar,
+                ) != 0
+                || xmlStrEqual(
+                    (*parent).name,
+                    b"img\0" as *const u8 as *const c_char as *mut xmlChar,
+                ) != 0
+                || xmlStrEqual(
+                    (*parent).name,
+                    b"map\0" as *const u8 as *const c_char as *mut xmlChar,
+                ) != 0
+                || xmlStrEqual(
+                    (*parent).name,
+                    b"applet\0" as *const u8 as *const c_char as *mut xmlChar,
+                ) != 0
+                || xmlStrEqual(
+                    (*parent).name,
+                    b"form\0" as *const u8 as *const c_char as *mut xmlChar,
+                ) != 0
+                || xmlStrEqual(
+                    (*parent).name,
+                    b"frame\0" as *const u8 as *const c_char as *mut xmlChar,
+                ) != 0
+                || xmlStrEqual(
+                    (*parent).name,
+                    b"iframe\0" as *const u8 as *const c_char as *mut xmlChar,
+                ) != 0)
+        {
+            xmlOutputBufferWrite(
+                buf,
+                5 as c_int,
+                b" id=\"\0" as *const u8 as *const c_char,
+            );
+            xmlAttrSerializeContent(buf, name);
+            xmlOutputBufferWrite(
+                buf,
+                1 as c_int,
+                b"\"\0" as *const u8 as *const c_char,
+            );
+        }
+    }
+    if !lang.is_null() && xml_lang.is_null() {
+        xmlOutputBufferWrite(
+            buf,
+            11 as c_int,
+            b" xml:lang=\"\0" as *const u8 as *const c_char,
+        );
+        xmlAttrSerializeContent(buf, lang);
+        xmlOutputBufferWrite(
+            buf,
+            1 as c_int,
+            b"\"\0" as *const u8 as *const c_char,
+        );
+    } else if !xml_lang.is_null() && lang.is_null() {
+        xmlOutputBufferWrite(
+            buf,
+            7 as c_int,
+            b" lang=\"\0" as *const u8 as *const c_char,
+        );
+        xmlAttrSerializeContent(buf, xml_lang);
+        xmlOutputBufferWrite(
+            buf,
+            1 as c_int,
+            b"\"\0" as *const u8 as *const c_char,
+        );
+    }
+} }
+fn xhtmlNodeDumpOutput(mut ctxt: xmlSaveCtxtPtr, mut cur: xmlNodePtr) { unsafe {
+    let mut format: c_int = (*ctxt).format;
+    let mut addmeta: c_int = 0;
+    let mut tmp: xmlNodePtr = ::core::ptr::null_mut::<xmlNode>();
+    let mut root: xmlNodePtr = ::core::ptr::null_mut::<xmlNode>();
+    let mut unformattedNode: xmlNodePtr = ::core::ptr::null_mut::<xmlNode>();
+    let mut start: *mut xmlChar = ::core::ptr::null_mut::<xmlChar>();
+    let mut end: *mut xmlChar = ::core::ptr::null_mut::<xmlChar>();
+    let mut buf: xmlOutputBufferPtr = (*ctxt).buf;
+    if cur.is_null() {
+        return;
+    }
+    root = cur;
+    loop {
+        match (*cur).type_0 as c_uint {
+            9 | 13 => {
+                xmlDocContentDumpOutput(ctxt, cur as xmlDocPtr);
+            }
+            18 => {
+                xmlNsDumpOutputCtxt(ctxt, cur as xmlNsPtr);
+            }
+            14 => {
+                xmlDtdDumpOutput(ctxt, cur as xmlDtdPtr);
+            }
+            11 => {
+                if !(*cur).children.is_null() {
+                    cur = (*cur).children as xmlNodePtr;
+                    continue;
+                }
+            }
+            15 => {
+                xmlBufDumpElementDecl((*buf).buffer, cur as xmlElementPtr);
+            }
+            16 => {
+                xmlBufDumpAttributeDecl((*buf).buffer, cur as xmlAttributePtr);
+            }
+            17 => {
+                xmlBufDumpEntityDecl((*buf).buffer, cur as xmlEntityPtr);
+            }
+            1 => {
+                addmeta = 0 as c_int;
+                if cur != root
+                    && (*ctxt).format == 1 as c_int
+                    && *__xmlIndentTreeOutput() != 0
+                {
+                    xmlOutputBufferWrite(
+                        buf,
+                        (*ctxt).indent_size
+                            * (if (*ctxt).level > (*ctxt).indent_nr {
+                                (*ctxt).indent_nr
+                            } else {
+                                (*ctxt).level
+                            }),
+                        &raw mut (*ctxt).indent as *mut c_char,
+                    );
+                }
+                xmlOutputBufferWrite(
+                    buf,
+                    1 as c_int,
+                    b"<\0" as *const u8 as *const c_char,
+                );
+                if !(*cur).ns.is_null() && !(*(*cur).ns).prefix.is_null() {
+                    xmlOutputBufferWriteString(
+                        buf,
+                        (*(*cur).ns).prefix as *const c_char,
+                    );
+                    xmlOutputBufferWrite(
+                        buf,
+                        1 as c_int,
+                        b":\0" as *const u8 as *const c_char,
+                    );
+                }
+                xmlOutputBufferWriteString(buf, (*cur).name as *const c_char);
+                if !(*cur).nsDef.is_null() {
+                    xmlNsListDumpOutputCtxt(ctxt, (*cur).nsDef as xmlNsPtr);
+                }
+                if xmlStrEqual(
+                    (*cur).name,
+                    b"html\0" as *const u8 as *const c_char as *mut xmlChar,
+                ) != 0
+                    && (*cur).ns.is_null()
+                    && (*cur).nsDef.is_null()
+                {
+                    xmlOutputBufferWriteString(
+                        buf,
+                        b" xmlns=\"http://www.w3.org/1999/xhtml\"\0" as *const u8
+                            as *const c_char,
+                    );
+                }
+                if !(*cur).properties.is_null() {
+                    xhtmlAttrListDumpOutput(ctxt, (*cur).properties as xmlAttrPtr);
+                }
+                if !(*cur).parent.is_null()
+                    && (*(*cur).parent).parent == (*cur).doc as xmlNodePtr
+                    && xmlStrEqual(
+                        (*cur).name,
+                        b"head\0" as *const u8 as *const c_char as *mut xmlChar,
+                    ) != 0
+                    && xmlStrEqual(
+                        (*(*cur).parent).name,
+                        b"html\0" as *const u8 as *const c_char as *mut xmlChar,
+                    ) != 0
+                {
+                    tmp = (*cur).children as xmlNodePtr;
+                    while !tmp.is_null() {
+                        if xmlStrEqual(
+                            (*tmp).name,
+                            b"meta\0" as *const u8 as *const c_char as *mut xmlChar,
+                        ) != 0
+                        {
+                            let mut httpequiv: *mut xmlChar = ::core::ptr::null_mut::<xmlChar>();
+                            httpequiv = xmlGetProp(
+                                tmp as *const xmlNode,
+                                b"http-equiv\0" as *const u8 as *const c_char
+                                    as *mut xmlChar,
+                            );
+                            if !httpequiv.is_null() {
+                                if xmlStrcasecmp(
+                                    httpequiv,
+                                    b"Content-Type\0" as *const u8 as *const c_char
+                                        as *mut xmlChar,
+                                ) == 0 as c_int
+                                {
+                                    xmlFree.expect("non-null function pointer")(
+                                        httpequiv as *mut c_void,
+                                    );
+                                    break;
+                                } else {
+                                    xmlFree.expect("non-null function pointer")(
+                                        httpequiv as *mut c_void,
+                                    );
+                                }
+                            }
+                        }
+                        tmp = (*tmp).next as xmlNodePtr;
+                    }
+                    if tmp.is_null() {
+                        addmeta = 1 as c_int;
+                    }
+                }
+                if (*cur).children.is_null() {
+                    if ((*cur).ns.is_null() || (*(*cur).ns).prefix.is_null())
+                        && (xhtmlIsEmpty(cur) == 1 as c_int
+                            && addmeta == 0 as c_int)
+                    {
+                        xmlOutputBufferWrite(
+                            buf,
+                            3 as c_int,
+                            b" />\0" as *const u8 as *const c_char,
+                        );
+                    } else {
+                        if addmeta == 1 as c_int {
+                            xmlOutputBufferWrite(
+                                buf,
+                                1 as c_int,
+                                b">\0" as *const u8 as *const c_char,
+                            );
+                            if (*ctxt).format == 1 as c_int {
+                                xmlOutputBufferWrite(
+                                    buf,
+                                    1 as c_int,
+                                    b"\n\0" as *const u8 as *const c_char,
+                                );
+                                if *__xmlIndentTreeOutput() != 0 {
+                                    xmlOutputBufferWrite(
+                                        buf,
+                                        (*ctxt).indent_size
+                                            * (if (*ctxt).level + 1 as c_int
+                                                > (*ctxt).indent_nr
+                                            {
+                                                (*ctxt).indent_nr
+                                            } else {
+                                                (*ctxt).level + 1 as c_int
+                                            }),
+                                        &raw mut (*ctxt).indent as *mut c_char,
+                                    );
+                                }
+                            }
+                            xmlOutputBufferWriteString(
+                                buf,
+                                b"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=\0"
+                                    as *const u8
+                                    as *const c_char,
+                            );
+                            if !(*ctxt).encoding.is_null() {
+                                xmlOutputBufferWriteString(
+                                    buf,
+                                    (*ctxt).encoding as *const c_char,
+                                );
+                            } else {
+                                xmlOutputBufferWrite(
+                                    buf,
+                                    5 as c_int,
+                                    b"UTF-8\0" as *const u8 as *const c_char,
+                                );
+                            }
+                            xmlOutputBufferWrite(
+                                buf,
+                                4 as c_int,
+                                b"\" />\0" as *const u8 as *const c_char,
+                            );
+                            if (*ctxt).format == 1 as c_int {
+                                xmlOutputBufferWrite(
+                                    buf,
+                                    1 as c_int,
+                                    b"\n\0" as *const u8 as *const c_char,
+                                );
+                            }
+                        } else {
+                            xmlOutputBufferWrite(
+                                buf,
+                                1 as c_int,
+                                b">\0" as *const u8 as *const c_char,
+                            );
+                        }
+                        xmlOutputBufferWrite(
+                            buf,
+                            2 as c_int,
+                            b"</\0" as *const u8 as *const c_char,
+                        );
+                        if !(*cur).ns.is_null() && !(*(*cur).ns).prefix.is_null() {
+                            xmlOutputBufferWriteString(
+                                buf,
+                                (*(*cur).ns).prefix as *const c_char,
+                            );
+                            xmlOutputBufferWrite(
+                                buf,
+                                1 as c_int,
+                                b":\0" as *const u8 as *const c_char,
+                            );
+                        }
+                        xmlOutputBufferWriteString(buf, (*cur).name as *const c_char);
+                        xmlOutputBufferWrite(
+                            buf,
+                            1 as c_int,
+                            b">\0" as *const u8 as *const c_char,
+                        );
+                    }
+                } else {
+                    xmlOutputBufferWrite(
+                        buf,
+                        1 as c_int,
+                        b">\0" as *const u8 as *const c_char,
+                    );
+                    if addmeta == 1 as c_int {
+                        if (*ctxt).format == 1 as c_int {
+                            xmlOutputBufferWrite(
+                                buf,
+                                1 as c_int,
+                                b"\n\0" as *const u8 as *const c_char,
+                            );
+                            if *__xmlIndentTreeOutput() != 0 {
+                                xmlOutputBufferWrite(
+                                    buf,
+                                    (*ctxt).indent_size
+                                        * (if (*ctxt).level + 1 as c_int
+                                            > (*ctxt).indent_nr
+                                        {
+                                            (*ctxt).indent_nr
+                                        } else {
+                                            (*ctxt).level + 1 as c_int
+                                        }),
+                                    &raw mut (*ctxt).indent as *mut c_char,
+                                );
+                            }
+                        }
+                        xmlOutputBufferWriteString(
+                            buf,
+                            b"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=\0"
+                                as *const u8
+                                as *const c_char,
+                        );
+                        if !(*ctxt).encoding.is_null() {
+                            xmlOutputBufferWriteString(
+                                buf,
+                                (*ctxt).encoding as *const c_char,
+                            );
+                        } else {
+                            xmlOutputBufferWrite(
+                                buf,
+                                5 as c_int,
+                                b"UTF-8\0" as *const u8 as *const c_char,
+                            );
+                        }
+                        xmlOutputBufferWrite(
+                            buf,
+                            4 as c_int,
+                            b"\" />\0" as *const u8 as *const c_char,
+                        );
+                    }
+                    if (*ctxt).format == 1 as c_int {
+                        tmp = (*cur).children as xmlNodePtr;
+                        while !tmp.is_null() {
+                            if (*tmp).type_0 as c_uint
+                                == XML_TEXT_NODE as c_int as c_uint
+                                || (*tmp).type_0 as c_uint
+                                    == XML_ENTITY_REF_NODE as c_int
+                                        as c_uint
+                            {
+                                unformattedNode = cur;
+                                (*ctxt).format = 0 as c_int;
+                                break;
+                            } else {
+                                tmp = (*tmp).next as xmlNodePtr;
+                            }
+                        }
+                    }
+                    if (*ctxt).format == 1 as c_int {
+                        xmlOutputBufferWrite(
+                            buf,
+                            1 as c_int,
+                            b"\n\0" as *const u8 as *const c_char,
+                        );
+                    }
+                    if (*ctxt).level >= 0 as c_int {
+                        (*ctxt).level += 1;
+                    }
+                    cur = (*cur).children as xmlNodePtr;
+                    continue;
+                }
+            }
+            3 => {
+                if !(*cur).content.is_null() {
+                    if (*cur).name == &raw const xmlStringText as *const xmlChar
+                        || (*cur).name != &raw const xmlStringTextNoenc as *const xmlChar
+                    {
+                        xmlOutputBufferWriteEscape(buf, (*cur).content, (*ctxt).escape);
+                    } else {
+                        xmlOutputBufferWriteString(
+                            buf,
+                            (*cur).content as *const c_char,
+                        );
+                    }
+                }
+            }
+            7 => {
+                if !(*cur).content.is_null() {
+                    xmlOutputBufferWrite(
+                        buf,
+                        2 as c_int,
+                        b"<?\0" as *const u8 as *const c_char,
+                    );
+                    xmlOutputBufferWriteString(buf, (*cur).name as *const c_char);
+                    if !(*cur).content.is_null() {
+                        xmlOutputBufferWrite(
+                            buf,
+                            1 as c_int,
+                            b" \0" as *const u8 as *const c_char,
+                        );
+                        xmlOutputBufferWriteString(
+                            buf,
+                            (*cur).content as *const c_char,
+                        );
+                    }
+                    xmlOutputBufferWrite(
+                        buf,
+                        2 as c_int,
+                        b"?>\0" as *const u8 as *const c_char,
+                    );
+                } else {
+                    xmlOutputBufferWrite(
+                        buf,
+                        2 as c_int,
+                        b"<?\0" as *const u8 as *const c_char,
+                    );
+                    xmlOutputBufferWriteString(buf, (*cur).name as *const c_char);
+                    xmlOutputBufferWrite(
+                        buf,
+                        2 as c_int,
+                        b"?>\0" as *const u8 as *const c_char,
+                    );
+                }
+            }
+            8 => {
+                if !(*cur).content.is_null() {
+                    xmlOutputBufferWrite(
+                        buf,
+                        4 as c_int,
+                        b"<!--\0" as *const u8 as *const c_char,
+                    );
+                    xmlOutputBufferWriteString(buf, (*cur).content as *const c_char);
+                    xmlOutputBufferWrite(
+                        buf,
+                        3 as c_int,
+                        b"-->\0" as *const u8 as *const c_char,
+                    );
+                }
+            }
+            5 => {
+                xmlOutputBufferWrite(
+                    buf,
+                    1 as c_int,
+                    b"&\0" as *const u8 as *const c_char,
+                );
+                xmlOutputBufferWriteString(buf, (*cur).name as *const c_char);
+                xmlOutputBufferWrite(
+                    buf,
+                    1 as c_int,
+                    b";\0" as *const u8 as *const c_char,
+                );
+            }
+            4 => {
+                if (*cur).content.is_null() || *(*cur).content as c_int == '\0' as i32
+                {
+                    xmlOutputBufferWrite(
+                        buf,
+                        12 as c_int,
+                        b"<![CDATA[]]>\0" as *const u8 as *const c_char,
+                    );
+                } else {
+                    end = (*cur).content;
+                    start = end;
+                    while *end as c_int != '\0' as i32 {
+                        if *end as c_int == ']' as i32
+                            && *end.offset(1 as c_int as isize) as c_int
+                                == ']' as i32
+                            && *end.offset(2 as c_int as isize) as c_int
+                                == '>' as i32
+                        {
+                            end = end.offset(2 as c_int as isize);
+                            xmlOutputBufferWrite(
+                                buf,
+                                9 as c_int,
+                                b"<![CDATA[\0" as *const u8 as *const c_char,
+                            );
+                            xmlOutputBufferWrite(
+                                buf,
+                                end.offset_from(start) as c_long as c_int,
+                                start as *const c_char,
+                            );
+                            xmlOutputBufferWrite(
+                                buf,
+                                3 as c_int,
+                                b"]]>\0" as *const u8 as *const c_char,
+                            );
+                            start = end;
+                        }
+                        end = end.offset(1);
+                    }
+                    if start != end {
+                        xmlOutputBufferWrite(
+                            buf,
+                            9 as c_int,
+                            b"<![CDATA[\0" as *const u8 as *const c_char,
+                        );
+                        xmlOutputBufferWriteString(buf, start as *const c_char);
+                        xmlOutputBufferWrite(
+                            buf,
+                            3 as c_int,
+                            b"]]>\0" as *const u8 as *const c_char,
+                        );
+                    }
+                }
+            }
+            2 => {
+                xmlAttrDumpOutput(ctxt, cur as xmlAttrPtr);
+            }
+            _ => {}
+        }
+        loop {
+            if cur == root {
+                return;
+            }
+            if (*ctxt).format == 1 as c_int {
+                xmlOutputBufferWrite(
+                    buf,
+                    1 as c_int,
+                    b"\n\0" as *const u8 as *const c_char,
+                );
+            }
+            if !(*cur).next.is_null() {
+                cur = (*cur).next as xmlNodePtr;
+                break;
+            } else {
+                if (*cur).parent.is_null() {
+                    return;
+                }
+                cur = (*cur).parent as xmlNodePtr;
+                if (*cur).type_0 as c_uint
+                    == XML_ELEMENT_NODE as c_int as c_uint
+                {
+                    if (*ctxt).level > 0 as c_int {
+                        (*ctxt).level -= 1;
+                    }
+                    if *__xmlIndentTreeOutput() != 0 && (*ctxt).format == 1 as c_int {
+                        xmlOutputBufferWrite(
+                            buf,
+                            (*ctxt).indent_size
+                                * (if (*ctxt).level > (*ctxt).indent_nr {
+                                    (*ctxt).indent_nr
+                                } else {
+                                    (*ctxt).level
+                                }),
+                            &raw mut (*ctxt).indent as *mut c_char,
+                        );
+                    }
+                    xmlOutputBufferWrite(
+                        buf,
+                        2 as c_int,
+                        b"</\0" as *const u8 as *const c_char,
+                    );
+                    if !(*cur).ns.is_null() && !(*(*cur).ns).prefix.is_null() {
+                        xmlOutputBufferWriteString(
+                            buf,
+                            (*(*cur).ns).prefix as *const c_char,
+                        );
+                        xmlOutputBufferWrite(
+                            buf,
+                            1 as c_int,
+                            b":\0" as *const u8 as *const c_char,
+                        );
+                    }
+                    xmlOutputBufferWriteString(buf, (*cur).name as *const c_char);
+                    xmlOutputBufferWrite(
+                        buf,
+                        1 as c_int,
+                        b">\0" as *const u8 as *const c_char,
+                    );
+                    if cur == unformattedNode {
+                        (*ctxt).format = format;
+                        unformattedNode = ::core::ptr::null_mut::<xmlNode>();
+                    }
+                }
+            }
+        }
+    }
+} }
+#[inline]
+pub unsafe fn xmlSaveToFd(
+    mut fd: c_int,
+    mut encoding: *const c_char,
+    mut options: c_int,
+) -> xmlSaveCtxtPtr {
+    let mut ret: xmlSaveCtxtPtr = ::core::ptr::null_mut::<xmlSaveCtxt>();
+    ret = xmlNewSaveCtxt(encoding, options);
+    if ret.is_null() {
+        return ::core::ptr::null_mut::<xmlSaveCtxt>();
+    }
+    (*ret).buf = xmlOutputBufferCreateFd(fd, (*ret).handler);
+    if (*ret).buf.is_null() {
+        xmlCharEncCloseFunc((*ret).handler as *mut xmlCharEncodingHandler);
+        xmlFreeSaveCtxt(ret);
+        return ::core::ptr::null_mut::<xmlSaveCtxt>();
+    }
+    return ret;
+}
+#[inline]
+pub unsafe fn xmlSaveToFilename(
+    mut filename: *const c_char,
+    mut encoding: *const c_char,
+    mut options: c_int,
+) -> xmlSaveCtxtPtr {
+    let mut ret: xmlSaveCtxtPtr = ::core::ptr::null_mut::<xmlSaveCtxt>();
+    let mut compression: c_int = 0 as c_int;
+    ret = xmlNewSaveCtxt(encoding, options);
+    if ret.is_null() {
+        return ::core::ptr::null_mut::<xmlSaveCtxt>();
+    }
+    (*ret).buf = xmlOutputBufferCreateFilename(filename, (*ret).handler, compression);
+    if (*ret).buf.is_null() {
+        xmlCharEncCloseFunc((*ret).handler as *mut xmlCharEncodingHandler);
+        xmlFreeSaveCtxt(ret);
+        return ::core::ptr::null_mut::<xmlSaveCtxt>();
+    }
+    return ret;
+}
+#[inline]
+pub unsafe fn xmlSaveToBuffer(
+    mut buffer: xmlBufferPtr,
+    mut encoding: *const c_char,
+    mut options: c_int,
+) -> xmlSaveCtxtPtr {
+    let mut ret: xmlSaveCtxtPtr = ::core::ptr::null_mut::<xmlSaveCtxt>();
+    ret = xmlNewSaveCtxt(encoding, options);
+    if ret.is_null() {
+        return ::core::ptr::null_mut::<xmlSaveCtxt>();
+    }
+    (*ret).buf = xmlOutputBufferCreateBuffer(buffer, (*ret).handler);
+    if (*ret).buf.is_null() {
+        xmlCharEncCloseFunc((*ret).handler as *mut xmlCharEncodingHandler);
+        xmlFreeSaveCtxt(ret);
+        return ::core::ptr::null_mut::<xmlSaveCtxt>();
+    }
+    return ret;
+}
+#[inline]
+pub unsafe fn xmlSaveToIO(
+    mut iowrite: xmlOutputWriteCallback,
+    mut ioclose: xmlOutputCloseCallback,
+    mut ioctx: *mut c_void,
+    mut encoding: *const c_char,
+    mut options: c_int,
+) -> xmlSaveCtxtPtr {
+    let mut ret: xmlSaveCtxtPtr = ::core::ptr::null_mut::<xmlSaveCtxt>();
+    ret = xmlNewSaveCtxt(encoding, options);
+    if ret.is_null() {
+        return ::core::ptr::null_mut::<xmlSaveCtxt>();
+    }
+    (*ret).buf = xmlOutputBufferCreateIO(iowrite, ioclose, ioctx, (*ret).handler);
+    if (*ret).buf.is_null() {
+        xmlCharEncCloseFunc((*ret).handler as *mut xmlCharEncodingHandler);
+        xmlFreeSaveCtxt(ret);
+        return ::core::ptr::null_mut::<xmlSaveCtxt>();
+    }
+    return ret;
+}
+#[inline]
+pub fn xmlSaveDoc(
+    mut ctxt: xmlSaveCtxtPtr,
+    mut doc: xmlDocPtr,
+) -> c_long { {
+    let mut ret: c_long = 0 as c_long;
+    if ctxt.is_null() || doc.is_null() {
+        return -(1 as c_int) as c_long;
+    }
+    if xmlDocContentDumpOutput(ctxt, doc) < 0 as c_int {
+        return -(1 as c_int) as c_long;
+    }
+    return ret;
+} }
+#[inline]
+pub fn xmlSaveTree(
+    mut ctxt: xmlSaveCtxtPtr,
+    mut cur: xmlNodePtr,
+) -> c_long { unsafe {
+    let mut ret: c_long = 0 as c_long;
+    if ctxt.is_null() || cur.is_null() {
+        return -(1 as c_int) as c_long;
+    }
+    if (*ctxt).options & XML_SAVE_XHTML as c_int != 0 {
+        xhtmlNodeDumpOutput(ctxt, cur);
+        return ret;
+    }
+    if (*cur).type_0 as c_uint
+        != XML_NAMESPACE_DECL as c_int as c_uint
+        && !(*cur).doc.is_null()
+        && (*(*cur).doc).type_0 as c_uint
+            == XML_HTML_DOCUMENT_NODE as c_int as c_uint
+        && (*ctxt).options & XML_SAVE_AS_XML as c_int == 0 as c_int
+        || (*ctxt).options & XML_SAVE_AS_HTML as c_int != 0
+    {
+        htmlNodeDumpOutputInternal(ctxt, cur);
+        return ret;
+    }
+    xmlNodeDumpOutputInternal(ctxt, cur);
+    return ret;
+} }
+#[inline]
+pub fn xmlSaveFlush(mut ctxt: xmlSaveCtxtPtr) -> c_int { unsafe {
+    if ctxt.is_null() {
+        return -(1 as c_int);
+    }
+    if (*ctxt).buf.is_null() {
+        return -(1 as c_int);
+    }
+    return xmlOutputBufferFlush((*ctxt).buf);
+} }
+#[inline]
+pub fn xmlSaveClose(mut ctxt: xmlSaveCtxtPtr) -> c_int { {
+    let mut ret: c_int = 0;
+    if ctxt.is_null() {
+        return -(1 as c_int);
+    }
+    ret = xmlSaveFlush(ctxt);
+    xmlFreeSaveCtxt(ctxt);
+    return ret;
+} }
+#[inline]
+pub fn xmlSaveSetEscape(
+    mut ctxt: xmlSaveCtxtPtr,
+    mut escape: xmlCharEncodingOutputFunc,
+) -> c_int { unsafe {
+    if ctxt.is_null() {
+        return -(1 as c_int);
+    }
+    (*ctxt).escape = escape;
+    return 0 as c_int;
+} }
+#[inline]
+pub fn xmlSaveSetAttrEscape(
+    mut ctxt: xmlSaveCtxtPtr,
+    mut escape: xmlCharEncodingOutputFunc,
+) -> c_int { unsafe {
+    if ctxt.is_null() {
+        return -(1 as c_int);
+    }
+    (*ctxt).escapeAttr = escape;
+    return 0 as c_int;
+} }
+#[no_mangle]
+pub unsafe extern "C" fn xmlBufAttrSerializeTxtContent(
+    mut buf: xmlBufPtr,
+    mut doc: xmlDocPtr,
+    mut attr: xmlAttrPtr,
+    mut string: *const xmlChar,
+) {
+    let mut base: *mut xmlChar = ::core::ptr::null_mut::<xmlChar>();
+    let mut cur: *mut xmlChar = ::core::ptr::null_mut::<xmlChar>();
+    if string.is_null() {
+        return;
+    }
+    cur = string as *mut xmlChar;
+    base = cur;
+    while *cur as c_int != 0 as c_int {
+        if *cur as c_int == '\n' as i32 {
+            if base != cur {
+                xmlBufAdd(
+                    buf,
+                    base,
+                    cur.offset_from(base) as c_long as c_int,
+                );
+            }
+            xmlBufAdd(
+                buf,
+                b"&#10;\0" as *const u8 as *const c_char as *mut xmlChar,
+                5 as c_int,
+            );
+            cur = cur.offset(1);
+            base = cur;
+        } else if *cur as c_int == '\r' as i32 {
+            if base != cur {
+                xmlBufAdd(
+                    buf,
+                    base,
+                    cur.offset_from(base) as c_long as c_int,
+                );
+            }
+            xmlBufAdd(
+                buf,
+                b"&#13;\0" as *const u8 as *const c_char as *mut xmlChar,
+                5 as c_int,
+            );
+            cur = cur.offset(1);
+            base = cur;
+        } else if *cur as c_int == '\t' as i32 {
+            if base != cur {
+                xmlBufAdd(
+                    buf,
+                    base,
+                    cur.offset_from(base) as c_long as c_int,
+                );
+            }
+            xmlBufAdd(
+                buf,
+                b"&#9;\0" as *const u8 as *const c_char as *mut xmlChar,
+                4 as c_int,
+            );
+            cur = cur.offset(1);
+            base = cur;
+        } else if *cur as c_int == '"' as i32 {
+            if base != cur {
+                xmlBufAdd(
+                    buf,
+                    base,
+                    cur.offset_from(base) as c_long as c_int,
+                );
+            }
+            xmlBufAdd(
+                buf,
+                b"&quot;\0" as *const u8 as *const c_char as *mut xmlChar,
+                6 as c_int,
+            );
+            cur = cur.offset(1);
+            base = cur;
+        } else if *cur as c_int == '<' as i32 {
+            if base != cur {
+                xmlBufAdd(
+                    buf,
+                    base,
+                    cur.offset_from(base) as c_long as c_int,
+                );
+            }
+            xmlBufAdd(
+                buf,
+                b"&lt;\0" as *const u8 as *const c_char as *mut xmlChar,
+                4 as c_int,
+            );
+            cur = cur.offset(1);
+            base = cur;
+        } else if *cur as c_int == '>' as i32 {
+            if base != cur {
+                xmlBufAdd(
+                    buf,
+                    base,
+                    cur.offset_from(base) as c_long as c_int,
+                );
+            }
+            xmlBufAdd(
+                buf,
+                b"&gt;\0" as *const u8 as *const c_char as *mut xmlChar,
+                4 as c_int,
+            );
+            cur = cur.offset(1);
+            base = cur;
+        } else if *cur as c_int == '&' as i32 {
+            if base != cur {
+                xmlBufAdd(
+                    buf,
+                    base,
+                    cur.offset_from(base) as c_long as c_int,
+                );
+            }
+            xmlBufAdd(
+                buf,
+                b"&amp;\0" as *const u8 as *const c_char as *mut xmlChar,
+                5 as c_int,
+            );
+            cur = cur.offset(1);
+            base = cur;
+        } else if *cur as c_int >= 0x80 as c_int
+            && *cur.offset(1 as c_int as isize) as c_int
+                != 0 as c_int
+            && (doc.is_null() || (*doc).encoding.is_null())
+        {
+            let mut tmp: [c_uchar; 12] = [0; 12];
+            let mut val: c_int = 0 as c_int;
+            let mut l: c_int = 1 as c_int;
+            if base != cur {
+                xmlBufAdd(
+                    buf,
+                    base,
+                    cur.offset_from(base) as c_long as c_int,
+                );
+            }
+            if (*cur as c_int) < 0xc0 as c_int {
+                xmlSaveErr(
+                    XML_SAVE_NOT_UTF8 as c_int,
+                    attr as xmlNodePtr,
+                    ::core::ptr::null::<c_char>(),
+                );
+                xmlSerializeHexCharRef(
+                    &raw mut tmp as *mut c_uchar,
+                    *cur as c_int,
+                );
+                xmlBufAdd(
+                    buf,
+                    &raw mut tmp as *mut c_uchar as *mut xmlChar,
+                    -(1 as c_int),
+                );
+                cur = cur.offset(1);
+                base = cur;
+            } else {
+                if (*cur as c_int) < 0xe0 as c_int {
+                    val = *cur.offset(0 as c_int as isize) as c_int
+                        & 0x1f as c_int;
+                    val <<= 6 as c_int;
+                    val |= *cur.offset(1 as c_int as isize) as c_int
+                        & 0x3f as c_int;
+                    l = 2 as c_int;
+                } else if (*cur as c_int) < 0xf0 as c_int
+                    && *cur.offset(2 as c_int as isize) as c_int
+                        != 0 as c_int
+                {
+                    val = *cur.offset(0 as c_int as isize) as c_int
+                        & 0xf as c_int;
+                    val <<= 6 as c_int;
+                    val |= *cur.offset(1 as c_int as isize) as c_int
+                        & 0x3f as c_int;
+                    val <<= 6 as c_int;
+                    val |= *cur.offset(2 as c_int as isize) as c_int
+                        & 0x3f as c_int;
+                    l = 3 as c_int;
+                } else if (*cur as c_int) < 0xf8 as c_int
+                    && *cur.offset(2 as c_int as isize) as c_int
+                        != 0 as c_int
+                    && *cur.offset(3 as c_int as isize) as c_int
+                        != 0 as c_int
+                {
+                    val = *cur.offset(0 as c_int as isize) as c_int
+                        & 0x7 as c_int;
+                    val <<= 6 as c_int;
+                    val |= *cur.offset(1 as c_int as isize) as c_int
+                        & 0x3f as c_int;
+                    val <<= 6 as c_int;
+                    val |= *cur.offset(2 as c_int as isize) as c_int
+                        & 0x3f as c_int;
+                    val <<= 6 as c_int;
+                    val |= *cur.offset(3 as c_int as isize) as c_int
+                        & 0x3f as c_int;
+                    l = 4 as c_int;
+                }
+                if l == 1 as c_int
+                    || (if val < 0x100 as c_int {
+                        (0x9 as c_int <= val && val <= 0xa as c_int
+                            || val == 0xd as c_int
+                            || 0x20 as c_int <= val)
+                            as c_int
+                    } else {
+                        (0x100 as c_int <= val && val <= 0xd7ff as c_int
+                            || 0xe000 as c_int <= val
+                                && val <= 0xfffd as c_int
+                            || 0x10000 as c_int <= val
+                                && val <= 0x10ffff as c_int)
+                            as c_int
+                    }) == 0
+                {
+                    xmlSaveErr(
+                        XML_SAVE_CHAR_INVALID as c_int,
+                        attr as xmlNodePtr,
+                        ::core::ptr::null::<c_char>(),
+                    );
+                    xmlSerializeHexCharRef(
+                        &raw mut tmp as *mut c_uchar,
+                        *cur as c_int,
+                    );
+                    xmlBufAdd(
+                        buf,
+                        &raw mut tmp as *mut c_uchar as *mut xmlChar,
+                        -(1 as c_int),
+                    );
+                    cur = cur.offset(1);
+                    base = cur;
+                } else {
+                    xmlSerializeHexCharRef(&raw mut tmp as *mut c_uchar, val);
+                    xmlBufAdd(
+                        buf,
+                        &raw mut tmp as *mut c_uchar as *mut xmlChar,
+                        -(1 as c_int),
+                    );
+                    cur = cur.offset(l as isize);
+                    base = cur;
+                }
+            }
+        } else {
+            cur = cur.offset(1);
+        }
+    }
+    if base != cur {
+        xmlBufAdd(
+            buf,
+            base,
+            cur.offset_from(base) as c_long as c_int,
+        );
+    }
+}
+#[inline]
+pub unsafe fn xmlAttrSerializeTxtContent(
+    mut buf: xmlBufferPtr,
+    mut doc: xmlDocPtr,
+    mut attr: xmlAttrPtr,
+    mut string: *const xmlChar,
+) {
+    let mut buffer: xmlBufPtr = ::core::ptr::null_mut::<xmlBuf>();
+    if buf.is_null() || string.is_null() {
+        return;
+    }
+    buffer = xmlBufFromBuffer(buf);
+    if buffer.is_null() {
+        return;
+    }
+    xmlBufAttrSerializeTxtContent(buffer, doc, attr, string);
+    xmlBufBackToBuffer(buffer);
+}
+#[no_mangle]
+pub extern "C" fn xmlNodeDump(
+    mut buf: xmlBufferPtr,
+    mut doc: xmlDocPtr,
+    mut cur: xmlNodePtr,
+    mut level: c_int,
+    mut format: c_int,
+) -> c_int { {
+    let mut buffer: xmlBufPtr = ::core::ptr::null_mut::<xmlBuf>();
+    let mut ret: size_t = 0;
+    if buf.is_null() || cur.is_null() {
+        return -(1 as c_int);
+    }
+    buffer = xmlBufFromBuffer(buf);
+    if buffer.is_null() {
+        return -(1 as c_int);
+    }
+    ret = xmlBufNodeDump(buffer, doc, cur, level, format);
+    xmlBufBackToBuffer(buffer);
+    if ret > INT_MAX as size_t {
+        return -(1 as c_int);
+    }
+    return ret as c_int;
+} }
+#[inline]
+pub fn xmlBufNodeDump(
+    mut buf: xmlBufPtr,
+    mut doc: xmlDocPtr,
+    mut cur: xmlNodePtr,
+    mut level: c_int,
+    mut format: c_int,
+) -> size_t { unsafe {
+    let mut use_0: size_t = 0;
+    let mut ret: c_int = 0;
+    let mut outbuf: xmlOutputBufferPtr = ::core::ptr::null_mut::<xmlOutputBuffer>();
+    let mut oldalloc: c_int = 0;
+    xmlInitParser();
+    if cur.is_null() {
+        return -(1 as c_int) as size_t;
+    }
+    if buf.is_null() {
+        return -(1 as c_int) as size_t;
+    }
+    outbuf = xmlMalloc.expect("non-null function pointer")(
+        ::core::mem::size_of::<xmlOutputBuffer>() as size_t,
+    ) as xmlOutputBufferPtr;
+    if outbuf.is_null() {
+        xmlSaveErrMemory(b"creating buffer\0" as *const u8 as *const c_char);
+        return -(1 as c_int) as size_t;
+    }
+    memset(
+        outbuf as *mut c_void,
+        0 as c_int,
+        ::core::mem::size_of::<xmlOutputBuffer>(),
+    );
+    (*outbuf).buffer = buf;
+    (*outbuf).encoder = ::core::ptr::null_mut::<xmlCharEncodingHandler>();
+    (*outbuf).writecallback = None;
+    (*outbuf).closecallback = None;
+    (*outbuf).context = NULL;
+    (*outbuf).written = 0 as c_int;
+    use_0 = xmlBufUse(buf);
+    oldalloc = xmlBufGetAllocationScheme(buf);
+    xmlBufSetAllocationScheme(buf, XML_BUFFER_ALLOC_DOUBLEIT);
+    xmlNodeDumpOutput(
+        outbuf,
+        doc,
+        cur,
+        level,
+        format,
+        ::core::ptr::null::<c_char>(),
+    );
+    xmlBufSetAllocationScheme(buf, oldalloc as xmlBufferAllocationScheme);
+    xmlFree.expect("non-null function pointer")(outbuf as *mut c_void);
+    ret = xmlBufUse(buf).wrapping_sub(use_0) as c_int;
+    return ret as size_t;
+} }
+#[no_mangle]
+pub unsafe extern "C" fn xmlElemDump(mut f: *mut FILE, mut doc: xmlDocPtr, mut cur: xmlNodePtr) {
+    let mut outbuf: xmlOutputBufferPtr = ::core::ptr::null_mut::<xmlOutputBuffer>();
+    xmlInitParser();
+    if cur.is_null() {
+        return;
+    }
+    outbuf = xmlOutputBufferCreateFile(f, ::core::ptr::null_mut::<xmlCharEncodingHandler>());
+    if outbuf.is_null() {
+        return;
+    }
+    if !doc.is_null()
+        && (*doc).type_0 as c_uint
+            == XML_HTML_DOCUMENT_NODE as c_int as c_uint
+    {
+        htmlNodeDumpOutput(outbuf, doc, cur, ::core::ptr::null::<c_char>());
+    } else {
+        xmlNodeDumpOutput(
+            outbuf,
+            doc,
+            cur,
+            0 as c_int,
+            1 as c_int,
+            ::core::ptr::null::<c_char>(),
+        );
+    }
+    xmlOutputBufferClose(outbuf);
+}
+#[inline]
+pub unsafe fn xmlNodeDumpOutput(
+    mut buf: xmlOutputBufferPtr,
+    mut doc: xmlDocPtr,
+    mut cur: xmlNodePtr,
+    mut level: c_int,
+    mut format: c_int,
+    mut encoding: *const c_char,
+) {
+    let mut ctxt: xmlSaveCtxt = xmlSaveCtxt {
+        _private: ::core::ptr::null_mut::<c_void>(),
+        type_0: 0,
+        fd: 0,
+        filename: ::core::ptr::null::<xmlChar>(),
+        encoding: ::core::ptr::null::<xmlChar>(),
+        handler: ::core::ptr::null_mut::<xmlCharEncodingHandler>(),
+        buf: ::core::ptr::null_mut::<xmlOutputBuffer>(),
+        options: 0,
+        level: 0,
+        format: 0,
+        indent: [0; 61],
+        indent_nr: 0,
+        indent_size: 0,
+        escape: None,
+        escapeAttr: None,
+    };
+    let mut dtd: xmlDtdPtr = ::core::ptr::null_mut::<xmlDtd>();
+    let mut is_xhtml: c_int = 0 as c_int;
+    xmlInitParser();
+    if buf.is_null() || cur.is_null() {
+        return;
+    }
+    if encoding.is_null() {
+        encoding = b"UTF-8\0" as *const u8 as *const c_char;
+    }
+    memset(
+        &raw mut ctxt as *mut c_void,
+        0 as c_int,
+        ::core::mem::size_of::<xmlSaveCtxt>() as size_t,
+    );
+    ctxt.buf = buf;
+    ctxt.level = level;
+    ctxt.format = if format != 0 {
+        1 as c_int
+    } else {
+        0 as c_int
+    };
+    ctxt.encoding = encoding as *const xmlChar;
+    xmlSaveCtxtInit(&raw mut ctxt);
+    ctxt.options |= XML_SAVE_AS_XML as c_int;
+    dtd = xmlGetIntSubset(doc as *const xmlDoc);
+    if !dtd.is_null() {
+        is_xhtml = xmlIsXHTML((*dtd).SystemID, (*dtd).ExternalID);
+        if is_xhtml < 0 as c_int {
+            is_xhtml = 0 as c_int;
+        }
+    }
+    if is_xhtml != 0 {
+        xhtmlNodeDumpOutput(&raw mut ctxt, cur);
+    } else {
+        xmlNodeDumpOutputInternal(&raw mut ctxt, cur);
+    };
+}
+#[inline]
+pub unsafe fn xmlDocDumpFormatMemoryEnc(
+    mut out_doc: xmlDocPtr,
+    mut doc_txt_ptr: *mut *mut xmlChar,
+    mut doc_txt_len: *mut c_int,
+    mut txt_encoding: *const c_char,
+    mut format: c_int,
+) {
+    let mut ctxt: xmlSaveCtxt = xmlSaveCtxt {
+        _private: ::core::ptr::null_mut::<c_void>(),
+        type_0: 0,
+        fd: 0,
+        filename: ::core::ptr::null::<xmlChar>(),
+        encoding: ::core::ptr::null::<xmlChar>(),
+        handler: ::core::ptr::null_mut::<xmlCharEncodingHandler>(),
+        buf: ::core::ptr::null_mut::<xmlOutputBuffer>(),
+        options: 0,
+        level: 0,
+        format: 0,
+        indent: [0; 61],
+        indent_nr: 0,
+        indent_size: 0,
+        escape: None,
+        escapeAttr: None,
+    };
+    let mut dummy: c_int = 0 as c_int;
+    let mut out_buff: xmlOutputBufferPtr = ::core::ptr::null_mut::<xmlOutputBuffer>();
+    let mut conv_hdlr: xmlCharEncodingHandlerPtr =
+        ::core::ptr::null_mut::<xmlCharEncodingHandler>();
+    if doc_txt_len.is_null() {
+        doc_txt_len = &raw mut dummy;
+    }
+    if doc_txt_ptr.is_null() {
+        *doc_txt_len = 0 as c_int;
+        return;
+    }
+    *doc_txt_ptr = ::core::ptr::null_mut::<xmlChar>();
+    *doc_txt_len = 0 as c_int;
+    if out_doc.is_null() {
+        return;
+    }
+    if txt_encoding.is_null() {
+        txt_encoding = (*out_doc).encoding as *const c_char;
+    }
+    if !txt_encoding.is_null() {
+        conv_hdlr = xmlFindCharEncodingHandler(txt_encoding);
+        if conv_hdlr.is_null() {
+            xmlSaveErr(
+                XML_SAVE_UNKNOWN_ENCODING as c_int,
+                out_doc as xmlNodePtr,
+                txt_encoding,
+            );
+            return;
+        }
+    }
+    out_buff = xmlAllocOutputBuffer(conv_hdlr);
+    if out_buff.is_null() {
+        xmlSaveErrMemory(b"creating buffer\0" as *const u8 as *const c_char);
+        xmlCharEncCloseFunc(conv_hdlr as *mut xmlCharEncodingHandler);
+        return;
+    }
+    memset(
+        &raw mut ctxt as *mut c_void,
+        0 as c_int,
+        ::core::mem::size_of::<xmlSaveCtxt>() as size_t,
+    );
+    ctxt.buf = out_buff;
+    ctxt.level = 0 as c_int;
+    ctxt.format = if format != 0 {
+        1 as c_int
+    } else {
+        0 as c_int
+    };
+    ctxt.encoding = txt_encoding as *const xmlChar;
+    xmlSaveCtxtInit(&raw mut ctxt);
+    ctxt.options |= XML_SAVE_AS_XML as c_int;
+    xmlDocContentDumpOutput(&raw mut ctxt, out_doc);
+    xmlOutputBufferFlush(out_buff);
+    if !(*out_buff).conv.is_null() {
+        *doc_txt_len = xmlBufUse((*out_buff).conv) as c_int;
+        *doc_txt_ptr = xmlStrndup(
+            xmlBufContent((*out_buff).conv as *const xmlBuf),
+            *doc_txt_len,
+        );
+    } else {
+        *doc_txt_len = xmlBufUse((*out_buff).buffer) as c_int;
+        *doc_txt_ptr = xmlStrndup(
+            xmlBufContent((*out_buff).buffer as *const xmlBuf),
+            *doc_txt_len,
+        );
+    }
+    xmlOutputBufferClose(out_buff);
+    if (*doc_txt_ptr).is_null() && *doc_txt_len > 0 as c_int {
+        *doc_txt_len = 0 as c_int;
+        xmlSaveErrMemory(b"creating output\0" as *const u8 as *const c_char);
+    }
+}
+#[inline]
+pub unsafe fn xmlDocDumpMemory(
+    mut cur: xmlDocPtr,
+    mut mem: *mut *mut xmlChar,
+    mut size: *mut c_int,
+) {
+    xmlDocDumpFormatMemoryEnc(
+        cur,
+        mem,
+        size,
+        ::core::ptr::null::<c_char>(),
+        0 as c_int,
+    );
+}
+#[inline]
+pub unsafe fn xmlDocDumpFormatMemory(
+    mut cur: xmlDocPtr,
+    mut mem: *mut *mut xmlChar,
+    mut size: *mut c_int,
+    mut format: c_int,
+) {
+    xmlDocDumpFormatMemoryEnc(
+        cur,
+        mem,
+        size,
+        ::core::ptr::null::<c_char>(),
+        format,
+    );
+}
+#[inline]
+pub unsafe fn xmlDocDumpMemoryEnc(
+    mut out_doc: xmlDocPtr,
+    mut doc_txt_ptr: *mut *mut xmlChar,
+    mut doc_txt_len: *mut c_int,
+    mut txt_encoding: *const c_char,
+) {
+    xmlDocDumpFormatMemoryEnc(
+        out_doc,
+        doc_txt_ptr,
+        doc_txt_len,
+        txt_encoding,
+        0 as c_int,
+    );
+}
+#[inline]
+pub unsafe fn xmlDocFormatDump(
+    mut f: *mut FILE,
+    mut cur: xmlDocPtr,
+    mut format: c_int,
+) -> c_int {
+    let mut ctxt: xmlSaveCtxt = xmlSaveCtxt {
+        _private: ::core::ptr::null_mut::<c_void>(),
+        type_0: 0,
+        fd: 0,
+        filename: ::core::ptr::null::<xmlChar>(),
+        encoding: ::core::ptr::null::<xmlChar>(),
+        handler: ::core::ptr::null_mut::<xmlCharEncodingHandler>(),
+        buf: ::core::ptr::null_mut::<xmlOutputBuffer>(),
+        options: 0,
+        level: 0,
+        format: 0,
+        indent: [0; 61],
+        indent_nr: 0,
+        indent_size: 0,
+        escape: None,
+        escapeAttr: None,
+    };
+    let mut buf: xmlOutputBufferPtr = ::core::ptr::null_mut::<xmlOutputBuffer>();
+    let mut encoding: *const c_char = ::core::ptr::null::<c_char>();
+    let mut handler: xmlCharEncodingHandlerPtr = ::core::ptr::null_mut::<xmlCharEncodingHandler>();
+    let mut ret: c_int = 0;
+    if cur.is_null() {
+        return -(1 as c_int);
+    }
+    encoding = (*cur).encoding as *const c_char;
+    if !encoding.is_null() {
+        handler = xmlFindCharEncodingHandler(encoding);
+        if handler.is_null() {
+            xmlFree.expect("non-null function pointer")(
+                (*cur).encoding as *mut c_char as *mut c_void,
+            );
+            (*cur).encoding = ::core::ptr::null::<xmlChar>();
+            encoding = ::core::ptr::null::<c_char>();
+        }
+    }
+    buf = xmlOutputBufferCreateFile(f, handler);
+    if buf.is_null() {
+        return -(1 as c_int);
+    }
+    memset(
+        &raw mut ctxt as *mut c_void,
+        0 as c_int,
+        ::core::mem::size_of::<xmlSaveCtxt>() as size_t,
+    );
+    ctxt.buf = buf;
+    ctxt.level = 0 as c_int;
+    ctxt.format = if format != 0 {
+        1 as c_int
+    } else {
+        0 as c_int
+    };
+    ctxt.encoding = encoding as *const xmlChar;
+    xmlSaveCtxtInit(&raw mut ctxt);
+    ctxt.options |= XML_SAVE_AS_XML as c_int;
+    xmlDocContentDumpOutput(&raw mut ctxt, cur);
+    ret = xmlOutputBufferClose(buf);
+    return ret;
+}
+#[no_mangle]
+pub unsafe extern "C" fn xmlDocDump(mut f: *mut FILE, mut cur: xmlDocPtr) -> c_int {
+    return xmlDocFormatDump(f, cur, 0 as c_int);
+}
+#[inline]
+pub unsafe fn xmlSaveFileTo(
+    mut buf: xmlOutputBufferPtr,
+    mut cur: xmlDocPtr,
+    mut encoding: *const c_char,
+) -> c_int {
+    let mut ctxt: xmlSaveCtxt = xmlSaveCtxt {
+        _private: ::core::ptr::null_mut::<c_void>(),
+        type_0: 0,
+        fd: 0,
+        filename: ::core::ptr::null::<xmlChar>(),
+        encoding: ::core::ptr::null::<xmlChar>(),
+        handler: ::core::ptr::null_mut::<xmlCharEncodingHandler>(),
+        buf: ::core::ptr::null_mut::<xmlOutputBuffer>(),
+        options: 0,
+        level: 0,
+        format: 0,
+        indent: [0; 61],
+        indent_nr: 0,
+        indent_size: 0,
+        escape: None,
+        escapeAttr: None,
+    };
+    let mut ret: c_int = 0;
+    if buf.is_null() {
+        return -(1 as c_int);
+    }
+    if cur.is_null() {
+        xmlOutputBufferClose(buf);
+        return -(1 as c_int);
+    }
+    memset(
+        &raw mut ctxt as *mut c_void,
+        0 as c_int,
+        ::core::mem::size_of::<xmlSaveCtxt>() as size_t,
+    );
+    ctxt.buf = buf;
+    ctxt.level = 0 as c_int;
+    ctxt.format = 0 as c_int;
+    ctxt.encoding = encoding as *const xmlChar;
+    xmlSaveCtxtInit(&raw mut ctxt);
+    ctxt.options |= XML_SAVE_AS_XML as c_int;
+    xmlDocContentDumpOutput(&raw mut ctxt, cur);
+    ret = xmlOutputBufferClose(buf);
+    return ret;
+}
+#[no_mangle]
+pub unsafe extern "C" fn xmlSaveFormatFileTo(
+    mut buf: xmlOutputBufferPtr,
+    mut cur: xmlDocPtr,
+    mut encoding: *const c_char,
+    mut format: c_int,
+) -> c_int {
+    let mut ctxt: xmlSaveCtxt = xmlSaveCtxt {
+        _private: ::core::ptr::null_mut::<c_void>(),
+        type_0: 0,
+        fd: 0,
+        filename: ::core::ptr::null::<xmlChar>(),
+        encoding: ::core::ptr::null::<xmlChar>(),
+        handler: ::core::ptr::null_mut::<xmlCharEncodingHandler>(),
+        buf: ::core::ptr::null_mut::<xmlOutputBuffer>(),
+        options: 0,
+        level: 0,
+        format: 0,
+        indent: [0; 61],
+        indent_nr: 0,
+        indent_size: 0,
+        escape: None,
+        escapeAttr: None,
+    };
+    let mut ret: c_int = 0;
+    if buf.is_null() {
+        return -(1 as c_int);
+    }
+    if cur.is_null()
+        || (*cur).type_0 as c_uint
+            != XML_DOCUMENT_NODE as c_int as c_uint
+            && (*cur).type_0 as c_uint
+                != XML_HTML_DOCUMENT_NODE as c_int as c_uint
+    {
+        xmlOutputBufferClose(buf);
+        return -(1 as c_int);
+    }
+    memset(
+        &raw mut ctxt as *mut c_void,
+        0 as c_int,
+        ::core::mem::size_of::<xmlSaveCtxt>() as size_t,
+    );
+    ctxt.buf = buf;
+    ctxt.level = 0 as c_int;
+    ctxt.format = if format != 0 {
+        1 as c_int
+    } else {
+        0 as c_int
+    };
+    ctxt.encoding = encoding as *const xmlChar;
+    xmlSaveCtxtInit(&raw mut ctxt);
+    ctxt.options |= XML_SAVE_AS_XML as c_int;
+    xmlDocContentDumpOutput(&raw mut ctxt, cur);
+    ret = xmlOutputBufferClose(buf);
+    return ret;
+}
+#[inline]
+pub unsafe fn xmlSaveFormatFileEnc(
+    mut filename: *const c_char,
+    mut cur: xmlDocPtr,
+    mut encoding: *const c_char,
+    mut format: c_int,
+) -> c_int {
+    let mut ctxt: xmlSaveCtxt = xmlSaveCtxt {
+        _private: ::core::ptr::null_mut::<c_void>(),
+        type_0: 0,
+        fd: 0,
+        filename: ::core::ptr::null::<xmlChar>(),
+        encoding: ::core::ptr::null::<xmlChar>(),
+        handler: ::core::ptr::null_mut::<xmlCharEncodingHandler>(),
+        buf: ::core::ptr::null_mut::<xmlOutputBuffer>(),
+        options: 0,
+        level: 0,
+        format: 0,
+        indent: [0; 61],
+        indent_nr: 0,
+        indent_size: 0,
+        escape: None,
+        escapeAttr: None,
+    };
+    let mut buf: xmlOutputBufferPtr = ::core::ptr::null_mut::<xmlOutputBuffer>();
+    let mut handler: xmlCharEncodingHandlerPtr = ::core::ptr::null_mut::<xmlCharEncodingHandler>();
+    let mut ret: c_int = 0;
+    if cur.is_null() {
+        return -(1 as c_int);
+    }
+    if encoding.is_null() {
+        encoding = (*cur).encoding as *const c_char;
+    }
+    if !encoding.is_null() {
+        handler = xmlFindCharEncodingHandler(encoding);
+        if handler.is_null() {
+            return -(1 as c_int);
+        }
+    }
+    buf = xmlOutputBufferCreateFilename(filename, handler, (*cur).compression);
+    if buf.is_null() {
+        return -(1 as c_int);
+    }
+    memset(
+        &raw mut ctxt as *mut c_void,
+        0 as c_int,
+        ::core::mem::size_of::<xmlSaveCtxt>() as size_t,
+    );
+    ctxt.buf = buf;
+    ctxt.level = 0 as c_int;
+    ctxt.format = if format != 0 {
+        1 as c_int
+    } else {
+        0 as c_int
+    };
+    ctxt.encoding = encoding as *const xmlChar;
+    xmlSaveCtxtInit(&raw mut ctxt);
+    ctxt.options |= XML_SAVE_AS_XML as c_int;
+    xmlDocContentDumpOutput(&raw mut ctxt, cur);
+    ret = xmlOutputBufferClose(buf);
+    return ret;
+}
+#[inline]
+pub unsafe fn xmlSaveFileEnc(
+    mut filename: *const c_char,
+    mut cur: xmlDocPtr,
+    mut encoding: *const c_char,
+) -> c_int {
+    return xmlSaveFormatFileEnc(filename, cur, encoding, 0 as c_int);
+}
+#[inline]
+pub unsafe fn xmlSaveFormatFile(
+    mut filename: *const c_char,
+    mut cur: xmlDocPtr,
+    mut format: c_int,
+) -> c_int {
+    return xmlSaveFormatFileEnc(
+        filename,
+        cur,
+        ::core::ptr::null::<c_char>(),
+        format,
+    );
+}
+#[no_mangle]
+pub unsafe extern "C" fn xmlSaveFile(
+    mut filename: *const c_char,
+    mut cur: xmlDocPtr,
+) -> c_int {
+    return xmlSaveFormatFileEnc(
+        filename,
+        cur,
+        ::core::ptr::null::<c_char>(),
+        0 as c_int,
+    );
+}
+

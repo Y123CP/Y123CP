@@ -1,0 +1,204 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.05126566624217973,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.13973774633686856,
+            "aggregate_ci_low_pct": -0.037206413852509106,
+            "aggregate_pct": 0.05126566624217973,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.1458,
+                "ci_low_pct": -0.3043,
+                "insns_delta_pct": -0.0112,
+                "mean_delta_pct": -0.0792,
+                "op": "decode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2821,
+                "ci_low_pct": 0.0195,
+                "insns_delta_pct": -0.0306,
+                "mean_delta_pct": 0.1508,
+                "op": "decode_sync_hd",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.4082,
+                "ci_low_pct": -0.0087,
+                "insns_delta_pct": 0.0536,
+                "mean_delta_pct": 0.1997,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.1414,
+                "ci_low_pct": -0.2739,
+                "insns_delta_pct": 0.0139,
+                "mean_delta_pct": -0.0663,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.1643055610832796,
+            "aggregate_ci_low_pct": -0.03421880245022642,
+            "aggregate_pct": 0.0650433793165266,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.2458,
+                "ci_low_pct": -0.0754,
+                "insns_delta_pct": 0.0476,
+                "mean_delta_pct": 0.0852,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.1847,
+                "ci_low_pct": -0.0949,
+                "insns_delta_pct": -0.0135,
+                "mean_delta_pct": 0.0449,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_hd_reset",
+          "encode_std"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "encode_hd_reset"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "e8131785ed847292ebe3493a5feefa2ccb74f732",
+      "changeset_id": "legacy-ca1a904399b64ca5",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-5b2b57b040e6be76",
+          "replacement_function_source": "unsafe fn aptx_quantize_difference(\n    mut quantize: *mut aptx_quantize,\n    mut sample_difference: int32_t,\n    mut dither: int32_t,\n    mut quantization_factor: int32_t,\n    mut tables: *const aptx_tables,\n) {\n    let quantize_view: &mut aptx_quantize = unsafe { // SAFETY: caller provides a valid, unique mutable pointer to aptx_quantize for the duration of this function.\n        &mut *quantize\n    };\n    let tables_ref: &aptx_tables = unsafe { // SAFETY: caller provides a valid pointer to aptx_tables for the duration of this function.\n        &*tables\n    };\n\n    let mut sample_difference_abs = sample_difference;\n    if sample_difference_abs < 0 {\n        sample_difference_abs = -sample_difference_abs;\n    }\n    const CLIP23: int32_t = ((1 as c_int as int32_t) << 23) - 1;\n    if sample_difference_abs > CLIP23 {\n        sample_difference_abs = CLIP23;\n    }\n\n    let intervals_base = tables_ref.quantize_intervals;\n    let mut quantized_sample = aptx_bin_search(\n        sample_difference_abs >> 4,\n        quantization_factor,\n        intervals_base,\n        tables_ref.tables_size,\n    );\n\n    let mut d = rshift32_clip24(\n        (dither as int64_t * dither as int64_t >> 32) as int32_t,\n        7 as c_uint,\n    ) - ((1 as c_int as int32_t) << 23);\n\n    let qdf = unsafe { // SAFETY: quantized_sample is produced by aptx_bin_search for these tables and is used as an in-bounds index exactly as in the original code.\n        *tables_ref.quantize_dither_factors.offset(quantized_sample as isize)\n    };\n    d = rshift64(d as int64_t * qdf as int64_t, 23 as c_uint) as int32_t;\n\n    let intervals = unsafe { // SAFETY: quantized_sample is the same index used by the original code to offset into quantize_intervals.\n        intervals_base.offset(quantized_sample as isize)\n    };\n    let i0 = unsafe { // SAFETY: original code reads intervals[0] and intervals[1]; same preconditions apply here.\n        *intervals\n    };\n    let i1 = unsafe { // SAFETY: original code reads intervals[0] and intervals[1]; same preconditions apply here.\n        *intervals.offset(1)\n    };\n\n    let mean = (i1 + i0) / 2;\n    let sign = (-((sample_difference < 0) as c_int) | 1) as int32_t;\n    let interval = (i1 - i0) * sign;\n\n    let dithered_sample = rshift64_clip24(\n        dither as int64_t * interval as int64_t\n            + ((clip_intp2(mean + d, 23 as c_uint) as int64_t) << 32),\n        32 as c_uint,\n    );\n\n    let error = ((sample_difference_abs as int64_t) << 20)\n        - dithered_sample as int64_t * quantization_factor as int64_t;\n\n    let mut err32 = rshift64(error, 23 as c_uint) as int32_t;\n    if err32 < 0 {\n        err32 = -err32;\n    }\n    quantize_view.error = err32;\n\n    let mut parity_change = quantized_sample;\n    if error < 0 {\n        quantized_sample -= 1;\n    } else {\n        parity_change -= 1;\n    }\n\n    let inv = -((sample_difference < 0) as c_int) as int32_t;\n    quantize_view.quantized_sample = quantized_sample ^ inv;\n    quantize_view.quantized_sample_parity_change = parity_change ^ inv;\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "0aed5352ec4bb28d5085fed0b0a9e606d4a0e74fafa12584e2bc4e24730dbbb2",
+            "file_hint": "src/openaptx.rs",
+            "qualified_name": "crate::aptx_quantize_difference",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "aptx_quantize_difference-b6de9f268522",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "aptx_quantize_difference",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "740b1755bf447a144bb4cef0b7feb45b1fee2b570624277aa82dffded3ef1223",
+            "edit_id": "edit-replace-5b2b57b040e6be76",
+            "end_byte": 56535,
+            "operation_id": "replace-5b2b57b040e6be76",
+            "relative_path": "src/openaptx.rs",
+            "replacement_text": "unsafe fn aptx_quantize_difference(\n    mut quantize: *mut aptx_quantize,\n    mut sample_difference: int32_t,\n    mut dither: int32_t,\n    mut quantization_factor: int32_t,\n    mut tables: *const aptx_tables,\n) {\n    let quantize_view: &mut aptx_quantize = unsafe { // SAFETY: caller provides a valid, unique mutable pointer to aptx_quantize for the duration of this function.\n        &mut *quantize\n    };\n    let tables_ref: &aptx_tables = unsafe { // SAFETY: caller provides a valid pointer to aptx_tables for the duration of this function.\n        &*tables\n    };\n\n    let mut sample_difference_abs = sample_difference;\n    if sample_difference_abs < 0 {\n        sample_difference_abs = -sample_difference_abs;\n    }\n    const CLIP23: int32_t = ((1 as c_int as int32_t) << 23) - 1;\n    if sample_difference_abs > CLIP23 {\n        sample_difference_abs = CLIP23;\n    }\n\n    let intervals_base = tables_ref.quantize_intervals;\n    let mut quantized_sample = aptx_bin_search(\n        sample_difference_abs >> 4,\n        quantization_factor,\n        intervals_base,\n        tables_ref.tables_size,\n    );\n\n    let mut d = rshift32_clip24(\n        (dither as int64_t * dither as int64_t >> 32) as int32_t,\n        7 as c_uint,\n    ) - ((1 as c_int as int32_t) << 23);\n\n    let qdf = unsafe { // SAFETY: quantized_sample is produced by aptx_bin_search for these tables and is used as an in-bounds index exactly as in the original code.\n        *tables_ref.quantize_dither_factors.offset(quantized_sample as isize)\n    };\n    d = rshift64(d as int64_t * qdf as int64_t, 23 as c_uint) as int32_t;\n\n    let intervals = unsafe { // SAFETY: quantized_sample is the same index used by the original code to offset into quantize_intervals.\n        intervals_base.offset(quantized_sample as isize)\n    };\n    let i0 = unsafe { // SAFETY: original code reads intervals[0] and intervals[1]; same preconditions apply here.\n        *intervals\n    };\n    let i1 = unsafe { // SAFETY: original code reads intervals[0] and intervals[1]; same preconditions apply here.\n        *intervals.offset(1)\n    };\n\n    let mean = (i1 + i0) / 2;\n    let sign = (-((sample_difference < 0) as c_int) | 1) as int32_t;\n    let interval = (i1 - i0) * sign;\n\n    let dithered_sample = rshift64_clip24(\n        dither as int64_t * interval as int64_t\n            + ((clip_intp2(mean + d, 23 as c_uint) as int64_t) << 32),\n        32 as c_uint,\n    );\n\n    let error = ((sample_difference_abs as int64_t) << 20)\n        - dithered_sample as int64_t * quantization_factor as int64_t;\n\n    let mut err32 = rshift64(error, 23 as c_uint) as int32_t;\n    if err32 < 0 {\n        err32 = -err32;\n    }\n    quantize_view.error = err32;\n\n    let mut parity_change = quantized_sample;\n    if error < 0 {\n        quantized_sample -= 1;\n    } else {\n        parity_change -= 1;\n    }\n\n    let inv = -((sample_difference < 0) as c_int) as int32_t;\n    quantize_view.quantized_sample = quantized_sample ^ inv;\n    quantize_view.quantized_sample_parity_change = parity_change ^ inv;\n}",
+            "start_byte": 53707
+          }
+        ],
+        "facts": {
+          "fn_name": "aptx_quantize_difference",
+          "target_span_hash": "0aed5352ec4bb28d5085fed0b0a9e606d4a0e74fafa12584e2bc4e24730dbbb2"
+        },
+        "operation_id": "replace-5b2b57b040e6be76"
+      }
+    ],
+    "resolved_head": "e8131785ed847292ebe3493a5feefa2ccb74f732"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/openaptx.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,736 @@
+{
+  "hot_function": {
+    "symbol": "OptimizeHuffmanForRle",
+    "location": "src/deflate.rs:844-946",
+    "workload": "tree_codegen",
+    "hot_region": "src/deflate.rs:844-946",
+    "rust_source": "pub unsafe fn OptimizeHuffmanForRle(\n    mut length: c_int,\n    mut counts: *mut size_t,\n) {\n    let mut i: c_int = 0;\n    let mut k: c_int = 0;\n    let mut stride: c_int = 0;\n    let mut symbol: size_t = 0;\n    let mut sum: size_t = 0;\n    let mut limit: size_t = 0;\n    let mut good_for_rle: *mut c_int = ::core::ptr::null_mut::<c_int>();\n    while length >= 0 as c_int {\n        if length == 0 as c_int {\n            return;\n        }\n        if *counts.offset((length - 1 as c_int) as isize) != 0 as size_t {\n            break;\n        }\n        length -= 1;\n    }\n    good_for_rle = malloc(\n        (length as c_uint as size_t)\n            .wrapping_mul(::core::mem::size_of::<c_int>() as size_t),\n    ) as *mut c_int;\n    i = 0 as c_int;\n    while i < length {\n        *good_for_rle.offset(i as isize) = 0 as c_int;\n        i += 1;\n    }\n    symbol = *counts.offset(0 as c_int as isize);\n    stride = 0 as c_int;\n    i = 0 as c_int;\n    while i < length + 1 as c_int {\n        if i == length || *counts.offset(i as isize) != symbol {\n            if symbol == 0 as size_t && stride >= 5 as c_int\n                || symbol != 0 as size_t && stride >= 7 as c_int\n            {\n                k = 0 as c_int;\n                while k < stride {\n                    *good_for_rle.offset((i - k - 1 as c_int) as isize) =\n                        1 as c_int;\n                    k += 1;\n                }\n            }\n            stride = 1 as c_int;\n            if i != length {\n                symbol = *counts.offset(i as isize);\n            }\n        } else {\n            stride += 1;\n        }\n        i += 1;\n    }\n    stride = 0 as c_int;\n    limit = *counts.offset(0 as c_int as isize);\n    sum = 0 as size_t;\n    i = 0 as c_int;\n    while i < length + 1 as c_int {\n        if i == length\n            || *good_for_rle.offset(i as isize) != 0\n            || AbsDiff(*counts.offset(i as isize), limit) >= 4 as size_t\n        {\n            if stride >= 4 as c_int\n                || stride >= 3 as c_int && sum == 0 as size_t\n            {\n                let mut count: c_int =\n                    sum.wrapping_add((stride / 2 as c_int) as size_t)\n                        .wrapping_div(stride as size_t) as c_int;\n                if count < 1 as c_int {\n                    count = 1 as c_int;\n                }\n                if sum == 0 as size_t {\n                    count = 0 as c_int;\n                }\n                k = 0 as c_int;\n                while k < stride {\n                    *counts.offset((i - k - 1 as c_int) as isize) = count as size_t;\n                    k += 1;\n                }\n            }\n            stride = 0 as c_int;\n            sum = 0 as size_t;\n            if i < length - 3 as c_int {\n                limit = (*counts.offset(i as isize))\n                    .wrapping_add(*counts.offset((i + 1 as c_int) as isize))\n                    .wrapping_add(*counts.offset((i + 2 as c_int) as isize))\n                    .wrapping_add(*counts.offset((i + 3 as c_int) as isize))\n                    .wrapping_add(2 as size_t)\n                    .wrapping_div(4 as size_t);\n            } else if i < length {\n                limit = *counts.offset(i as isize);\n            } else {\n                limit = 0 as size_t;\n            }\n        }\n        stride += 1;\n        if i != length {\n            sum = sum.wrapping_add(*counts.offset(i as isize));\n        }\n        i += 1;\n    }\n    free(good_for_rle as *mut c_void);\n}",
+    "signature": "pub unsafe fn OptimizeHuffmanForRle(\n    mut length: c_int,\n    mut counts: *mut size_t,\n)",
+    "profile": {
+      "self_time_ratio": 0.0915,
+      "call_count": null,
+      "retired_instructions": 1385537189,
+      "instructions_per_call": null,
+      "cpi": 0.396,
+      "tma": {
+        "scope": "process",
+        "retiring": 70.77338279286296,
+        "frontend_bound": 22.46719622558491,
+        "bad_speculation": 1.285734217606577,
+        "backend_bound": 5.473686763945548,
+        "memory_bound": 4.37048704125742,
+        "core_bound": 1.1031997226881276,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0021
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 864,
+        "message": "malloc will not be inlined into _ZN14zopfli_cleaned3src7deflate21OptimizeHuffmanForRle17h12480d165db60b17E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 945,
+        "message": "free will not be inlined into _ZN14zopfli_cleaned3src7deflate21OptimizeHuffmanForRle17h12480d165db60b17E because its definition is unavailable"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 876,
+        "message": "hoisting add"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 920,
+        "message": "hoisting select"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 926,
+        "message": "hoisting add"
+      },
+      {
+        "pass": "loop-idiom",
+        "status": "success",
+        "line": 870,
+        "message": "Transformed loop-strided store in _ZN14zopfli_cleaned3src7deflate21OptimizeHuffmanForRle17h12480d165db60b17E function into a call to llvm.memset.p0.i64() intrinsic"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 869,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 903,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 928,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 929,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 930,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 941,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 873,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 855,
+        "message": "sinking trunc"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 844,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN14zopfli_cleaned3src7deflate21OptimizeHuffmanForRle17h12480d165db60b17E: MI Instruction count changed from 0 to 310; Delta: 310"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 844,
+        "message": "Remove dead machine instructions: Function: _ZN14zopfli_cleaned3src7deflate21OptimizeHuffmanForRle17h12480d165db60b17E: MI Instruction count changed from 310 to 309; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 844,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN14zopfli_cleaned3src7deflate21OptimizeHuffmanForRle17h12480d165db60b17E: MI Instruction count changed from 309 to 299; Delta: -10"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 844,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN14zopfli_cleaned3src7deflate21OptimizeHuffmanForRle17h12480d165db60b17E: MI Instruction count changed from 299 to 296; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 844,
+        "message": "Machine code sinking: Function: _ZN14zopfli_cleaned3src7deflate21OptimizeHuffmanForRle17h12480d165db60b17E: MI Instruction count changed from 296 to 295; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 844,
+        "message": "Peephole Optimizations: Function: _ZN14zopfli_cleaned3src7deflate21OptimizeHuffmanForRle17h12480d165db60b17E: MI Instruction count changed from 295 to 293; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 844,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN14zopfli_cleaned3src7deflate21OptimizeHuffmanForRle17h12480d165db60b17E: MI Instruction count changed from 293 to 366; Delta: 73"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 844,
+        "message": "Two-Address instruction pass: Function: _ZN14zopfli_cleaned3src7deflate21OptimizeHuffmanForRle17h12480d165db60b17E: MI Instruction count changed from 366 to 410; Delta: 44"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 844,
+        "message": "Register Coalescer: Function: _ZN14zopfli_cleaned3src7deflate21OptimizeHuffmanForRle17h12480d165db60b17E: MI Instruction count changed from 410 to 250; Delta: -160"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 901,
+        "message": "1 reloads 3.556962e+00 total reloads cost 7 virtual registers copies 2.039240e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 877,
+        "message": "2 virtual registers copies 4.000000e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 855,
+        "message": "2 virtual registers copies 2.207595e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 844,
+        "message": "1 spills 2.151899e-01 total spills cost 2 reloads 3.772152e+00 total reloads cost 22 virtual registers copies 4.941772e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 844,
+        "message": "Greedy Register Allocator: Function: _ZN14zopfli_cleaned3src7deflate21OptimizeHuffmanForRle17h12480d165db60b17E: MI Instruction count changed from 250 to 257; Delta: 7"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 844,
+        "message": "Virtual Register Rewriter: Function: _ZN14zopfli_cleaned3src7deflate21OptimizeHuffmanForRle17h12480d165db60b17E: MI Instruction count changed from 257 to 250; Delta: -7"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 844,
+        "message": "56 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 844,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN14zopfli_cleaned3src7deflate21OptimizeHuffmanForRle17h12480d165db60b17E: MI Instruction count changed from 250 to 292; Delta: 42"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 844,
+        "message": "Control Flow Optimizer: Function: _ZN14zopfli_cleaned3src7deflate21OptimizeHuffmanForRle17h12480d165db60b17E: MI Instruction count changed from 292 to 261; Delta: -31"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 844,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN14zopfli_cleaned3src7deflate21OptimizeHuffmanForRle17h12480d165db60b17E: MI Instruction count changed from 261 to 265; Delta: 4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 844,
+        "message": "X86 LEA Fixup: Function: _ZN14zopfli_cleaned3src7deflate21OptimizeHuffmanForRle17h12480d165db60b17E: MI Instruction count changed from 265 to 266; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 844,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN14zopfli_cleaned3src7deflate21OptimizeHuffmanForRle17h12480d165db60b17E: MI Instruction count changed from 266 to 267; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 855,
+        "message": "BasicBlock: bb1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 946,
+        "message": "BasicBlock: bb74"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 873,
+        "message": "BasicBlock: bb14.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 893,
+        "message": "BasicBlock: bb34"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 895,
+        "message": "BasicBlock: bb35"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 877,
+        "message": "BasicBlock: bb14"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 877,
+        "message": "BasicBlock: bb16"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 878,
+        "message": "BasicBlock: bb17"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 879,
+        "message": "BasicBlock: bb22"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 882,
+        "message": "BasicBlock: bb26.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 882,
+        "message": "BasicBlock: vector.ph"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 883,
+        "message": "BasicBlock: vector.body"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 882,
+        "message": "BasicBlock: middle.block"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 882,
+        "message": "BasicBlock: bb26.preheader23"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 883,
+        "message": "BasicBlock: bb26"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 890,
+        "message": "BasicBlock: bb31"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 943,
+        "message": "BasicBlock: bb71"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 902,
+        "message": "BasicBlock: bb38"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 904,
+        "message": "BasicBlock: bb42"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 906,
+        "message": "BasicBlock: bb43"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 907,
+        "message": "BasicBlock: bb45"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 907,
+        "message": "BasicBlock: bb45"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 910,
+        "message": "BasicBlock: bb56.lr.ph"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 912,
+        "message": "BasicBlock:"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 919,
+        "message": "BasicBlock: vector.ph12"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 920,
+        "message": "BasicBlock: vector.body17"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 919,
+        "message": "BasicBlock: middle.block9"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 919,
+        "message": "BasicBlock: bb56.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 920,
+        "message": "BasicBlock: bb56"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 926,
+        "message": "BasicBlock: bb60"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 927,
+        "message": "BasicBlock: bb61"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 933,
+        "message": "BasicBlock: bb62"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 934,
+        "message": "BasicBlock: bb63"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 941,
+        "message": "BasicBlock: bb68.bb69_crit_edge"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 939,
+        "message": "BasicBlock: bb68.thread"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 945,
+        "message": "BasicBlock: bb72"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 844,
+        "message": "237 instructions in function"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 855,
+        "message": "1 virtual registers copies 1.199856e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 877,
+        "message": "1 reloads 9.738910e+01 total reloads cost 2 virtual registers copies 1.947782e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 901,
+        "message": "6 reloads 8.656808e+02 total reloads cost 2 folded reloads 4.707139e+02 total folded reloads cost 12 virtual registers copies 1.685372e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 856,
+        "message": "BasicBlock: bb2.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 859,
+        "message": "BasicBlock: bb4.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 859,
+        "message": "BasicBlock: bb4.i.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 859,
+        "message": "BasicBlock: bb4.i.2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 859,
+        "message": "BasicBlock: bb4.i.3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 859,
+        "message": "BasicBlock: bb4.i.bb8.isplitsplit_crit_edge"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 859,
+        "message": "BasicBlock: bb4.i.2.bb8.isplit_crit_edge"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 873,
+        "message": "BasicBlock: bb14.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 893,
+        "message": "BasicBlock: bb34.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 895,
+        "message": "BasicBlock: bb35.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 877,
+        "message": "BasicBlock: bb14.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 877,
+        "message": "BasicBlock: bb16.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 878,
+        "message": "BasicBlock: bb17.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 879,
+        "message": "BasicBlock: bb22.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 882,
+        "message": "BasicBlock: bb26.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 882,
+        "message": "BasicBlock: vector.ph67"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 883,
+        "message": "BasicBlock: vector.body72"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 882,
+        "message": "BasicBlock: middle.block64"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 882,
+        "message": "BasicBlock: bb26.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 883,
+        "message": "BasicBlock: bb26.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 890,
+        "message": "BasicBlock: bb31.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 901,
+        "message": "BasicBlock: bb37.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 943,
+        "message": "BasicBlock: bb71.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 904,
+        "message": "BasicBlock: bb42.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 906,
+        "message": "BasicBlock: bb43.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 907,
+        "message": "BasicBlock: bb45.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 907,
+        "message": "BasicBlock: bb45.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 910,
+        "message": "BasicBlock: bb56.lr.ph.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 912,
+        "message": "BasicBlock:"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 919,
+        "message": "BasicBlock: vector.ph55"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 920,
+        "message": "BasicBlock: vector.body58"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 919,
+        "message": "BasicBlock: middle.block53"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 919,
+        "message": "BasicBlock: bb56.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 920,
+        "message": "BasicBlock: bb56.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 926,
+        "message": "BasicBlock: bb60.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 927,
+        "message": "BasicBlock: bb61.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 933,
+        "message": "BasicBlock: bb62.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 934,
+        "message": "BasicBlock: bb63.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 941,
+        "message": "BasicBlock: bb68.bb69_crit_edge.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 939,
+        "message": "BasicBlock: bb68.thread.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

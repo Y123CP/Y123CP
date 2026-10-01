@@ -1,0 +1,228 @@
+{
+  "applied_rules": [
+    "freeform"
+  ],
+  "commit_sha": "99eae88",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -1.8576470978929591,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -1.7809708065479468,
+            "aggregate_ci_low_pct": -1.9343233892379714,
+            "aggregate_pct": -1.8576470978929591,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -1.9629,
+                "ci_low_pct": -2.3059,
+                "insns_delta_pct": -0.422,
+                "mean_delta_pct": -2.1344,
+                "op": "decode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.9166,
+                "ci_low_pct": -2.1115,
+                "insns_delta_pct": -1.0622,
+                "mean_delta_pct": -2.0141,
+                "op": "decode_sync_hd",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.4504,
+                "ci_low_pct": -1.8837,
+                "insns_delta_pct": -0.4698,
+                "mean_delta_pct": -1.667,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.444,
+                "ci_low_pct": -1.7861,
+                "insns_delta_pct": -0.8258,
+                "mean_delta_pct": -1.6151,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -2.3290581239496944,
+            "aggregate_ci_low_pct": -2.5071307105299003,
+            "aggregate_pct": -2.4180944172397973,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -1.811,
+                "ci_low_pct": -2.2854,
+                "insns_delta_pct": -0.5582,
+                "mean_delta_pct": -2.0482,
+                "op": "decode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.7266,
+                "ci_low_pct": -2.0338,
+                "insns_delta_pct": -1.0309,
+                "mean_delta_pct": -1.8802,
+                "op": "decode_sync_hd",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -2.9545,
+                "ci_low_pct": -3.1379,
+                "insns_delta_pct": -0.5912,
+                "mean_delta_pct": -3.0462,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -2.4421,
+                "ci_low_pct": -2.9535,
+                "insns_delta_pct": -0.7963,
+                "mean_delta_pct": -2.6978,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "decode_std",
+          "decode_sync_hd",
+          "encode_hd_reset",
+          "encode_std"
+        ],
+        "reason": "accepted",
+        "triggering_op": "encode_std"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "1ae54462cb293cdc84c0b2fd8ce55b1de9eb3bf2",
+      "changeset_id": "legacy-a25bab0367854355",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-30d42ec147a54410",
+          "replacement_function_source": "unsafe fn aptx_reconstructed_differences_update(\n    mut prediction: *mut aptx_prediction,\n    mut reconstructed_difference: int32_t,\n    mut order: c_int,\n) -> *mut int32_t {\n    let prediction_view: &mut aptx_prediction = unsafe { &mut *prediction }; // SAFETY: caller provides a valid, uniquely mutable pointer to aptx_prediction for the duration of this function.\n\n    let base = prediction_view.reconstructed_differences.as_mut_ptr();\n    let p = prediction_view.pos as c_int;\n\n    unsafe {\n        // SAFETY: `base` points to the 48-element `reconstructed_differences` array; callers/original code require `order` and `pos` to be in-range for these accesses.\n        *base.add(p as usize) = *base.add((order + p) as usize);\n    }\n\n    let new_p = if p + 1 == order { 0 } else { p + 1 };\n    prediction_view.pos = new_p as int32_t;\n\n    let out = unsafe {\n        // SAFETY: same bounds preconditions as above; `order + new_p` indexes the second half/window exactly as in the original code.\n        base.add((order + new_p) as usize)\n    };\n    unsafe {\n        // SAFETY: `out` was derived from the valid `base` pointer with the same in-bounds preconditions as the original code.\n        *out = reconstructed_difference;\n    }\n    out\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "70e7e51d3a5eec3520dcc0fa09b41b4bdd16e39cb04445efa4f8b22de272da8a",
+            "file_hint": "src/openaptx.rs",
+            "qualified_name": "crate::aptx_reconstructed_differences_update",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "aptx_reconstructed_differences_update-3409b0c65780",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "aptx_reconstructed_differences_update",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "c38f6c2c25a954e9b9fba100cfd51c7ace502396ae1defd81f613060eccce13a",
+            "edit_id": "edit-replace-30d42ec147a54410",
+            "end_byte": 61418,
+            "operation_id": "replace-30d42ec147a54410",
+            "relative_path": "src/openaptx.rs",
+            "replacement_text": "unsafe fn aptx_reconstructed_differences_update(\n    mut prediction: *mut aptx_prediction,\n    mut reconstructed_difference: int32_t,\n    mut order: c_int,\n) -> *mut int32_t {\n    let prediction_view: &mut aptx_prediction = unsafe { &mut *prediction }; // SAFETY: caller provides a valid, uniquely mutable pointer to aptx_prediction for the duration of this function.\n\n    let base = prediction_view.reconstructed_differences.as_mut_ptr();\n    let p = prediction_view.pos as c_int;\n\n    unsafe {\n        // SAFETY: `base` points to the 48-element `reconstructed_differences` array; callers/original code require `order` and `pos` to be in-range for these accesses.\n        *base.add(p as usize) = *base.add((order + p) as usize);\n    }\n\n    let new_p = if p + 1 == order { 0 } else { p + 1 };\n    prediction_view.pos = new_p as int32_t;\n\n    let out = unsafe {\n        // SAFETY: same bounds preconditions as above; `order + new_p` indexes the second half/window exactly as in the original code.\n        base.add((order + new_p) as usize)\n    };\n    unsafe {\n        // SAFETY: `out` was derived from the valid `base` pointer with the same in-bounds preconditions as the original code.\n        *out = reconstructed_difference;\n    }\n    out\n}",
+            "start_byte": 60715
+          }
+        ],
+        "facts": {
+          "fn_name": "aptx_reconstructed_differences_update",
+          "target_span_hash": "70e7e51d3a5eec3520dcc0fa09b41b4bdd16e39cb04445efa4f8b22de272da8a"
+        },
+        "operation_id": "replace-30d42ec147a54410"
+      }
+    ],
+    "resolved_head": "1ae54462cb293cdc84c0b2fd8ce55b1de9eb3bf2"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/openaptx.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

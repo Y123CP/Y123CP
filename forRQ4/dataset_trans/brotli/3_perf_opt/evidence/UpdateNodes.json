@@ -1,0 +1,557 @@
+{
+  "hot_function": {
+    "symbol": "UpdateNodes",
+    "location": "src/enc/backward_references_hq.rs:1262-1514",
+    "workload": "shared_dict_roundtrip",
+    "hot_region": "src/enc/backward_references_hq.rs:1262-1514",
+    "rust_source": "unsafe fn UpdateNodes(\n    num_bytes: size_t,\n    block_start: size_t,\n    pos: size_t,\n    mut ringbuffer: *const uint8_t,\n    ringbuffer_mask: size_t,\n    mut params: *const BrotliEncoderParams,\n    max_backward_limit: size_t,\n    mut starting_dist_cache: *const c_int,\n    num_matches: size_t,\n    mut matches: *const BackwardMatch,\n    mut model: *const ZopfliCostModel,\n    mut queue: *mut StartPosQueue,\n    mut nodes: *mut ZopfliNode,\n) -> size_t {\n    let stream_offset: size_t = (*params).stream_offset;\n    let cur_ix: size_t = block_start.wrapping_add(pos);\n    let cur_ix_masked: size_t = cur_ix & ringbuffer_mask;\n    let max_distance: size_t = brotli_min_size_t(cur_ix, max_backward_limit) as size_t;\n    let dictionary_start: size_t =\n        brotli_min_size_t(cur_ix.wrapping_add(stream_offset), max_backward_limit) as size_t;\n    let max_len: size_t = num_bytes.wrapping_sub(pos);\n    let max_zopfli_len: size_t = MaxZopfliLen(params) as size_t;\n    let max_iters: size_t = MaxZopfliCandidates(params) as size_t;\n    let mut min_len: size_t = 0;\n    let mut result: size_t = 0 as size_t;\n    let mut k: size_t = 0;\n    let mut addon: *const CompoundDictionary = &raw const (*params).dictionary.compound;\n    let mut gap: size_t = (*addon).total_size;\n    EvaluateNode(\n        block_start.wrapping_add(stream_offset),\n        pos,\n        max_backward_limit,\n        gap,\n        starting_dist_cache,\n        model,\n        queue,\n        nodes,\n    );\n    let mut posdata: *const PosData = StartPosQueueAt(queue, 0 as size_t);\n    let mut min_cost: c_float = (*posdata).cost\n        + ZopfliCostModelGetMinCostCmd(model)\n        + ZopfliCostModelGetLiteralCosts(model, (*posdata).pos, pos);\n    min_len = ComputeMinimumCopyLength(min_cost, nodes, num_bytes, pos);\n    k = 0 as size_t;\n    while k < max_iters && k < StartPosQueueSize(queue) {\n        let mut posdata_0: *const PosData = StartPosQueueAt(queue, k);\n        let start: size_t = (*posdata_0).pos;\n        let inscode: uint16_t = GetInsertLengthCode(pos.wrapping_sub(start)) as uint16_t;\n        let start_costdiff: c_float = (*posdata_0).costdiff;\n        let base_cost: c_float = start_costdiff\n            + GetInsertExtra(inscode) as c_float\n            + ZopfliCostModelGetLiteralCosts(model, 0 as size_t, pos) as c_float;\n        let mut best_len: size_t = min_len.wrapping_sub(1 as size_t);\n        let mut j: size_t = 0 as size_t;\n        let mut current_block_23: u64;\n        while j < BROTLI_NUM_DISTANCE_SHORT_CODES as size_t && best_len < max_len {\n            let idx: size_t = kDistanceCacheIndex[j as usize] as size_t;\n            let backward: size_t = ((*posdata_0).distance_cache[idx as usize]\n                + kDistanceCacheOffset[j as usize]) as size_t;\n            let mut prev_ix: size_t = cur_ix.wrapping_sub(backward);\n            let mut len: size_t = 0 as size_t;\n            let mut continuation: uint8_t =\n                *ringbuffer.offset(cur_ix_masked.wrapping_add(best_len) as isize);\n            if cur_ix_masked.wrapping_add(best_len) > ringbuffer_mask {\n                break;\n            }\n            if !((backward > dictionary_start.wrapping_add(gap)) as c_int\n                as c_long\n                != 0)\n            {\n                if backward <= max_distance {\n                    if prev_ix >= cur_ix {\n                        current_block_23 = 4166486009154926805;\n                    } else {\n                        prev_ix = (prev_ix as c_ulong\n                            & ringbuffer_mask as c_ulong)\n                            as size_t;\n                        if prev_ix.wrapping_add(best_len) > ringbuffer_mask\n                            || continuation as c_int\n                                != *ringbuffer.offset(prev_ix.wrapping_add(best_len) as isize)\n                                    as c_int\n                        {\n                            current_block_23 = 4166486009154926805;\n                        } else {\n                            len = FindMatchLengthWithLimit(\n                                ringbuffer.offset(prev_ix as isize) as *const uint8_t,\n                                ringbuffer.offset(cur_ix_masked as isize) as *const uint8_t,\n                                max_len,\n                            );\n                            current_block_23 = 2873832966593178012;\n                        }\n                    }\n                } else if backward > dictionary_start {\n                    let mut d: size_t = 0 as size_t;\n                    let mut offset: size_t = 0;\n                    let mut limit: size_t = 0;\n                    let mut source: *const uint8_t = ::core::ptr::null::<uint8_t>();\n                    offset = dictionary_start\n                        .wrapping_add(1 as size_t)\n                        .wrapping_add((*addon).total_size)\n                        .wrapping_sub(1 as size_t);\n                    while offset\n                        >= backward.wrapping_add(\n                            (*addon).chunk_offsets[d.wrapping_add(1 as size_t) as usize],\n                        )\n                    {\n                        d = d.wrapping_add(1);\n                    }\n                    source = (*addon).chunk_source[d as usize];\n                    offset = offset\n                        .wrapping_sub((*addon).chunk_offsets[d as usize])\n                        .wrapping_sub(backward);\n                    limit = (*addon).chunk_offsets[d.wrapping_add(1 as size_t) as usize]\n                        .wrapping_sub((*addon).chunk_offsets[d as usize])\n                        .wrapping_sub(offset);\n                    limit = if limit > max_len { max_len } else { limit };\n                    if best_len >= limit\n                        || continuation as c_int\n                            != *source.offset(offset.wrapping_add(best_len) as isize)\n                                as c_int\n                    {\n                        current_block_23 = 4166486009154926805;\n                    } else {\n                        len = FindMatchLengthWithLimit(\n                            source.offset(offset as isize) as *const uint8_t,\n                            ringbuffer.offset(cur_ix_masked as isize) as *const uint8_t,\n                            limit,\n                        );\n                        current_block_23 = 2873832966593178012;\n                    }\n                } else {\n                    current_block_23 = 4166486009154926805;\n                }\n                match current_block_23 {\n                    4166486009154926805 => {}\n                    _ => {\n                        let dist_cost: c_float = base_cost\n                            + ZopfliCostModelGetDistanceCost(model, j) as c_float;\n                        let mut l: size_t = 0;\n                        l = best_len.wrapping_add(1 as size_t);\n                        while l <= len {\n                            let copycode: uint16_t = GetCopyLengthCode(l) as uint16_t;\n                            let cmdcode: uint16_t = CombineLengthCodes(\n                                inscode,\n                                copycode,\n                                (j == 0 as size_t) as c_int,\n                            ) as uint16_t;\n                            let cost: c_float =\n                                (if (cmdcode as c_int) < 128 as c_int {\n                                    base_cost\n                                } else {\n                                    dist_cost\n                                }) + GetCopyExtra(copycode) as c_float\n                                    + ZopfliCostModelGetCommandCost(model, cmdcode)\n                                        as c_float;\n                            if cost < (*nodes.offset(pos.wrapping_add(l) as isize)).u.cost {\n                                UpdateZopfliNode(\n                                    nodes,\n                                    pos,\n                                    start,\n                                    l,\n                                    l,\n                                    backward,\n                                    j.wrapping_add(1 as size_t),\n                                    cost,\n                                );\n                                result = brotli_max_size_t(result, l);\n                            }\n                            best_len = l;\n                            l = l.wrapping_add(1);\n                        }\n                    }\n                }\n            }\n            j = j.wrapping_add(1);\n        }\n        if !(k >= 2 as size_t) {\n            let mut len_0: size_t = min_len;\n            j = 0 as size_t;\n            while j < num_matches {\n                let mut match_0: BackwardMatch = *matches.offset(j as isize);\n                let mut dist: size_t = match_0.distance as size_t;\n                let mut is_dictionary_match: c_int =\n                    if dist > dictionary_start.wrapping_add(gap) {\n                        BROTLI_TRUE\n                    } else {\n                        BROTLI_FALSE\n                    };\n                let mut dist_code: size_t = dist\n                    .wrapping_add(BROTLI_NUM_DISTANCE_SHORT_CODES as size_t)\n                    .wrapping_sub(1 as size_t);\n                let mut dist_symbol: uint16_t = 0;\n                let mut distextra: uint32_t = 0;\n                let mut distnumextra: uint32_t = 0;\n                let mut dist_cost_0: c_float = 0.;\n                let mut max_match_len: size_t = 0;\n                PrefixEncodeCopyDistance(\n                    dist_code,\n                    (*params).dist.num_direct_distance_codes as size_t,\n                    (*params).dist.distance_postfix_bits as size_t,\n                    &raw mut dist_symbol,\n                    &raw mut distextra,\n                );\n                distnumextra =\n                    (dist_symbol as c_int >> 10 as c_int) as uint32_t;\n                dist_cost_0 = base_cost\n                    + distnumextra as c_float\n                    + ZopfliCostModelGetDistanceCost(\n                        model,\n                        (dist_symbol as c_int & 0x3ff as c_int) as size_t,\n                    );\n                max_match_len = BackwardMatchLength(&raw mut match_0);\n                if len_0 < max_match_len\n                    && (is_dictionary_match != 0 || max_match_len > max_zopfli_len)\n                {\n                    len_0 = max_match_len;\n                }\n                while len_0 <= max_match_len {\n                    let len_code: size_t = if is_dictionary_match != 0 {\n                        BackwardMatchLengthCode(&raw mut match_0) as size_t\n                    } else {\n                        len_0\n                    };\n                    let copycode_0: uint16_t = GetCopyLengthCode(len_code) as uint16_t;\n                    let cmdcode_0: uint16_t =\n                        CombineLengthCodes(inscode, copycode_0, 0 as c_int)\n                            as uint16_t;\n                    let cost_0: c_float = dist_cost_0\n                        + GetCopyExtra(copycode_0) as c_float\n                        + ZopfliCostModelGetCommandCost(model, cmdcode_0) as c_float;\n                    if cost_0 < (*nodes.offset(pos.wrapping_add(len_0) as isize)).u.cost {\n                        UpdateZopfliNode(\n                            nodes,\n                            pos,\n                            start,\n                            len_0,\n                            len_code,\n                            dist,\n                            0 as size_t,\n                            cost_0,\n                        );\n                        result = brotli_max_size_t(result, len_0);\n                    }\n                    len_0 = len_0.wrapping_add(1);\n                }\n                j = j.wrapping_add(1);\n            }\n        }\n        k = k.wrapping_add(1);\n    }\n    return result;\n}",
+    "signature": "unsafe fn UpdateNodes(\n    num_bytes: size_t,\n    block_start: size_t,\n    pos: size_t,\n    mut ringbuffer: *const uint8_t,\n    ringbuffer_mask: size_t,\n    mut params: *const BrotliEncoderParams,\n    max_backward_limit: size_t,\n    mut starting_dist_cache: *const c_int,\n    num_matches: size_t,\n    mut matches: *const BackwardMatch,\n    mut model: *const ZopfliCostModel,\n    mut queue: *mut StartPosQueue,\n    mut nodes: *mut ZopfliNode,\n) -> size_t",
+    "profile": {
+      "self_time_ratio": 0.4027,
+      "call_count": null,
+      "retired_instructions": 12658897942,
+      "instructions_per_call": null,
+      "cpi": 0.323,
+      "tma": {
+        "scope": "process",
+        "retiring": 70.07551882142104,
+        "frontend_bound": 17.98487725045614,
+        "bad_speculation": 5.518251628633782,
+        "backend_bound": 6.4213522994890395,
+        "memory_bound": 3.5044365328091303,
+        "core_bound": 2.9169157666799093,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0058
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C1": 1,
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1320,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1366,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1371,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1310,
+        "message": "'_ZN14brotli_cleaned3src3enc22backward_references_hq19GetInsertLengthCode17he57e9d6163bf4eceE' inlined into '_ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E': always inline attribute at callsite _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E:48:33;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1386,
+        "message": "'_ZN14brotli_cleaned3src3enc22backward_references_hq24FindMatchLengthWithLimit17h2c64e87f57e5229aE' inlined into '_ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E': always inline attribute at callsite _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E:124:31;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1347,
+        "message": "'_ZN14brotli_cleaned3src3enc22backward_references_hq24FindMatchLengthWithLimit17h2c64e87f57e5229aE' inlined into '_ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E': always inline attribute at callsite _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E:85:35;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1404,
+        "message": "'_ZN14brotli_cleaned3src3enc22backward_references_hq17GetCopyLengthCode17ha7e87604c931ecdaE' inlined into '_ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E': always inline attribute at callsite _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E:142:54;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1405,
+        "message": "'_ZN14brotli_cleaned3src13c_inlined_fns18CombineLengthCodes17h84dfcacf1c0813c0E' inlined into '_ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E': always inline attribute at callsite _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E:143:53;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1459,
+        "message": "'_ZN14brotli_cleaned3src3enc22backward_references_hq24PrefixEncodeCopyDistance17h375cefa40427ead4E' inlined into '_ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E': always inline attribute at callsite _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E:197:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1486,
+        "message": "'_ZN14brotli_cleaned3src3enc22backward_references_hq17GetCopyLengthCode17ha7e87604c931ecdaE' inlined into '_ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E': always inline attribute at callsite _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E:224:48;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1488,
+        "message": "'_ZN14brotli_cleaned3src13c_inlined_fns18CombineLengthCodes17h84dfcacf1c0813c0E' inlined into '_ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E': always inline attribute at callsite _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E:226:25;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1291,
+        "message": "'_ZN14brotli_cleaned3src3enc22backward_references_hq12EvaluateNode17h21bcdc14b51ac523E' not inlined into '_ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E' because too costly to inline (cost=425, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1305,
+        "message": "'_ZN14brotli_cleaned3src3enc22backward_references_hq24ComputeMinimumCopyLength17h81bf5de31d17843bE' inlined into '_ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E' with (cost=-14960, threshold=250) at callsite _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E:43:15;"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1408,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1362,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1481,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1481,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1481,
+        "message": "hoisting zext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1481,
+        "message": "hoisting select"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1461,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1461,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1462,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1442,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 1364,
+        "message": "completely unrolled loop with 16 iterations"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1302,
+        "message": "load of type float not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1304,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1362,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1366,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1443,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1461,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1462,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1366,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1366,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 0 to 1305; Delta: 1305"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "Finalize ISel and expand pseudo-instructions: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1305 to 1307; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "Early Tail Duplication: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1307 to 1305; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "Merge disjoint stack slots: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1305 to 1301; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "Remove dead machine instructions: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1301 to 1300; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1300 to 1293; Delta: -7"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1293 to 1270; Delta: -23"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "Peephole Optimizations: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1270 to 1271; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "X86 Fixup SetCC: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1271 to 1272; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "Process Implicit Definitions: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1272 to 1254; Delta: -18"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1254 to 1455; Delta: 201"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "Two-Address instruction pass: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1455 to 1703; Delta: 248"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "Register Coalescer: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1703 to 1067; Delta: -636"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1403,
+        "message": "1 spills 1.569869e+01 total spills cost 6 reloads 8.245785e+01 total reloads cost 2 folded reloads 4.516683e+01 total folded reloads cost 8 virtual registers copies 1.482436e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1318,
+        "message": "1 spills 1.569869e+01 total spills cost 28 reloads 2.018524e+02 total reloads cost 7 folded reloads 1.290241e+02 total folded reloads cost 18 virtual registers copies 1.671941e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1480,
+        "message": "1 spills 3.502415e+02 total spills cost 4 reloads 1.400966e+03 total reloads cost 6 virtual registers copies 2.890981e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1442,
+        "message": "1 spills 3.502415e+02 total spills cost 6 reloads 1.445447e+03 total reloads cost 2 folded reloads 6.777225e+01 total folded reloads cost 14 virtual registers copies 3.138078e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1307,
+        "message": "9 spills 3.849944e+02 total spills cost 41 reloads 1.666527e+03 total reloads cost 12 folded reloads 2.086918e+02 total folded reloads cost 37 virtual registers copies 3.321377e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1262,
+        "message": "27 spills 4.029944e+02 total spills cost 1 folded spills 1.000000e+00 total folded spills cost 50 reloads 1.678614e+03 total reloads cost 16 folded reloads 2.195649e+02 total folded reloads cost 74 virtual registers copies 3.359086e+03 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "Greedy Register Allocator: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1067 to 1171; Delta: 104"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "Virtual Register Rewriter: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1171 to 1141; Delta: -30"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 1262,
+        "message": "296 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1141 to 1159; Delta: 18"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "Control Flow Optimizer: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1159 to 1060; Delta: -99"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1060 to 1079; Delta: 19"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "BreakFalseDeps: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1079 to 1083; Delta: 4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "X86 LEA Fixup: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1083 to 1091; Delta: 8"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1262,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN14brotli_cleaned3src3enc22backward_references_hq11UpdateNodes17he01b293afacbb467E: MI Instruction count changed from 1091 to 1092; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1319,
+        "message": "BasicBlock: bb10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1318,
+        "message": "BasicBlock: bb61"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1366,
+        "message": "BasicBlock: bb29.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1366,
+        "message": "BasicBlock: bb29.2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1366,
+        "message": "BasicBlock: bb29.3"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1366,
+        "message": "BasicBlock: bb29.4"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1366,
+        "message": "BasicBlock: bb29.5"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1366,
+        "message": "BasicBlock: bb29.6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1366,
+        "message": "BasicBlock: bb29.7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1366,
+        "message": "BasicBlock: bb29.8"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1366,
+        "message": "BasicBlock: bb29.9"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1366,
+        "message": "BasicBlock: bb29.10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1366,
+        "message": "BasicBlock: bb29.11"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1366,
+        "message": "BasicBlock: bb29.12"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1366,
+        "message": "BasicBlock: bb29.13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1366,
+        "message": "BasicBlock: bb29.14"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1403,
+        "message": "BasicBlock: bb59"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1439,
+        "message": "BasicBlock: bb64"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1443,
+        "message": "BasicBlock: bb68"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1462,
+        "message": "BasicBlock: bb2.i200"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1446,
+        "message": "BasicBlock: bb81"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1320,
+        "message": "BasicBlock: panic10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1366,
+        "message": "BasicBlock: panic20"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1262,
+        "message": "1063 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

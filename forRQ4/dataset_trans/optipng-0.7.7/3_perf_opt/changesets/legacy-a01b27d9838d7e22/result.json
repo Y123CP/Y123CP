@@ -1,0 +1,141 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 2.0607043461296715,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 3.0444705142294266,
+            "aggregate_ci_low_pct": 1.0769381780299165,
+            "aggregate_pct": 2.0607043461296715,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 3.0445,
+                "ci_low_pct": 1.0769,
+                "insns_delta_pct": 2.7159,
+                "mean_delta_pct": 2.0607,
+                "op": "png_write_read_roundtrip",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "png_write_read_roundtrip",
+          "zlib_deflate_inflate_stream"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "png_write_read_roundtrip"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "c8b3d69d7259f04aa4373db4421c0fb3896cb4d0",
+      "changeset_id": "legacy-a01b27d9838d7e22",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-575593baf1a19b9c",
+          "replacement_function_source": "// Applied rules: [III④, C3, C1, II_vec]\n// Skipped rules: []\nunsafe fn scan_tree(\n    mut s: *mut deflate_state,\n    mut tree: *mut ct_data,\n    mut max_code: c_int,\n) {\n    let mut prevlen: c_int = -(1 as c_int);\n    let mut curlen: c_int;\n    // SAFETY: `tree[max_code + 1]` is written below and `tree[n + 1]` is read for\n    // every `n` in `0..=max_code`, so the caller contract for this function already\n    // requires `tree` to be non-null and valid for `max_code + 2` contiguous\n    // `ct_data` elements. No other reference to this region is created here.\n    let tree = unsafe { core::slice::from_raw_parts_mut(tree, (max_code + 2) as usize) };\n    let mut nextlen: c_int = tree[0].dl.len as c_int;\n    let mut count: c_int = 0 as c_int;\n    let mut max_count: c_int = 7 as c_int;\n    let mut min_count: c_int = 4 as c_int;\n    if nextlen == 0 as c_int {\n        max_count = 138 as c_int;\n        min_count = 3 as c_int;\n    }\n    tree[(max_code + 1 as c_int) as usize].dl.len = 0xffff as c_int as ush;\n\n    let bl_tree = &mut (*s).bl_tree;\n    for n in 0..=(max_code as usize) {\n        curlen = nextlen;\n        nextlen = tree[n + 1].dl.len as c_int;\n        count += 1;\n        if !(count < max_count && curlen == nextlen) {\n            if count < min_count {\n                // SAFETY: `curlen` is a bit-length code used as an index into `bl_tree`;\n                // in this routine it is always within the valid `bl_tree` domain.\n                unsafe {\n                    (*bl_tree.get_unchecked_mut(curlen as usize)).fc.freq =\n                        ((*bl_tree.get_unchecked(curlen as usize)).fc.freq as c_int + count) as ush;\n                }\n            } else if curlen != 0 as c_int {\n                if curlen != prevlen {\n                    // SAFETY: `curlen` is within the valid `bl_tree` domain for the same\n                    // reason as above.\n                    unsafe {\n                        (*bl_tree.get_unchecked_mut(curlen as usize)).fc.freq =\n                            (*bl_tree.get_unchecked(curlen as usize)).fc.freq.wrapping_add(1);\n                    }\n                }\n                // SAFETY: `REP_3_6` is a fixed valid index into `bl_tree`.\n                unsafe {\n                    (*bl_tree.get_unchecked_mut(REP_3_6 as usize)).fc.freq =\n                        (*bl_tree.get_unchecked(REP_3_6 as usize)).fc.freq.wrapping_add(1);\n                }\n            } else if count <= 10 as c_int {\n                // SAFETY: `REPZ_3_10` is a fixed valid index into `bl_tree`.\n                unsafe {\n                    (*bl_tree.get_unchecked_mut(REPZ_3_10 as usize)).fc.freq =\n                        (*bl_tree.get_unchecked(REPZ_3_10 as usize)).fc.freq.wrapping_add(1);\n                }\n            } else {\n                // SAFETY: `REPZ_11_138` is a fixed valid index into `bl_tree`.\n                unsafe {\n                    (*bl_tree.get_unchecked_mut(REPZ_11_138 as usize)).fc.freq =\n                        (*bl_tree.get_unchecked(REPZ_11_138 as usize)).fc.freq.wrapping_add(1);\n                }\n            }\n            count = 0 as c_int;\n            prevlen = curlen;\n            if nextlen == 0 as c_int {\n                max_count = 138 as c_int;\n                min_count = 3 as c_int;\n            } else if curlen == nextlen {\n                max_count = 6 as c_int;\n                min_count = 3 as c_int;\n            } else {\n                max_count = 7 as c_int;\n                min_count = 4 as c_int;\n            }\n        }\n    }\n}",
+          "rule_id": "III④,C3,C1",
+          "target": {
+            "declaration_hash": "1f5e5ab93e6899bfeaedf4e68af804fec933b96123a5f8aad46bd3b8a895c044",
+            "file_hint": "src/zlib/trees.rs",
+            "qualified_name": "crate::scan_tree",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "scan_tree-f4974302ca6d",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "scan_tree",
+        "rule_id": "III④,C3,C1"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "e8cc86eb23908d9fb7acb6b3c19a096596e8ec6037505772dc16687666ca8ecf",
+            "edit_id": "edit-replace-575593baf1a19b9c",
+            "end_byte": 101735,
+            "operation_id": "replace-575593baf1a19b9c",
+            "relative_path": "src/zlib/trees.rs",
+            "replacement_text": "// Applied rules: [III④, C3, C1, II_vec]\n// Skipped rules: []\nunsafe fn scan_tree(\n    mut s: *mut deflate_state,\n    mut tree: *mut ct_data,\n    mut max_code: c_int,\n) {\n    let mut prevlen: c_int = -(1 as c_int);\n    let mut curlen: c_int;\n    // SAFETY: `tree[max_code + 1]` is written below and `tree[n + 1]` is read for\n    // every `n` in `0..=max_code`, so the caller contract for this function already\n    // requires `tree` to be non-null and valid for `max_code + 2` contiguous\n    // `ct_data` elements. No other reference to this region is created here.\n    let tree = unsafe { core::slice::from_raw_parts_mut(tree, (max_code + 2) as usize) };\n    let mut nextlen: c_int = tree[0].dl.len as c_int;\n    let mut count: c_int = 0 as c_int;\n    let mut max_count: c_int = 7 as c_int;\n    let mut min_count: c_int = 4 as c_int;\n    if nextlen == 0 as c_int {\n        max_count = 138 as c_int;\n        min_count = 3 as c_int;\n    }\n    tree[(max_code + 1 as c_int) as usize].dl.len = 0xffff as c_int as ush;\n\n    let bl_tree = &mut (*s).bl_tree;\n    for n in 0..=(max_code as usize) {\n        curlen = nextlen;\n        nextlen = tree[n + 1].dl.len as c_int;\n        count += 1;\n        if !(count < max_count && curlen == nextlen) {\n            if count < min_count {\n                // SAFETY: `curlen` is a bit-length code used as an index into `bl_tree`;\n                // in this routine it is always within the valid `bl_tree` domain.\n                unsafe {\n                    (*bl_tree.get_unchecked_mut(curlen as usize)).fc.freq =\n                        ((*bl_tree.get_unchecked(curlen as usize)).fc.freq as c_int + count) as ush;\n                }\n            } else if curlen != 0 as c_int {\n                if curlen != prevlen {\n                    // SAFETY: `curlen` is within the valid `bl_tree` domain for the same\n                    // reason as above.\n                    unsafe {\n                        (*bl_tree.get_unchecked_mut(curlen as usize)).fc.freq =\n                            (*bl_tree.get_unchecked(curlen as usize)).fc.freq.wrapping_add(1);\n                    }\n                }\n                // SAFETY: `REP_3_6` is a fixed valid index into `bl_tree`.\n                unsafe {\n                    (*bl_tree.get_unchecked_mut(REP_3_6 as usize)).fc.freq =\n                        (*bl_tree.get_unchecked(REP_3_6 as usize)).fc.freq.wrapping_add(1);\n                }\n            } else if count <= 10 as c_int {\n                // SAFETY: `REPZ_3_10` is a fixed valid index into `bl_tree`.\n                unsafe {\n                    (*bl_tree.get_unchecked_mut(REPZ_3_10 as usize)).fc.freq =\n                        (*bl_tree.get_unchecked(REPZ_3_10 as usize)).fc.freq.wrapping_add(1);\n                }\n            } else {\n                // SAFETY: `REPZ_11_138` is a fixed valid index into `bl_tree`.\n                unsafe {\n                    (*bl_tree.get_unchecked_mut(REPZ_11_138 as usize)).fc.freq =\n                        (*bl_tree.get_unchecked(REPZ_11_138 as usize)).fc.freq.wrapping_add(1);\n                }\n            }\n            count = 0 as c_int;\n            prevlen = curlen;\n            if nextlen == 0 as c_int {\n                max_count = 138 as c_int;\n                min_count = 3 as c_int;\n            } else if curlen == nextlen {\n                max_count = 6 as c_int;\n                min_count = 3 as c_int;\n            } else {\n                max_count = 7 as c_int;\n                min_count = 4 as c_int;\n            }\n        }\n    }\n}",
+            "start_byte": 99492
+          }
+        ],
+        "facts": {
+          "fn_name": "scan_tree",
+          "target_span_hash": "1f5e5ab93e6899bfeaedf4e68af804fec933b96123a5f8aad46bd3b8a895c044"
+        },
+        "operation_id": "replace-575593baf1a19b9c"
+      }
+    ],
+    "resolved_head": "c8b3d69d7259f04aa4373db4421c0fb3896cb4d0"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/zlib/trees.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

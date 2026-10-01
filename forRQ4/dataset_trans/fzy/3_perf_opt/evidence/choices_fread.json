@@ -1,0 +1,254 @@
+{
+  "hot_function": {
+    "symbol": "choices_fread",
+    "location": "src/choices.rs:366-416",
+    "workload": "choices_fread_search",
+    "hot_region": "src/choices.rs:366-416",
+    "rust_source": "pub unsafe fn choices_fread(\n    mut c: *mut choices_t,\n    mut file: *mut FILE,\n    mut input_delimiter: c_char,\n) {\n    let mut buffer_start: size_t = (*c).buffer_size;\n    let mut capacity: size_t = INITIAL_BUFFER_CAPACITY as size_t;\n    while capacity <= (*c).buffer_size {\n        capacity = capacity.wrapping_mul(2 as size_t);\n    }\n    (*c).buffer =\n        safe_realloc((*c).buffer as *mut c_void, capacity) as *mut c_char;\n    loop {\n        (*c).buffer_size = ((*c).buffer_size as c_ulong).wrapping_add(fread(\n            (*c).buffer.offset((*c).buffer_size as isize) as *mut c_void,\n            1 as size_t,\n            capacity.wrapping_sub((*c).buffer_size),\n            file,\n        )) as size_t as size_t;\n        if !((*c).buffer_size == capacity) {\n            break;\n        }\n        capacity = capacity.wrapping_mul(2 as size_t);\n        (*c).buffer = safe_realloc((*c).buffer as *mut c_void, capacity)\n            as *mut c_char;\n    }\n    (*c).buffer = safe_realloc(\n        (*c).buffer as *mut c_void,\n        (*c).buffer_size.wrapping_add(1 as size_t),\n    ) as *mut c_char;\n    let fresh0 = (*c).buffer_size;\n    (*c).buffer_size = (*c).buffer_size.wrapping_add(1);\n    *(*c).buffer.offset(fresh0 as isize) = '\\0' as i32 as c_char;\n    let mut line_end: *const c_char = (*c).buffer.offset((*c).buffer_size as isize);\n    let mut line: *mut c_char = (*c).buffer.offset(buffer_start as isize);\n    loop {\n        let mut nl: *mut c_char = strchr(line, input_delimiter as c_int);\n        if !nl.is_null() {\n            let fresh1 = nl;\n            nl = nl.offset(1);\n            *fresh1 = '\\0' as i32 as c_char;\n        }\n        if *line != 0 {\n            choices_add(c, line);\n        }\n        line = nl;\n        if !(!line.is_null() && line < line_end as *mut c_char) {\n            break;\n        }\n    }\n}",
+    "signature": "pub unsafe fn choices_fread(\n    mut c: *mut choices_t,\n    mut file: *mut FILE,\n    mut input_delimiter: c_char,\n)",
+    "profile": {
+      "self_time_ratio": 0.0931,
+      "call_count": null,
+      "retired_instructions": 473434124,
+      "instructions_per_call": null,
+      "cpi": 1.145,
+      "tma": {
+        "scope": "process",
+        "retiring": 49.703898241515674,
+        "frontend_bound": 14.154579282667237,
+        "bad_speculation": 2.0024497510472155,
+        "backend_bound": 34.13907272476987,
+        "memory_bound": 19.95031148829699,
+        "core_bound": 14.188761236472876,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0022
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_vec": {
+        "CantComputeNumberOfIterations": 2
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 377,
+        "message": "_ZN11fzy_cleaned3src7choices12safe_realloc17h14dae50cd6491f86E will not be inlined into _ZN11fzy_cleaned3src7choices13choices_fread17hb4497a6240adc94cE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 379,
+        "message": "fread will not be inlined into _ZN11fzy_cleaned3src7choices13choices_fread17hb4497a6240adc94cE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 392,
+        "message": "_ZN11fzy_cleaned3src7choices12safe_realloc17h14dae50cd6491f86E will not be inlined into _ZN11fzy_cleaned3src7choices13choices_fread17hb4497a6240adc94cE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 389,
+        "message": "_ZN11fzy_cleaned3src7choices12safe_realloc17h14dae50cd6491f86E will not be inlined into _ZN11fzy_cleaned3src7choices13choices_fread17hb4497a6240adc94cE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 402,
+        "message": "strchr will not be inlined into _ZN11fzy_cleaned3src7choices13choices_fread17hb4497a6240adc94cE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 409,
+        "message": "'_ZN11fzy_cleaned3src7choices11choices_add17h459c43ccfb236c05E' inlined into '_ZN11fzy_cleaned3src7choices13choices_fread17hb4497a6240adc94cE' with (cost=-14915, threshold=325) at callsite _ZN11fzy_cleaned3src7choices13choices_fread17hb4497a6240adc94cE:43:13;"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 379,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 389,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 378,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 401,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 379,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 393,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 396,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 399,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 399,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 408,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 389,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 393,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 399,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 371,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 371,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 396,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 399,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 385,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 371,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 401,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 401,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 373,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 373,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 373,
+        "message": "1 virtual registers copies 2.748417e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 401,
+        "message": "6 virtual registers copies 9.747894e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 393,
+        "message": "BasicBlock: bb8.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 392,
+        "message": "BasicBlock: _ZN11fzy_cleaned3src7choices12safe_realloc17h14dae50cd6491f86E.exit15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 402,
+        "message": "BasicBlock: bb11.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": "error[E0433]: failed to resolve: use of undeclared crate or module `libc`\n   --> /perf-build/crate/src/deflate.rs:867:9\n    |\n867 |         libc::memset(\n    |         ^^^^ use of undeclared crate or module `libc`\n\nFor more information about this error, try `rustc --explain E0433`.\nerror: could not compile `zopfli_cleaned` (lib) due to 1 previous error; 26 warnings emitted"
+      },
+      "gate": "build",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "94d8721cec80a35a3a1d777c3d316139b3fe8dcd",
+      "changeset_id": "legacy-ccb2498c7668f8f9",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-88c3d5efe49b9fbd",
+          "replacement_function_source": "#[inline]\npub unsafe fn OptimizeHuffmanForRle(\n    mut length: c_int,\n    mut counts: *mut size_t,\n) {\n    while length >= 0 {\n        if length == 0 {\n            return;\n        }\n        // SAFETY: `counts` points to an array with at least `length` elements per caller contract.\n        if unsafe { *counts.add((length - 1) as usize) } != 0 {\n            break;\n        }\n        length -= 1;\n    }\n\n    let good_for_rle = malloc(\n        (length as c_uint as size_t)\n            .wrapping_mul(::core::mem::size_of::<c_int>() as size_t),\n    ) as *mut c_int;\n\n    // SAFETY: `good_for_rle` is either null or points to `length * size_of::<c_int>()` bytes from `malloc`;\n    // writing zero bytes over that exact allocation matches the original initialization loop.\n    unsafe {\n        libc::memset(\n            good_for_rle as *mut c_void,\n            0,\n            (length as usize).wrapping_mul(::core::mem::size_of::<c_int>()),\n        );\n    }\n\n    // SAFETY: `counts` has at least one element when we reach here (`length > 0` due to early return above).\n    let mut symbol: size_t = unsafe { *counts };\n    let mut stride: c_int = 0;\n    let mut i: c_int = 0;\n\n    while i < length + 1 {\n        let at_end = i == length;\n        // SAFETY: when `at_end` is false, `i < length`, so `counts.add(i)` is in-bounds.\n        let cur = if at_end { symbol } else { unsafe { *counts.add(i as usize) } };\n        if at_end || cur != symbol {\n            if (symbol == 0 && stride >= 5) || (symbol != 0 && stride >= 7) {\n                let start = i - stride;\n                let mut k = start;\n                while k < i {\n                    // SAFETY: `start >= 0`, `k < i <= length`, and this block only runs for completed runs within the allocated marker array.\n                    unsafe { *good_for_rle.add(k as usize) = 1 };\n                    k += 1;\n                }\n            }\n            stride = 1;\n            if !at_end {\n                symbol = cur;\n            }\n        } else {\n            stride += 1;\n        }\n        i += 1;\n    }\n\n    stride = 0;\n    // SAFETY: `length > 0` here, so first element exists.\n    let mut limit: size_t = unsafe { *counts };\n    let mut sum: size_t = 0;\n    i = 0;\n\n    while i < length + 1 {\n        let at_end = i == length;\n        let trigger =\n            if at_end {\n                true\n            } else {\n                // SAFETY: `i < length` in this branch, so both accesses are in-bounds.\n                unsafe {\n                    *good_for_rle.add(i as usize) != 0\n                        || AbsDiff(*counts.add(i as usize), limit) >= 4\n                }\n            };\n\n        if trigger {\n            if stride >= 4 || (stride >= 3 && sum == 0) {\n                let mut count: c_int = sum\n                    .wrapping_add((stride / 2) as size_t)\n                    .wrapping_div(stride as size_t) as c_int;\n                if count < 1 {\n                    count = 1;\n                }\n                if sum == 0 {\n                    count = 0;\n                }\n                let start = i - stride;\n                let mut k = start;\n                while k < i {\n                    // SAFETY: `start >= 0`, `k < i <= length`, and these writes target the just-completed run in `counts`.\n                    unsafe { *counts.add(k as usize) = count as size_t };\n                    k += 1;\n                }\n            }\n            stride = 0;\n            sum = 0;\n            if i < length - 3 {\n                // SAFETY: `i + 3 < length` in this branch, so the four reads are in-bounds.\n                unsafe {\n                    limit = (*counts.add(i as usize))\n                        .wrapping_add(*counts.add((i + 1) as usize))\n                        .wrapping_add(*counts.add((i + 2) as usize))\n                        .wrapping_add(*counts.add((i + 3) as usize))\n                        .wrapping_add(2)\n                        .wrapping_div(4);\n                }\n            } else if i < length {\n                // SAFETY: `i < length` in this branch, so the read is in-bounds.\n                unsafe {\n                    limit = *counts.add(i as usize);\n                }\n            } else {\n                limit = 0;\n            }\n        }\n\n        stride += 1;\n        if !at_end {\n            // SAFETY: `i < length` in this branch, so the read is in-bounds.\n            unsafe {\n                sum = sum.wrapping_add(*counts.add(i as usize));\n            }\n        }\n        i += 1;\n    }\n\n    free(good_for_rle as *mut c_void);\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "228601122ae2fa0b7c80e75917197adcc303bba135cd227d937dbba1edc1cb74",
+            "file_hint": "src/deflate.rs",
+            "qualified_name": "crate::OptimizeHuffmanForRle",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "OptimizeHuffmanForRle-7f0560c71dc0",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "OptimizeHuffmanForRle",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "8c294bf0d33b82945477ab07a55596b98e053a39ba2e2c2140ea63be62793017",
+            "edit_id": "edit-replace-88c3d5efe49b9fbd",
+            "end_byte": 35324,
+            "operation_id": "replace-88c3d5efe49b9fbd",
+            "relative_path": "src/deflate.rs",
+            "replacement_text": "#[inline]\npub unsafe fn OptimizeHuffmanForRle(\n    mut length: c_int,\n    mut counts: *mut size_t,\n) {\n    while length >= 0 {\n        if length == 0 {\n            return;\n        }\n        // SAFETY: `counts` points to an array with at least `length` elements per caller contract.\n        if unsafe { *counts.add((length - 1) as usize) } != 0 {\n            break;\n        }\n        length -= 1;\n    }\n\n    let good_for_rle = malloc(\n        (length as c_uint as size_t)\n            .wrapping_mul(::core::mem::size_of::<c_int>() as size_t),\n    ) as *mut c_int;\n\n    // SAFETY: `good_for_rle` is either null or points to `length * size_of::<c_int>()` bytes from `malloc`;\n    // writing zero bytes over that exact allocation matches the original initialization loop.\n    unsafe {\n        libc::memset(\n            good_for_rle as *mut c_void,\n            0,\n            (length as usize).wrapping_mul(::core::mem::size_of::<c_int>()),\n        );\n    }\n\n    // SAFETY: `counts` has at least one element when we reach here (`length > 0` due to early return above).\n    let mut symbol: size_t = unsafe { *counts };\n    let mut stride: c_int = 0;\n    let mut i: c_int = 0;\n\n    while i < length + 1 {\n        let at_end = i == length;\n        // SAFETY: when `at_end` is false, `i < length`, so `counts.add(i)` is in-bounds.\n        let cur = if at_end { symbol } else { unsafe { *counts.add(i as usize) } };\n        if at_end || cur != symbol {\n            if (symbol == 0 && stride >= 5) || (symbol != 0 && stride >= 7) {\n                let start = i - stride;\n                let mut k = start;\n                while k < i {\n                    // SAFETY: `start >= 0`, `k < i <= length`, and this block only runs for completed runs within the allocated marker array.\n                    unsafe { *good_for_rle.add(k as usize) = 1 };\n                    k += 1;\n                }\n            }\n            stride = 1;\n            if !at_end {\n                symbol = cur;\n            }\n        } else {\n            stride += 1;\n        }\n        i += 1;\n    }\n\n    stride = 0;\n    // SAFETY: `length > 0` here, so first element exists.\n    let mut limit: size_t = unsafe { *counts };\n    let mut sum: size_t = 0;\n    i = 0;\n\n    while i < length + 1 {\n        let at_end = i == length;\n        let trigger =\n            if at_end {\n                true\n            } else {\n                // SAFETY: `i < length` in this branch, so both accesses are in-bounds.\n                unsafe {\n                    *good_for_rle.add(i as usize) != 0\n                        || AbsDiff(*counts.add(i as usize), limit) >= 4\n                }\n            };\n\n        if trigger {\n            if stride >= 4 || (stride >= 3 && sum == 0) {\n                let mut count: c_int = sum\n                    .wrapping_add((stride / 2) as size_t)\n                    .wrapping_div(stride as size_t) as c_int;\n                if count < 1 {\n                    count = 1;\n                }\n                if sum == 0 {\n                    count = 0;\n                }\n                let start = i - stride;\n                let mut k = start;\n                while k < i {\n                    // SAFETY: `start >= 0`, `k < i <= length`, and these writes target the just-completed run in `counts`.\n                    unsafe { *counts.add(k as usize) = count as size_t };\n                    k += 1;\n                }\n            }\n            stride = 0;\n            sum = 0;\n            if i < length - 3 {\n                // SAFETY: `i + 3 < length` in this branch, so the four reads are in-bounds.\n                unsafe {\n                    limit = (*counts.add(i as usize))\n                        .wrapping_add(*counts.add((i + 1) as usize))\n                        .wrapping_add(*counts.add((i + 2) as usize))\n                        .wrapping_add(*counts.add((i + 3) as usize))\n                        .wrapping_add(2)\n                        .wrapping_div(4);\n                }\n            } else if i < length {\n                // SAFETY: `i < length` in this branch, so the read is in-bounds.\n                unsafe {\n                    limit = *counts.add(i as usize);\n                }\n            } else {\n                limit = 0;\n            }\n        }\n\n        stride += 1;\n        if !at_end {\n            // SAFETY: `i < length` in this branch, so the read is in-bounds.\n            unsafe {\n                sum = sum.wrapping_add(*counts.add(i as usize));\n            }\n        }\n        i += 1;\n    }\n\n    free(good_for_rle as *mut c_void);\n}",
+            "start_byte": 31852
+          }
+        ],
+        "facts": {
+          "fn_name": "OptimizeHuffmanForRle",
+          "target_span_hash": "228601122ae2fa0b7c80e75917197adcc303bba135cd227d937dbba1edc1cb74"
+        },
+        "operation_id": "replace-88c3d5efe49b9fbd"
+      }
+    ],
+    "resolved_head": "94d8721cec80a35a3a1d777c3d316139b3fe8dcd"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_build",
+  "touched_paths": [
+    "src/deflate.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

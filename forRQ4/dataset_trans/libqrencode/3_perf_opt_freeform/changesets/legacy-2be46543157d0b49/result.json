@@ -1,0 +1,142 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 15.613169497223447,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 16.649477011947567,
+            "aggregate_ci_low_pct": 14.576861982499327,
+            "aggregate_pct": 15.613169497223447,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 16.6495,
+                "ci_low_pct": 14.5769,
+                "insns_delta_pct": -3.0372,
+                "mean_delta_pct": 15.6132,
+                "op": "encode_data_and_input",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_data_and_input",
+          "encode_string_api",
+          "spec_mask_ecc"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "encode_data_and_input"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "479c2317bb3082b8d085c4dbb2494bb404ae69f4",
+      "changeset_id": "legacy-2be46543157d0b49",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-2025728145ab82ed",
+          "replacement_function_source": "unsafe fn Mask_calcN1N3(\n    mut length: c_int,\n    mut runLength: *mut c_int,\n) -> c_int {\n    let mut demerit: c_int = 0;\n    let len = length;\n    let mut i: c_int = 0;\n\n    while i < len {\n        // SAFETY: `runLength` is assumed valid for reads of `length` contiguous `c_int`\n        // elements by the original function contract, and `i < len == length` here.\n        let cur = unsafe { *runLength.add(i as usize) };\n\n        if cur >= 5 {\n            demerit += N1 + (cur - 5);\n        }\n\n        if (i & 1) != 0 && i >= 3 && i < len - 2 && cur % 3 == 0 {\n            let fact = cur / 3;\n\n            // SAFETY: Guard `i >= 3 && i < len - 2` ensures accesses at\n            // `i-2`, `i-1`, `i+1`, and `i+2` are within `[0, length)`.\n            if unsafe {\n                *runLength.add((i - 2) as usize) == fact\n                    && *runLength.add((i - 1) as usize) == fact\n                    && *runLength.add((i + 1) as usize) == fact\n                    && *runLength.add((i + 2) as usize) == fact\n            } {\n                if i == 3\n                    // SAFETY: This branch only evaluates when `i != 3`, and with `i >= 3`\n                    // the index `i-3` is within bounds.\n                    || unsafe { *runLength.add((i - 3) as usize) } >= 4 * fact\n                    || i + 4 >= len\n                    // SAFETY: This branch only evaluates when `i + 4 < len`; combined with\n                    // `i < len - 2`, index `i+3` is within bounds.\n                    || unsafe { *runLength.add((i + 3) as usize) } >= 4 * fact\n                {\n                    demerit += N3;\n                }\n            }\n        }\n\n        i += 1;\n    }\n\n    demerit\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "6f278d327071c01ba17c9ad61b5db2655c794ba8501c8a805673e8ca2059b8a3",
+            "file_hint": "src/mask.rs",
+            "qualified_name": "crate::Mask_calcN1N3",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "Mask_calcN1N3-24c599324b02",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "Mask_calcN1N3",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "5b43af3fc7bc8ddcc2622e5c5903fac4250c7b3881a938fb500cf81bb97e7a0b",
+            "edit_id": "edit-replace-2025728145ab82ed",
+            "end_byte": 12046,
+            "operation_id": "replace-2025728145ab82ed",
+            "relative_path": "src/mask.rs",
+            "replacement_text": "unsafe fn Mask_calcN1N3(\n    mut length: c_int,\n    mut runLength: *mut c_int,\n) -> c_int {\n    let mut demerit: c_int = 0;\n    let len = length;\n    let mut i: c_int = 0;\n\n    while i < len {\n        // SAFETY: `runLength` is assumed valid for reads of `length` contiguous `c_int`\n        // elements by the original function contract, and `i < len == length` here.\n        let cur = unsafe { *runLength.add(i as usize) };\n\n        if cur >= 5 {\n            demerit += N1 + (cur - 5);\n        }\n\n        if (i & 1) != 0 && i >= 3 && i < len - 2 && cur % 3 == 0 {\n            let fact = cur / 3;\n\n            // SAFETY: Guard `i >= 3 && i < len - 2` ensures accesses at\n            // `i-2`, `i-1`, `i+1`, and `i+2` are within `[0, length)`.\n            if unsafe {\n                *runLength.add((i - 2) as usize) == fact\n                    && *runLength.add((i - 1) as usize) == fact\n                    && *runLength.add((i + 1) as usize) == fact\n                    && *runLength.add((i + 2) as usize) == fact\n            } {\n                if i == 3\n                    // SAFETY: This branch only evaluates when `i != 3`, and with `i >= 3`\n                    // the index `i-3` is within bounds.\n                    || unsafe { *runLength.add((i - 3) as usize) } >= 4 * fact\n                    || i + 4 >= len\n                    // SAFETY: This branch only evaluates when `i + 4 < len`; combined with\n                    // `i < len - 2`, index `i+3` is within bounds.\n                    || unsafe { *runLength.add((i + 3) as usize) } >= 4 * fact\n                {\n                    demerit += N3;\n                }\n            }\n        }\n\n        i += 1;\n    }\n\n    demerit\n}",
+            "start_byte": 10507
+          }
+        ],
+        "facts": {
+          "fn_name": "Mask_calcN1N3",
+          "target_span_hash": "6f278d327071c01ba17c9ad61b5db2655c794ba8501c8a805673e8ca2059b8a3"
+        },
+        "operation_id": "replace-2025728145ab82ed"
+      }
+    ],
+    "resolved_head": "479c2317bb3082b8d085c4dbb2494bb404ae69f4"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/mask.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

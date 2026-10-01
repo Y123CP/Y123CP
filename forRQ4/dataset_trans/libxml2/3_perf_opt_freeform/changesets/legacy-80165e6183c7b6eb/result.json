@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.4500460540572476,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.7645875445221684,
+            "aggregate_ci_low_pct": 0.13550456359232682,
+            "aggregate_pct": 0.4500460540572476,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.7646,
+                "ci_low_pct": 0.1355,
+                "insns_delta_pct": 0.1819,
+                "mean_delta_pct": 0.45,
+                "op": "regexp_pattern",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "regexp_pattern"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "regexp_pattern"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "e393711b52ff56b5d2f6e5a3b897c96c5e15c440",
+      "changeset_id": "legacy-80165e6183c7b6eb",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-e01c2fae8358e900",
+          "replacement_function_source": "fn xmlRegAtomPush(\n    mut ctxt: xmlRegParserCtxtPtr,\n    mut atom: xmlRegAtomPtr,\n) -> c_int { unsafe {\n    if atom.is_null() {\n        (*ctxt).error = XML_REGEXP_COMPILE_ERROR as c_int;\n        xmlRegexpErrCompile(\n            ctxt,\n            b\"atom push: atom is NULL\\0\" as *const u8 as *const c_char,\n        );\n        return -1;\n    }\n\n    let ctxt_ref = &mut *ctxt;\n    let nb_atoms = ctxt_ref.nbAtoms;\n\n    if nb_atoms >= ctxt_ref.maxAtoms {\n        let new_size = if ctxt_ref.maxAtoms != 0 {\n            ctxt_ref.maxAtoms * 2\n        } else {\n            4\n        } as size_t;\n\n        let tmp = xmlRealloc.expect(\"non-null function pointer\")(\n            ctxt_ref.atoms as *mut c_void,\n            new_size.wrapping_mul(::core::mem::size_of::<xmlRegAtomPtr>() as size_t),\n        ) as *mut xmlRegAtomPtr;\n\n        if tmp.is_null() {\n            xmlRegexpErrMemory(\n                ctxt,\n                b\"allocating counter\\0\" as *const u8 as *const c_char,\n            );\n            return -1;\n        }\n\n        ctxt_ref.atoms = tmp;\n        ctxt_ref.maxAtoms = new_size as c_int;\n    }\n\n    (*atom).no = nb_atoms;\n    ctxt_ref.nbAtoms = nb_atoms + 1;\n    // SAFETY: nb_atoms is the previous valid insertion index, and atoms points to\n    // an allocation with capacity > nb_atoms after the growth check above.\n    *ctxt_ref.atoms.add(nb_atoms as usize) = atom;\n    0\n} }",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "d4d39ea287b20939b1bebfdd234be736b4c6b0193ad0263ead6598945ce0d72c",
+            "file_hint": "src/xmlregexp.rs",
+            "qualified_name": "crate::xmlRegAtomPush",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "xmlRegAtomPush-3cfb5f92e142",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "xmlRegAtomPush",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "c178aa5a97a53da935b11585b40187c07663c51dda0d16bba06ce87556cccc1d",
+            "edit_id": "edit-replace-e01c2fae8358e900",
+            "end_byte": 111941,
+            "operation_id": "replace-e01c2fae8358e900",
+            "relative_path": "src/xmlregexp.rs",
+            "replacement_text": "fn xmlRegAtomPush(\n    mut ctxt: xmlRegParserCtxtPtr,\n    mut atom: xmlRegAtomPtr,\n) -> c_int { unsafe {\n    if atom.is_null() {\n        (*ctxt).error = XML_REGEXP_COMPILE_ERROR as c_int;\n        xmlRegexpErrCompile(\n            ctxt,\n            b\"atom push: atom is NULL\\0\" as *const u8 as *const c_char,\n        );\n        return -1;\n    }\n\n    let ctxt_ref = &mut *ctxt;\n    let nb_atoms = ctxt_ref.nbAtoms;\n\n    if nb_atoms >= ctxt_ref.maxAtoms {\n        let new_size = if ctxt_ref.maxAtoms != 0 {\n            ctxt_ref.maxAtoms * 2\n        } else {\n            4\n        } as size_t;\n\n        let tmp = xmlRealloc.expect(\"non-null function pointer\")(\n            ctxt_ref.atoms as *mut c_void,\n            new_size.wrapping_mul(::core::mem::size_of::<xmlRegAtomPtr>() as size_t),\n        ) as *mut xmlRegAtomPtr;\n\n        if tmp.is_null() {\n            xmlRegexpErrMemory(\n                ctxt,\n                b\"allocating counter\\0\" as *const u8 as *const c_char,\n            );\n            return -1;\n        }\n\n        ctxt_ref.atoms = tmp;\n        ctxt_ref.maxAtoms = new_size as c_int;\n    }\n\n    (*atom).no = nb_atoms;\n    ctxt_ref.nbAtoms = nb_atoms + 1;\n    // SAFETY: nb_atoms is the previous valid insertion index, and atoms points to\n    // an allocation with capacity > nb_atoms after the growth check above.\n    *ctxt_ref.atoms.add(nb_atoms as usize) = atom;\n    0\n} }",
+            "start_byte": 110557
+          }
+        ],
+        "facts": {
+          "fn_name": "xmlRegAtomPush",
+          "target_span_hash": "d4d39ea287b20939b1bebfdd234be736b4c6b0193ad0263ead6598945ce0d72c"
+        },
+        "operation_id": "replace-e01c2fae8358e900"
+      }
+    ],
+    "resolved_head": "e393711b52ff56b5d2f6e5a3b897c96c5e15c440"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/xmlregexp.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

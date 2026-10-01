@@ -1,0 +1,151 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.5679813475571662,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.605095200421758,
+            "aggregate_ci_low_pct": 0.5308674946925744,
+            "aggregate_pct": 0.5679813475571662,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.6791,
+                "ci_low_pct": 0.5708,
+                "insns_delta_pct": 0.7099,
+                "mean_delta_pct": 0.6249,
+                "op": "mz_stream_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.5694,
+                "ci_low_pct": 0.4526,
+                "insns_delta_pct": 0.8761,
+                "mean_delta_pct": 0.511,
+                "op": "tdefl_encode_blob",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "mz_stream_roundtrip",
+          "tdefl_encode_blob"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "mz_stream_roundtrip"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "d83f0186577db279ec2b577a906e88606804bb0c",
+      "changeset_id": "legacy-6ca1f27fddef4e08",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-3ffc8351871f898b",
+          "replacement_function_source": "// Applied rules: [C4, C1, C3]\n// Skipped rules: [III④: The only concrete III④ hits are the post-increment cursors [11, 12] inside the byte-serial compare loop, and that loop is better handled by C4. A slice/iterator rewrite is not a good fit for this data-dependent two-cursor match-extension path and would not preserve the same low-level traversal shape as effectively as the word-at-a-time rewrite.]\n#[inline(always)]\nunsafe fn tdefl_find_match(\n    mut d: *mut tdefl_compressor,\n    mut lookahead_pos: mz_uint,\n    mut max_dist: mz_uint,\n    mut max_match_len: mz_uint,\n    mut pMatch_dist: *mut mz_uint,\n    mut pMatch_len: *mut mz_uint,\n) {\n    let mut dist: mz_uint = 0;\n    let mut pos: mz_uint = lookahead_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n    let mut match_len: mz_uint = *pMatch_len;\n    let mut probe_pos: mz_uint = pos;\n    let mut next_probe_pos: mz_uint = 0;\n    let mut probe_len: mz_uint = 0;\n    let mut num_probes_left: mz_uint =\n        (*d).m_max_probes[(match_len >= 32 as mz_uint) as c_int as usize];\n    let dict_ptr = (&raw mut (*d).m_dict) as *mut [mz_uint8; 33025] as *mut mz_uint8;\n    let next_ptr = (&raw mut (*d).m_next) as *mut [mz_uint16; 32768] as *mut mz_uint16;\n    let mut s: *const mz_uint8 = dict_ptr.offset(pos as isize);\n    let mut p: *const mz_uint8 = ::core::ptr::null::<mz_uint8>();\n    let mut q: *const mz_uint8 = ::core::ptr::null::<mz_uint8>();\n    // SAFETY: pos + match_len is used by the original code as an unchecked dictionary index;\n    // this function's existing compressor invariants guarantee it is within m_dict.\n    let mut c0: mz_uint8 = unsafe { *dict_ptr.add(pos.wrapping_add(match_len) as usize) };\n    // SAFETY: pos + match_len - 1 is used by the original code as an unchecked dictionary index;\n    // this function's existing compressor invariants guarantee it is within m_dict.\n    let mut c1: mz_uint8 = unsafe {\n        *dict_ptr.add(pos.wrapping_add(match_len).wrapping_sub(1 as mz_uint) as usize)\n    };\n    if max_match_len <= match_len {\n        return;\n    }\n    loop {\n        loop {\n            num_probes_left = num_probes_left.wrapping_sub(1);\n            if num_probes_left == 0 as mz_uint {\n                return;\n            }\n            // SAFETY: probe_pos is always masked with TDEFL_LZ_DICT_SIZE_MASK before reuse as a\n            // chain position, so it stays within the 32768-entry m_next table.\n            next_probe_pos = unsafe { *next_ptr.add(probe_pos as usize) as mz_uint };\n            if next_probe_pos == 0 || {\n                dist = lookahead_pos.wrapping_sub(next_probe_pos) as mz_uint16 as mz_uint;\n                dist > max_dist\n            } {\n                return;\n            }\n            probe_pos = next_probe_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n            // SAFETY: probe_pos is masked to the dictionary ring and probe_pos + match_len is\n            // relied on by the original unchecked indexing; the compressor invariants guarantee\n            // the accessed bytes are within m_dict.\n            if unsafe { *dict_ptr.add(probe_pos.wrapping_add(match_len) as usize) } as c_int\n                == c0 as c_int\n                // SAFETY: same proof as above for probe_pos + match_len - 1.\n                && unsafe {\n                    *dict_ptr.add(\n                        probe_pos\n                            .wrapping_add(match_len)\n                            .wrapping_sub(1 as mz_uint) as usize,\n                    )\n                } as c_int\n                    == c1 as c_int\n            {\n                break;\n            }\n            // SAFETY: probe_pos is always masked with TDEFL_LZ_DICT_SIZE_MASK before reuse as a\n            // chain position, so it stays within the 32768-entry m_next table.\n            next_probe_pos = unsafe { *next_ptr.add(probe_pos as usize) as mz_uint };\n            if next_probe_pos == 0 || {\n                dist = lookahead_pos.wrapping_sub(next_probe_pos) as mz_uint16 as mz_uint;\n                dist > max_dist\n            } {\n                return;\n            }\n            probe_pos = next_probe_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n            // SAFETY: probe_pos is masked to the dictionary ring and probe_pos + match_len is\n            // relied on by the original unchecked indexing; the compressor invariants guarantee\n            // the accessed bytes are within m_dict.\n            if unsafe { *dict_ptr.add(probe_pos.wrapping_add(match_len) as usize) } as c_int\n                == c0 as c_int\n                // SAFETY: same proof as above for probe_pos + match_len - 1.\n                && unsafe {\n                    *dict_ptr.add(\n                        probe_pos\n                            .wrapping_add(match_len)\n                            .wrapping_sub(1 as mz_uint) as usize,\n                    )\n                } as c_int\n                    == c1 as c_int\n            {\n                break;\n            }\n            // SAFETY: probe_pos is always masked with TDEFL_LZ_DICT_SIZE_MASK before reuse as a\n            // chain position, so it stays within the 32768-entry m_next table.\n            next_probe_pos = unsafe { *next_ptr.add(probe_pos as usize) as mz_uint };\n            if next_probe_pos == 0 || {\n                dist = lookahead_pos.wrapping_sub(next_probe_pos) as mz_uint16 as mz_uint;\n                dist > max_dist\n            } {\n                return;\n            }\n            probe_pos = next_probe_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n            // SAFETY: probe_pos is masked to the dictionary ring and probe_pos + match_len is\n            // relied on by the original unchecked indexing; the compressor invariants guarantee\n            // the accessed bytes are within m_dict.\n            if unsafe { *dict_ptr.add(probe_pos.wrapping_add(match_len) as usize) } as c_int\n                == c0 as c_int\n                // SAFETY: same proof as above for probe_pos + match_len - 1.\n                && unsafe {\n                    *dict_ptr.add(\n                        probe_pos\n                            .wrapping_add(match_len)\n                            .wrapping_sub(1 as mz_uint) as usize,\n                    )\n                } as c_int\n                    == c1 as c_int\n            {\n                break;\n            }\n        }\n        if dist == 0 {\n            break;\n        }\n        p = s;\n        q = dict_ptr.offset(probe_pos as isize);\n        probe_len = 0 as mz_uint;\n\n        while max_match_len.wrapping_sub(probe_len) >= 8 {\n            // SAFETY: p starts at dict_ptr + pos and advances by probe_len; the guard\n            // max_match_len - probe_len >= 8 ensures this 8-byte read stays within the same\n            // valid match window the original scalar loop was allowed to read.\n            let pw = unsafe { ::core::ptr::read_unaligned(p.add(probe_len as usize) as *const u64) };\n            // SAFETY: q starts at dict_ptr + probe_pos and advances by probe_len; with the same\n            // remaining-length guard and the function's existing dictionary-window invariants,\n            // this 8-byte read stays within valid dictionary bytes.\n            let qw = unsafe { ::core::ptr::read_unaligned(q.add(probe_len as usize) as *const u64) };\n            let x = pw ^ qw;\n            if x != 0 {\n                probe_len = probe_len.wrapping_add((x.trailing_zeros() >> 3) as mz_uint);\n                break;\n            }\n            probe_len = probe_len.wrapping_add(8);\n        }\n        while probe_len < max_match_len {\n            // SAFETY: probe_len < max_match_len is the original scalar-loop guard, so both\n            // p.add(probe_len) and q.add(probe_len) point to bytes the original loop read.\n            if unsafe { *p.add(probe_len as usize) } as c_int\n                !=\n                // SAFETY: same proof as for p.add(probe_len).\n                unsafe { *q.add(probe_len as usize) } as c_int\n            {\n                break;\n            }\n            probe_len = probe_len.wrapping_add(1);\n        }\n        if probe_len > match_len {\n            *pMatch_dist = dist;\n            match_len = probe_len;\n            *pMatch_len = match_len;\n            if *pMatch_len == max_match_len {\n                return;\n            }\n            // SAFETY: pos + match_len is used by the original code as an unchecked dictionary\n            // index; this function's existing compressor invariants guarantee it is within m_dict.\n            c0 = unsafe { *dict_ptr.add(pos.wrapping_add(match_len) as usize) };\n            // SAFETY: pos + match_len - 1 is used by the original code as an unchecked dictionary\n            // index; this function's existing compressor invariants guarantee it is within m_dict.\n            c1 = unsafe {\n                *dict_ptr.add(pos.wrapping_add(match_len).wrapping_sub(1 as mz_uint) as usize)\n            };\n        }\n    }\n}",
+          "rule_id": "C4,C3",
+          "target": {
+            "declaration_hash": "d4df3cf2d67c45736231036140201f40456e5b6771220527b6dab15d8da5d6e0",
+            "file_hint": "src/miniz_tdef.rs",
+            "qualified_name": "crate::tdefl_find_match",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "tdefl_find_match-0848f756f3f6",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "tdefl_find_match",
+        "rule_id": "C4,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "70e40899ac75ab6e03ce1c3f9e039bdb366d69cec5aa8e1f75ea20847fdd7943",
+            "edit_id": "edit-replace-3ffc8351871f898b",
+            "end_byte": 123604,
+            "operation_id": "replace-3ffc8351871f898b",
+            "relative_path": "src/miniz_tdef.rs",
+            "replacement_text": "// Applied rules: [C4, C1, C3]\n// Skipped rules: [III④: The only concrete III④ hits are the post-increment cursors [11, 12] inside the byte-serial compare loop, and that loop is better handled by C4. A slice/iterator rewrite is not a good fit for this data-dependent two-cursor match-extension path and would not preserve the same low-level traversal shape as effectively as the word-at-a-time rewrite.]\n#[inline(always)]\nunsafe fn tdefl_find_match(\n    mut d: *mut tdefl_compressor,\n    mut lookahead_pos: mz_uint,\n    mut max_dist: mz_uint,\n    mut max_match_len: mz_uint,\n    mut pMatch_dist: *mut mz_uint,\n    mut pMatch_len: *mut mz_uint,\n) {\n    let mut dist: mz_uint = 0;\n    let mut pos: mz_uint = lookahead_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n    let mut match_len: mz_uint = *pMatch_len;\n    let mut probe_pos: mz_uint = pos;\n    let mut next_probe_pos: mz_uint = 0;\n    let mut probe_len: mz_uint = 0;\n    let mut num_probes_left: mz_uint =\n        (*d).m_max_probes[(match_len >= 32 as mz_uint) as c_int as usize];\n    let dict_ptr = (&raw mut (*d).m_dict) as *mut [mz_uint8; 33025] as *mut mz_uint8;\n    let next_ptr = (&raw mut (*d).m_next) as *mut [mz_uint16; 32768] as *mut mz_uint16;\n    let mut s: *const mz_uint8 = dict_ptr.offset(pos as isize);\n    let mut p: *const mz_uint8 = ::core::ptr::null::<mz_uint8>();\n    let mut q: *const mz_uint8 = ::core::ptr::null::<mz_uint8>();\n    // SAFETY: pos + match_len is used by the original code as an unchecked dictionary index;\n    // this function's existing compressor invariants guarantee it is within m_dict.\n    let mut c0: mz_uint8 = unsafe { *dict_ptr.add(pos.wrapping_add(match_len) as usize) };\n    // SAFETY: pos + match_len - 1 is used by the original code as an unchecked dictionary index;\n    // this function's existing compressor invariants guarantee it is within m_dict.\n    let mut c1: mz_uint8 = unsafe {\n        *dict_ptr.add(pos.wrapping_add(match_len).wrapping_sub(1 as mz_uint) as usize)\n    };\n    if max_match_len <= match_len {\n        return;\n    }\n    loop {\n        loop {\n            num_probes_left = num_probes_left.wrapping_sub(1);\n            if num_probes_left == 0 as mz_uint {\n                return;\n            }\n            // SAFETY: probe_pos is always masked with TDEFL_LZ_DICT_SIZE_MASK before reuse as a\n            // chain position, so it stays within the 32768-entry m_next table.\n            next_probe_pos = unsafe { *next_ptr.add(probe_pos as usize) as mz_uint };\n            if next_probe_pos == 0 || {\n                dist = lookahead_pos.wrapping_sub(next_probe_pos) as mz_uint16 as mz_uint;\n                dist > max_dist\n            } {\n                return;\n            }\n            probe_pos = next_probe_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n            // SAFETY: probe_pos is masked to the dictionary ring and probe_pos + match_len is\n            // relied on by the original unchecked indexing; the compressor invariants guarantee\n            // the accessed bytes are within m_dict.\n            if unsafe { *dict_ptr.add(probe_pos.wrapping_add(match_len) as usize) } as c_int\n                == c0 as c_int\n                // SAFETY: same proof as above for probe_pos + match_len - 1.\n                && unsafe {\n                    *dict_ptr.add(\n                        probe_pos\n                            .wrapping_add(match_len)\n                            .wrapping_sub(1 as mz_uint) as usize,\n                    )\n                } as c_int\n                    == c1 as c_int\n            {\n                break;\n            }\n            // SAFETY: probe_pos is always masked with TDEFL_LZ_DICT_SIZE_MASK before reuse as a\n            // chain position, so it stays within the 32768-entry m_next table.\n            next_probe_pos = unsafe { *next_ptr.add(probe_pos as usize) as mz_uint };\n            if next_probe_pos == 0 || {\n                dist = lookahead_pos.wrapping_sub(next_probe_pos) as mz_uint16 as mz_uint;\n                dist > max_dist\n            } {\n                return;\n            }\n            probe_pos = next_probe_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n            // SAFETY: probe_pos is masked to the dictionary ring and probe_pos + match_len is\n            // relied on by the original unchecked indexing; the compressor invariants guarantee\n            // the accessed bytes are within m_dict.\n            if unsafe { *dict_ptr.add(probe_pos.wrapping_add(match_len) as usize) } as c_int\n                == c0 as c_int\n                // SAFETY: same proof as above for probe_pos + match_len - 1.\n                && unsafe {\n                    *dict_ptr.add(\n                        probe_pos\n                            .wrapping_add(match_len)\n                            .wrapping_sub(1 as mz_uint) as usize,\n                    )\n                } as c_int\n                    == c1 as c_int\n            {\n                break;\n            }\n            // SAFETY: probe_pos is always masked with TDEFL_LZ_DICT_SIZE_MASK before reuse as a\n            // chain position, so it stays within the 32768-entry m_next table.\n            next_probe_pos = unsafe { *next_ptr.add(probe_pos as usize) as mz_uint };\n            if next_probe_pos == 0 || {\n                dist = lookahead_pos.wrapping_sub(next_probe_pos) as mz_uint16 as mz_uint;\n                dist > max_dist\n            } {\n                return;\n            }\n            probe_pos = next_probe_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n            // SAFETY: probe_pos is masked to the dictionary ring and probe_pos + match_len is\n            // relied on by the original unchecked indexing; the compressor invariants guarantee\n            // the accessed bytes are within m_dict.\n            if unsafe { *dict_ptr.add(probe_pos.wrapping_add(match_len) as usize) } as c_int\n                == c0 as c_int\n                // SAFETY: same proof as above for probe_pos + match_len - 1.\n                && unsafe {\n                    *dict_ptr.add(\n                        probe_pos\n                            .wrapping_add(match_len)\n                            .wrapping_sub(1 as mz_uint) as usize,\n                    )\n                } as c_int\n                    == c1 as c_int\n            {\n                break;\n            }\n        }\n        if dist == 0 {\n            break;\n        }\n        p = s;\n        q = dict_ptr.offset(probe_pos as isize);\n        probe_len = 0 as mz_uint;\n\n        while max_match_len.wrapping_sub(probe_len) >= 8 {\n            // SAFETY: p starts at dict_ptr + pos and advances by probe_len; the guard\n            // max_match_len - probe_len >= 8 ensures this 8-byte read stays within the same\n            // valid match window the original scalar loop was allowed to read.\n            let pw = unsafe { ::core::ptr::read_unaligned(p.add(probe_len as usize) as *const u64) };\n            // SAFETY: q starts at dict_ptr + probe_pos and advances by probe_len; with the same\n            // remaining-length guard and the function's existing dictionary-window invariants,\n            // this 8-byte read stays within valid dictionary bytes.\n            let qw = unsafe { ::core::ptr::read_unaligned(q.add(probe_len as usize) as *const u64) };\n            let x = pw ^ qw;\n            if x != 0 {\n                probe_len = probe_len.wrapping_add((x.trailing_zeros() >> 3) as mz_uint);\n                break;\n            }\n            probe_len = probe_len.wrapping_add(8);\n        }\n        while probe_len < max_match_len {\n            // SAFETY: probe_len < max_match_len is the original scalar-loop guard, so both\n            // p.add(probe_len) and q.add(probe_len) point to bytes the original loop read.\n            if unsafe { *p.add(probe_len as usize) } as c_int\n                !=\n                // SAFETY: same proof as for p.add(probe_len).\n                unsafe { *q.add(probe_len as usize) } as c_int\n            {\n                break;\n            }\n            probe_len = probe_len.wrapping_add(1);\n        }\n        if probe_len > match_len {\n            *pMatch_dist = dist;\n            match_len = probe_len;\n            *pMatch_len = match_len;\n            if *pMatch_len == max_match_len {\n                return;\n            }\n            // SAFETY: pos + match_len is used by the original code as an unchecked dictionary\n            // index; this function's existing compressor invariants guarantee it is within m_dict.\n            c0 = unsafe { *dict_ptr.add(pos.wrapping_add(match_len) as usize) };\n            // SAFETY: pos + match_len - 1 is used by the original code as an unchecked dictionary\n            // index; this function's existing compressor invariants guarantee it is within m_dict.\n            c1 = unsafe {\n                *dict_ptr.add(pos.wrapping_add(match_len).wrapping_sub(1 as mz_uint) as usize)\n            };\n        }\n    }\n}",
+            "start_byte": 119232
+          }
+        ],
+        "facts": {
+          "fn_name": "tdefl_find_match",
+          "target_span_hash": "d4df3cf2d67c45736231036140201f40456e5b6771220527b6dab15d8da5d6e0"
+        },
+        "operation_id": "replace-3ffc8351871f898b"
+      }
+    ],
+    "resolved_head": "d83f0186577db279ec2b577a906e88606804bb0c"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/miniz_tdef.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

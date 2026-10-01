@@ -1,0 +1,88 @@
+{
+  "harness_name": "http_parser_raw_harness",
+  "operations": [
+    {
+      "name": "execute_request_stream",
+      "needs_input": true,
+      "summary": "Parses one or more complete HTTP/1.x requests from a byte stream with a request-mode parser. It drives the main execute loop and then queries parser-derived state such as method, keep-alive, EOF requirements, final-body flag, and method/error strings.",
+      "api_calls": [
+        "http_parser_init",
+        "http_parser_settings_init",
+        "http_parser_execute",
+        "http_should_keep_alive",
+        "http_message_needs_eof",
+        "http_body_is_final",
+        "http_method_str",
+        "http_errno_name",
+        "http_errno_description"
+      ],
+      "input_format": "Raw bytes containing a valid HTTP request stream, typically 1 or more concatenated requests with realistic headers and optional bodies/chunked bodies.",
+      "digest": "Folds the number of bytes consumed, parser.http_major/http_minor/status fields exposed by the public struct, parsed method enum, keep-alive bit, needs-eof bit, body-is-final bit, whether execution ended in error, and content-derived checksums of the returned C strings from http_method_str and http_errno_{name,description}."
+    },
+    {
+      "name": "execute_response_stream",
+      "needs_input": true,
+      "summary": "Parses one or more complete HTTP/1.x responses from a byte stream with a response-mode parser. This covers the same hot parsing loop on realistic server output and exercises status-related behavior such as keep-alive and EOF-delimited bodies.",
+      "api_calls": [
+        "http_parser_init",
+        "http_parser_settings_init",
+        "http_parser_execute",
+        "http_should_keep_alive",
+        "http_message_needs_eof",
+        "http_body_is_final",
+        "http_status_str",
+        "http_errno_name",
+        "http_errno_description"
+      ],
+      "input_format": "Raw bytes containing a valid HTTP response stream, typically 1 or more concatenated responses with headers and realistic fixed-length, chunked, or close-delimited bodies.",
+      "digest": "Folds bytes consumed, parser status code and flags from the public struct, keep-alive/needs-eof/body-final results, error code if any, and content-derived checksums of the C strings from http_status_str and http_errno_{name,description}."
+    },
+    {
+      "name": "pause_resume_request",
+      "needs_input": true,
+      "summary": "Exercises parser pausing and resuming on a valid request split across two segments. The operation parses a prefix, pauses, attempts more input while paused, resumes, and finishes parsing, ensuring the pause state affects execution deterministically.",
+      "api_calls": [
+        "http_parser_init",
+        "http_parser_settings_init",
+        "http_parser_execute",
+        "http_parser_pause",
+        "http_should_keep_alive",
+        "http_body_is_final",
+        "http_errno_name",
+        "http_errno_description"
+      ],
+      "input_format": "A valid single HTTP request whose bytes are split by the harness at a deterministic interior offset derived from the input length, with the whole input still representing one complete request.",
+      "digest": "Folds bytes consumed before pause, bytes consumed while paused, bytes consumed after resume, final parser error/state, keep-alive/body-final results, and checksums of error name/description strings."
+    },
+    {
+      "name": "parse_url_and_meta",
+      "needs_input": true,
+      "summary": "Parses a URL or CONNECT-style authority with the dedicated URL parser and also samples non-stream parser metadata APIs. It covers URL field extraction, parser-url initialization, library version, and max-header-size configuration.",
+      "api_calls": [
+        "http_parser_url_init",
+        "http_parser_parse_url",
+        "http_parser_version",
+        "http_parser_set_max_header_size"
+      ],
+      "input_format": "Raw bytes containing either a full absolute URL or a CONNECT authority form host:port; the harness chooses the is_connect flag deterministically from the input contents.",
+      "digest": "Folds parse return code, field_set bitmap, port, each reported field offset/length pair from http_parser_url, the chosen is_connect flag, and the numeric value returned by http_parser_version after setting a deterministic max-header-size."
+    },
+    {
+      "name": "clone_roundtrip",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": ""
+    },
+    {
+      "name": "execute_auto_stream",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": ""
+    }
+  ],
+  "seed_strategy": "gen_seeds writes two deterministic, distinct, valid files per operation. For execute_request_stream: (1) a simple keep-alive GET with Host and short headers, (2) a POST or chunked request with a realistic body and different connection semantics. For execute_response_stream: (1) a 200 OK with Content-Length and a small HTML/text body, (2) a different valid response such as chunked transfer or a close-delimited body to vary EOF behavior and status text. For pause_resume_request: reuse two valid single-request messages large enough to split internally at different deterministic offsets so pause/resume observes different parser states. For parse_url_and_meta: (1) a full absolute URL with scheme, userinfo, host, port, path, query, and fragment, (2) a valid CONNECT authority like example.com:443 or an IPv6 authority form. Perf data should focus on execute_request_stream and execute_response_stream by generating several-megabyte streams of many concatenated valid messages with repeated realistic headers and bodies so http_parser_execute stays in its inner scan/dispatch loop for the full input."
+}

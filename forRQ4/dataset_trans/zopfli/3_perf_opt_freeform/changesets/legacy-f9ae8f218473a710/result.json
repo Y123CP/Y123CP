@@ -1,0 +1,173 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.3799740642749069,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.5523824381973772,
+            "aggregate_ci_low_pct": 0.20756569035243655,
+            "aggregate_pct": 0.3799740642749069,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.7048,
+                "ci_low_pct": 0.4885,
+                "insns_delta_pct": -0.1818,
+                "mean_delta_pct": 0.5966,
+                "op": "lz77_blocksplit_analysis",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.1983,
+                "ci_low_pct": 0.0809,
+                "insns_delta_pct": -0.004,
+                "mean_delta_pct": 0.1396,
+                "op": "raw_deflate",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 1.4534,
+                "ci_low_pct": 0.0968,
+                "insns_delta_pct": -1.0564,
+                "mean_delta_pct": 0.7751,
+                "op": "tree_codegen",
+                "samples": 40,
+                "state": "active",
+                "stop_reason": "per_op_uncertain"
+              },
+              {
+                "ci_high_pct": 0.0593,
+                "ci_low_pct": -0.0423,
+                "insns_delta_pct": -0.0292,
+                "mean_delta_pct": 0.0085,
+                "op": "zlib_compress",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "lz77_blocksplit_analysis",
+          "raw_deflate",
+          "tree_codegen",
+          "zlib_compress"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "tree_codegen"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "c81322ddb3440f301987676c5f2278ce6fac44d5",
+      "changeset_id": "legacy-f9ae8f218473a710",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-5e75c1539a05b36a",
+          "replacement_function_source": "unsafe fn BoundaryPM(\n    mut lists: *mut [*mut Node; 2],\n    mut leaves: *mut Node,\n    mut numsymbols: c_int,\n    mut pool: *mut NodePool,\n    mut index: c_int,\n) {\n    let list = unsafe { &mut *lists.offset(index as isize) }; // SAFETY: caller guarantees `lists` points to a valid array of list entries; `index` is used identically to the original code.\n    let oldchain = list[1];\n    let lastcount = unsafe { (*oldchain).count }; // SAFETY: `list[1]` is assumed valid by the original function and dereferenced there as well.\n\n    if index == 0 && lastcount >= numsymbols {\n        return;\n    }\n\n    let newchain = unsafe {\n        let p = (*pool).next;\n        (*pool).next = p.offset(1);\n        p\n    }; // SAFETY: caller guarantees `pool->next` points into a valid node pool with available capacity, matching the original code's assumptions.\n\n    list[0] = oldchain;\n    list[1] = newchain;\n\n    if index == 0 {\n        let leaf_weight = unsafe { (*leaves.offset(lastcount as isize)).weight }; // SAFETY: when reached, `lastcount < numsymbols` per the early-return condition, matching original valid access assumptions.\n        unsafe {\n            InitNode(\n                leaf_weight,\n                lastcount + 1,\n                ::core::ptr::null_mut::<Node>(),\n                newchain,\n            );\n        } // SAFETY: `newchain` is freshly allocated from the node pool and valid for initialization, as in the original.\n        return;\n    }\n\n    let prev = unsafe { &mut *lists.offset((index - 1) as isize) }; // SAFETY: `index > 0` here, and the caller/original code assumes the previous list entry exists and is valid.\n    let sum = unsafe { (*prev[0]).weight.wrapping_add((*prev[1]).weight) }; // SAFETY: `prev[0]` and `prev[1]` are dereferenced in the original under the same conditions.\n\n    if lastcount < numsymbols {\n        let leaf = unsafe { &*leaves.offset(lastcount as isize) }; // SAFETY: guarded by `lastcount < numsymbols`, matching the original valid leaf access.\n        if sum > leaf.weight {\n            unsafe {\n                InitNode(leaf.weight, lastcount + 1, (*oldchain).tail, newchain);\n            } // SAFETY: `oldchain` and `newchain` are valid as assumed by the original; this exactly mirrors original initialization.\n            return;\n        }\n    }\n\n    unsafe {\n        InitNode(sum, lastcount, prev[1], newchain);\n    } // SAFETY: `newchain` is valid for initialization and `prev[1]` is a valid tail pointer under the original assumptions.\n\n    unsafe {\n        BoundaryPM(lists, leaves, numsymbols, pool, index - 1);\n        BoundaryPM(lists, leaves, numsymbols, pool, index - 1);\n    } // SAFETY: recursive calls preserve the same preconditions as the original implementation.\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "7f8ccaed2d68150b6cadf565baabc92af12974e22c91ab54e195f9044732c5c9",
+            "file_hint": "src/katajainen.rs",
+            "qualified_name": "crate::BoundaryPM",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "BoundaryPM-c4c274309233",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "BoundaryPM",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "2ee3550a6c151f8b974dc0610ece2bdf904464347231f455c2902bb405f21a69",
+            "edit_id": "edit-replace-5e75c1539a05b36a",
+            "end_byte": 3083,
+            "operation_id": "replace-5e75c1539a05b36a",
+            "relative_path": "src/katajainen.rs",
+            "replacement_text": "unsafe fn BoundaryPM(\n    mut lists: *mut [*mut Node; 2],\n    mut leaves: *mut Node,\n    mut numsymbols: c_int,\n    mut pool: *mut NodePool,\n    mut index: c_int,\n) {\n    let list = unsafe { &mut *lists.offset(index as isize) }; // SAFETY: caller guarantees `lists` points to a valid array of list entries; `index` is used identically to the original code.\n    let oldchain = list[1];\n    let lastcount = unsafe { (*oldchain).count }; // SAFETY: `list[1]` is assumed valid by the original function and dereferenced there as well.\n\n    if index == 0 && lastcount >= numsymbols {\n        return;\n    }\n\n    let newchain = unsafe {\n        let p = (*pool).next;\n        (*pool).next = p.offset(1);\n        p\n    }; // SAFETY: caller guarantees `pool->next` points into a valid node pool with available capacity, matching the original code's assumptions.\n\n    list[0] = oldchain;\n    list[1] = newchain;\n\n    if index == 0 {\n        let leaf_weight = unsafe { (*leaves.offset(lastcount as isize)).weight }; // SAFETY: when reached, `lastcount < numsymbols` per the early-return condition, matching original valid access assumptions.\n        unsafe {\n            InitNode(\n                leaf_weight,\n                lastcount + 1,\n                ::core::ptr::null_mut::<Node>(),\n                newchain,\n            );\n        } // SAFETY: `newchain` is freshly allocated from the node pool and valid for initialization, as in the original.\n        return;\n    }\n\n    let prev = unsafe { &mut *lists.offset((index - 1) as isize) }; // SAFETY: `index > 0` here, and the caller/original code assumes the previous list entry exists and is valid.\n    let sum = unsafe { (*prev[0]).weight.wrapping_add((*prev[1]).weight) }; // SAFETY: `prev[0]` and `prev[1]` are dereferenced in the original under the same conditions.\n\n    if lastcount < numsymbols {\n        let leaf = unsafe { &*leaves.offset(lastcount as isize) }; // SAFETY: guarded by `lastcount < numsymbols`, matching the original valid leaf access.\n        if sum > leaf.weight {\n            unsafe {\n                InitNode(leaf.weight, lastcount + 1, (*oldchain).tail, newchain);\n            } // SAFETY: `oldchain` and `newchain` are valid as assumed by the original; this exactly mirrors original initialization.\n            return;\n        }\n    }\n\n    unsafe {\n        InitNode(sum, lastcount, prev[1], newchain);\n    } // SAFETY: `newchain` is valid for initialization and `prev[1]` is a valid tail pointer under the original assumptions.\n\n    unsafe {\n        BoundaryPM(lists, leaves, numsymbols, pool, index - 1);\n        BoundaryPM(lists, leaves, numsymbols, pool, index - 1);\n    } // SAFETY: recursive calls preserve the same preconditions as the original implementation.\n}",
+            "start_byte": 803
+          }
+        ],
+        "facts": {
+          "fn_name": "BoundaryPM",
+          "target_span_hash": "7f8ccaed2d68150b6cadf565baabc92af12974e22c91ab54e195f9044732c5c9"
+        },
+        "operation_id": "replace-5e75c1539a05b36a"
+      }
+    ],
+    "resolved_head": "c81322ddb3440f301987676c5f2278ce6fac44d5"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/katajainen.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

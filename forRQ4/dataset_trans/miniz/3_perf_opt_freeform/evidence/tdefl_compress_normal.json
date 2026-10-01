@@ -1,0 +1,849 @@
+{
+  "hot_function": {
+    "symbol": "tdefl_compress_normal",
+    "location": "src/miniz_tdef.rs:3498-3762",
+    "workload": "tdefl_encode_blob",
+    "hot_region": "src/miniz_tdef.rs:3498-3762",
+    "rust_source": "unsafe fn tdefl_compress_normal(mut d: *mut tdefl_compressor) -> mz_bool {\n    let mut pSrc: *const mz_uint8 = (*d).m_pSrc;\n    let mut src_buf_left: size_t = (*d).m_src_buf_left;\n    let mut flush: tdefl_flush = (*d).m_flush;\n    while src_buf_left != 0 || flush as c_uint != 0 && (*d).m_lookahead_size != 0 {\n        let mut len_to_move: mz_uint = 0;\n        let mut cur_match_dist: mz_uint = 0;\n        let mut cur_match_len: mz_uint = 0;\n        let mut cur_pos: mz_uint = 0;\n        if (*d).m_lookahead_size.wrapping_add((*d).m_dict_size)\n            >= (TDEFL_MIN_MATCH_LEN as c_int - 1 as c_int) as mz_uint\n        {\n            let mut dst_pos: mz_uint = (*d).m_lookahead_pos.wrapping_add((*d).m_lookahead_size)\n                & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n            let mut ins_pos: mz_uint = (*d)\n                .m_lookahead_pos\n                .wrapping_add((*d).m_lookahead_size)\n                .wrapping_sub(2 as mz_uint);\n            let mut hash: mz_uint = (((*d).m_dict\n                [(ins_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint) as usize]\n                as c_int)\n                << TDEFL_LZ_HASH_SHIFT as c_int\n                ^ (*d).m_dict[(ins_pos.wrapping_add(1 as mz_uint)\n                    & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint)\n                    as usize] as c_int) as mz_uint;\n            let mut num_bytes_to_process: mz_uint = (if src_buf_left\n                < (TDEFL_MAX_MATCH_LEN as c_int as mz_uint)\n                    .wrapping_sub((*d).m_lookahead_size) as size_t\n            {\n                src_buf_left\n            } else {\n                (TDEFL_MAX_MATCH_LEN as c_int as mz_uint)\n                    .wrapping_sub((*d).m_lookahead_size) as size_t\n            }) as mz_uint;\n            let mut pSrc_end: *const mz_uint8 = if !pSrc.is_null() {\n                pSrc.offset(num_bytes_to_process as isize)\n            } else {\n                ::core::ptr::null::<mz_uint8>()\n            };\n            src_buf_left = src_buf_left.wrapping_sub(num_bytes_to_process as size_t);\n            (*d).m_lookahead_size = (*d).m_lookahead_size.wrapping_add(num_bytes_to_process);\n            while pSrc != pSrc_end {\n                let fresh80 = pSrc;\n                pSrc = pSrc.offset(1);\n                let mut c: mz_uint8 = *fresh80;\n                (*d).m_dict[dst_pos as usize] = c;\n                if dst_pos\n                    < (TDEFL_MAX_MATCH_LEN as c_int - 1 as c_int)\n                        as mz_uint\n                {\n                    (*d).m_dict[(TDEFL_LZ_DICT_SIZE as c_int as mz_uint)\n                        .wrapping_add(dst_pos) as usize] = c;\n                }\n                hash = (hash << TDEFL_LZ_HASH_SHIFT as c_int ^ c as mz_uint)\n                    & (TDEFL_LZ_HASH_SIZE as c_int - 1 as c_int)\n                        as mz_uint;\n                (*d).m_next[(ins_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint)\n                    as usize] = (*d).m_hash[hash as usize];\n                (*d).m_hash[hash as usize] = ins_pos as mz_uint16;\n                dst_pos = dst_pos.wrapping_add(1 as mz_uint)\n                    & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n                ins_pos = ins_pos.wrapping_add(1);\n            }\n        } else {\n            while src_buf_left != 0\n                && (*d).m_lookahead_size < TDEFL_MAX_MATCH_LEN as c_int as mz_uint\n            {\n                let fresh81 = pSrc;\n                pSrc = pSrc.offset(1);\n                let mut c_0: mz_uint8 = *fresh81;\n                let mut dst_pos_0: mz_uint =\n                    (*d).m_lookahead_pos.wrapping_add((*d).m_lookahead_size)\n                        & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n                src_buf_left = src_buf_left.wrapping_sub(1);\n                (*d).m_dict[dst_pos_0 as usize] = c_0;\n                if dst_pos_0\n                    < (TDEFL_MAX_MATCH_LEN as c_int - 1 as c_int)\n                        as mz_uint\n                {\n                    (*d).m_dict[(TDEFL_LZ_DICT_SIZE as c_int as mz_uint)\n                        .wrapping_add(dst_pos_0) as usize] = c_0;\n                }\n                (*d).m_lookahead_size = (*d).m_lookahead_size.wrapping_add(1);\n                if (*d).m_lookahead_size.wrapping_add((*d).m_dict_size)\n                    >= TDEFL_MIN_MATCH_LEN as c_int as mz_uint\n                {\n                    let mut ins_pos_0: mz_uint = (*d)\n                        .m_lookahead_pos\n                        .wrapping_add((*d).m_lookahead_size.wrapping_sub(1 as mz_uint))\n                        .wrapping_sub(2 as mz_uint);\n                    let mut hash_0: mz_uint = ((((*d).m_dict[(ins_pos_0\n                        & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint)\n                        as usize]\n                        as c_int)\n                        << TDEFL_LZ_HASH_SHIFT as c_int * 2 as c_int\n                        ^ ((*d).m_dict[(ins_pos_0.wrapping_add(1 as mz_uint)\n                            & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint)\n                            as usize] as c_int)\n                            << TDEFL_LZ_HASH_SHIFT as c_int\n                        ^ c_0 as c_int)\n                        & TDEFL_LZ_HASH_SIZE as c_int - 1 as c_int)\n                        as mz_uint;\n                    (*d).m_next[(ins_pos_0\n                        & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint)\n                        as usize] = (*d).m_hash[hash_0 as usize];\n                    (*d).m_hash[hash_0 as usize] = ins_pos_0 as mz_uint16;\n                }\n            }\n        }\n        (*d).m_dict_size = if (TDEFL_LZ_DICT_SIZE as c_int as mz_uint)\n            .wrapping_sub((*d).m_lookahead_size)\n            < (*d).m_dict_size\n        {\n            (TDEFL_LZ_DICT_SIZE as c_int as mz_uint)\n                .wrapping_sub((*d).m_lookahead_size)\n        } else {\n            (*d).m_dict_size\n        };\n        if flush as u64 == 0\n            && (*d).m_lookahead_size < TDEFL_MAX_MATCH_LEN as c_int as mz_uint\n        {\n            break;\n        }\n        len_to_move = 1 as mz_uint;\n        cur_match_dist = 0 as mz_uint;\n        cur_match_len = if (*d).m_saved_match_len != 0 {\n            (*d).m_saved_match_len\n        } else {\n            (TDEFL_MIN_MATCH_LEN as c_int - 1 as c_int) as mz_uint\n        };\n        cur_pos = (*d).m_lookahead_pos & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint;\n        if (*d).m_flags\n            & (TDEFL_RLE_MATCHES as c_int\n                | TDEFL_FORCE_ALL_RAW_BLOCKS as c_int) as mz_uint\n            != 0\n        {\n            if (*d).m_dict_size != 0\n                && (*d).m_flags & TDEFL_FORCE_ALL_RAW_BLOCKS as c_int as mz_uint == 0\n            {\n                let mut c_1: mz_uint8 = (*d).m_dict[(cur_pos.wrapping_sub(1 as mz_uint)\n                    & TDEFL_LZ_DICT_SIZE_MASK as c_int as mz_uint)\n                    as usize];\n                cur_match_len = 0 as mz_uint;\n                while cur_match_len < (*d).m_lookahead_size {\n                    if (*d).m_dict[cur_pos.wrapping_add(cur_match_len) as usize]\n                        as c_int\n                        != c_1 as c_int\n                    {\n                        break;\n                    }\n                    cur_match_len = cur_match_len.wrapping_add(1);\n                }\n                if cur_match_len < TDEFL_MIN_MATCH_LEN as c_int as mz_uint {\n                    cur_match_len = 0 as mz_uint;\n                } else {\n                    cur_match_dist = 1 as mz_uint;\n                }\n            }\n        } else {\n            tdefl_find_match(\n                d,\n                (*d).m_lookahead_pos,\n                (*d).m_dict_size,\n                (*d).m_lookahead_size,\n                &raw mut cur_match_dist,\n                &raw mut cur_match_len,\n            );\n        }\n        if cur_match_len == TDEFL_MIN_MATCH_LEN as c_int as mz_uint\n            && cur_match_dist >= (8 as mz_uint).wrapping_mul(1024 as mz_uint)\n            || cur_pos == cur_match_dist\n            || (*d).m_flags & TDEFL_FILTER_MATCHES as c_int as mz_uint != 0\n                && cur_match_len <= 5 as mz_uint\n        {\n            cur_match_len = 0 as mz_uint;\n            cur_match_dist = cur_match_len;\n        }\n        if (*d).m_saved_match_len != 0 {\n            if cur_match_len > (*d).m_saved_match_len {\n                tdefl_record_literal(d, (*d).m_saved_lit as mz_uint8);\n                if cur_match_len >= 128 as mz_uint {\n                    tdefl_record_match(d, cur_match_len, cur_match_dist);\n                    (*d).m_saved_match_len = 0 as mz_uint;\n                    len_to_move = cur_match_len;\n                } else {\n                    (*d).m_saved_lit = (*d).m_dict[cur_pos as usize] as mz_uint;\n                    (*d).m_saved_match_dist = cur_match_dist;\n                    (*d).m_saved_match_len = cur_match_len;\n                }\n            } else {\n                tdefl_record_match(d, (*d).m_saved_match_len, (*d).m_saved_match_dist);\n                len_to_move = (*d).m_saved_match_len.wrapping_sub(1 as mz_uint);\n                (*d).m_saved_match_len = 0 as mz_uint;\n            }\n        } else if cur_match_dist == 0 {\n            tdefl_record_literal(\n                d,\n                (*d).m_dict[(if (cur_pos as usize)\n                    < (::core::mem::size_of::<[mz_uint8; 33025]>() as usize)\n                        .wrapping_sub(1 as usize)\n                {\n                    cur_pos as usize\n                } else {\n                    (::core::mem::size_of::<[mz_uint8; 33025]>() as usize).wrapping_sub(1 as usize)\n                }) as usize],\n            );\n        } else if (*d).m_greedy_parsing != 0\n            || (*d).m_flags & TDEFL_RLE_MATCHES as c_int as mz_uint != 0\n            || cur_match_len >= 128 as mz_uint\n        {\n            tdefl_record_match(d, cur_match_len, cur_match_dist);\n            len_to_move = cur_match_len;\n        } else {\n            (*d).m_saved_lit = (*d).m_dict[(if (cur_pos as usize)\n                < (::core::mem::size_of::<[mz_uint8; 33025]>() as usize).wrapping_sub(1 as usize)\n            {\n                cur_pos as usize\n            } else {\n                (::core::mem::size_of::<[mz_uint8; 33025]>() as usize).wrapping_sub(1 as usize)\n            }) as usize] as mz_uint;\n            (*d).m_saved_match_dist = cur_match_dist;\n            (*d).m_saved_match_len = cur_match_len;\n        }\n        (*d).m_lookahead_pos = (*d).m_lookahead_pos.wrapping_add(len_to_move);\n        (*d).m_lookahead_size = (*d).m_lookahead_size.wrapping_sub(len_to_move);\n        (*d).m_dict_size = if (*d).m_dict_size.wrapping_add(len_to_move)\n            < TDEFL_LZ_DICT_SIZE as c_int as mz_uint\n        {\n            (*d).m_dict_size.wrapping_add(len_to_move)\n        } else {\n            TDEFL_LZ_DICT_SIZE as c_int as mz_uint\n        };\n        if (*d).m_pLZ_code_buf\n            > (&raw mut (*d).m_lz_code_buf as *mut mz_uint8).offset(\n                (TDEFL_LZ_CODE_BUF_SIZE as c_int - 8 as c_int) as isize,\n            ) as *mut mz_uint8\n            || (*d).m_total_lz_bytes\n                > (31 as c_int * 1024 as c_int) as mz_uint\n                && (((*d)\n                    .m_pLZ_code_buf\n                    .offset_from(&raw mut (*d).m_lz_code_buf as *mut mz_uint8)\n                    as c_long as mz_uint)\n                    .wrapping_mul(115 as mz_uint)\n                    >> 7 as c_int\n                    >= (*d).m_total_lz_bytes\n                    || (*d).m_flags & TDEFL_FORCE_ALL_RAW_BLOCKS as c_int as mz_uint\n                        != 0)\n        {\n            let mut n: c_int = 0;\n            (*d).m_pSrc = pSrc;\n            (*d).m_src_buf_left = src_buf_left;\n            n = tdefl_flush_block(d, 0 as c_int);\n            if n != 0 as c_int {\n                return if n < 0 as c_int {\n                    MZ_FALSE\n                } else {\n                    MZ_TRUE\n                };\n            }\n        }\n    }\n    (*d).m_pSrc = pSrc;\n    (*d).m_src_buf_left = src_buf_left;\n    return MZ_TRUE;\n}",
+    "signature": "unsafe fn tdefl_compress_normal(mut d: *mut tdefl_compressor) -> mz_bool",
+    "profile": {
+      "self_time_ratio": 0.1623,
+      "call_count": null,
+      "retired_instructions": 1548108453,
+      "instructions_per_call": null,
+      "cpi": 0.455,
+      "tma": {
+        "scope": "process",
+        "retiring": 43.96808925189169,
+        "frontend_bound": 26.453034562045627,
+        "bad_speculation": 10.866525828532803,
+        "backend_bound": 18.71235035752988,
+        "memory_bound": 15.467340645745667,
+        "core_bound": 3.245009711784211,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0122
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C1": 1,
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_inl": {
+        "TooCostly": 1
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3642,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 3657,
+        "message": "'_ZN13miniz_cleaned3src10miniz_tdef16tdefl_find_match17h5c2d70b2a36d4e75E' inlined into '_ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E': always inline attribute at callsite _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E:159:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 3693,
+        "message": "'_ZN13miniz_cleaned3src10miniz_tdef20tdefl_record_literal17h3fa29dafe73d1a38E' inlined into '_ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E': always inline attribute at callsite _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E:195:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 3708,
+        "message": "'_ZN13miniz_cleaned3src10miniz_tdef18tdefl_record_match17h3effa5b4d98e95abE' inlined into '_ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E': always inline attribute at callsite _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E:210:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 3688,
+        "message": "'_ZN13miniz_cleaned3src10miniz_tdef18tdefl_record_match17h3effa5b4d98e95abE' inlined into '_ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E': always inline attribute at callsite _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E:190:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 3677,
+        "message": "'_ZN13miniz_cleaned3src10miniz_tdef20tdefl_record_literal17h3fa29dafe73d1a38E' inlined into '_ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E': always inline attribute at callsite _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E:179:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 3679,
+        "message": "'_ZN13miniz_cleaned3src10miniz_tdef18tdefl_record_match17h3effa5b4d98e95abE' inlined into '_ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E': always inline attribute at callsite _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E:181:21;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3749,
+        "message": "'_ZN13miniz_cleaned3src10miniz_tdef17tdefl_flush_block17hc88cefabf00da525E' not inlined into '_ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E' because too costly to inline (cost=1905, threshold=250)"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3563,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3563,
+        "message": "failed to hoist load with loop-invariant address because load is conditionally executed"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3569,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3569,
+        "message": "failed to hoist load with loop-invariant address because load is conditionally executed"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3580,
+        "message": "Moving accesses to memory location out of the loop"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3502,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3502,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3502,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3507,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3507,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3507,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3507,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3510,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3510,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3608,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3616,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3623,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3623,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3628,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3628,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3629,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3629,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3677,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3677,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3684,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3704,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3704,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3711,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3718,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3688,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3688,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3689,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3721,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3722,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3723,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3730,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3730,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3731,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3734,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3734,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3743,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 3502,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3502,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3507,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 3507,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3507,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3567,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3569,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3510,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3542,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 3608,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3623,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3628,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3629,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3677,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3683,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3704,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3688,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3689,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3721,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3722,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3723,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3730,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3734,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3743,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3642,
+        "message": "sinking trunc"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3498,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E: MI Instruction count changed from 0 to 957; Delta: 957"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3498,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E: MI Instruction count changed from 957 to 940; Delta: -17"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3498,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E: MI Instruction count changed from 940 to 935; Delta: -5"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3498,
+        "message": "Machine code sinking: Function: _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E: MI Instruction count changed from 935 to 934; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3498,
+        "message": "Peephole Optimizations: Function: _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E: MI Instruction count changed from 934 to 924; Delta: -10"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3498,
+        "message": "X86 Fixup SetCC: Function: _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E: MI Instruction count changed from 924 to 926; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3498,
+        "message": "Process Implicit Definitions: Function: _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E: MI Instruction count changed from 926 to 913; Delta: -13"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3498,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E: MI Instruction count changed from 913 to 1069; Delta: 156"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3498,
+        "message": "Two-Address instruction pass: Function: _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E: MI Instruction count changed from 1069 to 1197; Delta: 128"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3498,
+        "message": "Register Coalescer: Function: _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E: MI Instruction count changed from 1197 to 752; Delta: -445"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3562,
+        "message": "1 virtual registers copies 7.559464e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3544,
+        "message": "1 virtual registers copies 1.453933e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3502,
+        "message": "15 spills 4.753129e+01 total spills cost 28 reloads 9.507768e+01 total reloads cost 6 folded reloads 3.352884e+01 total folded reloads cost 27 virtual registers copies 3.387958e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3498,
+        "message": "19 spills 5.153129e+01 total spills cost 28 reloads 9.507768e+01 total reloads cost 6 folded reloads 3.352884e+01 total folded reloads cost 30 virtual registers copies 3.397986e+02 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3498,
+        "message": "Greedy Register Allocator: Function: _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E: MI Instruction count changed from 752 to 810; Delta: 58"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3498,
+        "message": "Virtual Register Rewriter: Function: _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E: MI Instruction count changed from 810 to 773; Delta: -37"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 3498,
+        "message": "120 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3498,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E: MI Instruction count changed from 773 to 771; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3498,
+        "message": "Control Flow Optimizer: Function: _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E: MI Instruction count changed from 771 to 679; Delta: -92"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3498,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E: MI Instruction count changed from 679 to 671; Delta: -8"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3498,
+        "message": "X86 LEA Fixup: Function: _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E: MI Instruction count changed from 671 to 678; Delta: 7"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3498,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN13miniz_cleaned3src10miniz_tdef21tdefl_compress_normal17hb51972723cf141f2E: MI Instruction count changed from 678 to 679; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3747,
+        "message": "BasicBlock: bb128"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3502,
+        "message": "BasicBlock: bb1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3507,
+        "message": "BasicBlock: bb5.thread"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3562,
+        "message": "BasicBlock: bb28.lr.ph"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3562,
+        "message": "BasicBlock: bb41"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3563,
+        "message": "BasicBlock: bb28"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3567,
+        "message": "BasicBlock: bb29"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3577,
+        "message": "BasicBlock: bb32"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3580,
+        "message": "BasicBlock: bb33"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3502,
+        "message": "BasicBlock: bb4"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3507,
+        "message": "BasicBlock: bb5"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3510,
+        "message": "BasicBlock: bb6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3548,
+        "message": "BasicBlock: bb19"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3616,
+        "message": "BasicBlock: bb45"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3623,
+        "message": "BasicBlock: bb53"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3641,
+        "message": "BasicBlock: bb60"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3642,
+        "message": "BasicBlock: bb62"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3642,
+        "message": "BasicBlock: bb63"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3650,
+        "message": "BasicBlock: bb67"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3666,
+        "message": "BasicBlock: bb75"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3666,
+        "message": "BasicBlock: bb75"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3669,
+        "message": "BasicBlock: bb82"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3688,
+        "message": "BasicBlock: bb96"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3623,
+        "message": "BasicBlock: bb87"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3677,
+        "message": "BasicBlock: _ZN13miniz_cleaned3src10miniz_tdef20tdefl_record_literal17h3fa29dafe73d1a38E.exit177"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3692,
+        "message": "BasicBlock: bb99"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3704,
+        "message": "BasicBlock: bb106"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3695,
+        "message": "BasicBlock: bb100"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3721,
+        "message": "BasicBlock: bb119"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3734,
+        "message": "BasicBlock: bb124"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3743,
+        "message": "BasicBlock: bb127"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3705,
+        "message": "BasicBlock: bb108"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3759,
+        "message": "BasicBlock: bb139"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3751,
+        "message": "BasicBlock: bb130"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3762,
+        "message": "BasicBlock: bb140"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3642,
+        "message": "BasicBlock: panic39"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3498,
+        "message": "655 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

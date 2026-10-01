@@ -1,0 +1,119 @@
+{
+  "hot_function": {
+    "symbol": "aptx_prediction_filtering",
+    "location": "src/openaptx.rs:2361-2412",
+    "workload": "decode_sync_hd",
+    "hot_region": "src/openaptx.rs:2361-2412",
+    "rust_source": "unsafe fn aptx_prediction_filtering(\n    mut prediction: *mut aptx_prediction,\n    mut reconstructed_difference: int32_t,\n    mut order: c_int,\n) {\n    let mut reconstructed_sample: int32_t = 0;\n    let mut predictor: int32_t = 0;\n    let mut srd0: int32_t = 0;\n    let mut srd: int32_t = 0;\n    let mut reconstructed_differences: *mut int32_t = ::core::ptr::null_mut::<int32_t>();\n    let mut predicted_difference: int64_t = 0 as int64_t;\n    let mut i: c_int = 0;\n    reconstructed_sample = clip_intp2(\n        reconstructed_difference + (*prediction).predicted_sample,\n        23 as c_uint,\n    );\n    predictor = clip_intp2(\n        ((*prediction).s_weight[0 as c_int as usize] as int64_t\n            * (*prediction).previous_reconstructed_sample as int64_t\n            + (*prediction).s_weight[1 as c_int as usize] as int64_t\n                * reconstructed_sample as int64_t\n            >> 22 as c_int) as int32_t,\n        23 as c_uint,\n    );\n    (*prediction).previous_reconstructed_sample = reconstructed_sample;\n    reconstructed_differences =\n        aptx_reconstructed_differences_update(prediction, reconstructed_difference, order);\n    srd0 = ((reconstructed_difference > 0 as int32_t) as c_int\n        - (reconstructed_difference < 0 as int32_t) as c_int) as int32_t\n        * ((1 as c_int as int32_t) << 23 as c_int);\n    i = 0 as c_int;\n    while i < order {\n        srd = *reconstructed_differences.offset((-i - 1 as c_int) as isize)\n            >> 31 as c_int\n            | 1 as int32_t;\n        (*prediction).d_weight[i as usize] -= rshift32(\n            (*prediction).d_weight[i as usize] - srd * srd0,\n            8 as c_uint,\n        );\n        predicted_difference += *reconstructed_differences.offset(-i as isize) as int64_t\n            * (*prediction).d_weight[i as usize] as int64_t;\n        i += 1;\n    }\n    (*prediction).predicted_difference = clip_intp2(\n        (predicted_difference >> 22 as c_int) as int32_t,\n        23 as c_uint,\n    );\n    (*prediction).predicted_sample = clip_intp2(\n        predictor + (*prediction).predicted_difference,\n        23 as c_uint,\n    );\n}",
+    "signature": "unsafe fn aptx_prediction_filtering(\n    mut prediction: *mut aptx_prediction,\n    mut reconstructed_difference: int32_t,\n    mut order: c_int,\n)",
+    "profile": {
+      "self_time_ratio": 0.242,
+      "call_count": null,
+      "retired_instructions": 5417471423,
+      "instructions_per_call": null,
+      "cpi": 0.263,
+      "tma": {
+        "scope": "process",
+        "retiring": 79.3284483278184,
+        "frontend_bound": 1.864414501975815,
+        "bad_speculation": 0.6259028077203586,
+        "backend_bound": 18.18123436248542,
+        "memory_bound": 12.978468891547378,
+        "core_bound": 5.202765470938041,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.001
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C1": 1,
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2397,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN19libopenaptx_cleaned3src8openaptx25aptx_prediction_filtering17h1b4b73c7cd00ced9E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2387,
+        "message": "'_ZN19libopenaptx_cleaned3src8openaptx37aptx_reconstructed_differences_update17ha164068c9c3bd56aE' inlined into '_ZN19libopenaptx_cleaned3src8openaptx25aptx_prediction_filtering17h1b4b73c7cd00ced9E' with (cost=-14880, threshold=250) at callsite _ZN19libopenaptx_cleaned3src8openaptx25aptx_prediction_filtering17h1b4b73c7cd00ced9E:26:9;"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2397,
+        "message": "hoisting mul"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2400,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2374,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2379,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2392,
+        "message": "1 virtual registers copies 4.714970e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2378,
+        "message": "BasicBlock: _ZN19libopenaptx_cleaned3src8openaptx20aptx_process_subband17h3716302e7b292166E.exit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2397,
+        "message": "BasicBlock: bb3.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2397,
+        "message": "BasicBlock: bb5.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2405,
+        "message": "BasicBlock: bb7.loopexit.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2397,
+        "message": "BasicBlock: panic.i.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

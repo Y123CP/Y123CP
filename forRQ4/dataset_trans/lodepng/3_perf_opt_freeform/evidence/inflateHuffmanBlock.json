@@ -1,0 +1,406 @@
+{
+  "hot_function": {
+    "symbol": "inflateHuffmanBlock",
+    "location": "src/lodepng.rs:2020-2172",
+    "workload": "decode32_png",
+    "hot_region": "src/lodepng.rs:2020-2172",
+    "rust_source": "unsafe fn inflateHuffmanBlock(\n    mut out: *mut ucvector,\n    mut reader: *mut LodePNGBitReader,\n    mut btype: c_uint,\n    mut max_output_size: size_t,\n) -> c_uint {\n    let mut error: c_uint = 0 as c_uint;\n    let mut tree_ll: HuffmanTree = HuffmanTree {\n        codes: ::core::ptr::null_mut::<c_uint>(),\n        lengths: ::core::ptr::null_mut::<c_uint>(),\n        maxbitlen: 0,\n        numcodes: 0,\n        table_len: ::core::ptr::null_mut::<c_uchar>(),\n        table_value: ::core::ptr::null_mut::<c_ushort>(),\n    };\n    let mut tree_d: HuffmanTree = HuffmanTree {\n        codes: ::core::ptr::null_mut::<c_uint>(),\n        lengths: ::core::ptr::null_mut::<c_uint>(),\n        maxbitlen: 0,\n        numcodes: 0,\n        table_len: ::core::ptr::null_mut::<c_uchar>(),\n        table_value: ::core::ptr::null_mut::<c_ushort>(),\n    };\n    let reserved_size: size_t = 260 as size_t;\n    let mut done: c_int = 0 as c_int;\n    if ucvector_reserve(out, (*out).size.wrapping_add(reserved_size)) == 0 {\n        return 83 as c_uint;\n    }\n    HuffmanTree_init(&raw mut tree_ll);\n    HuffmanTree_init(&raw mut tree_d);\n    if btype == 1 as c_uint {\n        error = getTreeInflateFixed(&raw mut tree_ll, &raw mut tree_d);\n    } else {\n        error = getTreeInflateDynamic(&raw mut tree_ll, &raw mut tree_d, reader);\n    }\n    while error == 0 && done == 0 {\n        let mut code_ll: c_uint = 0;\n        ensureBits32(reader, 30 as size_t);\n        code_ll = huffmanDecodeSymbol(reader, &raw mut tree_ll);\n        if code_ll <= 255 as c_uint {\n            let fresh36 = (*out).size;\n            (*out).size = (*out).size.wrapping_add(1);\n            *(*out).data.offset(fresh36 as isize) = code_ll as c_uchar;\n            code_ll = huffmanDecodeSymbol(reader, &raw mut tree_ll);\n        }\n        if code_ll <= 255 as c_uint {\n            let fresh37 = (*out).size;\n            (*out).size = (*out).size.wrapping_add(1);\n            *(*out).data.offset(fresh37 as isize) = code_ll as c_uchar;\n        } else if code_ll >= FIRST_LENGTH_CODE_INDEX as c_uint\n            && code_ll <= LAST_LENGTH_CODE_INDEX as c_uint\n        {\n            let mut code_d: c_uint = 0;\n            let mut distance: c_uint = 0;\n            let mut numextrabits_l: c_uint = 0;\n            let mut numextrabits_d: c_uint = 0;\n            let mut start: size_t = 0;\n            let mut backward: size_t = 0;\n            let mut length: size_t = 0;\n            length = LENGTHBASE\n                [code_ll.wrapping_sub(FIRST_LENGTH_CODE_INDEX as c_uint) as usize]\n                as size_t;\n            numextrabits_l = LENGTHEXTRA\n                [code_ll.wrapping_sub(FIRST_LENGTH_CODE_INDEX as c_uint) as usize];\n            if numextrabits_l != 0 as c_uint {\n                ensureBits25(reader, 5 as size_t);\n                length = (length as c_ulong).wrapping_add(readBits(\n                    reader,\n                    numextrabits_l as size_t,\n                )\n                    as c_ulong) as size_t as size_t;\n            }\n            ensureBits32(reader, 28 as size_t);\n            code_d = huffmanDecodeSymbol(reader, &raw mut tree_d);\n            if code_d > 29 as c_uint {\n                if code_d <= 31 as c_uint {\n                    error = 18 as c_uint;\n                    break;\n                } else {\n                    error = 16 as c_uint;\n                    break;\n                }\n            } else {\n                distance = DISTANCEBASE[code_d as usize];\n                numextrabits_d = DISTANCEEXTRA[code_d as usize];\n                if numextrabits_d != 0 as c_uint {\n                    distance = distance.wrapping_add(readBits(reader, numextrabits_d as size_t));\n                }\n                start = (*out).size;\n                if distance as size_t > start {\n                    error = 52 as c_uint;\n                    break;\n                } else {\n                    backward = start.wrapping_sub(distance as size_t);\n                    (*out).size = ((*out).size as c_ulong)\n                        .wrapping_add(length as c_ulong)\n                        as size_t as size_t;\n                    if (distance as size_t) < length {\n                        let mut forward: size_t = 0;\n                        lodepng_memcpy(\n                            (*out).data.offset(start as isize) as *mut c_void,\n                            (*out).data.offset(backward as isize) as *const c_void,\n                            distance as size_t,\n                        );\n                        start = (start as c_ulong)\n                            .wrapping_add(distance as c_ulong)\n                            as size_t as size_t;\n                        forward = distance as size_t;\n                        while forward < length {\n                            let fresh38 = backward;\n                            backward = backward.wrapping_add(1);\n                            let fresh39 = start;\n                            start = start.wrapping_add(1);\n                            *(*out).data.offset(fresh39 as isize) =\n                                *(*out).data.offset(fresh38 as isize);\n                            forward = forward.wrapping_add(1);\n                        }\n                    } else {\n                        lodepng_memcpy(\n                            (*out).data.offset(start as isize) as *mut c_void,\n                            (*out).data.offset(backward as isize) as *const c_void,\n                            length,\n                        );\n                    }\n                }\n            }\n        } else if code_ll == 256 as c_uint {\n            done = 1 as c_int;\n        } else {\n            error = 16 as c_uint;\n            break;\n        }\n        if (*out).allocsize.wrapping_sub((*out).size) < reserved_size {\n            if ucvector_reserve(out, (*out).size.wrapping_add(reserved_size)) == 0 {\n                error = 83 as c_uint;\n                break;\n            }\n        }\n        if (*reader).bp > (*reader).bitsize {\n            error = 51 as c_uint;\n            break;\n        } else {\n            if !(max_output_size != 0 && (*out).size > max_output_size) {\n                continue;\n            }\n            error = 109 as c_uint;\n            break;\n        }\n    }\n    HuffmanTree_cleanup(&raw mut tree_ll);\n    HuffmanTree_cleanup(&raw mut tree_d);\n    return error;\n}",
+    "signature": "unsafe fn inflateHuffmanBlock(\n    mut out: *mut ucvector,\n    mut reader: *mut LodePNGBitReader,\n    mut btype: c_uint,\n    mut max_output_size: size_t,\n) -> c_uint",
+    "profile": {
+      "self_time_ratio": 0.1193,
+      "call_count": null,
+      "retired_instructions": 1138156683,
+      "instructions_per_call": null,
+      "cpi": 0.617,
+      "tma": {
+        "scope": "process",
+        "retiring": 61.55960096000298,
+        "frontend_bound": 8.222724211124568,
+        "bad_speculation": 13.237736582086603,
+        "backend_bound": 16.979938246785842,
+        "memory_bound": 10.550067919704535,
+        "core_bound": 6.429870327081306,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0363
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2045,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng16ucvector_reserve17h9c33ad7280159af9E' inlined into '_ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE' with (cost=50, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE:25:8;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2051,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng19getTreeInflateFixed17h396bfe92435fc346E' inlined into '_ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE' with (cost=-14740, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE:31:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2053,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng21getTreeInflateDynamic17hd7e9095cb89d615cE' inlined into '_ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE' with (cost=-13165, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE:33:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2057,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng12ensureBits3217ha0faf901b4772830E' inlined into '_ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE' with (cost=265, threshold=325) at callsite _ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE:37:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2058,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng19huffmanDecodeSymbol17h132af371661f532fE' inlined into '_ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE' with (cost=125, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE:38:19;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2063,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng19huffmanDecodeSymbol17h132af371661f532fE' inlined into '_ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE' with (cost=125, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE:43:23;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2085,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng12ensureBits2517h561e1d8cba62190cE' inlined into '_ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE' with (cost=-14825, threshold=325) at callsite _ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE:65:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2092,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng12ensureBits3217ha0faf901b4772830E' inlined into '_ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE' with (cost=-14735, threshold=325) at callsite _ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE:72:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2093,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng19huffmanDecodeSymbol17h132af371661f532fE' inlined into '_ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE' with (cost=-14875, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE:73:22;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2138,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng14lodepng_memcpy17h00a08cb495354f9cE' inlined into '_ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE' with (cost=-10, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE:118:25;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2119,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng14lodepng_memcpy17h00a08cb495354f9cE' inlined into '_ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE' with (cost=-10, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE:99:25;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2153,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng16ucvector_reserve17h9c33ad7280159af9E' inlined into '_ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE' with (cost=-14950, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE:133:16;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2169,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng19HuffmanTree_cleanup17h346d68109dc67ef7E' inlined into '_ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE' with (cost=105, threshold=375) at callsite _ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE:149:5;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2170,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng19HuffmanTree_cleanup17h346d68109dc67ef7E' inlined into '_ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE' with (cost=105, threshold=375) at callsite _ZN15lodepng_cleaned3src7lodepng19inflateHuffmanBlock17h055f51ebe830b1dcE:150:5;"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2134,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2060,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2062,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2108,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2139,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2120,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2066,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2068,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2152,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2152,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2162,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2158,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2158,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2158,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2162,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 2055,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2060,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2062,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2108,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2139,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2120,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2134,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2066,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2068,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2152,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2152,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2158,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2158,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2162,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2162,
+        "message": "sinking select"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2027,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2035,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2045,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2045,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2045,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2055,
+        "message": "4 spills 3.422675e+00 total spills cost 47 reloads 2.335172e+01 total reloads cost 1 folded reloads 3.316673e+00 total folded reloads cost 44 virtual registers copies 4.027692e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2055,
+        "message": "BasicBlock: bb74.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2069,
+        "message": "BasicBlock: bb18.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2069,
+        "message": "BasicBlock: bb18.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2103,
+        "message": "BasicBlock: bb32.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2134,
+        "message": "BasicBlock: bb43.i.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2128,
+        "message": "BasicBlock: bb43.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2134,
+        "message": "BasicBlock: bb43.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2152,
+        "message": "BasicBlock: bb54.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2162,
+        "message": "BasicBlock: bb63.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2162,
+        "message": "BasicBlock: bb15.loopexit.split.loop.exit"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

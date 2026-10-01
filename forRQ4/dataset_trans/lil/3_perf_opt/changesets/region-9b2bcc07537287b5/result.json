@@ -1,0 +1,215 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 2.4890506584838428,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 3.614073599351942,
+            "aggregate_ci_low_pct": 1.3640277176157434,
+            "aggregate_pct": 2.4890506584838428,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 3.6141,
+                "ci_low_pct": 1.364,
+                "insns_delta_pct": 0.8696,
+                "mean_delta_pct": 2.4891,
+                "op": "native_call_state",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "native_call_state",
+          "subst_list_pipeline"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "native_call_state"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "285142ffe83b7f60c9af35706ac3ad2c6880e5b2",
+      "changeset_id": "region-9b2bcc07537287b5",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [
+            "cf003904698b21f4018fc48b0316c27eac2dd0a51fa30246b089c2bbff293be9",
+            "a02bf77ec7123204945ab3ee9039d87dcd2ec52f3db3891043789b44c472a511",
+            "14c92cf85a9110c366fc6ede88f050b3eba2fb19288a0c11ed75ede203660859",
+            "5e293dbc6a6723bd65a4d4973a68fe3976df6746626b883ac758effdcd626f8a"
+          ],
+          "operation_id": "replace-region-5537c53fbcd8a432",
+          "region": {
+            "anchor_hit_ids": [
+              "cf003904698b21f4018fc48b0316c27eac2dd0a51fa30246b089c2bbff293be9",
+              "a02bf77ec7123204945ab3ee9039d87dcd2ec52f3db3891043789b44c472a511",
+              "14c92cf85a9110c366fc6ede88f050b3eba2fb19288a0c11ed75ede203660859",
+              "5e293dbc6a6723bd65a4d4973a68fe3976df6746626b883ac758effdcd626f8a"
+            ],
+            "anchor_lines": [
+              205,
+              206,
+              207,
+              207
+            ],
+            "end_byte": 6349,
+            "expected_region_hash": "256774a8860ecaf46fc09946b3bf42d6e041be17eb51ee6f474ae8e05281eab0",
+            "parent_kind": "block",
+            "region_kind": "node_sequence",
+            "relative_path": "src/lil.rs",
+            "start_byte": 6003,
+            "target_function": {
+              "declaration_hash": "a6389f0653ee3363f6b90336031b1c2cd73a87b7a504b5e801ec9083a6a39859",
+              "file_hint": "src/lil.rs",
+              "qualified_name": "hm_hash",
+              "symbol_kind": "function"
+            }
+          },
+          "replacement_region_source": "let mut hash: c_ulong = 5381 as c_ulong;\n// SAFETY: `key` is expected by the caller to be a valid, non-null pointer to a\n// NUL-terminated C string within a single allocation; `CStr::from_ptr` uses the\n// sentinel terminator as the length source, and this shared view does not create\n// mutable aliasing.\nlet bytes = unsafe { core::ffi::CStr::from_ptr(key).to_bytes() };\nfor &b in bytes {\n    hash = (hash << 5 as c_int)\n        .wrapping_add(hash)\n        .wrapping_add(b as c_ulong);\n}\nreturn hash;",
+          "rule_id": "III④"
+        }
+      ],
+      "trigger": {
+        "candidate_id": "hm_hash-region-dac9cfacb84fd736",
+        "evidence_artifacts": [],
+        "hit_ids": [
+          "cf003904698b21f4018fc48b0316c27eac2dd0a51fa30246b089c2bbff293be9",
+          "a02bf77ec7123204945ab3ee9039d87dcd2ec52f3db3891043789b44c472a511",
+          "14c92cf85a9110c366fc6ede88f050b3eba2fb19288a0c11ed75ede203660859",
+          "5e293dbc6a6723bd65a4d4973a68fe3976df6746626b883ac758effdcd626f8a"
+        ],
+        "hot_function": "hm_hash",
+        "rule_id": "III④"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "bce57967dab1421a6c8b8a1b4bbe2ae6aebdaefe9c8886f5a3f04f0b0c9376f0",
+            "edit_id": "edit-replace-region-5537c53fbcd8a432",
+            "end_byte": 6349,
+            "operation_id": "replace-region-5537c53fbcd8a432",
+            "relative_path": "src/lil.rs",
+            "replacement_text": "let mut hash: c_ulong = 5381 as c_ulong;\n// SAFETY: `key` is expected by the caller to be a valid, non-null pointer to a\n// NUL-terminated C string within a single allocation; `CStr::from_ptr` uses the\n// sentinel terminator as the length source, and this shared view does not create\n// mutable aliasing.\nlet bytes = unsafe { core::ffi::CStr::from_ptr(key).to_bytes() };\nfor &b in bytes {\n    hash = (hash << 5 as c_int)\n        .wrapping_add(hash)\n        .wrapping_add(b as c_ulong);\n}\nreturn hash;",
+            "start_byte": 6003
+          }
+        ],
+        "facts": {
+          "declaration_span": [
+            5944,
+            6351
+          ],
+          "function_name": "hm_hash",
+          "function_parent_fingerprint": [
+            {
+              "index": 0,
+              "type": "source_file"
+            },
+            {
+              "index": 93,
+              "type": "function_item"
+            }
+          ],
+          "function_span": [
+            5944,
+            6351
+          ],
+          "original_file_length": 194275,
+          "original_item_counts": {
+            "extern_crate_declaration": 0,
+            "foreign_mod_item": 2,
+            "function_item": 147,
+            "function_signature_item": 2,
+            "impl_item": 0,
+            "macro_definition": 0,
+            "mod_item": 0,
+            "trait_item": 0
+          },
+          "original_region_length": 346,
+          "original_region_macro_hashes": [],
+          "original_region_node_types": [
+            "let_declaration",
+            "let_declaration",
+            "expression_statement",
+            "expression_statement"
+          ],
+          "parent_kind": "block",
+          "prefix_sha256": "b14d78c2e503362619dbb1d9eb73c731b0007246ae2903e38d3613f71123dd84",
+          "region_kind": "node_sequence",
+          "region_line_bounds": [
+            201,
+            214
+          ],
+          "suffix_sha256": "ba0bd46d61eae4436b295011482cf4f368e810b8a3cf486d5028eb32cc9afa1b"
+        },
+        "operation_id": "replace-region-5537c53fbcd8a432"
+      }
+    ],
+    "resolved_head": "285142ffe83b7f60c9af35706ac3ad2c6880e5b2"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/lil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_region_shape",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "introduced_scan",
+      "detail": "rewrite builds a view whose length must be scanned for, which the original did not do: let bytes = unsafe { core::ffi::CStr::from_ptr(key).to_bytes() };",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,143 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 3.5324297646861473,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 3.647499322181894,
+            "aggregate_ci_low_pct": 3.417360207190401,
+            "aggregate_pct": 3.5324297646861473,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 3.6475,
+                "ci_low_pct": 3.4174,
+                "insns_delta_pct": 1.7251,
+                "mean_delta_pct": 3.5324,
+                "op": "encode_png",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_png",
+          "file_codec",
+          "memory_codec",
+          "raw_deflate_inflate"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "encode_png"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "d2e62f4bb4e8ec1f41e0d3b860efe5f8871c6c36",
+      "changeset_id": "legacy-7ccd2a8f158a9f1c",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-8a9f361fffa08cf3",
+          "replacement_function_source": "unsafe fn encodeLZ77(\n    mut out: *mut uivector,\n    mut hash: *mut Hash,\n    mut in_0: *const c_uchar,\n    mut inpos: size_t,\n    mut insize: size_t,\n    mut windowsize: c_uint,\n    mut minmatch: c_uint,\n    mut nicematch: c_uint,\n    mut lazymatching: c_uint,\n) -> c_uint {\n    let hash_view: &Hash = unsafe { &*hash }; // SAFETY: caller provides a valid non-null Hash pointer for the duration of this function.\n    let chain = hash_view.chain;\n    let chainz = hash_view.chainz;\n    let zeros = hash_view.zeros;\n    let val = hash_view.val;\n    let head = hash_view.head;\n    let headz = hash_view.headz;\n\n    let mut error: c_uint = 0;\n    let maxchainlength: c_uint = if windowsize >= 8192 { windowsize } else { windowsize / 8 };\n    let maxlazymatch: c_uint = if windowsize >= 8192 {\n        MAX_SUPPORTED_DEFLATE_LENGTH\n    } else {\n        64\n    };\n    let usezeros: c_uint = 1;\n    let mut numzeros: c_uint = 0;\n    let mut offset: c_uint = 0;\n    let mut length: c_uint = 0;\n    let mut lazy: c_uint = 0;\n    let mut lazylength: c_uint = 0;\n    let mut lazyoffset: c_uint = 0;\n\n    if windowsize == 0 || windowsize > 32768 {\n        return 60;\n    }\n    if windowsize & windowsize.wrapping_sub(1) != 0 {\n        return 90;\n    }\n    if nicematch > MAX_SUPPORTED_DEFLATE_LENGTH {\n        nicematch = MAX_SUPPORTED_DEFLATE_LENGTH;\n    }\n\n    let winmask = windowsize.wrapping_sub(1) as size_t;\n    let max_deflate_len_sz = MAX_SUPPORTED_DEFLATE_LENGTH as size_t;\n\n    let mut pos = inpos;\n    while pos < insize {\n        let mut wpos: size_t = pos & winmask;\n        let mut chainlength: c_uint = 0;\n        let mut hashval: c_uint = getHash(in_0, insize, pos);\n\n        if usezeros != 0 && hashval == 0 {\n            if numzeros == 0 {\n                numzeros = countZeros(in_0, insize, pos);\n            } else if pos.wrapping_add(numzeros as size_t) > insize\n                || unsafe {\n                    // SAFETY: the condition above preserves original bounds logic; accessed index is identical to original code.\n                    *in_0.offset(pos.wrapping_add(numzeros as size_t).wrapping_sub(1) as isize)\n                } as c_int\n                    != 0\n            {\n                numzeros = numzeros.wrapping_sub(1);\n            }\n        } else {\n            numzeros = 0;\n        }\n\n        updateHashChain(hash, wpos, hashval, numzeros as c_ushort);\n\n        length = 0;\n        offset = 0;\n\n        let mut hashpos: c_uint = unsafe {\n            // SAFETY: wpos is masked to window size and matches original indexing into chain.\n            *chain.offset(wpos as isize) as c_uint\n        };\n\n        let end = if insize < pos.wrapping_add(max_deflate_len_sz) {\n            insize\n        } else {\n            pos.wrapping_add(max_deflate_len_sz)\n        };\n        let lastptr = unsafe {\n            // SAFETY: end is in [0, insize] exactly as in the original code.\n            in_0.offset(end as isize)\n        };\n        let mut prev_offset: c_uint = 0;\n\n        loop {\n            if chainlength >= maxchainlength {\n                break;\n            }\n            chainlength = chainlength.wrapping_add(1);\n\n            let current_offset: c_uint = if (hashpos as size_t) <= wpos {\n                wpos.wrapping_sub(hashpos as size_t) as c_uint\n            } else {\n                wpos.wrapping_sub(hashpos as size_t)\n                    .wrapping_add(windowsize as size_t) as c_uint\n            };\n\n            if current_offset < prev_offset {\n                break;\n            }\n            prev_offset = current_offset;\n\n            if current_offset > 0 {\n                let mut foreptr = unsafe {\n                    // SAFETY: pos < insize in loop condition; pointer arithmetic matches original code.\n                    in_0.offset(pos as isize)\n                };\n                let mut backptr = unsafe {\n                    // SAFETY: current_offset is derived exactly as original; pointer arithmetic matches original code.\n                    in_0.offset(pos.wrapping_sub(current_offset as size_t) as isize)\n                };\n\n                if numzeros >= 3 {\n                    let mut skip: c_uint = unsafe {\n                        // SAFETY: hashpos originates from the hash chain and is used exactly as in the original code.\n                        *zeros.offset(hashpos as isize) as c_uint\n                    };\n                    if skip > numzeros {\n                        skip = numzeros;\n                    }\n                    foreptr = unsafe {\n                        // SAFETY: skip is bounded exactly as in the original code.\n                        foreptr.offset(skip as isize)\n                    };\n                    backptr = unsafe {\n                        // SAFETY: skip is bounded exactly as in the original code.\n                        backptr.offset(skip as isize)\n                    };\n                }\n\n                while foreptr != lastptr\n                    && unsafe {\n                        // SAFETY: foreptr and backptr advance identically under the same conditions as the original loop.\n                        *backptr\n                    } as c_int\n                        == unsafe {\n                            // SAFETY: foreptr is checked against lastptr before dereference, matching original code.\n                            *foreptr\n                        } as c_int\n                {\n                    backptr = unsafe {\n                        // SAFETY: increment remains within compared region exactly as in the original code.\n                        backptr.offset(1)\n                    };\n                    foreptr = unsafe {\n                        // SAFETY: increment remains within compared region exactly as in the original code.\n                        foreptr.offset(1)\n                    };\n                }\n\n                let current_length = unsafe {\n                    // SAFETY: both pointers are within the same allocation and derived from in_0 as in the original code.\n                    foreptr.offset_from(in_0.offset(pos as isize)) as c_long as c_uint\n                };\n\n                if current_length > length {\n                    length = current_length;\n                    offset = current_offset;\n                    if current_length >= nicematch {\n                        break;\n                    }\n                }\n            }\n\n            let next_chain = unsafe {\n                // SAFETY: hashpos is used exactly as in the original code for chain traversal.\n                *chain.offset(hashpos as isize) as c_uint\n            };\n            if hashpos == next_chain {\n                break;\n            }\n\n            if numzeros >= 3 && length > numzeros {\n                hashpos = unsafe {\n                    // SAFETY: hashpos is valid for chainz traversal exactly as in the original code.\n                    *chainz.offset(hashpos as isize) as c_uint\n                };\n                if unsafe {\n                    // SAFETY: hashpos after chainz traversal is used exactly as in the original code.\n                    *zeros.offset(hashpos as isize) as c_uint\n                } != numzeros\n                {\n                    break;\n                }\n            } else {\n                hashpos = next_chain;\n                if unsafe {\n                    // SAFETY: hashpos is valid for val lookup exactly as in the original code.\n                    *val.offset(hashpos as isize)\n                } != hashval as c_int\n                {\n                    break;\n                }\n            }\n        }\n\n        let mut process_current = true;\n        if lazymatching != 0 {\n            if lazy == 0\n                && length >= 3\n                && length <= maxlazymatch\n                && length < MAX_SUPPORTED_DEFLATE_LENGTH\n            {\n                lazy = 1;\n                lazylength = length;\n                lazyoffset = offset;\n                process_current = false;\n            } else if lazy != 0 {\n                lazy = 0;\n                if pos == 0 {\n                    error = 81;\n                    break;\n                } else if length > lazylength.wrapping_add(1) {\n                    if uivector_push_back(\n                        out,\n                        unsafe {\n                            // SAFETY: pos > 0 established above; access matches original code.\n                            *in_0.offset(pos.wrapping_sub(1) as isize)\n                        } as c_uint,\n                    ) == 0\n                    {\n                        error = 83;\n                        break;\n                    }\n                } else {\n                    length = lazylength;\n                    offset = lazyoffset;\n                    unsafe {\n                        // SAFETY: hashval and numzeros are used as indices exactly as in the original code.\n                        *head.offset(hashval as isize) = -(1 as c_int);\n                        *headz.offset(numzeros as isize) = -(1 as c_int);\n                    }\n                    pos = pos.wrapping_sub(1);\n                }\n            }\n        }\n\n        if process_current {\n            if length >= 3 && offset > windowsize {\n                error = 86;\n                break;\n            } else if length < 3\n                || length < minmatch\n                || (length == 3 && offset > 4096)\n            {\n                if uivector_push_back(\n                    out,\n                    unsafe {\n                        // SAFETY: pos < insize by loop condition; access matches original code.\n                        *in_0.offset(pos as isize)\n                    } as c_uint,\n                ) == 0\n                {\n                    error = 83;\n                    break;\n                }\n            } else {\n                addLengthDistance(out, length as size_t, offset as size_t);\n                let mut i: c_uint = 1;\n                while i < length {\n                    pos = pos.wrapping_add(1);\n                    wpos = pos & winmask;\n                    hashval = getHash(in_0, insize, pos);\n\n                    if usezeros != 0 && hashval == 0 {\n                        if numzeros == 0 {\n                            numzeros = countZeros(in_0, insize, pos);\n                        } else if pos.wrapping_add(numzeros as size_t) > insize\n                            || unsafe {\n                                // SAFETY: the condition above preserves original bounds logic; accessed index is identical to original code.\n                                *in_0.offset(\n                                    pos.wrapping_add(numzeros as size_t).wrapping_sub(1) as isize,\n                                )\n                            } as c_int\n                                != 0\n                        {\n                            numzeros = numzeros.wrapping_sub(1);\n                        }\n                    } else {\n                        numzeros = 0;\n                    }\n\n                    updateHashChain(hash, wpos, hashval, numzeros as c_ushort);\n                    i = i.wrapping_add(1);\n                }\n            }\n        }\n\n        pos = pos.wrapping_add(1);\n    }\n\n    error\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "843a4345ccea2f4c77a9840f94bb4ec8c90daeb7de574d990f6188feb20ff47e",
+            "file_hint": "src/lodepng.rs",
+            "qualified_name": "crate::encodeLZ77",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "encodeLZ77-4637edeea07e",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "encodeLZ77",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "fec9b0bcf931100e2a5302dea0c7f5d2bfc1df7ac2e7e3768eb02bf9ede9eaeb",
+            "edit_id": "edit-replace-8a9f361fffa08cf3",
+            "end_byte": 97135,
+            "operation_id": "replace-8a9f361fffa08cf3",
+            "relative_path": "src/lodepng.rs",
+            "replacement_text": "unsafe fn encodeLZ77(\n    mut out: *mut uivector,\n    mut hash: *mut Hash,\n    mut in_0: *const c_uchar,\n    mut inpos: size_t,\n    mut insize: size_t,\n    mut windowsize: c_uint,\n    mut minmatch: c_uint,\n    mut nicematch: c_uint,\n    mut lazymatching: c_uint,\n) -> c_uint {\n    let hash_view: &Hash = unsafe { &*hash }; // SAFETY: caller provides a valid non-null Hash pointer for the duration of this function.\n    let chain = hash_view.chain;\n    let chainz = hash_view.chainz;\n    let zeros = hash_view.zeros;\n    let val = hash_view.val;\n    let head = hash_view.head;\n    let headz = hash_view.headz;\n\n    let mut error: c_uint = 0;\n    let maxchainlength: c_uint = if windowsize >= 8192 { windowsize } else { windowsize / 8 };\n    let maxlazymatch: c_uint = if windowsize >= 8192 {\n        MAX_SUPPORTED_DEFLATE_LENGTH\n    } else {\n        64\n    };\n    let usezeros: c_uint = 1;\n    let mut numzeros: c_uint = 0;\n    let mut offset: c_uint = 0;\n    let mut length: c_uint = 0;\n    let mut lazy: c_uint = 0;\n    let mut lazylength: c_uint = 0;\n    let mut lazyoffset: c_uint = 0;\n\n    if windowsize == 0 || windowsize > 32768 {\n        return 60;\n    }\n    if windowsize & windowsize.wrapping_sub(1) != 0 {\n        return 90;\n    }\n    if nicematch > MAX_SUPPORTED_DEFLATE_LENGTH {\n        nicematch = MAX_SUPPORTED_DEFLATE_LENGTH;\n    }\n\n    let winmask = windowsize.wrapping_sub(1) as size_t;\n    let max_deflate_len_sz = MAX_SUPPORTED_DEFLATE_LENGTH as size_t;\n\n    let mut pos = inpos;\n    while pos < insize {\n        let mut wpos: size_t = pos & winmask;\n        let mut chainlength: c_uint = 0;\n        let mut hashval: c_uint = getHash(in_0, insize, pos);\n\n        if usezeros != 0 && hashval == 0 {\n            if numzeros == 0 {\n                numzeros = countZeros(in_0, insize, pos);\n            } else if pos.wrapping_add(numzeros as size_t) > insize\n                || unsafe {\n                    // SAFETY: the condition above preserves original bounds logic; accessed index is identical to original code.\n                    *in_0.offset(pos.wrapping_add(numzeros as size_t).wrapping_sub(1) as isize)\n                } as c_int\n                    != 0\n            {\n                numzeros = numzeros.wrapping_sub(1);\n            }\n        } else {\n            numzeros = 0;\n        }\n\n        updateHashChain(hash, wpos, hashval, numzeros as c_ushort);\n\n        length = 0;\n        offset = 0;\n\n        let mut hashpos: c_uint = unsafe {\n            // SAFETY: wpos is masked to window size and matches original indexing into chain.\n            *chain.offset(wpos as isize) as c_uint\n        };\n\n        let end = if insize < pos.wrapping_add(max_deflate_len_sz) {\n            insize\n        } else {\n            pos.wrapping_add(max_deflate_len_sz)\n        };\n        let lastptr = unsafe {\n            // SAFETY: end is in [0, insize] exactly as in the original code.\n            in_0.offset(end as isize)\n        };\n        let mut prev_offset: c_uint = 0;\n\n        loop {\n            if chainlength >= maxchainlength {\n                break;\n            }\n            chainlength = chainlength.wrapping_add(1);\n\n            let current_offset: c_uint = if (hashpos as size_t) <= wpos {\n                wpos.wrapping_sub(hashpos as size_t) as c_uint\n            } else {\n                wpos.wrapping_sub(hashpos as size_t)\n                    .wrapping_add(windowsize as size_t) as c_uint\n            };\n\n            if current_offset < prev_offset {\n                break;\n            }\n            prev_offset = current_offset;\n\n            if current_offset > 0 {\n                let mut foreptr = unsafe {\n                    // SAFETY: pos < insize in loop condition; pointer arithmetic matches original code.\n                    in_0.offset(pos as isize)\n                };\n                let mut backptr = unsafe {\n                    // SAFETY: current_offset is derived exactly as original; pointer arithmetic matches original code.\n                    in_0.offset(pos.wrapping_sub(current_offset as size_t) as isize)\n                };\n\n                if numzeros >= 3 {\n                    let mut skip: c_uint = unsafe {\n                        // SAFETY: hashpos originates from the hash chain and is used exactly as in the original code.\n                        *zeros.offset(hashpos as isize) as c_uint\n                    };\n                    if skip > numzeros {\n                        skip = numzeros;\n                    }\n                    foreptr = unsafe {\n                        // SAFETY: skip is bounded exactly as in the original code.\n                        foreptr.offset(skip as isize)\n                    };\n                    backptr = unsafe {\n                        // SAFETY: skip is bounded exactly as in the original code.\n                        backptr.offset(skip as isize)\n                    };\n                }\n\n                while foreptr != lastptr\n                    && unsafe {\n                        // SAFETY: foreptr and backptr advance identically under the same conditions as the original loop.\n                        *backptr\n                    } as c_int\n                        == unsafe {\n                            // SAFETY: foreptr is checked against lastptr before dereference, matching original code.\n                            *foreptr\n                        } as c_int\n                {\n                    backptr = unsafe {\n                        // SAFETY: increment remains within compared region exactly as in the original code.\n                        backptr.offset(1)\n                    };\n                    foreptr = unsafe {\n                        // SAFETY: increment remains within compared region exactly as in the original code.\n                        foreptr.offset(1)\n                    };\n                }\n\n                let current_length = unsafe {\n                    // SAFETY: both pointers are within the same allocation and derived from in_0 as in the original code.\n                    foreptr.offset_from(in_0.offset(pos as isize)) as c_long as c_uint\n                };\n\n                if current_length > length {\n                    length = current_length;\n                    offset = current_offset;\n                    if current_length >= nicematch {\n                        break;\n                    }\n                }\n            }\n\n            let next_chain = unsafe {\n                // SAFETY: hashpos is used exactly as in the original code for chain traversal.\n                *chain.offset(hashpos as isize) as c_uint\n            };\n            if hashpos == next_chain {\n                break;\n            }\n\n            if numzeros >= 3 && length > numzeros {\n                hashpos = unsafe {\n                    // SAFETY: hashpos is valid for chainz traversal exactly as in the original code.\n                    *chainz.offset(hashpos as isize) as c_uint\n                };\n                if unsafe {\n                    // SAFETY: hashpos after chainz traversal is used exactly as in the original code.\n                    *zeros.offset(hashpos as isize) as c_uint\n                } != numzeros\n                {\n                    break;\n                }\n            } else {\n                hashpos = next_chain;\n                if unsafe {\n                    // SAFETY: hashpos is valid for val lookup exactly as in the original code.\n                    *val.offset(hashpos as isize)\n                } != hashval as c_int\n                {\n                    break;\n                }\n            }\n        }\n\n        let mut process_current = true;\n        if lazymatching != 0 {\n            if lazy == 0\n                && length >= 3\n                && length <= maxlazymatch\n                && length < MAX_SUPPORTED_DEFLATE_LENGTH\n            {\n                lazy = 1;\n                lazylength = length;\n                lazyoffset = offset;\n                process_current = false;\n            } else if lazy != 0 {\n                lazy = 0;\n                if pos == 0 {\n                    error = 81;\n                    break;\n                } else if length > lazylength.wrapping_add(1) {\n                    if uivector_push_back(\n                        out,\n                        unsafe {\n                            // SAFETY: pos > 0 established above; access matches original code.\n                            *in_0.offset(pos.wrapping_sub(1) as isize)\n                        } as c_uint,\n                    ) == 0\n                    {\n                        error = 83;\n                        break;\n                    }\n                } else {\n                    length = lazylength;\n                    offset = lazyoffset;\n                    unsafe {\n                        // SAFETY: hashval and numzeros are used as indices exactly as in the original code.\n                        *head.offset(hashval as isize) = -(1 as c_int);\n                        *headz.offset(numzeros as isize) = -(1 as c_int);\n                    }\n                    pos = pos.wrapping_sub(1);\n                }\n            }\n        }\n\n        if process_current {\n            if length >= 3 && offset > windowsize {\n                error = 86;\n                break;\n            } else if length < 3\n                || length < minmatch\n                || (length == 3 && offset > 4096)\n            {\n                if uivector_push_back(\n                    out,\n                    unsafe {\n                        // SAFETY: pos < insize by loop condition; access matches original code.\n                        *in_0.offset(pos as isize)\n                    } as c_uint,\n                ) == 0\n                {\n                    error = 83;\n                    break;\n                }\n            } else {\n                addLengthDistance(out, length as size_t, offset as size_t);\n                let mut i: c_uint = 1;\n                while i < length {\n                    pos = pos.wrapping_add(1);\n                    wpos = pos & winmask;\n                    hashval = getHash(in_0, insize, pos);\n\n                    if usezeros != 0 && hashval == 0 {\n                        if numzeros == 0 {\n                            numzeros = countZeros(in_0, insize, pos);\n                        } else if pos.wrapping_add(numzeros as size_t) > insize\n                            || unsafe {\n                                // SAFETY: the condition above preserves original bounds logic; accessed index is identical to original code.\n                                *in_0.offset(\n                                    pos.wrapping_add(numzeros as size_t).wrapping_sub(1) as isize,\n                                )\n                            } as c_int\n                                != 0\n                        {\n                            numzeros = numzeros.wrapping_sub(1);\n                        }\n                    } else {\n                        numzeros = 0;\n                    }\n\n                    updateHashChain(hash, wpos, hashval, numzeros as c_ushort);\n                    i = i.wrapping_add(1);\n                }\n            }\n        }\n\n        pos = pos.wrapping_add(1);\n    }\n\n    error\n}",
+            "start_byte": 87656
+          }
+        ],
+        "facts": {
+          "fn_name": "encodeLZ77",
+          "target_span_hash": "843a4345ccea2f4c77a9840f94bb4ec8c90daeb7de574d990f6188feb20ff47e"
+        },
+        "operation_id": "replace-8a9f361fffa08cf3"
+      }
+    ],
+    "resolved_head": "d2e62f4bb4e8ec1f41e0d3b860efe5f8871c6c36"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/lodepng.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

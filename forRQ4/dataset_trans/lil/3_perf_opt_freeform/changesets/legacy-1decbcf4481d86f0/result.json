@@ -1,0 +1,215 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.6603026985841405,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -0.01832612589095528,
+            "aggregate_ci_low_pct": -1.3022792712773257,
+            "aggregate_pct": -0.6603026985841405,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 1.4957,
+                "ci_low_pct": -3.4748,
+                "insns_delta_pct": -0.1257,
+                "mean_delta_pct": -0.9896,
+                "op": "builtin_script_matrix",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              },
+              {
+                "ci_high_pct": 0.2728,
+                "ci_low_pct": -0.3365,
+                "insns_delta_pct": -0.0517,
+                "mean_delta_pct": -0.0318,
+                "op": "expr_embedded_builtins",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.7911,
+                "ci_low_pct": -2.1705,
+                "insns_delta_pct": 0.239,
+                "mean_delta_pct": -1.4808,
+                "op": "native_call_state",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.1231,
+                "ci_low_pct": -0.4011,
+                "insns_delta_pct": 0.0379,
+                "mean_delta_pct": -0.139,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.29290618254019596,
+            "aggregate_ci_low_pct": -0.0649088198716428,
+            "aggregate_pct": 0.11399868133427658,
+            "checkpoint": 20,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.5807,
+                "ci_low_pct": -0.0606,
+                "insns_delta_pct": -0.0022,
+                "mean_delta_pct": 0.26,
+                "op": "expr_embedded_builtins",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.6829,
+                "ci_low_pct": -0.1347,
+                "insns_delta_pct": -0.3266,
+                "mean_delta_pct": 0.2741,
+                "op": "native_call_state",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.025,
+                "ci_low_pct": -0.4093,
+                "insns_delta_pct": -0.1196,
+                "mean_delta_pct": -0.1921,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "expr_embedded_builtins",
+          "native_call_state",
+          "subst_list_pipeline"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "expr_embedded_builtins"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "3fc6eb04c82f4e5e37dd4a8552d95248112a62e7",
+      "changeset_id": "legacy-1decbcf4481d86f0",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-4d3c6fd9299deb0b",
+          "replacement_function_source": "unsafe fn hm_put(\n    mut hm: *mut hashmap_t,\n    mut key: *const c_char,\n    mut value: *mut c_void,\n) {\n    let cell = (&raw mut (*hm).cell as *mut hashcell_t)\n        .add((hm_hash(key) & HASHMAP_CELLMASK as c_ulong) as usize);\n    let entries = (*cell).e;\n    let count = (*cell).c;\n\n    let mut i: size_t = 0;\n    while i < count {\n        let entry = entries.add(i as usize);\n        if strcmp(key, (*entry).k) == 0 {\n            (*entry).v = value;\n            return;\n        }\n        i = i.wrapping_add(1);\n    }\n\n    let new_count = count.wrapping_add(1 as size_t);\n    let new_entries = realloc(\n        entries as *mut c_void,\n        (::core::mem::size_of::<hashentry_t>() as size_t).wrapping_mul(new_count),\n    ) as *mut hashentry_t;\n    (*cell).e = new_entries;\n\n    let new_entry = new_entries.add(count as usize);\n    (*new_entry).k = strclone(key);\n    (*new_entry).v = value;\n    (*cell).c = new_count;\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "803a1b7f83f2857e1e0e999fbbeece70fb506ac95b46e8ca5c35adb51045eed3",
+            "file_hint": "src/lil.rs",
+            "qualified_name": "crate::hm_put",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "hm_put-d327bff0ad3f",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "hm_put",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "a1175c4553361b0b4ac3fa10966c24e10f242ea7ecfb3615a8263e74e4434cae",
+            "edit_id": "edit-replace-4d3c6fd9299deb0b",
+            "end_byte": 8475,
+            "operation_id": "replace-4d3c6fd9299deb0b",
+            "relative_path": "src/lil.rs",
+            "replacement_text": "unsafe fn hm_put(\n    mut hm: *mut hashmap_t,\n    mut key: *const c_char,\n    mut value: *mut c_void,\n) {\n    let cell = (&raw mut (*hm).cell as *mut hashcell_t)\n        .add((hm_hash(key) & HASHMAP_CELLMASK as c_ulong) as usize);\n    let entries = (*cell).e;\n    let count = (*cell).c;\n\n    let mut i: size_t = 0;\n    while i < count {\n        let entry = entries.add(i as usize);\n        if strcmp(key, (*entry).k) == 0 {\n            (*entry).v = value;\n            return;\n        }\n        i = i.wrapping_add(1);\n    }\n\n    let new_count = count.wrapping_add(1 as size_t);\n    let new_entries = realloc(\n        entries as *mut c_void,\n        (::core::mem::size_of::<hashentry_t>() as size_t).wrapping_mul(new_count),\n    ) as *mut hashentry_t;\n    (*cell).e = new_entries;\n\n    let new_entry = new_entries.add(count as usize);\n    (*new_entry).k = strclone(key);\n    (*new_entry).v = value;\n    (*cell).c = new_count;\n}",
+            "start_byte": 7479
+          }
+        ],
+        "facts": {
+          "fn_name": "hm_put",
+          "target_span_hash": "803a1b7f83f2857e1e0e999fbbeece70fb506ac95b46e8ca5c35adb51045eed3"
+        },
+        "operation_id": "replace-4d3c6fd9299deb0b"
+      }
+    ],
+    "resolved_head": "3fc6eb04c82f4e5e37dd4a8552d95248112a62e7"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/lil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

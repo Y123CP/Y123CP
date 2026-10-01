@@ -1,0 +1,204 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.15558642208830825,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.12410410111783432,
+            "aggregate_ci_low_pct": -0.4352769452944508,
+            "aggregate_pct": -0.15558642208830825,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.3733,
+                "ci_low_pct": -0.3396,
+                "insns_delta_pct": 0.0124,
+                "mean_delta_pct": 0.0168,
+                "op": "builtin_script_matrix",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.8598,
+                "ci_low_pct": -0.4256,
+                "insns_delta_pct": -0.0887,
+                "mean_delta_pct": 0.2171,
+                "op": "expr_embedded_builtins",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2217,
+                "ci_low_pct": -1.6436,
+                "insns_delta_pct": 0.5269,
+                "mean_delta_pct": -0.711,
+                "op": "native_call_state",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.1048,
+                "ci_low_pct": -0.3954,
+                "insns_delta_pct": 0.1536,
+                "mean_delta_pct": -0.1453,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.29843202338213604,
+            "aggregate_ci_low_pct": -0.2851774217251398,
+            "aggregate_pct": 0.006627300828498106,
+            "checkpoint": 20,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.6206,
+                "ci_low_pct": -0.2049,
+                "insns_delta_pct": -0.0161,
+                "mean_delta_pct": 0.2078,
+                "op": "native_call_state",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2608,
+                "ci_low_pct": -0.6499,
+                "insns_delta_pct": 0.0081,
+                "mean_delta_pct": -0.1946,
+                "op": "subst_list_pipeline",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "native_call_state",
+          "subst_list_pipeline"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "expr_embedded_builtins"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "3fc6eb04c82f4e5e37dd4a8552d95248112a62e7",
+      "changeset_id": "legacy-87201575c469972f",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-111a47068d8343e5",
+          "replacement_function_source": "#[inline]\npub fn lil_new() -> lil_t { unsafe {\n    let lil = calloc(1 as size_t, ::core::mem::size_of::<_lil_t>() as size_t) as lil_t;\n    let env = lil_alloc_env(::core::ptr::null_mut::<_lil_env_t>());\n    let empty = alloc_value(::core::ptr::null::<c_char>());\n    let dollarprefix = strclone(b\"set \\0\" as *const u8 as *const c_char);\n\n    (*lil).env = env;\n    (*lil).rootenv = env;\n    (*lil).empty = empty;\n    (*lil).dollarprefix = dollarprefix;\n    hm_init(&raw mut (*lil).cmdmap);\n    register_stdcmds(lil);\n    lil\n} }",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "f1d31e16ab875c21ed5c8d04bfa70410b6dad4a073cc9d3be7594414ace97152",
+            "file_hint": "src/lil.rs",
+            "qualified_name": "crate::lil_new",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "lil_new-dd07f79bf7f9",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "lil_new",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "a1175c4553361b0b4ac3fa10966c24e10f242ea7ecfb3615a8263e74e4434cae",
+            "edit_id": "edit-replace-111a47068d8343e5",
+            "end_byte": 27698,
+            "operation_id": "replace-111a47068d8343e5",
+            "relative_path": "src/lil.rs",
+            "replacement_text": "#[inline]\npub fn lil_new() -> lil_t { unsafe {\n    let lil = calloc(1 as size_t, ::core::mem::size_of::<_lil_t>() as size_t) as lil_t;\n    let env = lil_alloc_env(::core::ptr::null_mut::<_lil_env_t>());\n    let empty = alloc_value(::core::ptr::null::<c_char>());\n    let dollarprefix = strclone(b\"set \\0\" as *const u8 as *const c_char);\n\n    (*lil).env = env;\n    (*lil).rootenv = env;\n    (*lil).empty = empty;\n    (*lil).dollarprefix = dollarprefix;\n    hm_init(&raw mut (*lil).cmdmap);\n    register_stdcmds(lil);\n    lil\n} }",
+            "start_byte": 27225
+          }
+        ],
+        "facts": {
+          "fn_name": "lil_new",
+          "target_span_hash": "f1d31e16ab875c21ed5c8d04bfa70410b6dad4a073cc9d3be7594414ace97152"
+        },
+        "operation_id": "replace-111a47068d8343e5"
+      }
+    ],
+    "resolved_head": "3fc6eb04c82f4e5e37dd4a8552d95248112a62e7"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/lil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

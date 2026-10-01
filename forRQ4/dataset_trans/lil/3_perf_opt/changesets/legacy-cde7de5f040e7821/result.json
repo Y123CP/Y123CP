@@ -1,0 +1,206 @@
+{
+  "applied_rules": [
+    "C3"
+  ],
+  "commit_sha": "e507c3a",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.03629873748036323,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.2156244060127706,
+            "aggregate_ci_low_pct": -0.28822188097349705,
+            "aggregate_pct": -0.03629873748036323,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.3454,
+                "ci_low_pct": -0.6229,
+                "insns_delta_pct": 0.8111,
+                "mean_delta_pct": -0.1387,
+                "op": "native_call_state",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2512,
+                "ci_low_pct": -0.119,
+                "insns_delta_pct": 0.2101,
+                "mean_delta_pct": 0.0661,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -12.368008811759045,
+            "aggregate_ci_low_pct": -12.61980600564702,
+            "aggregate_pct": -12.493907408703032,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -45.2705,
+                "ci_low_pct": -45.6303,
+                "insns_delta_pct": -56.5602,
+                "mean_delta_pct": -45.4504,
+                "op": "builtin_script_matrix",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.124,
+                "ci_low_pct": -0.5665,
+                "insns_delta_pct": 0.0111,
+                "mean_delta_pct": -0.2213,
+                "op": "expr_embedded_builtins",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.5591,
+                "ci_low_pct": -1.2736,
+                "insns_delta_pct": 0.3055,
+                "mean_delta_pct": -0.9163,
+                "op": "native_call_state",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -3.2203,
+                "ci_low_pct": -3.555,
+                "insns_delta_pct": -12.3102,
+                "mean_delta_pct": -3.3876,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "native_call_state",
+          "subst_list_pipeline"
+        ],
+        "reason": "accepted",
+        "triggering_op": "subst_list_pipeline"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "a7bf4c6a740c2c35f8593d469ec8c7ba04d3c9c4",
+      "changeset_id": "legacy-cde7de5f040e7821",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-696324c84c4c26f2",
+          "replacement_function_source": "// Applied rules: [C3]\n// Skipped rules: [III④: Only concrete hit [13] is a single raw-pointer dereference form inside the inner loop; converting just `e` to a slice would be a body-local view serving essentially one access pattern and would not address the repeated `hm_view.cell[i as usize]` reloads as effectively as C3 S2. Signature-lifted sliceification would require caller analysis not justified by the single hit.; III②: Hits [11,12] are `free` calls in a destructor, but the allocation sites are not in this function. Rule III② requires alloc/free pairing in the same function scope; ownership clearly crosses function boundaries via the hashmap structure, so RAII conversion is out of scope here.; II_vec: The reported vectorization failures [3,4,5,6,7,8,9,10] stem from a tiny destructor loop containing `free` libcalls and a data-dependent inner trip count from `c`; there is no profitable semantics-neutral vectorization rewrite here, and the libcall barrier remains unless ownership is redesigned beyond this function.]\nunsafe fn hm_destroy(mut hm: *mut hashmap_t) {\n    let hm_view: &hashmap_t = unsafe {\n        // SAFETY: `hm` is assumed by the caller to be a valid, properly aligned pointer\n        // to a live `hashmap_t` for the duration of this function.\n        &*hm\n    };\n    let mut i: size_t = 0;\n    let mut j: size_t = 0;\n    i = 0 as size_t;\n    while i < HASHMAP_CELLS as size_t {\n        let cell = unsafe {\n            // SAFETY: `i < HASHMAP_CELLS as size_t` and `cell` has exactly `HASHMAP_CELLS`\n            // elements, so this unchecked access is in bounds for the current iteration.\n            hm_view.cell.get_unchecked(i as usize)\n        };\n        let cell_c = cell.c;\n        let cell_e = cell.e;\n        j = 0 as size_t;\n        while j < cell_c {\n            free(unsafe {\n                // SAFETY: `cell_e` is the original entry-array pointer for this cell, and\n                // `j < cell_c` matches the original unchecked offset walk over its entries.\n                (*cell_e.offset(j as isize)).k as *mut c_void\n            });\n            j = j.wrapping_add(1);\n        }\n        free(cell_e as *mut c_void);\n        i = i.wrapping_add(1);\n    }\n}",
+          "rule_id": "C3",
+          "target": {
+            "declaration_hash": "690d87514ae6174b542c4305979666a6f148cbbae87e3168fff630b9135c2a78",
+            "file_hint": "src/lil.rs",
+            "qualified_name": "crate::hm_destroy",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "hm_destroy-700901439273",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "hm_destroy",
+        "rule_id": "C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "de44c201311b07015187b4426545d70657c95394f41e971b870522176123bac5",
+            "edit_id": "edit-replace-696324c84c4c26f2",
+            "end_byte": 7025,
+            "operation_id": "replace-696324c84c4c26f2",
+            "relative_path": "src/lil.rs",
+            "replacement_text": "// Applied rules: [C3]\n// Skipped rules: [III④: Only concrete hit [13] is a single raw-pointer dereference form inside the inner loop; converting just `e` to a slice would be a body-local view serving essentially one access pattern and would not address the repeated `hm_view.cell[i as usize]` reloads as effectively as C3 S2. Signature-lifted sliceification would require caller analysis not justified by the single hit.; III②: Hits [11,12] are `free` calls in a destructor, but the allocation sites are not in this function. Rule III② requires alloc/free pairing in the same function scope; ownership clearly crosses function boundaries via the hashmap structure, so RAII conversion is out of scope here.; II_vec: The reported vectorization failures [3,4,5,6,7,8,9,10] stem from a tiny destructor loop containing `free` libcalls and a data-dependent inner trip count from `c`; there is no profitable semantics-neutral vectorization rewrite here, and the libcall barrier remains unless ownership is redesigned beyond this function.]\nunsafe fn hm_destroy(mut hm: *mut hashmap_t) {\n    let hm_view: &hashmap_t = unsafe {\n        // SAFETY: `hm` is assumed by the caller to be a valid, properly aligned pointer\n        // to a live `hashmap_t` for the duration of this function.\n        &*hm\n    };\n    let mut i: size_t = 0;\n    let mut j: size_t = 0;\n    i = 0 as size_t;\n    while i < HASHMAP_CELLS as size_t {\n        let cell = unsafe {\n            // SAFETY: `i < HASHMAP_CELLS as size_t` and `cell` has exactly `HASHMAP_CELLS`\n            // elements, so this unchecked access is in bounds for the current iteration.\n            hm_view.cell.get_unchecked(i as usize)\n        };\n        let cell_c = cell.c;\n        let cell_e = cell.e;\n        j = 0 as size_t;\n        while j < cell_c {\n            free(unsafe {\n                // SAFETY: `cell_e` is the original entry-array pointer for this cell, and\n                // `j < cell_c` matches the original unchecked offset walk over its entries.\n                (*cell_e.offset(j as isize)).k as *mut c_void\n            });\n            j = j.wrapping_add(1);\n        }\n        free(cell_e as *mut c_void);\n        i = i.wrapping_add(1);\n    }\n}",
+            "start_byte": 6519
+          }
+        ],
+        "facts": {
+          "fn_name": "hm_destroy",
+          "target_span_hash": "690d87514ae6174b542c4305979666a6f148cbbae87e3168fff630b9135c2a78"
+        },
+        "operation_id": "replace-696324c84c4c26f2"
+      }
+    ],
+    "resolved_head": "a7bf4c6a740c2c35f8593d469ec8c7ba04d3c9c4"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/lil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

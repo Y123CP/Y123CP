@@ -1,0 +1,78 @@
+extern "C" {
+    pub type json_object;
+    fn printf(__format: *const ::core::ffi::c_char, ...) -> ::core::ffi::c_int;
+    fn puts(__s: *const ::core::ffi::c_char) -> ::core::ffi::c_int;
+    fn strcmp(
+        __s1: *const ::core::ffi::c_char,
+        __s2: *const ::core::ffi::c_char,
+    ) -> ::core::ffi::c_int;
+    fn json_object_put(obj: *mut json_object) -> ::core::ffi::c_int;
+    fn json_object_to_json_string(obj: *mut json_object) -> *const ::core::ffi::c_char;
+    fn json_object_new_string_len(
+        s: *const ::core::ffi::c_char,
+        len: ::core::ffi::c_int,
+    ) -> *mut json_object;
+    fn json_object_get_string(obj: *mut json_object) -> *const ::core::ffi::c_char;
+    fn json_object_get_string_len(obj: *const json_object) -> ::core::ffi::c_int;
+    fn json_tokener_parse(str: *const ::core::ffi::c_char) -> *mut json_object;
+}
+unsafe fn main_0() -> ::core::ffi::c_int {
+    let mut input: *const ::core::ffi::c_char =
+        b" \0 \0" as *const u8 as *const ::core::ffi::c_char;
+    let mut expected: *const ::core::ffi::c_char =
+        b"\" \\u0000 \"\0" as *const u8 as *const ::core::ffi::c_char;
+    let mut string: *mut json_object = json_object_new_string_len(input, 3 as ::core::ffi::c_int);
+    let mut json: *const ::core::ffi::c_char = json_object_to_json_string(string);
+    let mut strings_match: ::core::ffi::c_int = (strcmp(expected, json) == 0) as ::core::ffi::c_int;
+    let mut retval: ::core::ffi::c_int = 0 as ::core::ffi::c_int;
+    if strings_match != 0 {
+        printf(
+            b"JSON write result is correct: %s\n\0" as *const u8 as *const ::core::ffi::c_char,
+            json,
+        );
+        puts(b"PASS\0" as *const u8 as *const ::core::ffi::c_char);
+    } else {
+        puts(
+            b"JSON write result doesn't match expected string\0" as *const u8
+                as *const ::core::ffi::c_char,
+        );
+        printf(b"expected string: \0" as *const u8 as *const ::core::ffi::c_char);
+        puts(expected);
+        printf(b"parsed string:   \0" as *const u8 as *const ::core::ffi::c_char);
+        puts(json);
+        puts(b"FAIL\0" as *const u8 as *const ::core::ffi::c_char);
+        retval = 1 as ::core::ffi::c_int;
+    }
+    json_object_put(string);
+    let mut parsed_str: *mut json_object = json_tokener_parse(expected);
+    if !parsed_str.is_null() {
+        let mut parsed_len: ::core::ffi::c_int = json_object_get_string_len(parsed_str);
+        let mut parsed_cstr: *const ::core::ffi::c_char = json_object_get_string(parsed_str);
+        let mut ii: ::core::ffi::c_int = 0;
+        printf(
+            b"Re-parsed object string len=%d, chars=[\0" as *const u8 as *const ::core::ffi::c_char,
+            parsed_len,
+        );
+        ii = 0 as ::core::ffi::c_int;
+        while ii < parsed_len {
+            printf(
+                b"%s%d\0" as *const u8 as *const ::core::ffi::c_char,
+                if ii != 0 {
+                    b", \0" as *const u8 as *const ::core::ffi::c_char
+                } else {
+                    b"\0" as *const u8 as *const ::core::ffi::c_char
+                },
+                *parsed_cstr.offset(ii as isize) as ::core::ffi::c_int,
+            );
+            ii += 1;
+        }
+        puts(b"]\0" as *const u8 as *const ::core::ffi::c_char);
+        json_object_put(parsed_str);
+    } else {
+        puts(b"ERROR: failed to parse\0" as *const u8 as *const ::core::ffi::c_char);
+    }
+    return retval;
+}
+pub fn main() {
+    unsafe { ::std::process::exit(main_0() as i32) }
+}

@@ -1,0 +1,89 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": "error[E0530]: let bindings cannot shadow statics\n    --> /perf-build/crate/src/lodepng.rs:5961:13\n     |\n300  | static mut mask: c_uint = 0;\n     | ---------------------------- the static `mask` is defined here\n...\n5961 |         let mask: c_uint = (((1u32) << (take as u32)) as c_uint).wrapping_sub(1 as c_uint);\n     |             ^^^^ cannot be named the same as a static\nerror: could not compile `lodepng_cleaned` (lib) due to 1 previous error; 8 warnings emitted"
+      },
+      "gate": "build",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "3cd2cb496a089231cd31fcaa7e2973e0023fdef1",
+      "changeset_id": "legacy-184f558ecee2a073",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-254ed4d543017f2d",
+          "replacement_function_source": "unsafe fn readBitsFromReversedStream(\n    mut bitpointer: *mut size_t,\n    mut bitstream: *const c_uchar,\n    mut nbits: size_t,\n) -> c_uint {\n    let mut result: c_uint = 0 as c_uint;\n    if nbits == 0 as size_t {\n        return 0 as c_uint;\n    }\n\n    // SAFETY: `bitpointer` is valid per the original function's contract; we only read its current value.\n    let mut bp: size_t = unsafe { *bitpointer };\n    let mut byte_index: size_t = bp >> 3;\n    let mut bit_index: size_t = bp & 7;\n    let mut remaining: size_t = nbits;\n\n    while remaining != 0 as size_t {\n        // SAFETY: `bitstream.add(byte_index)` is valid whenever the original per-bit implementation would read that byte.\n        let byte: c_uint = unsafe { *bitstream.add(byte_index) as c_uint };\n        let available: size_t = bit_index.wrapping_add(1 as size_t);\n        let take: size_t = if remaining < available { remaining } else { available };\n        let shift: size_t = available.wrapping_sub(take);\n        let mask: c_uint = (((1u32) << (take as u32)) as c_uint).wrapping_sub(1 as c_uint);\n        let chunk: c_uint = (byte >> (shift as u32)) & mask;\n\n        result = (result << (take as u32)) | chunk;\n        remaining = remaining.wrapping_sub(take);\n\n        if shift == 0 as size_t {\n            byte_index = byte_index.wrapping_add(1 as size_t);\n            bit_index = 7 as size_t;\n        } else {\n            bit_index = shift.wrapping_sub(1 as size_t);\n        }\n    }\n\n    bp = bp.wrapping_add(nbits);\n    // SAFETY: `bitpointer` is valid per the original function's contract; we write back the advanced bit position.\n    unsafe { *bitpointer = bp; }\n    result\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "7fe74d8f58f1c0618160e10ccda544136e9be302d7e03d332b95995482eef958",
+            "file_hint": "src/lodepng.rs",
+            "qualified_name": "crate::readBitsFromReversedStream",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "readBitsFromReversedStream-ec3a64b4539d",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "readBitsFromReversedStream",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "ea00e14d8a83f3c65287d1b9f9913fc824f87548723de093cca2b313c382a594",
+            "edit_id": "edit-replace-254ed4d543017f2d",
+            "end_byte": 198039,
+            "operation_id": "replace-254ed4d543017f2d",
+            "relative_path": "src/lodepng.rs",
+            "replacement_text": "unsafe fn readBitsFromReversedStream(\n    mut bitpointer: *mut size_t,\n    mut bitstream: *const c_uchar,\n    mut nbits: size_t,\n) -> c_uint {\n    let mut result: c_uint = 0 as c_uint;\n    if nbits == 0 as size_t {\n        return 0 as c_uint;\n    }\n\n    // SAFETY: `bitpointer` is valid per the original function's contract; we only read its current value.\n    let mut bp: size_t = unsafe { *bitpointer };\n    let mut byte_index: size_t = bp >> 3;\n    let mut bit_index: size_t = bp & 7;\n    let mut remaining: size_t = nbits;\n\n    while remaining != 0 as size_t {\n        // SAFETY: `bitstream.add(byte_index)` is valid whenever the original per-bit implementation would read that byte.\n        let byte: c_uint = unsafe { *bitstream.add(byte_index) as c_uint };\n        let available: size_t = bit_index.wrapping_add(1 as size_t);\n        let take: size_t = if remaining < available { remaining } else { available };\n        let shift: size_t = available.wrapping_sub(take);\n        let mask: c_uint = (((1u32) << (take as u32)) as c_uint).wrapping_sub(1 as c_uint);\n        let chunk: c_uint = (byte >> (shift as u32)) & mask;\n\n        result = (result << (take as u32)) | chunk;\n        remaining = remaining.wrapping_sub(take);\n\n        if shift == 0 as size_t {\n            byte_index = byte_index.wrapping_add(1 as size_t);\n            bit_index = 7 as size_t;\n        } else {\n            bit_index = shift.wrapping_sub(1 as size_t);\n        }\n    }\n\n    bp = bp.wrapping_add(nbits);\n    // SAFETY: `bitpointer` is valid per the original function's contract; we write back the advanced bit position.\n    unsafe { *bitpointer = bp; }\n    result\n}",
+            "start_byte": 197617
+          }
+        ],
+        "facts": {
+          "fn_name": "readBitsFromReversedStream",
+          "target_span_hash": "7fe74d8f58f1c0618160e10ccda544136e9be302d7e03d332b95995482eef958"
+        },
+        "operation_id": "replace-254ed4d543017f2d"
+      }
+    ],
+    "resolved_head": "3cd2cb496a089231cd31fcaa7e2973e0023fdef1"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_build",
+  "touched_paths": [
+    "src/lodepng.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

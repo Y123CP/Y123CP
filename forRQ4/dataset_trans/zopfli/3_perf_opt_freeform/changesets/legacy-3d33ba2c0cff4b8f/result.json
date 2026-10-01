@@ -1,0 +1,225 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -1.7371493529402544,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -1.560663960705824,
+            "aggregate_ci_low_pct": -1.913634745174685,
+            "aggregate_pct": -1.7371493529402544,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -1.7214,
+                "ci_low_pct": -2.8218,
+                "insns_delta_pct": -1.5766,
+                "mean_delta_pct": -2.2716,
+                "op": "cache_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.5875,
+                "ci_low_pct": -1.885,
+                "insns_delta_pct": 2.8045,
+                "mean_delta_pct": -1.7362,
+                "op": "lz77_blocksplit_analysis",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -2.1407,
+                "ci_low_pct": -2.4104,
+                "insns_delta_pct": -1.0047,
+                "mean_delta_pct": -2.2756,
+                "op": "raw_deflate",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.7579,
+                "ci_low_pct": -0.7237,
+                "insns_delta_pct": -0.0167,
+                "mean_delta_pct": 0.0171,
+                "op": "tree_codegen",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -2.3129,
+                "ci_low_pct": -2.526,
+                "insns_delta_pct": -1.0236,
+                "mean_delta_pct": -2.4195,
+                "op": "zlib_compress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.2539258661035997,
+            "aggregate_ci_low_pct": -0.10607082082231048,
+            "aggregate_pct": 0.07392752264064462,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.5241,
+                "ci_low_pct": -0.5263,
+                "insns_delta_pct": 0.0702,
+                "mean_delta_pct": -0.0011,
+                "op": "lz77_blocksplit_analysis",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2187,
+                "ci_low_pct": 0.0668,
+                "insns_delta_pct": -0.0032,
+                "mean_delta_pct": 0.1428,
+                "op": "raw_deflate",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2205,
+                "ci_low_pct": -0.0602,
+                "insns_delta_pct": -0.0001,
+                "mean_delta_pct": 0.0801,
+                "op": "zlib_compress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "lz77_blocksplit_analysis",
+          "raw_deflate",
+          "zlib_compress"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "tree_codegen"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "94d8721cec80a35a3a1d777c3d316139b3fe8dcd",
+      "changeset_id": "legacy-3d33ba2c0cff4b8f",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-57e81ec3c1eb5040",
+          "replacement_function_source": "unsafe fn GetMatch(\n    mut scan: *const c_uchar,\n    mut match_0: *const c_uchar,\n    mut end: *const c_uchar,\n    mut safe_end: *const c_uchar,\n) -> *const c_uchar {\n    if ::core::mem::size_of::<size_t>() as usize == 8usize {\n        while scan < safe_end {\n            let sv = unsafe { *(scan as *const size_t) }; // SAFETY: caller/original code guarantees reads of size_t up to safe_end are valid here.\n            let mv = unsafe { *(match_0 as *const size_t) }; // SAFETY: caller/original code guarantees corresponding reads from match_0 are valid here.\n            if sv != mv {\n                break;\n            }\n            scan = unsafe { scan.offset(8) }; // SAFETY: advancing by 8 stays within the same validated matching window as in the original code.\n            match_0 = unsafe { match_0.offset(8) }; // SAFETY: advancing by 8 mirrors scan and preserves the original function's pointer progression.\n        }\n    } else if ::core::mem::size_of::<c_uint>() as usize == 4usize {\n        while scan < safe_end {\n            let sv = unsafe { *(scan as *const c_uint) }; // SAFETY: caller/original code guarantees reads of c_uint up to safe_end are valid here.\n            let mv = unsafe { *(match_0 as *const c_uint) }; // SAFETY: caller/original code guarantees corresponding reads from match_0 are valid here.\n            if sv != mv {\n                break;\n            }\n            scan = unsafe { scan.offset(4) }; // SAFETY: advancing by 4 stays within the same validated matching window as in the original code.\n            match_0 = unsafe { match_0.offset(4) }; // SAFETY: advancing by 4 mirrors scan and preserves the original function's pointer progression.\n        }\n    } else {\n        while scan < safe_end {\n            if unsafe { *scan } != unsafe { *match_0 } {\n                break;\n            } // SAFETY: original code dereferences both pointers here under the same preconditions.\n            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n\n            if unsafe { *scan } != unsafe { *match_0 } {\n                break;\n            } // SAFETY: original code dereferences both pointers here under the same preconditions.\n            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n\n            if unsafe { *scan } != unsafe { *match_0 } {\n                break;\n            } // SAFETY: original code dereferences both pointers here under the same preconditions.\n            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n\n            if unsafe { *scan } != unsafe { *match_0 } {\n                break;\n            } // SAFETY: original code dereferences both pointers here under the same preconditions.\n            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n\n            if unsafe { *scan } != unsafe { *match_0 } {\n                break;\n            } // SAFETY: original code dereferences both pointers here under the same preconditions.\n            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n\n            if unsafe { *scan } != unsafe { *match_0 } {\n                break;\n            } // SAFETY: original code dereferences both pointers here under the same preconditions.\n            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n\n            if unsafe { *scan } != unsafe { *match_0 } {\n                break;\n            } // SAFETY: original code dereferences both pointers here under the same preconditions.\n            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n\n            if unsafe { *scan } != unsafe { *match_0 } {\n                break;\n            } // SAFETY: original code dereferences both pointers here under the same preconditions.\n            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n        }\n    }\n\n    while scan != end && unsafe { *scan } == unsafe { *match_0 } {\n        // SAFETY: original code performs the same byte dereferences while scan != end.\n        scan = unsafe { scan.offset(1) }; // SAFETY: advancing by one byte matches the original tail loop.\n        match_0 = unsafe { match_0.offset(1) }; // SAFETY: advancing by one byte matches the original tail loop.\n    }\n    scan\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "dc4d2df74378ad0f9b3782e2bfe189cc195ef6f45b96cfc4a676b4667e48726c",
+            "file_hint": "src/lz77.rs",
+            "qualified_name": "crate::GetMatch",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "GetMatch-17b3e6454d7f",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "GetMatch",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "d6fb9c683ce98a36299787d1fa5aab2ab2e9d808d460874acc440612a225cd2b",
+            "edit_id": "edit-replace-57e81ec3c1eb5040",
+            "end_byte": 22085,
+            "operation_id": "replace-57e81ec3c1eb5040",
+            "relative_path": "src/lz77.rs",
+            "replacement_text": "unsafe fn GetMatch(\n    mut scan: *const c_uchar,\n    mut match_0: *const c_uchar,\n    mut end: *const c_uchar,\n    mut safe_end: *const c_uchar,\n) -> *const c_uchar {\n    if ::core::mem::size_of::<size_t>() as usize == 8usize {\n        while scan < safe_end {\n            let sv = unsafe { *(scan as *const size_t) }; // SAFETY: caller/original code guarantees reads of size_t up to safe_end are valid here.\n            let mv = unsafe { *(match_0 as *const size_t) }; // SAFETY: caller/original code guarantees corresponding reads from match_0 are valid here.\n            if sv != mv {\n                break;\n            }\n            scan = unsafe { scan.offset(8) }; // SAFETY: advancing by 8 stays within the same validated matching window as in the original code.\n            match_0 = unsafe { match_0.offset(8) }; // SAFETY: advancing by 8 mirrors scan and preserves the original function's pointer progression.\n        }\n    } else if ::core::mem::size_of::<c_uint>() as usize == 4usize {\n        while scan < safe_end {\n            let sv = unsafe { *(scan as *const c_uint) }; // SAFETY: caller/original code guarantees reads of c_uint up to safe_end are valid here.\n            let mv = unsafe { *(match_0 as *const c_uint) }; // SAFETY: caller/original code guarantees corresponding reads from match_0 are valid here.\n            if sv != mv {\n                break;\n            }\n            scan = unsafe { scan.offset(4) }; // SAFETY: advancing by 4 stays within the same validated matching window as in the original code.\n            match_0 = unsafe { match_0.offset(4) }; // SAFETY: advancing by 4 mirrors scan and preserves the original function's pointer progression.\n        }\n    } else {\n        while scan < safe_end {\n            if unsafe { *scan } != unsafe { *match_0 } {\n                break;\n            } // SAFETY: original code dereferences both pointers here under the same preconditions.\n            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n\n            if unsafe { *scan } != unsafe { *match_0 } {\n                break;\n            } // SAFETY: original code dereferences both pointers here under the same preconditions.\n            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n\n            if unsafe { *scan } != unsafe { *match_0 } {\n                break;\n            } // SAFETY: original code dereferences both pointers here under the same preconditions.\n            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n\n            if unsafe { *scan } != unsafe { *match_0 } {\n                break;\n            } // SAFETY: original code dereferences both pointers here under the same preconditions.\n            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n\n            if unsafe { *scan } != unsafe { *match_0 } {\n                break;\n            } // SAFETY: original code dereferences both pointers here under the same preconditions.\n            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n\n            if unsafe { *scan } != unsafe { *match_0 } {\n                break;\n            } // SAFETY: original code dereferences both pointers here under the same preconditions.\n            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n\n            if unsafe { *scan } != unsafe { *match_0 } {\n                break;\n            } // SAFETY: original code dereferences both pointers here under the same preconditions.\n            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n\n            if unsafe { *scan } != unsafe { *match_0 } {\n                break;\n            } // SAFETY: original code dereferences both pointers here under the same preconditions.\n            scan = unsafe { scan.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n            match_0 = unsafe { match_0.offset(1) }; // SAFETY: byte-wise advance matches the original loop structure.\n        }\n    }\n\n    while scan != end && unsafe { *scan } == unsafe { *match_0 } {\n        // SAFETY: original code performs the same byte dereferences while scan != end.\n        scan = unsafe { scan.offset(1) }; // SAFETY: advancing by one byte matches the original tail loop.\n        match_0 = unsafe { match_0.offset(1) }; // SAFETY: advancing by one byte matches the original tail loop.\n    }\n    scan\n}",
+            "start_byte": 19822
+          }
+        ],
+        "facts": {
+          "fn_name": "GetMatch",
+          "target_span_hash": "dc4d2df74378ad0f9b3782e2bfe189cc195ef6f45b96cfc4a676b4667e48726c"
+        },
+        "operation_id": "replace-57e81ec3c1eb5040"
+      }
+    ],
+    "resolved_head": "94d8721cec80a35a3a1d777c3d316139b3fe8dcd"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/lz77.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

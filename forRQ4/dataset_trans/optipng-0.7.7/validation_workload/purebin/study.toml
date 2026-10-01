@@ -1,0 +1,170 @@
+# ============================================================================
+                                                                 
+                                                             
+                                      
+                                                          
+                                                               
+#
+                                                                
+                                                             
+                                                              
+                                                       
+                                                       
+                                               
+# ============================================================================
+
+[study]
+project     = "optipng"
+compare     = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+report_mode = "per_input"
+
+[builds.c]
+binary_path = "dataset_trans/optipng-0.7.7/validation_workload/purebin/bin/optipng_c.sh"
+[builds.raw]
+binary_path = "dataset_trans/optipng-0.7.7/validation_workload/purebin/bin/optipng_raw.sh"
+[builds.stage_a]
+binary_path = "dataset_trans/optipng-0.7.7/validation_workload/purebin/bin/optipng_stage_a.sh"
+
+[builds.codex]
+binary_path = "dataset_trans/optipng-0.7.7/validation_workload/purebin/bin/optipng_codex.sh"
+[builds.freeform]
+binary_path = "dataset_trans/optipng-0.7.7/validation_workload/purebin/bin/optipng_freeform.sh"
+[builds.full]                                  # full arm = 3_perf_opt (rule-guided)
+binary_path = "dataset_trans/optipng-0.7.7/validation_workload/purebin/bin/optipng_full.sh"
+
+[measure]
+warmup_runs  = 5
+measure_runs = 30
+required_cv  = 0.03
+max_load     = 1.0
+cv_retries   = 2
+pin_cpu      = 16
+order        = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+
+[gates]
+equivalence = "stdout_sha256"
+
+[[operations]]
+name = "optimize_o2"              # flagship end-to-end optimization
+args = ["out", "$INPUT", "$ITERS", "-o2"]
+status = "ready"
+  [[operations.inputs]]
+  name = "islands.png"
+  path = "dataset_trans/optipng-0.7.7/validation_workload/inputs/islands.png"
+  iters = 1
+  stdout_sha256 = "c47ed073ea3780f6590b924faaf12932461d1443f357a1326b36dbd24515ea22"
+  [[operations.inputs]]
+  name = "generator.png"
+  path = "dataset_trans/optipng-0.7.7/validation_workload/inputs/generator.png"
+  iters = 1
+  stdout_sha256 = "63acf89c5b204c09bc0fdc31a87614a62a00ae10d0aae230cef1f872d31c6c84"
+
+[[operations]]
+name = "optimize_o1"              # -o1 + format conversions (real inputs)
+args = ["out", "$INPUT", "$ITERS", "-o1"]
+status = "ready"
+  [[operations.inputs]]
+  name = "generator_palette.png"
+  path = "dataset_trans/optipng-0.7.7/validation_workload/inputs/generator_palette.png"
+  iters = 12
+  stdout_sha256 = "378e2d909cf8791c736e0793143006dd9927aa822dbf661fcceafd7e6735f227"
+  [[operations.inputs]]
+  name = "islands.pnm"
+  path = "dataset_trans/optipng-0.7.7/validation_workload/inputs/islands.pnm"
+  iters = 1
+  stdout_sha256 = "c47ed073ea3780f6590b924faaf12932461d1443f357a1326b36dbd24515ea22"
+  [[operations.inputs]]
+  name = "islands.bmp"
+  path = "dataset_trans/optipng-0.7.7/validation_workload/inputs/islands.bmp"
+  iters = 1
+  stdout_sha256 = "c47ed073ea3780f6590b924faaf12932461d1443f357a1326b36dbd24515ea22"
+  [[operations.inputs]]
+  name = "islands-crop.gif"
+  path = "dataset_trans/optipng-0.7.7/validation_workload/inputs/islands-crop.gif"
+  iters = 8
+  stdout_sha256 = "51ca326a689ea6a135cf609a93657766289cc94a304c933957b8145058ede6c5"
+  [[operations.inputs]]
+  name = "islands-crop.tif"
+  path = "dataset_trans/optipng-0.7.7/validation_workload/inputs/islands-crop.tif"
+  iters = 6
+  stdout_sha256 = "6e0a06bc711411670c1af627c959d4f3f0012ca4fd6d3f95f14a311b9c66c1f7"
+
+[[operations]]
+name = "opts_matrix"              # -zw/-strip/-zc/-zm/-zs/-f/-i option surface
+args = ["out", "$INPUT", "$ITERS", "-o2", "-zw32k", "-strip", "all", "-zc6-9", "-zm3-8", "-zs0-3", "-f0-5"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "generator_palette.png"
+  path = "dataset_trans/optipng-0.7.7/validation_workload/inputs/generator_palette.png"
+  iters = 1
+  stdout_sha256 = "ec5cba07dfd46d5ce979a5e66f24bb14e6603894f74a2e5d1b2098c1dd1dff02"
+
+[[operations]]
+name = "report_preserve"          # non-quiet report + -v -preserve + -log
+args = ["report", "$INPUT", "$ITERS", "-o1", "-v", "-preserve"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "generator_palette.png"
+  path = "dataset_trans/optipng-0.7.7/validation_workload/inputs/generator_palette.png"
+  iters = 1
+  stdout_sha256 = "378e2d909cf8791c736e0793143006dd9927aa822dbf661fcceafd7e6735f227"
+
+[[operations]]
+name = "inplace_keep"             # in-place optimize with -keep backup
+args = ["inplace", "$INPUT", "$ITERS", "-o1"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "generator_palette.png"
+  path = "dataset_trans/optipng-0.7.7/validation_workload/inputs/generator_palette.png"
+  iters = 1
+  stdout_sha256 = "a2fe8cddd38a0b959b20a84b4ad8cb60f631afc5c63c78b3e775376fc6fc210b"
+
+[[operations]]
+name = "format_variants"          # ascii PNM / interlaced GIF / big-endian TIFF
+args = ["out", "$INPUT", "$ITERS", "-o1"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "islands-ascii.pnm"
+  path = "dataset_trans/optipng-0.7.7/validation_workload/inputs/islands-ascii.pnm"
+  iters = 20
+  stdout_sha256 = "2c476fb8ac287b6b4ae47cb66913cc37547a16a3671c32960a8a627aaa9a7864"
+  [[operations.inputs]]
+  name = "islands-inter.gif"
+  path = "dataset_trans/optipng-0.7.7/validation_workload/inputs/islands-inter.gif"
+  iters = 8
+  stdout_sha256 = "8cfd337e841c7eed094858037257d1e7185f6b06e102b171bce9942de5e323b1"
+  [[operations.inputs]]
+  name = "islands-crop-be.tif"
+  path = "dataset_trans/optipng-0.7.7/validation_workload/inputs/islands-crop-be.tif"
+  iters = 6
+  stdout_sha256 = "6e0a06bc711411670c1af627c959d4f3f0012ca4fd6d3f95f14a311b9c66c1f7"
+
+[[operations]]
+name = "error_paths"              # malformed inputs across all readers
+args = ["expectfail", "$INPUT", "$ITERS", "-o1"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "corrupt.png"
+  path = "dataset_trans/optipng-0.7.7/validation_workload/inputs/corrupt.png"
+  iters = 1
+  stdout_sha256 = "cf205dbb8cea84897b488abcc281bf96698d5e94b1096b16657b4caba9082a22"
+  [[operations.inputs]]
+  name = "corrupt.gif"
+  path = "dataset_trans/optipng-0.7.7/validation_workload/inputs/corrupt.gif"
+  iters = 1
+  stdout_sha256 = "cf205dbb8cea84897b488abcc281bf96698d5e94b1096b16657b4caba9082a22"
+  [[operations.inputs]]
+  name = "corrupt.tif"
+  path = "dataset_trans/optipng-0.7.7/validation_workload/inputs/corrupt.tif"
+  iters = 1
+  stdout_sha256 = "cf205dbb8cea84897b488abcc281bf96698d5e94b1096b16657b4caba9082a22"
+  [[operations.inputs]]
+  name = "corrupt.pnm"
+  path = "dataset_trans/optipng-0.7.7/validation_workload/inputs/corrupt.pnm"
+  iters = 1
+  stdout_sha256 = "cf205dbb8cea84897b488abcc281bf96698d5e94b1096b16657b4caba9082a22"
+  [[operations.inputs]]
+  name = "fake.jpg"
+  path = "dataset_trans/optipng-0.7.7/validation_workload/inputs/fake.jpg"
+  iters = 1
+  stdout_sha256 = "cf205dbb8cea84897b488abcc281bf96698d5e94b1096b16657b4caba9082a22"

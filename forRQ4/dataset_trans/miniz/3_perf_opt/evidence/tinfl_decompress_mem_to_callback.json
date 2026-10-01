@@ -1,0 +1,142 @@
+{
+  "hot_function": {
+    "symbol": "tinfl_decompress_mem_to_callback",
+    "location": "src/miniz_tinfl.rs:2401-2484",
+    "workload": "tinfl_decode_blob",
+    "hot_region": "src/miniz_tinfl.rs:2401-2484",
+    "rust_source": "pub unsafe fn tinfl_decompress_mem_to_callback(\n    mut pIn_buf: *const c_void,\n    mut pIn_buf_size: *mut size_t,\n    mut pPut_buf_func: tinfl_put_buf_func_ptr,\n    mut pPut_buf_user: *mut c_void,\n    mut flags: c_int,\n) -> c_int {\n    let mut result: c_int = 0 as c_int;\n    let mut decomp: tinfl_decompressor = tinfl_decompressor_tag {\n        m_state: 0,\n        m_num_bits: 0,\n        m_zhdr0: 0,\n        m_zhdr1: 0,\n        m_z_adler32: 0,\n        m_final: 0,\n        m_type: 0,\n        m_check_adler32: 0,\n        m_dist: 0,\n        m_counter: 0,\n        m_num_extra: 0,\n        m_table_sizes: [0; 3],\n        m_bit_buf: 0,\n        m_dist_from_out_buf_start: 0,\n        m_look_up: [[0; 1024]; 3],\n        m_tree_0: [0; 576],\n        m_tree_1: [0; 64],\n        m_tree_2: [0; 38],\n        m_code_size_0: [0; 288],\n        m_code_size_1: [0; 32],\n        m_code_size_2: [0; 19],\n        m_raw_header: [0; 4],\n        m_len_codes: [0; 457],\n    };\n    let mut pDict: *mut mz_uint8 = malloc(32768 as size_t) as *mut mz_uint8;\n    let mut in_buf_ofs: size_t = 0 as size_t;\n    let mut dict_ofs: size_t = 0 as size_t;\n    if pDict.is_null() {\n        return TINFL_STATUS_FAILED as c_int;\n    }\n    memset(\n        pDict as *mut c_void,\n        0 as c_int,\n        TINFL_LZ_DICT_SIZE as size_t,\n    );\n    decomp.m_state = 0 as mz_uint32;\n    loop {\n        let mut in_buf_size: size_t = (*pIn_buf_size).wrapping_sub(in_buf_ofs);\n        let mut dst_buf_size: size_t = (TINFL_LZ_DICT_SIZE as size_t).wrapping_sub(dict_ofs);\n        let mut status: tinfl_status = tinfl_decompress(\n            &raw mut decomp,\n            (pIn_buf as *const mz_uint8).offset(in_buf_ofs as isize),\n            &raw mut in_buf_size,\n            pDict,\n            pDict.offset(dict_ofs as isize),\n            &raw mut dst_buf_size,\n            (flags\n                & !(TINFL_FLAG_HAS_MORE_INPUT as c_int\n                    | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF as c_int))\n                as mz_uint32,\n        );\n        in_buf_ofs = in_buf_ofs.wrapping_add(in_buf_size);\n        if dst_buf_size != 0\n            && Some(pPut_buf_func.expect(\"non-null function pointer\"))\n                .expect(\"non-null function pointer\")(\n                pDict.offset(dict_ofs as isize) as *const c_void,\n                dst_buf_size as c_int,\n                pPut_buf_user,\n            ) == 0\n        {\n            break;\n        }\n        if status as c_int != TINFL_STATUS_HAS_MORE_OUTPUT as c_int {\n            result = (status as c_int == TINFL_STATUS_DONE as c_int)\n                as c_int;\n            break;\n        } else {\n            dict_ofs = dict_ofs.wrapping_add(dst_buf_size)\n                & (TINFL_LZ_DICT_SIZE - 1 as c_int) as size_t;\n        }\n    }\n    free(pDict as *mut c_void);\n    *pIn_buf_size = in_buf_ofs;\n    return result;\n}",
+    "signature": "pub unsafe fn tinfl_decompress_mem_to_callback(\n    mut pIn_buf: *const c_void,\n    mut pIn_buf_size: *mut size_t,\n    mut pPut_buf_func: tinfl_put_buf_func_ptr,\n    mut pPut_buf_user: *mut c_void,\n    mut flags: c_int,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.082,
+      "call_count": null,
+      "retired_instructions": 475754469,
+      "instructions_per_call": null,
+      "cpi": 0.951,
+      "tma": {
+        "scope": "process",
+        "retiring": 44.03063360913064,
+        "frontend_bound": 9.463571537403114,
+        "bad_speculation": 2.835722437464176,
+        "backend_bound": 43.67007241600207,
+        "memory_bound": 37.547102825549246,
+        "core_bound": 6.122969590452828,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0085
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2434,
+        "message": "malloc will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl32tinfl_decompress_mem_to_callback17hb4e5837309e58477E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2449,
+        "message": "_ZN13miniz_cleaned3src11miniz_tinfl16tinfl_decompress17h4414bff7c80ef6faE will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl32tinfl_decompress_mem_to_callback17hb4e5837309e58477E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2481,
+        "message": "free will not be inlined into _ZN13miniz_cleaned3src11miniz_tinfl32tinfl_decompress_mem_to_callback17hb4e5837309e58477E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2463,
+        "message": "'_ZN17miniz_raw_harness12tinfl_put_cb17h767f85aba4a29d7fE' inlined into '_ZN13miniz_cleaned3src11miniz_tinfl32tinfl_decompress_mem_to_callback17hb4e5837309e58477E' with (cost=165, threshold=250) at callsite _ZN13miniz_cleaned3src11miniz_tinfl32tinfl_decompress_mem_to_callback17hb4e5837309e58477E:62:16;"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2447,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2461,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2462,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2477,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 2446,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2447,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2461,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2462,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2477,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2409,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2462,
+        "message": "3 spills 5.653947e+02 total spills cost 8 reloads 1.512376e+03 total reloads cost 9 virtual registers copies 2.008843e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2473,
+        "message": "BasicBlock: bb15.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

@@ -1,0 +1,79 @@
+# ============================================================================
+                                                                          
+                                             
+# ============================================================================
+
+[study]
+project     = "zopfli"
+compare     = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+report_mode = "per_input"
+
+[builds.c]
+binary_path = "dataset_trans/zopfli/validation_workload/purebin/bin/zopfli_c"
+[builds.raw]
+binary_path = "dataset_trans/zopfli/validation_workload/purebin/bin/zopfli_raw"
+[builds.stage_a]
+binary_path = "dataset_trans/zopfli/validation_workload/purebin/bin/zopfli_stage_a"
+[builds.codex]
+binary_path = "dataset_trans/zopfli/validation_workload/purebin/bin/zopfli_codex"
+[builds.freeform]
+binary_path = "dataset_trans/zopfli/validation_workload/purebin/bin/zopfli_freeform"
+[builds.full]                                  # full arm = 3_perf_opt (rule-guided)
+binary_path = "dataset_trans/zopfli/validation_workload/purebin/bin/zopfli_full"
+
+[measure]
+warmup_runs  = 5
+measure_runs = 30
+required_cv  = 0.03
+max_load     = 1.0
+cv_retries   = 2
+pin_cpu      = 16
+order        = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+
+[gates]
+equivalence = "stdout_sha256"
+
+[[operations]]
+name = "compress_gzip"
+args = ["compress_gzip", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "xml-48k.bin"
+  path = "dataset_trans/zopfli/validation_workload/inputs/xml-48k.bin"
+  iters = 1
+  stdout_sha256 = "300733e6e9694b156fb32cb30d029d5f90281eeff3825bf1833694bb82435c53"
+  [[operations.inputs]]
+  name = "dickens-96k.bin"
+  path = "dataset_trans/zopfli/validation_workload/inputs/dickens-96k.bin"
+  iters = 1
+  stdout_sha256 = "f852a1bcd3a7bfc5c1f6acf17ca2542eef6544ed850673359176ccce713ee831"
+
+[[operations]]
+name = "compress_zlib"
+args = ["compress_zlib", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "xml-48k.bin"
+  path = "dataset_trans/zopfli/validation_workload/inputs/xml-48k.bin"
+  iters = 1
+  stdout_sha256 = "831846195395af54309b7d8e72474c2a8ea7f2fa1e0b87b60ae5aa19be8fec03"
+
+[[operations]]
+name = "compress_deflate"
+args = ["compress_deflate", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "xml-48k.bin"
+  path = "dataset_trans/zopfli/validation_workload/inputs/xml-48k.bin"
+  iters = 1
+  stdout_sha256 = "a93a9f6327845cf0ab32880978546c2fe1af06cc7fe7dd8c74e9e52958fd2f2f"
+
+[[operations]]
+name = "options_matrix"           # numiterations {5,15} x blocksplitting {0,1}
+args = ["options_matrix", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "xml-48k.bin"
+  path = "dataset_trans/zopfli/validation_workload/inputs/xml-48k.bin"
+  iters = 1
+  stdout_sha256 = "80d0bf74a91aabea5a97c7c85e13706cd301bcd87ca40d0fd562fb28659bdc9a"

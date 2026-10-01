@@ -1,0 +1,412 @@
+{
+  "hot_function": {
+    "symbol": "BrotliParseAsUTF8",
+    "location": "src/enc/utf8_util.rs:5-91",
+    "workload": "api_sweep",
+    "hot_region": "src/enc/utf8_util.rs:5-91",
+    "rust_source": "unsafe fn BrotliParseAsUTF8(\n    mut symbol: *mut c_int,\n    mut input: *const uint8_t,\n    mut size: size_t,\n) -> size_t {\n    if *input.offset(0 as c_int as isize) as c_int\n        & 0x80 as c_int\n        == 0 as c_int\n    {\n        *symbol = *input.offset(0 as c_int as isize) as c_int;\n        if *symbol > 0 as c_int {\n            return 1 as size_t;\n        }\n    }\n    if size > 1 as size_t\n        && *input.offset(0 as c_int as isize) as c_int\n            & 0xe0 as c_int\n            == 0xc0 as c_int\n        && *input.offset(1 as c_int as isize) as c_int\n            & 0xc0 as c_int\n            == 0x80 as c_int\n    {\n        *symbol = (*input.offset(0 as c_int as isize) as c_int\n            & 0x1f as c_int)\n            << 6 as c_int\n            | *input.offset(1 as c_int as isize) as c_int\n                & 0x3f as c_int;\n        if *symbol > 0x7f as c_int {\n            return 2 as size_t;\n        }\n    }\n    if size > 2 as size_t\n        && *input.offset(0 as c_int as isize) as c_int\n            & 0xf0 as c_int\n            == 0xe0 as c_int\n        && *input.offset(1 as c_int as isize) as c_int\n            & 0xc0 as c_int\n            == 0x80 as c_int\n        && *input.offset(2 as c_int as isize) as c_int\n            & 0xc0 as c_int\n            == 0x80 as c_int\n    {\n        *symbol = (*input.offset(0 as c_int as isize) as c_int\n            & 0xf as c_int)\n            << 12 as c_int\n            | (*input.offset(1 as c_int as isize) as c_int\n                & 0x3f as c_int)\n                << 6 as c_int\n            | *input.offset(2 as c_int as isize) as c_int\n                & 0x3f as c_int;\n        if *symbol > 0x7ff as c_int {\n            return 3 as size_t;\n        }\n    }\n    if size > 3 as size_t\n        && *input.offset(0 as c_int as isize) as c_int\n            & 0xf8 as c_int\n            == 0xf0 as c_int\n        && *input.offset(1 as c_int as isize) as c_int\n            & 0xc0 as c_int\n            == 0x80 as c_int\n        && *input.offset(2 as c_int as isize) as c_int\n            & 0xc0 as c_int\n            == 0x80 as c_int\n        && *input.offset(3 as c_int as isize) as c_int\n            & 0xc0 as c_int\n            == 0x80 as c_int\n    {\n        *symbol = (*input.offset(0 as c_int as isize) as c_int\n            & 0x7 as c_int)\n            << 18 as c_int\n            | (*input.offset(1 as c_int as isize) as c_int\n                & 0x3f as c_int)\n                << 12 as c_int\n            | (*input.offset(2 as c_int as isize) as c_int\n                & 0x3f as c_int)\n                << 6 as c_int\n            | *input.offset(3 as c_int as isize) as c_int\n                & 0x3f as c_int;\n        if *symbol > 0xffff as c_int && *symbol <= 0x10ffff as c_int {\n            return 4 as size_t;\n        }\n    }\n    *symbol = 0x110000 as c_int\n        | *input.offset(0 as c_int as isize) as c_int;\n    return 1 as size_t;\n}",
+    "signature": "unsafe fn BrotliParseAsUTF8(\n    mut symbol: *mut c_int,\n    mut input: *const uint8_t,\n    mut size: size_t,\n) -> size_t",
+    "profile": {
+      "self_time_ratio": 0.3048,
+      "call_count": null,
+      "retired_instructions": 7510804676,
+      "instructions_per_call": null,
+      "cpi": 0.239,
+      "tma": {
+        "scope": "process",
+        "retiring": 94.73837899712872,
+        "frontend_bound": 2.174774321257552,
+        "bad_speculation": 2.5551768121789413,
+        "backend_bound": 0.5316698694347801,
+        "memory_bound": 0.15027666482235505,
+        "core_bound": 0.3813932046124251,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0019
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 20,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 23,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 37,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 40,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 43,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 60,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 63,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 66,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 69,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 89,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 89,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 5,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN14brotli_cleaned3src3enc9utf8_util17BrotliParseAsUTF817h69f216ca36b9b7d4E: MI Instruction count changed from 0 to 128; Delta: 128"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 5,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN14brotli_cleaned3src3enc9utf8_util17BrotliParseAsUTF817h69f216ca36b9b7d4E: MI Instruction count changed from 128 to 127; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 5,
+        "message": "Process Implicit Definitions: Function: _ZN14brotli_cleaned3src3enc9utf8_util17BrotliParseAsUTF817h69f216ca36b9b7d4E: MI Instruction count changed from 127 to 125; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 5,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN14brotli_cleaned3src3enc9utf8_util17BrotliParseAsUTF817h69f216ca36b9b7d4E: MI Instruction count changed from 125 to 147; Delta: 22"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 5,
+        "message": "Two-Address instruction pass: Function: _ZN14brotli_cleaned3src3enc9utf8_util17BrotliParseAsUTF817h69f216ca36b9b7d4E: MI Instruction count changed from 147 to 178; Delta: 31"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 5,
+        "message": "Register Coalescer: Function: _ZN14brotli_cleaned3src3enc9utf8_util17BrotliParseAsUTF817h69f216ca36b9b7d4E: MI Instruction count changed from 178 to 126; Delta: -52"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 5,
+        "message": "9 virtual registers copies 8.061997e-01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 5,
+        "message": "Virtual Register Rewriter: Function: _ZN14brotli_cleaned3src3enc9utf8_util17BrotliParseAsUTF817h69f216ca36b9b7d4E: MI Instruction count changed from 126 to 122; Delta: -4"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 5,
+        "message": "0 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 5,
+        "message": "Control Flow Optimizer: Function: _ZN14brotli_cleaned3src3enc9utf8_util17BrotliParseAsUTF817h69f216ca36b9b7d4E: MI Instruction count changed from 122 to 103; Delta: -19"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 5,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN14brotli_cleaned3src3enc9utf8_util17BrotliParseAsUTF817h69f216ca36b9b7d4E: MI Instruction count changed from 103 to 102; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 5,
+        "message": "X86 LEA Fixup: Function: _ZN14brotli_cleaned3src3enc9utf8_util17BrotliParseAsUTF817h69f216ca36b9b7d4E: MI Instruction count changed from 102 to 103; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 10,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 91,
+        "message": "BasicBlock: bb39"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 89,
+        "message": "BasicBlock: bb1.bb5_crit_edge"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 19,
+        "message": "BasicBlock: bb5"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 20,
+        "message": "BasicBlock: bb6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 23,
+        "message": "BasicBlock: bb7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 27,
+        "message": "BasicBlock: bb8"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 89,
+        "message": "BasicBlock: bb8.bb13_crit_edge"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 36,
+        "message": "BasicBlock: bb13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 37,
+        "message": "BasicBlock: bb14"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 40,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 43,
+        "message": "BasicBlock: bb16"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 47,
+        "message": "BasicBlock: bb17"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 89,
+        "message": "BasicBlock: bb17.bb23_crit_edge"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 59,
+        "message": "BasicBlock: bb23"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 60,
+        "message": "BasicBlock: bb24"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 63,
+        "message": "BasicBlock: bb25"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 66,
+        "message": "BasicBlock: bb26"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 69,
+        "message": "BasicBlock: bb27"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 73,
+        "message": "BasicBlock: bb28"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 89,
+        "message": "BasicBlock: bb28.bb38_crit_edge"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 89,
+        "message": "BasicBlock: bb38"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 5,
+        "message": "103 instructions in function"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 10,
+        "message": "16 virtual registers copies 1.891673e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 20,
+        "message": "BasicBlock: bb6.i46"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 23,
+        "message": "BasicBlock: bb7.i87"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 27,
+        "message": "BasicBlock: bb8.i91"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 36,
+        "message": "BasicBlock: bb13.i49"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 37,
+        "message": "BasicBlock: bb14.i51"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 40,
+        "message": "BasicBlock: bb15.i74"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 43,
+        "message": "BasicBlock: bb16.i79"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 47,
+        "message": "BasicBlock: bb17.i83"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 59,
+        "message": "BasicBlock: bb23.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 63,
+        "message": "BasicBlock: bb25.i57"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 66,
+        "message": "BasicBlock: bb26.i62"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 69,
+        "message": "BasicBlock: bb27.i66"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 73,
+        "message": "BasicBlock: bb28.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 88,
+        "message": "BasicBlock: bb38.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

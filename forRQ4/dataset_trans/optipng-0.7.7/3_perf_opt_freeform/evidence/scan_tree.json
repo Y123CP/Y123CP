@@ -1,0 +1,293 @@
+{
+  "hot_function": {
+    "symbol": "scan_tree",
+    "location": "src/zlib/trees.rs:3954-4014",
+    "workload": "png_write_read_roundtrip",
+    "hot_region": "src/zlib/trees.rs:3954-4014",
+    "rust_source": "unsafe fn scan_tree(\n    mut s: *mut deflate_state,\n    mut tree: *mut ct_data,\n    mut max_code: c_int,\n) {\n    let mut n: c_int = 0;\n    let mut prevlen: c_int = -(1 as c_int);\n    let mut curlen: c_int = 0;\n    let mut nextlen: c_int =\n        (*tree.offset(0 as c_int as isize)).dl.len as c_int;\n    let mut count: c_int = 0 as c_int;\n    let mut max_count: c_int = 7 as c_int;\n    let mut min_count: c_int = 4 as c_int;\n    if nextlen == 0 as c_int {\n        max_count = 138 as c_int;\n        min_count = 3 as c_int;\n    }\n    (*tree.offset((max_code + 1 as c_int) as isize))\n        .dl\n        .len = 0xffff as c_int as ush;\n    n = 0 as c_int;\n    while n <= max_code {\n        curlen = nextlen;\n        nextlen = (*tree.offset((n + 1 as c_int) as isize))\n            .dl\n            .len as c_int;\n        count += 1;\n        if !(count < max_count && curlen == nextlen) {\n            if count < min_count {\n                (*s).bl_tree[curlen as usize].fc.freq =\n                    ((*s).bl_tree[curlen as usize].fc.freq as c_int + count) as ush;\n            } else if curlen != 0 as c_int {\n                if curlen != prevlen {\n                    (*s).bl_tree[curlen as usize].fc.freq =\n                        (*s).bl_tree[curlen as usize].fc.freq.wrapping_add(1);\n                }\n                (*s).bl_tree[REP_3_6 as usize].fc.freq =\n                    (*s).bl_tree[REP_3_6 as usize].fc.freq.wrapping_add(1);\n            } else if count <= 10 as c_int {\n                (*s).bl_tree[REPZ_3_10 as usize].fc.freq =\n                    (*s).bl_tree[REPZ_3_10 as usize].fc.freq.wrapping_add(1);\n            } else {\n                (*s).bl_tree[REPZ_11_138 as usize].fc.freq =\n                    (*s).bl_tree[REPZ_11_138 as usize].fc.freq.wrapping_add(1);\n            }\n            count = 0 as c_int;\n            prevlen = curlen;\n            if nextlen == 0 as c_int {\n                max_count = 138 as c_int;\n                min_count = 3 as c_int;\n            } else if curlen == nextlen {\n                max_count = 6 as c_int;\n                min_count = 3 as c_int;\n            } else {\n                max_count = 7 as c_int;\n                min_count = 4 as c_int;\n            }\n        }\n        n += 1;\n    }\n}",
+    "signature": "unsafe fn scan_tree(\n    mut s: *mut deflate_state,\n    mut tree: *mut ct_data,\n    mut max_code: c_int,\n)",
+    "profile": {
+      "self_time_ratio": 0.0791,
+      "call_count": null,
+      "retired_instructions": 1225088908,
+      "instructions_per_call": null,
+      "cpi": 0.38,
+      "tma": {
+        "scope": "process",
+        "retiring": 50.590151077849754,
+        "frontend_bound": 27.868119396288908,
+        "bad_speculation": 11.813698900910508,
+        "backend_bound": 9.728030624950835,
+        "memory_bound": 4.22221079092801,
+        "core_bound": 5.505819834022825,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0186
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C1": 2,
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3988,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN21optipng_0_7_7_cleaned3src4zlib5trees9scan_tree17h73d8b85b04ae4f14E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3984,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN21optipng_0_7_7_cleaned3src4zlib5trees9scan_tree17h73d8b85b04ae4f14E because its definition is unavailable"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3991,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3991,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3997,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3997,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3994,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3994,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3991,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3997,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3994,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3954,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN21optipng_0_7_7_cleaned3src4zlib5trees9scan_tree17h73d8b85b04ae4f14E: MI Instruction count changed from 0 to 105; Delta: 105"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3954,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN21optipng_0_7_7_cleaned3src4zlib5trees9scan_tree17h73d8b85b04ae4f14E: MI Instruction count changed from 105 to 104; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3954,
+        "message": "X86 Fixup SetCC: Function: _ZN21optipng_0_7_7_cleaned3src4zlib5trees9scan_tree17h73d8b85b04ae4f14E: MI Instruction count changed from 104 to 106; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3954,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN21optipng_0_7_7_cleaned3src4zlib5trees9scan_tree17h73d8b85b04ae4f14E: MI Instruction count changed from 106 to 130; Delta: 24"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3954,
+        "message": "Two-Address instruction pass: Function: _ZN21optipng_0_7_7_cleaned3src4zlib5trees9scan_tree17h73d8b85b04ae4f14E: MI Instruction count changed from 130 to 139; Delta: 9"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3954,
+        "message": "Register Coalescer: Function: _ZN21optipng_0_7_7_cleaned3src4zlib5trees9scan_tree17h73d8b85b04ae4f14E: MI Instruction count changed from 139 to 94; Delta: -45"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3975,
+        "message": "4 virtual registers copies 6.964057e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3954,
+        "message": "6 virtual registers copies 6.964378e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3954,
+        "message": "Virtual Register Rewriter: Function: _ZN21optipng_0_7_7_cleaned3src4zlib5trees9scan_tree17h73d8b85b04ae4f14E: MI Instruction count changed from 94 to 90; Delta: -4"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 3954,
+        "message": "24 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3954,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN21optipng_0_7_7_cleaned3src4zlib5trees9scan_tree17h73d8b85b04ae4f14E: MI Instruction count changed from 90 to 100; Delta: 10"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3954,
+        "message": "Control Flow Optimizer: Function: _ZN21optipng_0_7_7_cleaned3src4zlib5trees9scan_tree17h73d8b85b04ae4f14E: MI Instruction count changed from 100 to 88; Delta: -12"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3954,
+        "message": "Tail Duplication: Function: _ZN21optipng_0_7_7_cleaned3src4zlib5trees9scan_tree17h73d8b85b04ae4f14E: MI Instruction count changed from 88 to 89; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3954,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN21optipng_0_7_7_cleaned3src4zlib5trees9scan_tree17h73d8b85b04ae4f14E: MI Instruction count changed from 89 to 103; Delta: 14"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3954,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN21optipng_0_7_7_cleaned3src4zlib5trees9scan_tree17h73d8b85b04ae4f14E: MI Instruction count changed from 103 to 104; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3967,
+        "message": "BasicBlock: bb5.lr.ph"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3981,
+        "message": "BasicBlock: bb5"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3982,
+        "message": "BasicBlock: bb10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3983,
+        "message": "BasicBlock: bb13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3985,
+        "message": "BasicBlock: bb14"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3986,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3990,
+        "message": "BasicBlock: bb20"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3992,
+        "message": "BasicBlock: bb21"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3993,
+        "message": "BasicBlock: bb22"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3987,
+        "message": "BasicBlock: bb18"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3996,
+        "message": "BasicBlock: bb23"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 4014,
+        "message": "BasicBlock: bb32"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3984,
+        "message": "BasicBlock: panic7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3988,
+        "message": "BasicBlock: panic"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3954,
+        "message": "94 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

@@ -1,0 +1,113 @@
+# =============================================================================
+# Empirical-study measurement manifest — libzahl  (LIBRARY project, big-num)
+# =============================================================================
+# C vs c2rust_raw(0_raw). libzahl = arbitrary-precision integer arithmetic.
+#   C  side : libzahl_opsuite.c + src/*.c   (single-shot clang-17 LTO — NOT the
+#             pre-built gcc libzahl.a, which would be unfair)
+#   raw side: workloads/harness/libzahl_opsuite_raw (main.rs) → path-dep 0_raw (libzahl_raw)
+# Both craft two identical ~4096-bit operands (same LCG/seeds/64 limbs), zload
+# them, run 1500 iters of zadd/zsub/zmul_ll, and print "pairs=N used=M checksum=HEX".
+# Equivalence VERIFIED 2026-07-01: both = "pairs=1500 used=65 checksum=b276a56a70ec2400".
+#
+# ★ HARNESS REWRITE (2026-07-01, PREFLIGHT ③, the hardest fix): the ORIGINAL
+# harness zsetu/zload'd ZERO operands → the op loop did 0+0, 0*0 on empty bignums
+# that never grow. It measured process startup + call/pool overhead on empty
+# operands (~94% self-time in std allocation), NOT real multi-precision arithmetic.
+# The fixture .bin files aren't in zload format (both harnesses SIGABRT on them),
+# so operands are now generated in-harness as large 4096-bit numbers, byte-identical
+# on both sides. This measures REAL big-num add/sub/mul.
+#
+# ORACLE limitation (honest): checksum folds `acc` = 1500*(x+y), i.e. it directly
+# verifies the zadd chain; zsub/zmul share libzahl's limb primitives so acc
+# equivalence is strong (not total) evidence of a faithful translation.
+#
+# SCOPE note: input file is ignored (operands are in-harness), so the 3 experiment
+# .bin fixtures would all measure the same thing — we report ONE data point
+# (fixed 4096-bit operands). Could be extended to an operand-SIZE sweep later.
+# =============================================================================
+
+[study]
+project      = "libzahl"
+binary       = "libzahl_opsuite"
+compare      = ["c", "c2rust_raw"]
+report_mode  = "per_input"
+
+[builds.c]
+kind        = "c_reference"
+compiler    = "clang-17"
+source_dir  = "empirical_study/libzahl/c_ref"     # self-contained (copied from dataset_source/libzahl)
+build_cmd   = "bash empirical_study/libzahl/c_ref/build.sh"
+binary_path = "empirical_study/libzahl/bin/libzahl_cref17"
+
+[builds.c2rust_raw]
+kind        = "cargo_harness"
+crate_dir   = "empirical_study/libzahl/rust_harness"          # self-contained; path-dep -> ../rust_raw (0_raw snapshot)
+build_cmd   = "( cd empirical_study/libzahl/rust_harness && cargo build --release )"
+flags       = "opt-level=3, lto=fat, codegen-units=1, target-cpu=native (harness Cargo.toml + .cargo/config)"
+binary_path = "empirical_study/libzahl/rust_harness/target/release/libzahl_opsuite"
+
+[measure]
+warmup_runs    = 5
+measure_runs   = 30
+metric         = "median"
+outlier_rule   = "drop >1.5*IQR"
+required_cv    = 0.03
+min_runtime_ms = 100
+timeout_s      = 300
+pin_cpu        = 16
+order          = ["c", "c2rust_raw"]
+paired         = true
+freq_pin       = true
+
+[profile]
+call_graph_mode = "dwarf"
+frequency       = 99
+
+# OPERATION 1 — MULTIPLY: isolate the O(n²) schoolbook multiply kernel on fixed
+# 4096-bit operands x1500 (add/sub dropped — O(n), too fast + diluted). Input ignored.
+[[operations]]
+name = "mul_4096bit"
+args = ["$INPUT"]
+
+  [[operations.inputs]]
+  name = "mul4096"
+  path = "empirical_study/libzahl/inputs/pairs_4096_seedB.bin"
+  size = "4096-bit x 4096-bit multiply x 1500 iters"
+  character = "zmul (schoolbook O(n²) multiply, 64-limb bignums)"
+  stdout_sha256 = "e18ec33d3db945f39faff6fe4d99b59d566216a3b0a8fd126f732d78b43ca522"
+
+# OPERATION 2 — DIVISION (zdivmod): dividend x*y (~8192-bit) ÷ y (~4096-bit) x1500.
+# args=["divmod"]; input ignored.
+[[operations]]
+name = "div_4096bit"
+args = ["divmod"]
+
+  [[operations.inputs]]
+  name = "div4096"
+  path = "empirical_study/libzahl/inputs/pairs_4096_seedB.bin"
+  size = "8192-bit / 4096-bit long division x 1500 iters"
+  character = "zdivmod (schoolbook long division)"
+  stdout_sha256 = "f97f8d0bd992100234e0942dd45ed1e074e2390c49ca5ac7295c16584647da20"
+
+# OPERATION 3 — MODULAR EXPONENTIATION (zmodpow): x^e mod y, y ~4096-bit odd,
+# e ~256-bit exponent, x3. args=["modpow"]; input ignored. The crypto-relevant
+# heavy kernel (square-and-multiply over modular multiplies), ~1.2s.
+[[operations]]
+name = "modpow_4096bit"
+args = ["modpow"]
+
+  [[operations.inputs]]
+  name = "modpow4096"
+  path = "empirical_study/libzahl/inputs/pairs_4096_seedB.bin"
+  size = "4096-bit base ^ 256-bit exp mod 4096-bit modulus x3"
+  character = "zmodpow (modular exponentiation; square-and-multiply)"
+  stdout_sha256 = "1b58d88108abde137e55ab93d66ca39a49043a71482d213a0da79c2e4e645e66"
+
+[oracle]
+exit_code = 0
+correctness_manifests = []
+
+[gates]
+coverage_line_min = 50
+coverage_fn_min   = 60
+self_time_own_min = 70   # should now pass (real arithmetic, not startup alloc)

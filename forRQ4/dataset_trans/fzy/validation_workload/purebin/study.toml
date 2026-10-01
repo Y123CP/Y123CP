@@ -1,0 +1,101 @@
+# ============================================================================
+                                                    
+                                                                         
+                                                        
+                                                             
+                                                               
+                                                       
+#       dataset_trans/run_validation.py dataset_trans/fzy/validation_workload/purebin/study.toml
+# ============================================================================
+
+[study]
+project     = "fzy"
+compare     = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+report_mode = "per_input"
+
+[builds.c]
+binary_path = "dataset_trans/fzy/validation_workload/purebin/bin/fzy_c"
+[builds.raw]
+binary_path = "dataset_trans/fzy/validation_workload/purebin/bin/fzy_raw"
+[builds.stage_a]
+binary_path = "dataset_trans/fzy/validation_workload/purebin/bin/fzy_stage_a"
+                                                                   
+                                                      
+[builds.freeform]
+binary_path = "dataset_trans/fzy/validation_workload/purebin/bin/fzy_freeform"
+
+[builds.codex]
+binary_path = "dataset_trans/fzy/validation_workload/purebin/bin/fzy_codex"
+[builds.full]                                  # full arm = 3_perf_opt (rule-guided)
+binary_path = "dataset_trans/fzy/validation_workload/purebin/bin/fzy_full"
+[measure]
+warmup_runs  = 5
+measure_runs = 30
+required_cv  = 0.03
+max_load     = 1.0
+cv_retries   = 2
+pin_cpu      = 16
+order        = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+
+[gates]
+equivalence = "stdout_sha256"
+
+[[operations]]
+name = "match_batch"              # has_match filter + match_positions scoring
+args = ["match_batch", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "candidates.txt"
+  path = "dataset_trans/fzy/validation_workload/inputs/candidates.txt"
+  iters = 30
+  stdout_sha256 = "562246751782b7db721e96a00e9f7c1b03d534d5ef1542dda6bea5e826b68f47"
+
+[[operations]]
+name = "match_positions_full"     # scoring with position arrays
+args = ["match_positions_full", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "candidates.txt"
+  path = "dataset_trans/fzy/validation_workload/inputs/candidates.txt"
+  iters = 100
+  stdout_sha256 = "573eb0535ea166191a4e0fd640bd4d7756ea668de94ef84a5b333a31213118d5"
+
+[[operations]]
+name = "choices_ops"              # add/search/get/navigate + workers=2 merge
+args = ["choices_ops", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "candidates.txt"
+  path = "dataset_trans/fzy/validation_workload/inputs/candidates.txt"
+  iters = 20
+  stdout_sha256 = "f3a29642208d5a882e23a82033d16c107c204da8fa6292bd10e399d2f9a3a54a"
+
+[[operations]]
+name = "choices_fread_op"         # buffer parsing via choices_fread
+args = ["choices_fread_op", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "candidates.txt"
+  path = "dataset_trans/fzy/validation_workload/inputs/candidates.txt"
+  iters = 120
+  stdout_sha256 = "db5b7152a4eaf314642ea161f4612fa0c5b0821acdf552ccc5de376cd33c4c9f"
+
+[[operations]]
+name = "options_matrix"           # real flag combos; libc-getopt-bound
+args = ["options_matrix", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "candidates.txt"
+  path = "dataset_trans/fzy/validation_workload/inputs/candidates.txt"
+  iters = 100
+  stdout_sha256 = "d74be60c861c0848a0dca8d066b51aa1267f9a7c621201ab918f3a615c3fedb7"
+
+[[operations]]
+name = "tty_ops"                  # full tty_* surface on a PTY; kernel-bound
+args = ["tty_ops", "$INPUT", "$ITERS"]
+status = "coverage_only"
+  [[operations.inputs]]
+  name = "candidates.txt"
+  path = "dataset_trans/fzy/validation_workload/inputs/candidates.txt"
+  iters = 100
+  stdout_sha256 = "8b447839bee0973b3301bf55df9ae147b4b5396f32a116e1cf156301591b5c60"

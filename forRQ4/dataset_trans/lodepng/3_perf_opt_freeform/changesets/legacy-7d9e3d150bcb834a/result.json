@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 3.0409234410913175,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 3.1627677709085558,
+            "aggregate_ci_low_pct": 2.9190791112740793,
+            "aggregate_pct": 3.0409234410913175,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 3.1628,
+                "ci_low_pct": 2.9191,
+                "insns_delta_pct": 2.1369,
+                "mean_delta_pct": 3.0409,
+                "op": "color_convert",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "color_convert"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "color_convert"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "ccc2dc00c960bae828a5ab4049c81f2966b83a74",
+      "changeset_id": "legacy-7d9e3d150bcb834a",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-4dabda578a9ded73",
+          "replacement_function_source": "unsafe fn rgba8ToPixel(\n    mut out: *mut c_uchar,\n    mut i: size_t,\n    mut mode: *const LodePNGColorMode,\n    mut tree: *mut ColorTree,\n    mut r: c_uchar,\n    mut g: c_uchar,\n    mut b: c_uchar,\n    mut a: c_uchar,\n) -> c_uint {\n    let mode_view: &LodePNGColorMode = unsafe { &*mode }; // SAFETY: caller provided `mode` as a valid pointer per the original function's contract.\n    let colortype = mode_view.colortype as c_uint;\n    let bitdepth = mode_view.bitdepth;\n\n    if colortype == LCT_GREY as c_int as c_uint {\n        let mut gray = r;\n        if bitdepth == 8 as c_uint {\n            unsafe { *out.add(i) = gray }; // SAFETY: same output buffer validity and indexing assumptions as the original `out.offset(i as isize)`.\n        } else if bitdepth == 16 as c_uint {\n            let base = i.wrapping_mul(2 as size_t);\n            unsafe {\n                *out.add(base) = gray;\n                *out.add(base.wrapping_add(1 as size_t)) = gray;\n            } // SAFETY: same output buffer validity and wrapped index arithmetic as the original code.\n        } else {\n            gray = ((gray as c_uint >> (8 as c_uint).wrapping_sub(bitdepth))\n                & ((1 as c_uint) << bitdepth).wrapping_sub(1 as c_uint))\n                as c_uchar;\n            addColorBits(out, i, bitdepth, gray as c_uint);\n        }\n    } else if colortype == LCT_RGB as c_int as c_uint {\n        if bitdepth == 8 as c_uint {\n            let base = i.wrapping_mul(3 as size_t);\n            unsafe {\n                *out.add(base) = r;\n                *out.add(base.wrapping_add(1 as size_t)) = g;\n                *out.add(base.wrapping_add(2 as size_t)) = b;\n            } // SAFETY: same output buffer validity and wrapped index arithmetic as the original code.\n        } else {\n            let base = i.wrapping_mul(6 as size_t);\n            unsafe {\n                *out.add(base) = r;\n                *out.add(base.wrapping_add(1 as size_t)) = r;\n                *out.add(base.wrapping_add(2 as size_t)) = g;\n                *out.add(base.wrapping_add(3 as size_t)) = g;\n                *out.add(base.wrapping_add(4 as size_t)) = b;\n                *out.add(base.wrapping_add(5 as size_t)) = b;\n            } // SAFETY: same output buffer validity and wrapped index arithmetic as the original code.\n        }\n    } else if colortype == LCT_PALETTE as c_int as c_uint {\n        let index: c_int = color_tree_get(tree, r, g, b, a);\n        if index < 0 as c_int {\n            return 82 as c_uint;\n        }\n        if bitdepth == 8 as c_uint {\n            unsafe { *out.add(i) = index as c_uchar }; // SAFETY: same output buffer validity and indexing assumptions as the original `out.offset(i as isize)`.\n        } else {\n            addColorBits(out, i, bitdepth, index as c_uint);\n        }\n    } else if colortype == LCT_GREY_ALPHA as c_int as c_uint {\n        let gray = r;\n        if bitdepth == 8 as c_uint {\n            let base = i.wrapping_mul(2 as size_t);\n            unsafe {\n                *out.add(base) = gray;\n                *out.add(base.wrapping_add(1 as size_t)) = a;\n            } // SAFETY: same output buffer validity and wrapped index arithmetic as the original code.\n        } else if bitdepth == 16 as c_uint {\n            let base = i.wrapping_mul(4 as size_t);\n            unsafe {\n                *out.add(base) = gray;\n                *out.add(base.wrapping_add(1 as size_t)) = gray;\n                *out.add(base.wrapping_add(2 as size_t)) = a;\n                *out.add(base.wrapping_add(3 as size_t)) = a;\n            } // SAFETY: same output buffer validity and wrapped index arithmetic as the original code.\n        }\n    } else if colortype == LCT_RGBA as c_int as c_uint {\n        if bitdepth == 8 as c_uint {\n            let base = i.wrapping_mul(4 as size_t);\n            unsafe {\n                *out.add(base) = r;\n                *out.add(base.wrapping_add(1 as size_t)) = g;\n                *out.add(base.wrapping_add(2 as size_t)) = b;\n                *out.add(base.wrapping_add(3 as size_t)) = a;\n            } // SAFETY: same output buffer validity and wrapped index arithmetic as the original code.\n        } else {\n            let base = i.wrapping_mul(8 as size_t);\n            unsafe {\n                *out.add(base) = r;\n                *out.add(base.wrapping_add(1 as size_t)) = r;\n                *out.add(base.wrapping_add(2 as size_t)) = g;\n                *out.add(base.wrapping_add(3 as size_t)) = g;\n                *out.add(base.wrapping_add(4 as size_t)) = b;\n                *out.add(base.wrapping_add(5 as size_t)) = b;\n                *out.add(base.wrapping_add(6 as size_t)) = a;\n                *out.add(base.wrapping_add(7 as size_t)) = a;\n            } // SAFETY: same output buffer validity and wrapped index arithmetic as the original code.\n        }\n    }\n    0 as c_uint\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "00a7791a025308cec4a82bcba37d012185274107501e773d06fb59eb0dd99a6e",
+            "file_hint": "src/lodepng.rs",
+            "qualified_name": "crate::rgba8ToPixel",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "rgba8ToPixel-0b52a25015fa",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "rgba8ToPixel",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "8572585bbdae2ac9eff0fdd6def30813e19897f2e1fb568b0395beec9d5b8407",
+            "edit_id": "edit-replace-4dabda578a9ded73",
+            "end_byte": 243537,
+            "operation_id": "replace-4dabda578a9ded73",
+            "relative_path": "src/lodepng.rs",
+            "replacement_text": "unsafe fn rgba8ToPixel(\n    mut out: *mut c_uchar,\n    mut i: size_t,\n    mut mode: *const LodePNGColorMode,\n    mut tree: *mut ColorTree,\n    mut r: c_uchar,\n    mut g: c_uchar,\n    mut b: c_uchar,\n    mut a: c_uchar,\n) -> c_uint {\n    let mode_view: &LodePNGColorMode = unsafe { &*mode }; // SAFETY: caller provided `mode` as a valid pointer per the original function's contract.\n    let colortype = mode_view.colortype as c_uint;\n    let bitdepth = mode_view.bitdepth;\n\n    if colortype == LCT_GREY as c_int as c_uint {\n        let mut gray = r;\n        if bitdepth == 8 as c_uint {\n            unsafe { *out.add(i) = gray }; // SAFETY: same output buffer validity and indexing assumptions as the original `out.offset(i as isize)`.\n        } else if bitdepth == 16 as c_uint {\n            let base = i.wrapping_mul(2 as size_t);\n            unsafe {\n                *out.add(base) = gray;\n                *out.add(base.wrapping_add(1 as size_t)) = gray;\n            } // SAFETY: same output buffer validity and wrapped index arithmetic as the original code.\n        } else {\n            gray = ((gray as c_uint >> (8 as c_uint).wrapping_sub(bitdepth))\n                & ((1 as c_uint) << bitdepth).wrapping_sub(1 as c_uint))\n                as c_uchar;\n            addColorBits(out, i, bitdepth, gray as c_uint);\n        }\n    } else if colortype == LCT_RGB as c_int as c_uint {\n        if bitdepth == 8 as c_uint {\n            let base = i.wrapping_mul(3 as size_t);\n            unsafe {\n                *out.add(base) = r;\n                *out.add(base.wrapping_add(1 as size_t)) = g;\n                *out.add(base.wrapping_add(2 as size_t)) = b;\n            } // SAFETY: same output buffer validity and wrapped index arithmetic as the original code.\n        } else {\n            let base = i.wrapping_mul(6 as size_t);\n            unsafe {\n                *out.add(base) = r;\n                *out.add(base.wrapping_add(1 as size_t)) = r;\n                *out.add(base.wrapping_add(2 as size_t)) = g;\n                *out.add(base.wrapping_add(3 as size_t)) = g;\n                *out.add(base.wrapping_add(4 as size_t)) = b;\n                *out.add(base.wrapping_add(5 as size_t)) = b;\n            } // SAFETY: same output buffer validity and wrapped index arithmetic as the original code.\n        }\n    } else if colortype == LCT_PALETTE as c_int as c_uint {\n        let index: c_int = color_tree_get(tree, r, g, b, a);\n        if index < 0 as c_int {\n            return 82 as c_uint;\n        }\n        if bitdepth == 8 as c_uint {\n            unsafe { *out.add(i) = index as c_uchar }; // SAFETY: same output buffer validity and indexing assumptions as the original `out.offset(i as isize)`.\n        } else {\n            addColorBits(out, i, bitdepth, index as c_uint);\n        }\n    } else if colortype == LCT_GREY_ALPHA as c_int as c_uint {\n        let gray = r;\n        if bitdepth == 8 as c_uint {\n            let base = i.wrapping_mul(2 as size_t);\n            unsafe {\n                *out.add(base) = gray;\n                *out.add(base.wrapping_add(1 as size_t)) = a;\n            } // SAFETY: same output buffer validity and wrapped index arithmetic as the original code.\n        } else if bitdepth == 16 as c_uint {\n            let base = i.wrapping_mul(4 as size_t);\n            unsafe {\n                *out.add(base) = gray;\n                *out.add(base.wrapping_add(1 as size_t)) = gray;\n                *out.add(base.wrapping_add(2 as size_t)) = a;\n                *out.add(base.wrapping_add(3 as size_t)) = a;\n            } // SAFETY: same output buffer validity and wrapped index arithmetic as the original code.\n        }\n    } else if colortype == LCT_RGBA as c_int as c_uint {\n        if bitdepth == 8 as c_uint {\n            let base = i.wrapping_mul(4 as size_t);\n            unsafe {\n                *out.add(base) = r;\n                *out.add(base.wrapping_add(1 as size_t)) = g;\n                *out.add(base.wrapping_add(2 as size_t)) = b;\n                *out.add(base.wrapping_add(3 as size_t)) = a;\n            } // SAFETY: same output buffer validity and wrapped index arithmetic as the original code.\n        } else {\n            let base = i.wrapping_mul(8 as size_t);\n            unsafe {\n                *out.add(base) = r;\n                *out.add(base.wrapping_add(1 as size_t)) = r;\n                *out.add(base.wrapping_add(2 as size_t)) = g;\n                *out.add(base.wrapping_add(3 as size_t)) = g;\n                *out.add(base.wrapping_add(4 as size_t)) = b;\n                *out.add(base.wrapping_add(5 as size_t)) = b;\n                *out.add(base.wrapping_add(6 as size_t)) = a;\n                *out.add(base.wrapping_add(7 as size_t)) = a;\n            } // SAFETY: same output buffer validity and wrapped index arithmetic as the original code.\n        }\n    }\n    0 as c_uint\n}",
+            "start_byte": 238270
+          }
+        ],
+        "facts": {
+          "fn_name": "rgba8ToPixel",
+          "target_span_hash": "00a7791a025308cec4a82bcba37d012185274107501e773d06fb59eb0dd99a6e"
+        },
+        "operation_id": "replace-4dabda578a9ded73"
+      }
+    ],
+    "resolved_head": "ccc2dc00c960bae828a5ab4049c81f2966b83a74"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/lodepng.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

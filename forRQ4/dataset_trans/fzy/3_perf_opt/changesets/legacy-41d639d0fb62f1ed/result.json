@@ -1,0 +1,164 @@
+{
+  "applied_rules": [
+    "C3"
+  ],
+  "commit_sha": "c2b0c07",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.017749086567582745,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.2540631163471477,
+            "aggregate_ci_low_pct": -0.28956128948231313,
+            "aggregate_pct": -0.017749086567582745,
+            "checkpoint": 20,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.3025,
+                "ci_low_pct": -0.3288,
+                "insns_delta_pct": -0.0343,
+                "mean_delta_pct": -0.0132,
+                "op": "choices_add_search",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 0.636,
+                "ci_low_pct": -0.8054,
+                "insns_delta_pct": 0.2804,
+                "mean_delta_pct": -0.0847,
+                "op": "choices_fread_search",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "per_op_uncertain"
+              },
+              {
+                "ci_high_pct": 0.3329,
+                "ci_low_pct": -0.2436,
+                "insns_delta_pct": 0.0479,
+                "mean_delta_pct": 0.0446,
+                "op": "match_primitives",
+                "samples": 20,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "choices_add_search",
+          "choices_fread_search",
+          "match_primitives"
+        ],
+        "reason": "accepted",
+        "triggering_op": "match_primitives"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "80b68ab1d2a7d280f454b41df8dc3636c9e8322a",
+      "changeset_id": "legacy-41d639d0fb62f1ed",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-c80fb564c5db5814",
+          "replacement_function_source": "#[export_name = \"match\"]\npub unsafe extern \"C\" fn match_0(\n    mut needle: *const c_char,\n    mut haystack: *const c_char,\n) -> score_t {\n    // Applied rules: [C3]\n    // Skipped rules: []\n    if *needle == 0 {\n        return -::core::f32::INFINITY as score_t;\n    }\n    let mut match_1: match_struct = match_struct {\n        needle_len: 0,\n        haystack_len: 0,\n        lower_needle: [0; 1024],\n        lower_haystack: [0; 1024],\n        match_bonus: [0.; 1024],\n    };\n    setup_match_struct(&raw mut match_1, needle, haystack);\n\n    let n: c_int = match_1.needle_len;\n    let m: c_int = match_1.haystack_len;\n\n    if m > MATCH_MAX_LEN || n > m {\n        return -::core::f32::INFINITY as score_t;\n    } else if n == m {\n        return ::core::f32::INFINITY as score_t;\n    }\n\n    let mut D: [score_t; 1024] = [0.; 1024];\n    let mut M: [score_t; 1024] = [0.; 1024];\n    let d_ptr: *mut score_t = D.as_mut_ptr();\n    let m_ptr: *mut score_t = M.as_mut_ptr();\n\n    let mut i: c_int = 0;\n    while i < n {\n        match_row(\n            &raw mut match_1,\n            i,\n            d_ptr,\n            m_ptr,\n            d_ptr,\n            m_ptr,\n        );\n        i += 1;\n    }\n\n    M[(m - 1) as usize]\n}",
+          "rule_id": "C3",
+          "target": {
+            "declaration_hash": "97c94591d345ed921ef569011c1464bc51d8b59ccd356cd161fa045e98acb5d8",
+            "file_hint": "src/match.rs",
+            "qualified_name": "crate::match_0",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "match-33eb0d0988df",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "match_0",
+        "rule_id": "C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "a5aee822067990edd9540f876964e4ad081f297d6d79db149d3193ef87a1a86a",
+            "edit_id": "edit-replace-c80fb564c5db5814",
+            "end_byte": 8990,
+            "operation_id": "replace-c80fb564c5db5814",
+            "relative_path": "src/match.rs",
+            "replacement_text": "#[export_name = \"match\"]\npub unsafe extern \"C\" fn match_0(\n    mut needle: *const c_char,\n    mut haystack: *const c_char,\n) -> score_t {\n    // Applied rules: [C3]\n    // Skipped rules: []\n    if *needle == 0 {\n        return -::core::f32::INFINITY as score_t;\n    }\n    let mut match_1: match_struct = match_struct {\n        needle_len: 0,\n        haystack_len: 0,\n        lower_needle: [0; 1024],\n        lower_haystack: [0; 1024],\n        match_bonus: [0.; 1024],\n    };\n    setup_match_struct(&raw mut match_1, needle, haystack);\n\n    let n: c_int = match_1.needle_len;\n    let m: c_int = match_1.haystack_len;\n\n    if m > MATCH_MAX_LEN || n > m {\n        return -::core::f32::INFINITY as score_t;\n    } else if n == m {\n        return ::core::f32::INFINITY as score_t;\n    }\n\n    let mut D: [score_t; 1024] = [0.; 1024];\n    let mut M: [score_t; 1024] = [0.; 1024];\n    let d_ptr: *mut score_t = D.as_mut_ptr();\n    let m_ptr: *mut score_t = M.as_mut_ptr();\n\n    let mut i: c_int = 0;\n    while i < n {\n        match_row(\n            &raw mut match_1,\n            i,\n            d_ptr,\n            m_ptr,\n            d_ptr,\n            m_ptr,\n        );\n        i += 1;\n    }\n\n    M[(m - 1) as usize]\n}",
+            "start_byte": 7813
+          }
+        ],
+        "facts": {
+          "fn_name": "match_0",
+          "target_span_hash": "97c94591d345ed921ef569011c1464bc51d8b59ccd356cd161fa045e98acb5d8"
+        },
+        "operation_id": "replace-c80fb564c5db5814"
+      }
+    ],
+    "resolved_head": "80b68ab1d2a7d280f454b41df8dc3636c9e8322a"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/match.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

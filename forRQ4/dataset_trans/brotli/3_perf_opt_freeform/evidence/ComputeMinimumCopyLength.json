@@ -1,0 +1,62 @@
+{
+  "hot_function": {
+    "symbol": "ComputeMinimumCopyLength",
+    "location": "src/enc/backward_references_hq.rs:1149-1174",
+    "workload": "shared_dict_roundtrip",
+    "hot_region": "src/enc/backward_references_hq.rs:1149-1174",
+    "rust_source": "unsafe fn ComputeMinimumCopyLength(\n    start_cost: c_float,\n    mut nodes: *const ZopfliNode,\n    num_bytes: size_t,\n    pos: size_t,\n) -> size_t {\n    let mut min_cost: c_float = start_cost;\n    let mut len: size_t = 2 as size_t;\n    let mut next_len_bucket: size_t = 4 as size_t;\n    let mut next_len_offset: size_t = 10 as size_t;\n    while pos.wrapping_add(len) <= num_bytes\n        && (*nodes.offset(pos.wrapping_add(len) as isize)).u.cost <= min_cost\n    {\n        len = len.wrapping_add(1);\n        if len == next_len_offset {\n            min_cost += 1.0f32;\n            next_len_offset = (next_len_offset as c_ulong)\n                .wrapping_add(next_len_bucket as c_ulong)\n                as size_t as size_t;\n            next_len_bucket = (next_len_bucket as c_ulong)\n                .wrapping_mul(2 as c_ulong) as size_t\n                as size_t;\n        }\n    }\n    return len;\n}",
+    "signature": "unsafe fn ComputeMinimumCopyLength(\n    start_cost: c_float,\n    mut nodes: *const ZopfliNode,\n    num_bytes: size_t,\n    pos: size_t,\n) -> size_t",
+    "profile": {
+      "self_time_ratio": 0.1196,
+      "call_count": null,
+      "retired_instructions": 2806408702,
+      "instructions_per_call": null,
+      "cpi": 0.432,
+      "tma": {
+        "scope": "process",
+        "retiring": 70.17789061017822,
+        "frontend_bound": 17.93346200781594,
+        "bad_speculation": 5.43844725994777,
+        "backend_bound": 6.450200122058073,
+        "memory_bound": 3.533149017209205,
+        "core_bound": 2.9170511048488676,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0058
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {},
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1160,
+        "message": "1 reloads 7.873015e+00 total reloads cost 1 folded reloads 7.873015e+00 total folded reloads cost 4 virtual registers copies 2.755555e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1163,
+        "message": "BasicBlock: bb3.i253"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1160,
+        "message": "BasicBlock: bb2.i250"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

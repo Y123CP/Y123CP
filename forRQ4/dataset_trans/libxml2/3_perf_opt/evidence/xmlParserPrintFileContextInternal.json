@@ -1,0 +1,353 @@
+{
+  "hot_function": {
+    "symbol": "xmlParserPrintFileContextInternal",
+    "location": "src/error.rs:1275-1373",
+    "workload": "schema_suite",
+    "hot_region": "src/error.rs:1275-1373",
+    "rust_source": "unsafe fn xmlParserPrintFileContextInternal(\n    mut input: xmlParserInputPtr,\n    mut channel: xmlGenericErrorFunc,\n    mut data: *mut c_void,\n) {\n    let mut cur: *const xmlChar = ::core::ptr::null::<xmlChar>();\n    let mut base: *const xmlChar = ::core::ptr::null::<xmlChar>();\n    let mut start: *const xmlChar = ::core::ptr::null::<xmlChar>();\n    let mut n: c_uint = 0;\n    let mut col: c_uint = 0;\n    let mut content: [xmlChar; 81] = [0; 81];\n    let mut ctnt: *mut xmlChar = ::core::ptr::null_mut::<xmlChar>();\n    if input.is_null() || (*input).cur.is_null() {\n        return;\n    }\n    cur = (*input).cur;\n    base = (*input).base;\n    while cur > base\n        && (*cur as c_int == '\\n' as i32 || *cur as c_int == '\\r' as i32)\n    {\n        cur = cur.offset(-1);\n    }\n    n = 0 as c_uint;\n    while (n as usize) < (::core::mem::size_of::<[xmlChar; 81]>() as usize).wrapping_sub(1 as usize)\n        && cur > base\n        && *cur as c_int != '\\n' as i32\n        && *cur as c_int != '\\r' as i32\n    {\n        cur = cur.offset(-1);\n        n = n.wrapping_add(1);\n    }\n    if n > 0 as c_uint\n        && (*cur as c_int == '\\n' as i32 || *cur as c_int == '\\r' as i32)\n    {\n        cur = cur.offset(1);\n    } else {\n        while cur < (*input).cur\n            && *cur as c_int & 0xc0 as c_int == 0x80 as c_int\n        {\n            cur = cur.offset(1);\n        }\n    }\n    col = (*input).cur.offset_from(cur) as c_long as c_uint;\n    n = 0 as c_uint;\n    start = cur;\n    while *cur as c_int != 0 as c_int\n        && *cur as c_int != '\\n' as i32\n        && *cur as c_int != '\\r' as i32\n    {\n        let mut len: c_int =\n            (*input).end.offset_from(cur) as c_long as c_int;\n        let mut c: c_int =\n            xmlGetUTF8Char(cur as *const c_uchar, &raw mut len);\n        if c < 0 as c_int\n            || n.wrapping_add(len as c_uint) as usize\n                > (::core::mem::size_of::<[xmlChar; 81]>() as usize).wrapping_sub(1 as usize)\n        {\n            break;\n        }\n        cur = cur.offset(len as isize);\n        n = n.wrapping_add(len as c_uint);\n    }\n    memcpy(\n        &raw mut content as *mut xmlChar as *mut c_void,\n        start as *const c_void,\n        n as size_t,\n    );\n    content[n as usize] = 0 as xmlChar;\n    channel.expect(\"non-null function pointer\")(\n        data,\n        b\"%s\\n\\0\" as *const u8 as *const c_char,\n        &raw mut content as *mut xmlChar,\n    );\n    n = 0 as c_uint;\n    ctnt = &raw mut content as *mut xmlChar;\n    while n < col\n        && {\n            let fresh8 = n;\n            n = n.wrapping_add(1);\n            (fresh8 as usize)\n                < (::core::mem::size_of::<[xmlChar; 81]>() as usize).wrapping_sub(2 as usize)\n        }\n        && *ctnt as c_int != 0 as c_int\n    {\n        if *ctnt as c_int != '\\t' as i32 {\n            *ctnt = ' ' as i32 as xmlChar;\n        }\n        ctnt = ctnt.offset(1);\n    }\n    let fresh9 = ctnt;\n    ctnt = ctnt.offset(1);\n    *fresh9 = '^' as i32 as xmlChar;\n    *ctnt = 0 as xmlChar;\n    channel.expect(\"non-null function pointer\")(\n        data,\n        b\"%s\\n\\0\" as *const u8 as *const c_char,\n        &raw mut content as *mut xmlChar,\n    );\n}",
+    "signature": "unsafe fn xmlParserPrintFileContextInternal(\n    mut input: xmlParserInputPtr,\n    mut channel: xmlGenericErrorFunc,\n    mut data: *mut c_void,\n)",
+    "profile": {
+      "self_time_ratio": 0.0551,
+      "call_count": null,
+      "retired_instructions": 1510526196,
+      "instructions_per_call": null,
+      "cpi": 0.434,
+      "tma": {
+        "scope": "process",
+        "retiring": 40.90777088778057,
+        "frontend_bound": 44.447962074417134,
+        "bad_speculation": 5.872614848902449,
+        "backend_bound": 8.771652188899845,
+        "memory_bound": 3.7274769017627145,
+        "core_bound": 5.04417528713713,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0149
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "frontend_bound",
+    "class_i_hits": {
+      "C1": 1,
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1327,
+        "message": "'_ZN15libxml2_cleaned3src9xmlstring14xmlGetUTF8Char17h385d8ffaf691b3f0E' inlined into '_ZN15libxml2_cleaned3src5error33xmlParserPrintFileContextInternal17hba2a03d5e17a1650E' with (cost=280, threshold=325) at callsite _ZN15libxml2_cleaned3src5error33xmlParserPrintFileContextInternal17hba2a03d5e17a1650E:52:13;"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1325,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1325,
+        "message": "failed to hoist load with loop-invariant address because load is conditionally executed"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1357,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1275,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN15libxml2_cleaned3src5error33xmlParserPrintFileContextInternal17hba2a03d5e17a1650E: MI Instruction count changed from 0 to 294; Delta: 294"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1275,
+        "message": "Merge disjoint stack slots: Function: _ZN15libxml2_cleaned3src5error33xmlParserPrintFileContextInternal17hba2a03d5e17a1650E: MI Instruction count changed from 294 to 291; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1275,
+        "message": "Remove dead machine instructions: Function: _ZN15libxml2_cleaned3src5error33xmlParserPrintFileContextInternal17hba2a03d5e17a1650E: MI Instruction count changed from 291 to 290; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1275,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN15libxml2_cleaned3src5error33xmlParserPrintFileContextInternal17hba2a03d5e17a1650E: MI Instruction count changed from 290 to 288; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1275,
+        "message": "Process Implicit Definitions: Function: _ZN15libxml2_cleaned3src5error33xmlParserPrintFileContextInternal17hba2a03d5e17a1650E: MI Instruction count changed from 288 to 286; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1275,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN15libxml2_cleaned3src5error33xmlParserPrintFileContextInternal17hba2a03d5e17a1650E: MI Instruction count changed from 286 to 326; Delta: 40"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1275,
+        "message": "Two-Address instruction pass: Function: _ZN15libxml2_cleaned3src5error33xmlParserPrintFileContextInternal17hba2a03d5e17a1650E: MI Instruction count changed from 326 to 354; Delta: 28"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1275,
+        "message": "Register Coalescer: Function: _ZN15libxml2_cleaned3src5error33xmlParserPrintFileContextInternal17hba2a03d5e17a1650E: MI Instruction count changed from 354 to 249; Delta: -105"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1357,
+        "message": "1 virtual registers copies 1.857192e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1320,
+        "message": "2 virtual registers copies 2.536015e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1275,
+        "message": "1 spills 3.906249e-01 total spills cost 1 reloads 3.906249e-01 total reloads cost 19 virtual registers copies 9.623660e+00 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1275,
+        "message": "Greedy Register Allocator: Function: _ZN15libxml2_cleaned3src5error33xmlParserPrintFileContextInternal17hba2a03d5e17a1650E: MI Instruction count changed from 249 to 255; Delta: 6"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1275,
+        "message": "Virtual Register Rewriter: Function: _ZN15libxml2_cleaned3src5error33xmlParserPrintFileContextInternal17hba2a03d5e17a1650E: MI Instruction count changed from 255 to 246; Delta: -9"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 1275,
+        "message": "152 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1275,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN15libxml2_cleaned3src5error33xmlParserPrintFileContextInternal17hba2a03d5e17a1650E: MI Instruction count changed from 246 to 272; Delta: 26"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1275,
+        "message": "Control Flow Optimizer: Function: _ZN15libxml2_cleaned3src5error33xmlParserPrintFileContextInternal17hba2a03d5e17a1650E: MI Instruction count changed from 272 to 229; Delta: -43"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1275,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN15libxml2_cleaned3src5error33xmlParserPrintFileContextInternal17hba2a03d5e17a1650E: MI Instruction count changed from 229 to 237; Delta: 8"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1275,
+        "message": "X86 LEA Fixup: Function: _ZN15libxml2_cleaned3src5error33xmlParserPrintFileContextInternal17hba2a03d5e17a1650E: MI Instruction count changed from 237 to 240; Delta: 3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1275,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN15libxml2_cleaned3src5error33xmlParserPrintFileContextInternal17hba2a03d5e17a1650E: MI Instruction count changed from 240 to 241; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1285,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1287,
+        "message": "BasicBlock: bb2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1291,
+        "message": "BasicBlock: bb4"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1293,
+        "message": "BasicBlock: bb6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1293,
+        "message": "BasicBlock: bb6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1300,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1300,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1306,
+        "message": "BasicBlock: bb22"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1307,
+        "message": "BasicBlock: bb23"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1307,
+        "message": "BasicBlock: bb23"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1311,
+        "message": "BasicBlock: bb29.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1312,
+        "message": "BasicBlock: bb30.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1312,
+        "message": "BasicBlock: bb30"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1325,
+        "message": "BasicBlock: bb4.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1334,
+        "message": "BasicBlock: bb43"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1343,
+        "message": "BasicBlock: bb66"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1357,
+        "message": "BasicBlock: bb52.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1350,
+        "message": "BasicBlock: bb57.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1357,
+        "message": "BasicBlock: bb52"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1357,
+        "message": "BasicBlock: bb52"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1360,
+        "message": "BasicBlock: bb55"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1354,
+        "message": "BasicBlock: bb52.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1357,
+        "message": "BasicBlock: bb53.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1357,
+        "message": "BasicBlock: bb53.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1360,
+        "message": "BasicBlock: bb55.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1366,
+        "message": "BasicBlock: bb60"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1373,
+        "message": "BasicBlock: bb62"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1275,
+        "message": "220 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

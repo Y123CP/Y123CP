@@ -1,0 +1,208 @@
+{
+  "hot_function": {
+    "symbol": "htmlEncodeEntities",
+    "location": "src/HTMLparser.rs:8537-8656",
+    "workload": "html_entity_encode",
+    "hot_region": "src/HTMLparser.rs:8537-8656",
+    "rust_source": "pub unsafe fn htmlEncodeEntities(\n    mut out: *mut c_uchar,\n    mut outlen: *mut c_int,\n    mut in_0: *const c_uchar,\n    mut inlen: *mut c_int,\n    mut quoteChar: c_int,\n) -> c_int {\n    let mut processed: *const c_uchar = in_0;\n    let mut outend: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut outstart: *const c_uchar = out;\n    let mut instart: *const c_uchar = in_0;\n    let mut inend: *const c_uchar = ::core::ptr::null::<c_uchar>();\n    let mut c: c_uint = 0;\n    let mut d: c_uint = 0;\n    let mut trailing: c_int = 0;\n    if out.is_null() || outlen.is_null() || inlen.is_null() || in_0.is_null() {\n        return -(1 as c_int);\n    }\n    outend = out.offset(*outlen as isize);\n    inend = in_0.offset(*inlen as isize);\n    while in_0 < inend {\n        let fresh52 = in_0;\n        in_0 = in_0.offset(1);\n        d = *fresh52 as c_uint;\n        if d < 0x80 as c_uint {\n            c = d;\n            trailing = 0 as c_int;\n        } else if d < 0xc0 as c_uint {\n            *outlen = out.offset_from(outstart) as c_long as c_int;\n            *inlen = processed.offset_from(instart) as c_long as c_int;\n            return -(2 as c_int);\n        } else if d < 0xe0 as c_uint {\n            c = d & 0x1f as c_uint;\n            trailing = 1 as c_int;\n        } else if d < 0xf0 as c_uint {\n            c = d & 0xf as c_uint;\n            trailing = 2 as c_int;\n        } else if d < 0xf8 as c_uint {\n            c = d & 0x7 as c_uint;\n            trailing = 3 as c_int;\n        } else {\n            *outlen = out.offset_from(outstart) as c_long as c_int;\n            *inlen = processed.offset_from(instart) as c_long as c_int;\n            return -(2 as c_int);\n        }\n        if (inend.offset_from(in_0) as c_long) < trailing as c_long {\n            break;\n        }\n        loop {\n            let fresh53 = trailing;\n            trailing = trailing - 1;\n            if !(fresh53 != 0) {\n                break;\n            }\n            let fresh54 = in_0;\n            in_0 = in_0.offset(1);\n            d = *fresh54 as c_uint;\n            if d & 0xc0 as c_uint != 0x80 as c_uint {\n                *outlen = out.offset_from(outstart) as c_long as c_int;\n                *inlen =\n                    processed.offset_from(instart) as c_long as c_int;\n                return -(2 as c_int);\n            }\n            c <<= 6 as c_int;\n            c |= d & 0x3f as c_uint;\n        }\n        if c < 0x80 as c_uint\n            && c != quoteChar as c_uint\n            && c != '&' as i32 as c_uint\n            && c != '<' as i32 as c_uint\n            && c != '>' as i32 as c_uint\n        {\n            if out >= outend as *mut c_uchar {\n                break;\n            }\n            let fresh55 = out;\n            out = out.offset(1);\n            *fresh55 = c as c_uchar;\n        } else {\n            let mut ent: *const htmlEntityDesc = ::core::ptr::null::<htmlEntityDesc>();\n            let mut cp: *const c_char = ::core::ptr::null::<c_char>();\n            let mut nbuf: [c_char; 16] = [0; 16];\n            let mut len: c_int = 0;\n            ent = htmlEntityValueLookup(c);\n            if ent.is_null() {\n                snprintf(\n                    &raw mut nbuf as *mut c_char,\n                    ::core::mem::size_of::<[c_char; 16]>() as size_t,\n                    b\"#%u\\0\" as *const u8 as *const c_char,\n                    c,\n                );\n                cp = &raw mut nbuf as *mut c_char;\n            } else {\n                cp = (*ent).name;\n            }\n            len = strlen(cp) as c_int;\n            if (outend.offset_from(out) as c_long)\n                < (len + 2 as c_int) as c_long\n            {\n                break;\n            }\n            let fresh56 = out;\n            out = out.offset(1);\n            *fresh56 = '&' as i32 as c_uchar;\n            memcpy(\n                out as *mut c_void,\n                cp as *const c_void,\n                len as size_t,\n            );\n            out = out.offset(len as isize);\n            let fresh57 = out;\n            out = out.offset(1);\n            *fresh57 = ';' as i32 as c_uchar;\n        }\n        processed = in_0;\n    }\n    *outlen = out.offset_from(outstart) as c_long as c_int;\n    *inlen = processed.offset_from(instart) as c_long as c_int;\n    return 0 as c_int;\n}",
+    "signature": "pub unsafe fn htmlEncodeEntities(\n    mut out: *mut c_uchar,\n    mut outlen: *mut c_int,\n    mut in_0: *const c_uchar,\n    mut inlen: *mut c_int,\n    mut quoteChar: c_int,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.2799,
+      "call_count": null,
+      "retired_instructions": 5171793562,
+      "instructions_per_call": null,
+      "cpi": 0.323,
+      "tma": {
+        "scope": "process",
+        "retiring": 66.45344472062742,
+        "frontend_bound": 17.497444788149096,
+        "bad_speculation": 1.0922204831578852,
+        "backend_bound": 14.956890008065603,
+        "memory_bound": 12.08947843543263,
+        "core_bound": 2.8674115726329723,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0008
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 8622,
+        "message": "snprintf will not be inlined into _ZN15libxml2_cleaned3src10HTMLparser18htmlEncodeEntities17h96363c8904e60ca6E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 8632,
+        "message": "strlen will not be inlined into _ZN15libxml2_cleaned3src10HTMLparser18htmlEncodeEntities17h96363c8904e60ca6E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 8620,
+        "message": "'_ZN15libxml2_cleaned3src10HTMLparser21htmlEntityValueLookup17h964252eaeca58d36E' inlined into '_ZN15libxml2_cleaned3src10HTMLparser18htmlEncodeEntities17h96363c8904e60ca6E' with (cost=-14990, threshold=325) at callsite _ZN15libxml2_cleaned3src10HTMLparser18htmlEncodeEntities17h96363c8904e60ca6E:83:19;"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 8557,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 8560,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 8630,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 8555,
+        "message": "hoisting sext"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 8557,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 8557,
+        "message": "2 reloads 1.703303e+02 total reloads cost 1 folded reloads 9.612994e+00 total folded reloads cost 14 virtual registers copies 6.877924e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8582,
+        "message": "BasicBlock: bb23.thread.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8564,
+        "message": "BasicBlock: bb12.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8568,
+        "message": "BasicBlock: bb14.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8571,
+        "message": "BasicBlock: bb16.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8574,
+        "message": "BasicBlock: bb18.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8593,
+        "message": "BasicBlock: bb27.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8593,
+        "message": "BasicBlock: bb27.i.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8600,
+        "message": "BasicBlock: bb30.i.1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8593,
+        "message": "BasicBlock: bb27.i.2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8600,
+        "message": "BasicBlock: bb30.i.2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8603,
+        "message": "BasicBlock: bb28.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8603,
+        "message": "BasicBlock: switch.early.test.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8618,
+        "message": "BasicBlock: bb43.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8630,
+        "message": "BasicBlock: bb47.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8622,
+        "message": "BasicBlock: bb45.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8632,
+        "message": "BasicBlock: bb48.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8609,
+        "message": "BasicBlock: bb36.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8614,
+        "message": "BasicBlock: bb38.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

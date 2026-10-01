@@ -1,0 +1,143 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 3.7380658013662638,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 4.2946258702708295,
+            "aggregate_ci_low_pct": 3.1815057324616984,
+            "aggregate_pct": 3.7380658013662638,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 4.2946,
+                "ci_low_pct": 3.1815,
+                "insns_delta_pct": -1.146,
+                "mean_delta_pct": 3.7381,
+                "op": "raw_deflate_inflate",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_png",
+          "file_codec",
+          "memory_codec",
+          "raw_deflate_inflate"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "raw_deflate_inflate"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "5bfc4d62914268a805f55c10b462300d9b3ac808",
+      "changeset_id": "legacy-6ceafea9e9995158",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-98f4af626460ac39",
+          "replacement_function_source": "unsafe fn updateHashChain(\n    mut hash: *mut Hash,\n    mut wpos: size_t,\n    mut hashval: c_uint,\n    mut numzeros: c_ushort,\n) {\n    let hash_ref = unsafe { &mut *hash }; // SAFETY: caller provides a valid, writable pointer to Hash for the duration of this function.\n\n    let wpos_i = wpos as isize;\n    let hash_i = hashval as isize;\n    let zeros_i = numzeros as isize;\n    let wpos_c = wpos as c_int;\n\n    unsafe {\n        // SAFETY: all pointer arithmetic and dereferences mirror the original function's accesses and rely on the same caller guarantees that the Hash member pointers are valid for these indices.\n        *hash_ref.val.offset(wpos_i) = hashval as c_int;\n\n        let head_ptr = hash_ref.head.offset(hash_i);\n        let head_val = *head_ptr;\n        if head_val != -1 {\n            *hash_ref.chain.offset(wpos_i) = head_val as c_ushort;\n        }\n        *head_ptr = wpos_c;\n\n        *hash_ref.zeros.offset(wpos_i) = numzeros;\n\n        let headz_ptr = hash_ref.headz.offset(zeros_i);\n        let headz_val = *headz_ptr;\n        if headz_val != -1 {\n            *hash_ref.chainz.offset(wpos_i) = headz_val as c_ushort;\n        }\n        *headz_ptr = wpos_c;\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "7d8534c54da0d8b504f2ae11db56cdc7a9df6763e25c3cbb9f22334c8ab3be60",
+            "file_hint": "src/lodepng.rs",
+            "qualified_name": "crate::updateHashChain",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "updateHashChain-b86b1f982d80",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "updateHashChain",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "7a5e9fe28ef6643edfc79f298a5bb5a174390378ed9a03938baf5dfaff149c42",
+            "edit_id": "edit-replace-98f4af626460ac39",
+            "end_byte": 87655,
+            "operation_id": "replace-98f4af626460ac39",
+            "relative_path": "src/lodepng.rs",
+            "replacement_text": "unsafe fn updateHashChain(\n    mut hash: *mut Hash,\n    mut wpos: size_t,\n    mut hashval: c_uint,\n    mut numzeros: c_ushort,\n) {\n    let hash_ref = unsafe { &mut *hash }; // SAFETY: caller provides a valid, writable pointer to Hash for the duration of this function.\n\n    let wpos_i = wpos as isize;\n    let hash_i = hashval as isize;\n    let zeros_i = numzeros as isize;\n    let wpos_c = wpos as c_int;\n\n    unsafe {\n        // SAFETY: all pointer arithmetic and dereferences mirror the original function's accesses and rely on the same caller guarantees that the Hash member pointers are valid for these indices.\n        *hash_ref.val.offset(wpos_i) = hashval as c_int;\n\n        let head_ptr = hash_ref.head.offset(hash_i);\n        let head_val = *head_ptr;\n        if head_val != -1 {\n            *hash_ref.chain.offset(wpos_i) = head_val as c_ushort;\n        }\n        *head_ptr = wpos_c;\n\n        *hash_ref.zeros.offset(wpos_i) = numzeros;\n\n        let headz_ptr = hash_ref.headz.offset(zeros_i);\n        let headz_val = *headz_ptr;\n        if headz_val != -1 {\n            *hash_ref.chainz.offset(wpos_i) = headz_val as c_ushort;\n        }\n        *headz_ptr = wpos_c;\n    }\n}",
+            "start_byte": 86854
+          }
+        ],
+        "facts": {
+          "fn_name": "updateHashChain",
+          "target_span_hash": "7d8534c54da0d8b504f2ae11db56cdc7a9df6763e25c3cbb9f22334c8ab3be60"
+        },
+        "operation_id": "replace-98f4af626460ac39"
+      }
+    ],
+    "resolved_head": "5bfc4d62914268a805f55c10b462300d9b3ac808"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/lodepng.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

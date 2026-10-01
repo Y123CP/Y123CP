@@ -1,0 +1,400 @@
+{
+  "hot_function": {
+    "symbol": "http_parser_parse_url",
+    "location": "src/http_parser.rs:6730-6895",
+    "workload": "parse_url_and_meta",
+    "hot_region": "src/http_parser.rs:6730-6895",
+    "rust_source": "pub unsafe fn http_parser_parse_url(\n    mut buf: *const c_char,\n    mut buflen: size_t,\n    mut is_connect: c_int,\n    mut u: *mut http_parser_url,\n) -> c_int {\n    let mut s: state = 0 as state;\n    let mut p: *const c_char = ::core::ptr::null::<c_char>();\n    let mut uf: http_parser_url_fields = UF_SCHEMA;\n    let mut old_uf: http_parser_url_fields = UF_SCHEMA;\n    let mut found_at: c_int = 0 as c_int;\n    if buflen == 0 as size_t {\n        return 1 as c_int;\n    }\n    (*u).field_set = 0 as uint16_t;\n    (*u).port = (*u).field_set;\n    s = (if is_connect != 0 {\n        s_req_server_start as c_int\n    } else {\n        s_req_spaces_before_url as c_int\n    }) as state;\n    old_uf = UF_MAX;\n    let mut current_block_21: u64;\n    p = buf;\n    while p < buf.offset(buflen as isize) {\n        s = parse_url_char(s, *p);\n        match s as c_uint {\n            1 => return 1 as c_int,\n            22 | 23 | 24 | 28 | 30 => {\n                current_block_21 = 11875828834189669668;\n            }\n            21 => {\n                uf = UF_SCHEMA;\n                current_block_21 = 26972500619410423;\n            }\n            26 => {\n                found_at = 1 as c_int;\n                current_block_21 = 731546425226429869;\n            }\n            25 => {\n                current_block_21 = 731546425226429869;\n            }\n            27 => {\n                uf = UF_PATH;\n                current_block_21 = 26972500619410423;\n            }\n            29 => {\n                uf = UF_QUERY;\n                current_block_21 = 26972500619410423;\n            }\n            31 => {\n                uf = UF_FRAGMENT;\n                current_block_21 = 26972500619410423;\n            }\n            _ => {\n                '_c2rust_label: {\n                    if (b\"Unexpected state\\0\" as *const u8 as *const c_char).is_null()\n                    {\n                    } else {\n                        __assert_fail(\n                            b\"!\\\"Unexpected state\\\"\\0\" as *const u8\n                                as *const c_char,\n                            b\"http_parser.c\\0\" as *const u8\n                                as *const c_char,\n                            2480 as c_uint,\n                            b\"int http_parser_parse_url(const char *, size_t, int, struct http_parser_url *)\\0\"\n                                as *const u8 as *const c_char,\n                        );\n                    }\n                };\n                return 1 as c_int;\n            }\n        }\n        match current_block_21 {\n            731546425226429869 => {\n                uf = UF_HOST;\n                current_block_21 = 26972500619410423;\n            }\n            _ => {}\n        }\n        match current_block_21 {\n            26972500619410423 => {\n                if uf as c_uint == old_uf as c_uint {\n                    (*u).field_data[uf as usize].len =\n                        (*u).field_data[uf as usize].len.wrapping_add(1);\n                } else {\n                    (*u).field_data[uf as usize].off =\n                        p.offset_from(buf) as c_long as uint16_t;\n                    (*u).field_data[uf as usize].len = 1 as uint16_t;\n                    (*u).field_set = ((*u).field_set as c_int\n                        | (1 as c_int) << uf as c_uint)\n                        as uint16_t;\n                    old_uf = uf;\n                }\n            }\n            _ => {}\n        }\n        p = p.offset(1);\n    }\n    if (*u).field_set as c_int\n        & (1 as c_int) << UF_SCHEMA as c_int\n        != 0\n        && (*u).field_set as c_int\n            & (1 as c_int) << UF_HOST as c_int\n            == 0 as c_int\n    {\n        return 1 as c_int;\n    }\n    if (*u).field_set as c_int\n        & (1 as c_int) << UF_HOST as c_int\n        != 0\n    {\n        if http_parse_host(buf, u, found_at) != 0 as c_int {\n            return 1 as c_int;\n        }\n    }\n    if is_connect != 0\n        && (*u).field_set as c_int\n            != (1 as c_int) << UF_HOST as c_int\n                | (1 as c_int) << UF_PORT as c_int\n    {\n        return 1 as c_int;\n    }\n    if (*u).field_set as c_int\n        & (1 as c_int) << UF_PORT as c_int\n        != 0\n    {\n        let mut off: uint16_t = 0;\n        let mut len: uint16_t = 0;\n        let mut p_0: *const c_char = ::core::ptr::null::<c_char>();\n        let mut end: *const c_char = ::core::ptr::null::<c_char>();\n        let mut v: c_ulong = 0;\n        off = (*u).field_data[UF_PORT as c_int as usize].off;\n        len = (*u).field_data[UF_PORT as c_int as usize].len;\n        end = buf\n            .offset(off as c_int as isize)\n            .offset(len as c_int as isize);\n        '_c2rust_label_0: {\n            if (off as c_int + len as c_int) as size_t <= buflen\n                && !(b\"Port number overflow\\0\" as *const u8 as *const c_char).is_null()\n            {\n            } else {\n                __assert_fail(\n                    b\"(size_t) (off + len) <= buflen && \\\"Port number overflow\\\"\\0\"\n                        as *const u8 as *const c_char,\n                    b\"http_parser.c\\0\" as *const u8 as *const c_char,\n                    2527 as c_uint,\n                    b\"int http_parser_parse_url(const char *, size_t, int, struct http_parser_url *)\\0\"\n                        as *const u8 as *const c_char,\n                );\n            }\n        };\n        v = 0 as c_ulong;\n        p_0 = buf.offset(off as c_int as isize);\n        while p_0 < end {\n            v = v.wrapping_mul(10 as c_ulong);\n            v = v.wrapping_add((*p_0 as c_int - '0' as i32) as c_ulong);\n            if v > 0xffff as c_ulong {\n                return 1 as c_int;\n            }\n            p_0 = p_0.offset(1);\n        }\n        (*u).port = v as uint16_t;\n    }\n    return 0 as c_int;\n}",
+    "signature": "pub unsafe fn http_parser_parse_url(\n    mut buf: *const c_char,\n    mut buflen: size_t,\n    mut is_connect: c_int,\n    mut u: *mut http_parser_url,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.5835,
+      "call_count": null,
+      "retired_instructions": 8887757107,
+      "instructions_per_call": null,
+      "cpi": 0.392,
+      "tma": {
+        "scope": "process",
+        "retiring": 68.86543410321825,
+        "frontend_bound": 27.470710165872358,
+        "bad_speculation": 1.4662791737773953,
+        "backend_bound": 2.1975765571319945,
+        "memory_bound": 1.7288869784234326,
+        "core_bound": 0.46868957870856187,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0017
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_vec": {
+        "LoopContainsSwitch": 1,
+        "NonReductionValueUsedOutsideLoop": 2,
+        "CantComputeNumberOfIterations": 2
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 6755,
+        "message": "_ZN19http_parser_cleaned3src11http_parser14parse_url_char17h79853cd986af4011E will not be inlined into _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 6842,
+        "message": "_ZN19http_parser_cleaned3src11http_parser15http_parse_host17h9ca56f6416d1f1bbE will not be inlined into _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 6872,
+        "message": "__assert_fail will not be inlined into _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 6789,
+        "message": "__assert_fail will not be inlined into _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E because its definition is unavailable"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 6819,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 6754,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 6755,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 6819,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 6814,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 6829,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 6829,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 6847,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 6853,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 6853,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 6862,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 6863,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 6756,
+        "message": "loop not vectorized: loop contains a switch statement"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 6754,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 6754,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 6754,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 6887,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 6887,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 6887,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6730,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E: MI Instruction count changed from 0 to 493; Delta: 493"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6730,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E: MI Instruction count changed from 493 to 473; Delta: -20"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6730,
+        "message": "Peephole Optimizations: Function: _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E: MI Instruction count changed from 473 to 469; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6730,
+        "message": "X86 Fixup SetCC: Function: _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E: MI Instruction count changed from 469 to 472; Delta: 3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6730,
+        "message": "Process Implicit Definitions: Function: _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E: MI Instruction count changed from 472 to 458; Delta: -14"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6730,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E: MI Instruction count changed from 458 to 583; Delta: 125"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6730,
+        "message": "Two-Address instruction pass: Function: _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E: MI Instruction count changed from 583 to 626; Delta: 43"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6730,
+        "message": "Register Coalescer: Function: _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E: MI Instruction count changed from 626 to 388; Delta: -238"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 6754,
+        "message": "1 folded spills 1.038872e+00 total folded spills cost 2 reloads 6.233229e+00 total reloads cost 6 virtual registers copies 3.743289e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 6730,
+        "message": "3 spills 1.171875e+00 total spills cost 2 folded spills 1.429497e+00 total folded spills cost 7 reloads 6.572731e+00 total reloads cost 2 folded reloads 1.607926e-01 total folded reloads cost 16 virtual registers copies 4.093638e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6730,
+        "message": "Greedy Register Allocator: Function: _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E: MI Instruction count changed from 388 to 401; Delta: 13"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6730,
+        "message": "Virtual Register Rewriter: Function: _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E: MI Instruction count changed from 401 to 391; Delta: -10"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 6730,
+        "message": "72 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6730,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E: MI Instruction count changed from 391 to 419; Delta: 28"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6730,
+        "message": "Control Flow Optimizer: Function: _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E: MI Instruction count changed from 419 to 340; Delta: -79"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6730,
+        "message": "Tail Duplication: Function: _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E: MI Instruction count changed from 340 to 341; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6730,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E: MI Instruction count changed from 341 to 347; Delta: 6"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6730,
+        "message": "X86 LEA Fixup: Function: _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E: MI Instruction count changed from 347 to 350; Delta: 3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 6730,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN19http_parser_cleaned3src11http_parser21http_parser_parse_url17h3d7302a9163803f5E: MI Instruction count changed from 350 to 351; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6741,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6744,
+        "message": "BasicBlock: bb2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6814,
+        "message": "BasicBlock: bb26"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6754,
+        "message": "BasicBlock: bb31"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6755,
+        "message": "BasicBlock: bb7"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6816,
+        "message": "BasicBlock: bb28"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6829,
+        "message": "BasicBlock: bb32"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6746,
+        "message": "BasicBlock: bb43.thread"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6746,
+        "message": "BasicBlock: bb43"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6847,
+        "message": "BasicBlock: bb44"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6895,
+        "message": "BasicBlock: bb63"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6862,
+        "message": "BasicBlock: bb48"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6892,
+        "message": "BasicBlock: bb59"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6789,
+        "message": "BasicBlock: bb19"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6872,
+        "message": "BasicBlock: bb54"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 6730,
+        "message": "328 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

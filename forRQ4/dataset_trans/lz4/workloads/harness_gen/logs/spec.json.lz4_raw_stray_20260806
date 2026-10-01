@@ -1,0 +1,110 @@
+{
+  "harness_name": "lz4_raw_harness",
+  "operations": [
+    {
+      "name": "lz4_block_roundtrip",
+      "needs_input": true,
+      "summary": "Treats input as raw plaintext, compresses it with the block API, then decompresses and verifies round-trip. Also exercises streaming block encode/decode with dictionaries derived from the same input.",
+      "api_calls": [
+        "LZ4_compressBound",
+        "LZ4_compress_default",
+        "LZ4_decompress_safe",
+        "LZ4_createStream",
+        "LZ4_freeStream",
+        "LZ4_loadDict",
+        "LZ4_compress_fast_continue",
+        "LZ4_createStreamDecode",
+        "LZ4_setStreamDecode",
+        "LZ4_decompress_safe_continue",
+        "LZ4_freeStreamDecode"
+      ],
+      "input_format": "Arbitrary raw bytes interpreted as the original uncompressed payload; runner splits the payload deterministically into a small dictionary prefix and one or two subsequent blocks for streaming calls.",
+      "digest": "Wrapping checksum over input length, compressed sizes, decompressed sizes, bytewise checksum of decompressed output, equality flags for round-trip verification, and any negative/error return codes."
+    },
+    {
+      "name": "lz4_frame_decompress",
+      "needs_input": true,
+      "summary": "Treats input as a valid LZ4 frame blob and fully decompresses it through the frame API, including header parsing and streaming decompression until end-of-frame.",
+      "api_calls": [
+        "LZ4F_createDecompressionContext",
+        "LZ4F_headerSize",
+        "LZ4F_getFrameInfo",
+        "LZ4F_decompress",
+        "LZ4F_isError",
+        "LZ4F_freeDecompressionContext"
+      ],
+      "input_format": "A complete valid LZ4 frame produced by the library's own frame compressor over realistic plaintext.",
+      "digest": "Wrapping checksum over header size, bytes consumed per step, bytes produced per step, final decompressed byte checksum, frame-info fields folded as integers, and any LZ4F error codes."
+    },
+    {
+      "name": "lz4_hc_block_roundtrip",
+      "needs_input": true,
+      "summary": "Compresses raw plaintext with the high-compression API, then decompresses with the regular safe block decoder and verifies the result. Also exercises HC stream creation/reset/load-dictionary paths.",
+      "api_calls": [
+        "LZ4_sizeofStateHC",
+        "LZ4_compress_HC",
+        "LZ4_decompress_safe",
+        "LZ4_createStreamHC",
+        "LZ4_resetStreamHC",
+        "LZ4_loadDictHC",
+        "LZ4_compress_HC_continue",
+        "LZ4_freeStreamHC"
+      ],
+      "input_format": "Arbitrary raw bytes interpreted as the original uncompressed payload; runner uses a deterministic prefix as dictionary material for HC streaming compression.",
+      "digest": "Wrapping checksum over HC compressed sizes, decompressed sizes, output byte checksum, round-trip equality flags, and any error/short-result codes."
+    },
+    {
+      "name": "xxhash_streaming",
+      "needs_input": true,
+      "summary": "Hashes the input with both one-shot and streaming XXH32/XXH64 APIs, including state copy and canonical conversion, and cross-checks consistency between equivalent computations.",
+      "api_calls": [
+        "XXH_versionNumber",
+        "XXH32",
+        "XXH32_createState",
+        "XXH32_reset",
+        "XXH32_update",
+        "XXH32_digest",
+        "XXH32_copyState",
+        "XXH32_canonicalFromHash",
+        "XXH32_hashFromCanonical",
+        "XXH32_freeState",
+        "XXH64",
+        "XXH64_createState",
+        "XXH64_reset",
+        "XXH64_update",
+        "XXH64_digest",
+        "XXH64_copyState",
+        "XXH64_canonicalFromHash",
+        "XXH64_hashFromCanonical",
+        "XXH64_freeState"
+      ],
+      "input_format": "Arbitrary raw bytes; runner feeds them in deterministic chunk boundaries to the streaming hash APIs.",
+      "digest": "Wrapping checksum over XXH32/XXH64 one-shot hashes, streaming hashes, copied-state hashes, canonical round-trip hashes, version number, and any state API error codes."
+    },
+    {
+      "name": "lz4_file_roundtrip",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": ""
+    },
+    {
+      "name": "lz4_frame_compress_roundtrip",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": ""
+    },
+    {
+      "name": "lz4_legacy_api_mix",
+      "needs_input": true,
+      "summary": "auto-discovered from gen-seeds output",
+      "api_calls": [],
+      "input_format": "",
+      "digest": ""
+    }
+  ],
+  "seed_strategy": "gen_seeds writes exactly two deterministic valid files per operation. For lz4_block_roundtrip and lz4_hc_block_roundtrip, it writes two distinct realistic plaintext payloads: one text-heavy log/JSON-like corpus with repeated keys/records and one binary-ish structured corpus made from repeated headers, small counters, and recurring substrings to ensure compressibility and dictionary hits. For lz4_frame_decompress, it first synthesizes those same two large realistic plaintext buffers, then uses LZ4F_compressFrame to encode each into a valid frame blob and writes the resulting compressed bytes as the seeds. For xxhash_streaming, it reuses two distinct realistic raw payloads. gen_perf emits large multi-megabyte inputs only for the scaling ops: raw realistic plaintext for the two block round-trip ops, a large valid frame produced by LZ4F_compressFrame for lz4_frame_decompress, and a large realistic raw buffer for xxhash_streaming. All bytes are deterministic and generated without randomness."
+}

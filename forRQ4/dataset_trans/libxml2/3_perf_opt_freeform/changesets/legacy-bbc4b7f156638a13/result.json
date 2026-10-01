@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.08296205676664978,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.3310728127673721,
+            "aggregate_ci_low_pct": -0.16514869923407255,
+            "aggregate_pct": 0.08296205676664978,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.3311,
+                "ci_low_pct": -0.1651,
+                "insns_delta_pct": -0.2967,
+                "mean_delta_pct": 0.083,
+                "op": "regexp_pattern",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "regexp_pattern"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "regexp_pattern"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "e393711b52ff56b5d2f6e5a3b897c96c5e15c440",
+      "changeset_id": "legacy-bbc4b7f156638a13",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-4e7cddaae4fc3c53",
+          "replacement_function_source": "fn xmlRegStateAddTrans(\n    mut ctxt: xmlRegParserCtxtPtr,\n    mut state: xmlRegStatePtr,\n    mut atom: xmlRegAtomPtr,\n    mut target: xmlRegStatePtr,\n    mut counter: c_int,\n    mut count: c_int,\n) {\n    unsafe {\n        // SAFETY: All raw pointer dereferences below follow the original function's preconditions:\n        // `ctxt` is assumed valid by callers; `state` and `target` are checked for null before dereference;\n        // `state.trans` is only dereferenced within the allocated `nbTrans`/`maxTrans` bounds maintained here.\n        if state.is_null() {\n            (*ctxt).error = XML_REGEXP_COMPILE_ERROR as c_int;\n            xmlRegexpErrCompile(\n                ctxt,\n                b\"add state: state is NULL\\0\" as *const u8 as *const c_char,\n            );\n            return;\n        }\n        if target.is_null() {\n            (*ctxt).error = XML_REGEXP_COMPILE_ERROR as c_int;\n            xmlRegexpErrCompile(\n                ctxt,\n                b\"add state: target is NULL\\0\" as *const u8 as *const c_char,\n            );\n            return;\n        }\n\n        let state_ref = &mut *state;\n        let target_no = (*target).no;\n\n        let mut nrtrans = state_ref.nbTrans - 1;\n        let trans_base = state_ref.trans;\n        while nrtrans >= 0 {\n            let trans = trans_base.offset(nrtrans as isize);\n            if (*trans).atom == atom\n                && (*trans).to == target_no\n                && (*trans).counter == counter\n                && (*trans).count == count\n            {\n                return;\n            }\n            nrtrans -= 1;\n        }\n\n        if state_ref.maxTrans == 0 {\n            state_ref.maxTrans = 8;\n            state_ref.trans = xmlMalloc.expect(\"non-null function pointer\")(\n                (state_ref.maxTrans as size_t)\n                    .wrapping_mul(::core::mem::size_of::<xmlRegTrans>() as size_t),\n            ) as *mut xmlRegTrans;\n            if state_ref.trans.is_null() {\n                xmlRegexpErrMemory(\n                    ctxt,\n                    b\"adding transition\\0\" as *const u8 as *const c_char,\n                );\n                state_ref.maxTrans = 0;\n                return;\n            }\n        } else if state_ref.nbTrans >= state_ref.maxTrans {\n            let old_max = state_ref.maxTrans;\n            state_ref.maxTrans = old_max * 2;\n            let tmp = xmlRealloc.expect(\"non-null function pointer\")(\n                state_ref.trans as *mut c_void,\n                (state_ref.maxTrans as size_t)\n                    .wrapping_mul(::core::mem::size_of::<xmlRegTrans>() as size_t),\n            ) as *mut xmlRegTrans;\n            if tmp.is_null() {\n                xmlRegexpErrMemory(\n                    ctxt,\n                    b\"adding transition\\0\" as *const u8 as *const c_char,\n                );\n                state_ref.maxTrans = old_max;\n                return;\n            }\n            state_ref.trans = tmp;\n        }\n\n        let idx = state_ref.nbTrans as isize;\n        let trans = state_ref.trans.offset(idx);\n        (*trans).atom = atom;\n        (*trans).to = target_no;\n        (*trans).counter = counter;\n        (*trans).count = count;\n        (*trans).nd = 0;\n        state_ref.nbTrans += 1;\n\n        xmlRegStateAddTransTo(ctxt, target, state_ref.no);\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "4227c32499bc42b874cbd5c676ddc14c883da0e579638fe6990107583a3227e2",
+            "file_hint": "src/xmlregexp.rs",
+            "qualified_name": "crate::xmlRegStateAddTrans",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "xmlRegStateAddTrans-bee62a850bb5",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "xmlRegStateAddTrans",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "c178aa5a97a53da935b11585b40187c07663c51dda0d16bba06ce87556cccc1d",
+            "edit_id": "edit-replace-4e7cddaae4fc3c53",
+            "end_byte": 116311,
+            "operation_id": "replace-4e7cddaae4fc3c53",
+            "relative_path": "src/xmlregexp.rs",
+            "replacement_text": "fn xmlRegStateAddTrans(\n    mut ctxt: xmlRegParserCtxtPtr,\n    mut state: xmlRegStatePtr,\n    mut atom: xmlRegAtomPtr,\n    mut target: xmlRegStatePtr,\n    mut counter: c_int,\n    mut count: c_int,\n) {\n    unsafe {\n        // SAFETY: All raw pointer dereferences below follow the original function's preconditions:\n        // `ctxt` is assumed valid by callers; `state` and `target` are checked for null before dereference;\n        // `state.trans` is only dereferenced within the allocated `nbTrans`/`maxTrans` bounds maintained here.\n        if state.is_null() {\n            (*ctxt).error = XML_REGEXP_COMPILE_ERROR as c_int;\n            xmlRegexpErrCompile(\n                ctxt,\n                b\"add state: state is NULL\\0\" as *const u8 as *const c_char,\n            );\n            return;\n        }\n        if target.is_null() {\n            (*ctxt).error = XML_REGEXP_COMPILE_ERROR as c_int;\n            xmlRegexpErrCompile(\n                ctxt,\n                b\"add state: target is NULL\\0\" as *const u8 as *const c_char,\n            );\n            return;\n        }\n\n        let state_ref = &mut *state;\n        let target_no = (*target).no;\n\n        let mut nrtrans = state_ref.nbTrans - 1;\n        let trans_base = state_ref.trans;\n        while nrtrans >= 0 {\n            let trans = trans_base.offset(nrtrans as isize);\n            if (*trans).atom == atom\n                && (*trans).to == target_no\n                && (*trans).counter == counter\n                && (*trans).count == count\n            {\n                return;\n            }\n            nrtrans -= 1;\n        }\n\n        if state_ref.maxTrans == 0 {\n            state_ref.maxTrans = 8;\n            state_ref.trans = xmlMalloc.expect(\"non-null function pointer\")(\n                (state_ref.maxTrans as size_t)\n                    .wrapping_mul(::core::mem::size_of::<xmlRegTrans>() as size_t),\n            ) as *mut xmlRegTrans;\n            if state_ref.trans.is_null() {\n                xmlRegexpErrMemory(\n                    ctxt,\n                    b\"adding transition\\0\" as *const u8 as *const c_char,\n                );\n                state_ref.maxTrans = 0;\n                return;\n            }\n        } else if state_ref.nbTrans >= state_ref.maxTrans {\n            let old_max = state_ref.maxTrans;\n            state_ref.maxTrans = old_max * 2;\n            let tmp = xmlRealloc.expect(\"non-null function pointer\")(\n                state_ref.trans as *mut c_void,\n                (state_ref.maxTrans as size_t)\n                    .wrapping_mul(::core::mem::size_of::<xmlRegTrans>() as size_t),\n            ) as *mut xmlRegTrans;\n            if tmp.is_null() {\n                xmlRegexpErrMemory(\n                    ctxt,\n                    b\"adding transition\\0\" as *const u8 as *const c_char,\n                );\n                state_ref.maxTrans = old_max;\n                return;\n            }\n            state_ref.trans = tmp;\n        }\n\n        let idx = state_ref.nbTrans as isize;\n        let trans = state_ref.trans.offset(idx);\n        (*trans).atom = atom;\n        (*trans).to = target_no;\n        (*trans).counter = counter;\n        (*trans).count = count;\n        (*trans).nd = 0;\n        state_ref.nbTrans += 1;\n\n        xmlRegStateAddTransTo(ctxt, target, state_ref.no);\n    }\n}",
+            "start_byte": 113441
+          }
+        ],
+        "facts": {
+          "fn_name": "xmlRegStateAddTrans",
+          "target_span_hash": "4227c32499bc42b874cbd5c676ddc14c883da0e579638fe6990107583a3227e2"
+        },
+        "operation_id": "replace-4e7cddaae4fc3c53"
+      }
+    ],
+    "resolved_head": "e393711b52ff56b5d2f6e5a3b897c96c5e15c440"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/xmlregexp.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

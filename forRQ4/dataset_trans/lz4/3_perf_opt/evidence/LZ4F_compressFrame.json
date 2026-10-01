@@ -1,0 +1,206 @@
+{
+  "hot_function": {
+    "symbol": "LZ4F_compressFrame",
+    "location": "src/lz4frame.rs:571-661",
+    "workload": "frame_round_trip",
+    "hot_region": "src/lz4frame.rs:571-661",
+    "rust_source": "pub unsafe fn LZ4F_compressFrame(\n    mut dstBuffer: *mut c_void,\n    mut dstCapacity: size_t,\n    mut srcBuffer: *const c_void,\n    mut srcSize: size_t,\n    mut preferencesPtr: *const LZ4F_preferences_t,\n) -> size_t {\n    let mut result: size_t = 0;\n    let mut cctx: LZ4F_cctx_t = LZ4F_cctx_s {\n        cmem: LZ4F_CustomMem {\n            customAlloc: None,\n            customCalloc: None,\n            customFree: None,\n            opaqueState: ::core::ptr::null_mut::<c_void>(),\n        },\n        prefs: LZ4F_preferences_t {\n            frameInfo: LZ4F_frameInfo_t {\n                blockSizeID: LZ4F_default,\n                blockMode: LZ4F_blockLinked,\n                contentChecksumFlag: LZ4F_noContentChecksum,\n                frameType: LZ4F_frame,\n                contentSize: 0,\n                dictID: 0,\n                blockChecksumFlag: LZ4F_noBlockChecksum,\n            },\n            compressionLevel: 0,\n            autoFlush: 0,\n            favorDecSpeed: 0,\n            reserved: [0; 3],\n        },\n        version: 0,\n        cStage: 0,\n        cdict: ::core::ptr::null::<LZ4F_CDict>(),\n        maxBlockSize: 0,\n        maxBufferSize: 0,\n        tmpBuff: ::core::ptr::null_mut::<BYTE>(),\n        tmpIn: ::core::ptr::null_mut::<BYTE>(),\n        tmpInSize: 0,\n        totalInSize: 0,\n        xxh: XXH32_state_s {\n            total_len_32: 0,\n            large_len: 0,\n            v1: 0,\n            v2: 0,\n            v3: 0,\n            v4: 0,\n            mem32: [0; 4],\n            memsize: 0,\n            reserved: 0,\n        },\n        lz4CtxPtr: ::core::ptr::null_mut::<c_void>(),\n        lz4CtxAlloc: 0,\n        lz4CtxType: 0,\n        blockCompressMode: LZ4B_COMPRESSED,\n    };\n    let mut lz4ctx: LZ4_stream_t = LZ4_stream_u {\n        minStateSize: [0; 16416],\n    };\n    let cctxPtr: *mut LZ4F_cctx_t = &raw mut cctx;\n    memset(\n        &raw mut cctx as *mut c_void,\n        0 as c_int,\n        ::core::mem::size_of::<LZ4F_cctx_t>() as size_t,\n    );\n    cctx.version = LZ4F_VERSION as U32;\n    cctx.maxBufferSize = (5 as c_int\n        * ((1 as c_int) << 20 as c_int))\n        as size_t;\n    if preferencesPtr.is_null() || (*preferencesPtr).compressionLevel < LZ4HC_CLEVEL_MIN {\n        LZ4_initStream(\n            &raw mut lz4ctx as *mut c_void,\n            ::core::mem::size_of::<LZ4_stream_t>() as size_t,\n        );\n        (*cctxPtr).lz4CtxPtr = &raw mut lz4ctx as *mut c_void;\n        (*cctxPtr).lz4CtxAlloc = 1 as U16;\n        (*cctxPtr).lz4CtxType = ctxFast as c_int as U16;\n    }\n    result = LZ4F_compressFrame_usingCDict(\n        cctxPtr as *mut LZ4F_cctx,\n        dstBuffer,\n        dstCapacity,\n        srcBuffer,\n        srcSize,\n        ::core::ptr::null::<LZ4F_CDict>(),\n        preferencesPtr,\n    );\n    if !preferencesPtr.is_null() && (*preferencesPtr).compressionLevel >= LZ4HC_CLEVEL_MIN {\n        LZ4F_free((*cctxPtr).lz4CtxPtr, (*cctxPtr).cmem);\n    }\n    return result;\n}",
+    "signature": "pub unsafe fn LZ4F_compressFrame(\n    mut dstBuffer: *mut c_void,\n    mut dstCapacity: size_t,\n    mut srcBuffer: *const c_void,\n    mut srcSize: size_t,\n    mut preferencesPtr: *const LZ4F_preferences_t,\n) -> size_t",
+    "profile": {
+      "self_time_ratio": 0.0015,
+      "call_count": null,
+      "retired_instructions": null,
+      "instructions_per_call": null,
+      "cpi": null,
+      "tma": {
+        "scope": "process",
+        "retiring": 42.71712729633753,
+        "frontend_bound": 13.671403713062134,
+        "bad_speculation": 15.109350849888333,
+        "backend_bound": 28.502118140712003,
+        "memory_bound": 19.368744144378688,
+        "core_bound": 9.133373996333313,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0245
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {},
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 640,
+        "message": "LZ4_initStream will not be inlined into _ZN11lz4_cleaned3src8lz4frame18LZ4F_compressFrame17h39efca3445168359E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 658,
+        "message": "_ZN11lz4_cleaned3src8lz4frame9LZ4F_free17h1e3fa63fbb1ebf23E will not be inlined into _ZN11lz4_cleaned3src8lz4frame18LZ4F_compressFrame17h39efca3445168359E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 648,
+        "message": "'_ZN11lz4_cleaned3src8lz4frame29LZ4F_compressFrame_usingCDict17h434f46b114086f08E' not inlined into '_ZN11lz4_cleaned3src8lz4frame18LZ4F_compressFrame17h39efca3445168359E' because too costly to inline (cost=415, threshold=325)"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 657,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 658,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 648,
+        "message": "'_ZN11lz4_cleaned3src8lz4frame29LZ4F_compressFrame_usingCDict17h434f46b114086f08E' not inlined into '_ZN11lz4_harness19op_frame_round_trip17h65c846579d8767d3E' because too costly to inline (cost=395, threshold=325)"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 579,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 639,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 639,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 657,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 658,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 639,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 648,
+        "message": "'_ZN11lz4_cleaned3src8lz4frame29LZ4F_compressFrame_usingCDict17h434f46b114086f08E' inlined into '_ZN11lz4_harness20op_frame_hc_variants17h073f0ccfaaa97f0bE' with (cost=395, threshold=525) at callsite _ZN11lz4_cleaned3src8lz4frame18LZ4F_compressFrame17h39efca3445168359E:77:14 @ _ZN11lz4_harness20op_frame_hc_variants17h073f0ccfaaa97f0bE:24:33;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 648,
+        "message": "'_ZN11lz4_cleaned3src8lz4frame29LZ4F_compressFrame_usingCDict17h434f46b114086f08E' not inlined into '_ZN11lz4_harness25op_frame_content_checksum17h1997a317f8bc7f36E' because too costly to inline (cost=395, threshold=325)"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 658,
+        "message": "BasicBlock: bb9.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 658,
+        "message": "BasicBlock: bb2.i12"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 658,
+        "message": "BasicBlock: bb8.i13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 657,
+        "message": "BasicBlock: bb8.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 658,
+        "message": "BasicBlock: bb2.i145"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 658,
+        "message": "BasicBlock: bb8.i147"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 658,
+        "message": "BasicBlock: bb2.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 658,
+        "message": "BasicBlock: bb8.i9"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 658,
+        "message": "BasicBlock: bb9.i74"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 658,
+        "message": "BasicBlock: bb8.i82"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 658,
+        "message": "BasicBlock: bb9.i104"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 658,
+        "message": "BasicBlock: bb2.i135"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 658,
+        "message": "BasicBlock: bb8.i137"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

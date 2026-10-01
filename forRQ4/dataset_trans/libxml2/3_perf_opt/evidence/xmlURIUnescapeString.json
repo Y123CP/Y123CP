@@ -1,0 +1,425 @@
+{
+  "hot_function": {
+    "symbol": "xmlURIUnescapeString",
+    "location": "src/uri.rs:3165-3250",
+    "workload": "uri_roundtrip",
+    "hot_region": "src/uri.rs:3165-3250",
+    "rust_source": "pub unsafe fn xmlURIUnescapeString(\n    mut str: *const c_char,\n    mut len: c_int,\n    mut target: *mut c_char,\n) -> *mut c_char {\n    let mut ret: *mut c_char = ::core::ptr::null_mut::<c_char>();\n    let mut out: *mut c_char = ::core::ptr::null_mut::<c_char>();\n    let mut in_0: *const c_char = ::core::ptr::null::<c_char>();\n    if str.is_null() {\n        return ::core::ptr::null_mut::<c_char>();\n    }\n    if len <= 0 as c_int {\n        len = strlen(str) as c_int;\n    }\n    if len < 0 as c_int {\n        return ::core::ptr::null_mut::<c_char>();\n    }\n    if target.is_null() {\n        ret = xmlMallocAtomic.expect(\"non-null function pointer\")(\n            (len + 1 as c_int) as size_t,\n        ) as *mut c_char;\n        if ret.is_null() {\n            xmlURIErrMemory(b\"unescaping URI value\\n\\0\" as *const u8 as *const c_char);\n            return ::core::ptr::null_mut::<c_char>();\n        }\n    } else {\n        ret = target;\n    }\n    in_0 = str;\n    out = ret;\n    while len > 0 as c_int {\n        if len > 2 as c_int\n            && *in_0 as c_int == '%' as i32\n            && is_hex(*in_0.offset(1 as c_int as isize)) != 0\n            && is_hex(*in_0.offset(2 as c_int as isize)) != 0\n        {\n            let mut c: c_int = 0 as c_int;\n            in_0 = in_0.offset(1);\n            if *in_0 as c_int >= '0' as i32\n                && *in_0 as c_int <= '9' as i32\n            {\n                c = *in_0 as c_int - '0' as i32;\n            } else if *in_0 as c_int >= 'a' as i32\n                && *in_0 as c_int <= 'f' as i32\n            {\n                c = *in_0 as c_int - 'a' as i32 + 10 as c_int;\n            } else if *in_0 as c_int >= 'A' as i32\n                && *in_0 as c_int <= 'F' as i32\n            {\n                c = *in_0 as c_int - 'A' as i32 + 10 as c_int;\n            }\n            in_0 = in_0.offset(1);\n            if *in_0 as c_int >= '0' as i32\n                && *in_0 as c_int <= '9' as i32\n            {\n                c = c * 16 as c_int + (*in_0 as c_int - '0' as i32);\n            } else if *in_0 as c_int >= 'a' as i32\n                && *in_0 as c_int <= 'f' as i32\n            {\n                c = c * 16 as c_int\n                    + (*in_0 as c_int - 'a' as i32)\n                    + 10 as c_int;\n            } else if *in_0 as c_int >= 'A' as i32\n                && *in_0 as c_int <= 'F' as i32\n            {\n                c = c * 16 as c_int\n                    + (*in_0 as c_int - 'A' as i32)\n                    + 10 as c_int;\n            }\n            in_0 = in_0.offset(1);\n            len -= 3 as c_int;\n            let fresh68 = out;\n            out = out.offset(1);\n            *fresh68 = c as c_char;\n        } else {\n            let fresh69 = in_0;\n            in_0 = in_0.offset(1);\n            let fresh70 = out;\n            out = out.offset(1);\n            *fresh70 = *fresh69;\n            len -= 1;\n        }\n    }\n    *out = 0 as c_char;\n    return ret;\n}",
+    "signature": "pub unsafe fn xmlURIUnescapeString(\n    mut str: *const c_char,\n    mut len: c_int,\n    mut target: *mut c_char,\n) -> *mut c_char",
+    "profile": {
+      "self_time_ratio": 0.0471,
+      "call_count": null,
+      "retired_instructions": 1570406345,
+      "instructions_per_call": null,
+      "cpi": 0.322,
+      "tma": {
+        "scope": "process",
+        "retiring": 43.6826493258413,
+        "frontend_bound": 42.69919564065227,
+        "bad_speculation": 2.665576061204678,
+        "backend_bound": 10.952578972301755,
+        "memory_bound": 4.843840008475348,
+        "core_bound": 6.108738963826407,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0075
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C1": 1,
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3177,
+        "message": "strlen will not be inlined into _ZN15libxml2_cleaned3src3uri20xmlURIUnescapeString17h41e5030c199b83f1E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 3187,
+        "message": "'_ZN15libxml2_cleaned3src3uri15xmlURIErrMemory17haf03f7b8b9f4740eE' inlined into '_ZN15libxml2_cleaned3src3uri20xmlURIUnescapeString17h41e5030c199b83f1E' with (cost=80, threshold=375) at callsite _ZN15libxml2_cleaned3src3uri20xmlURIUnescapeString17h41e5030c199b83f1E:22:13;"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3197,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3244,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 3244,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3187,
+        "message": "_ZN15libxml2_cleaned3src3uri15xmlURIErrMemory17haf03f7b8b9f4740eE will not be inlined into _ZN15libxml2_cleaned3src3uri20xmlURIUnescapeString17h41e5030c199b83f1E because its definition is unavailable"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3183,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3176,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3183,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3165,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN15libxml2_cleaned3src3uri20xmlURIUnescapeString17h41e5030c199b83f1E: MI Instruction count changed from 0 to 183; Delta: 183"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3165,
+        "message": "Early Tail Duplication: Function: _ZN15libxml2_cleaned3src3uri20xmlURIUnescapeString17h41e5030c199b83f1E: MI Instruction count changed from 183 to 182; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3165,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN15libxml2_cleaned3src3uri20xmlURIUnescapeString17h41e5030c199b83f1E: MI Instruction count changed from 182 to 181; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3165,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN15libxml2_cleaned3src3uri20xmlURIUnescapeString17h41e5030c199b83f1E: MI Instruction count changed from 181 to 206; Delta: 25"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3165,
+        "message": "Two-Address instruction pass: Function: _ZN15libxml2_cleaned3src3uri20xmlURIUnescapeString17h41e5030c199b83f1E: MI Instruction count changed from 206 to 237; Delta: 31"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3165,
+        "message": "Register Coalescer: Function: _ZN15libxml2_cleaned3src3uri20xmlURIUnescapeString17h41e5030c199b83f1E: MI Instruction count changed from 237 to 152; Delta: -85"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3196,
+        "message": "2 virtual registers copies 2.327754e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3165,
+        "message": "10 virtual registers copies 6.879113e+00 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3165,
+        "message": "Virtual Register Rewriter: Function: _ZN15libxml2_cleaned3src3uri20xmlURIUnescapeString17h41e5030c199b83f1E: MI Instruction count changed from 152 to 149; Delta: -3"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 3165,
+        "message": "120 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3165,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN15libxml2_cleaned3src3uri20xmlURIUnescapeString17h41e5030c199b83f1E: MI Instruction count changed from 149 to 160; Delta: 11"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3165,
+        "message": "Control Flow Optimizer: Function: _ZN15libxml2_cleaned3src3uri20xmlURIUnescapeString17h41e5030c199b83f1E: MI Instruction count changed from 160 to 142; Delta: -18"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3165,
+        "message": "Machine Copy Propagation Pass: Function: _ZN15libxml2_cleaned3src3uri20xmlURIUnescapeString17h41e5030c199b83f1E: MI Instruction count changed from 142 to 141; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3165,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN15libxml2_cleaned3src3uri20xmlURIUnescapeString17h41e5030c199b83f1E: MI Instruction count changed from 141 to 145; Delta: 4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 3165,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN15libxml2_cleaned3src3uri20xmlURIUnescapeString17h41e5030c199b83f1E: MI Instruction count changed from 145 to 146; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3173,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3177,
+        "message": "BasicBlock: bb6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3183,
+        "message": "BasicBlock: bb9"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3184,
+        "message": "BasicBlock: bb65"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3244,
+        "message": "BasicBlock: bb60"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3244,
+        "message": "BasicBlock: bb17"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3196,
+        "message": "BasicBlock: bb17"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3198,
+        "message": "BasicBlock: bb19"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3199,
+        "message": "BasicBlock: bb20"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3207,
+        "message": "BasicBlock: bb26"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3210,
+        "message": "BasicBlock: bb28"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3220,
+        "message": "BasicBlock: bb40"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3211,
+        "message": "BasicBlock: bb31"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3221,
+        "message": "BasicBlock: bb43"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3224,
+        "message": "BasicBlock: bb45"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3227,
+        "message": "BasicBlock: bb48"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3230,
+        "message": "BasicBlock: bb50"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3248,
+        "message": "BasicBlock: bb62"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3250,
+        "message": "BasicBlock: bb63"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3165,
+        "message": "134 instructions in function"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3196,
+        "message": "1 virtual registers copies 2.482381e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3177,
+        "message": "BasicBlock: bb6.i363"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3183,
+        "message": "BasicBlock: bb9.i338"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3184,
+        "message": "BasicBlock: bb65.i339"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3244,
+        "message": "BasicBlock: bb60.i342"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3195,
+        "message": "BasicBlock: bb16.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3244,
+        "message": "BasicBlock: bb17.i341"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3196,
+        "message": "BasicBlock: bb17.i341"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3198,
+        "message": "BasicBlock: bb19.i346"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3199,
+        "message": "BasicBlock: bb20.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3207,
+        "message": "BasicBlock: bb26.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3210,
+        "message": "BasicBlock: bb28.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3220,
+        "message": "BasicBlock: bb40.i360"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3211,
+        "message": "BasicBlock: bb31.i350"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3221,
+        "message": "BasicBlock: bb43.i353"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3224,
+        "message": "BasicBlock: bb45.i358"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3227,
+        "message": "BasicBlock: bb48.i354"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3230,
+        "message": "BasicBlock: bb50.i356"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3248,
+        "message": "BasicBlock: _ZN15libxml2_cleaned3src3uri20xmlURIUnescapeString17h41e5030c199b83f1E.exit"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

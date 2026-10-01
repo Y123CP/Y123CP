@@ -1,0 +1,82 @@
+{
+  "hot_function": {
+    "symbol": "aptx_quantize_difference",
+    "location": "src/openaptx.rs:2177-2250",
+    "workload": "encode_hd_reset",
+    "hot_region": "src/openaptx.rs:2177-2250",
+    "rust_source": "unsafe fn aptx_quantize_difference(\n    mut quantize: *mut aptx_quantize,\n    mut sample_difference: int32_t,\n    mut dither: int32_t,\n    mut quantization_factor: int32_t,\n    mut tables: *const aptx_tables,\n) {\n    let quantize_view: &mut aptx_quantize = unsafe { &mut *quantize };\n    let mut intervals: *const int32_t = (*tables).quantize_intervals;\n    let mut quantized_sample: int32_t = 0;\n    let mut dithered_sample: int32_t = 0;\n    let mut parity_change: int32_t = 0;\n    let mut d: int32_t = 0;\n    let mut mean: int32_t = 0;\n    let mut interval: int32_t = 0;\n    let mut inv: int32_t = 0;\n    let mut sample_difference_abs: int32_t = 0;\n    let mut error: int64_t = 0;\n    sample_difference_abs = sample_difference;\n    if sample_difference_abs < 0 as int32_t {\n        sample_difference_abs = -sample_difference_abs;\n    }\n    if sample_difference_abs\n        > ((1 as c_int as int32_t) << 23 as c_int) - 1 as int32_t\n    {\n        sample_difference_abs =\n            ((1 as c_int as int32_t) << 23 as c_int) - 1 as int32_t;\n    }\n    quantized_sample = aptx_bin_search(\n        sample_difference_abs >> 4 as c_int,\n        quantization_factor,\n        intervals,\n        (*tables).tables_size,\n    );\n    d = rshift32_clip24(\n        (dither as int64_t * dither as int64_t >> 32 as c_int) as int32_t,\n        7 as c_uint,\n    ) - ((1 as c_int as int32_t) << 23 as c_int);\n    d = rshift64(\n        d as int64_t\n            * *(*tables)\n                .quantize_dither_factors\n                .offset(quantized_sample as isize) as int64_t,\n        23 as c_uint,\n    ) as int32_t;\n    intervals = intervals.offset(quantized_sample as isize);\n    mean = (*intervals.offset(1 as c_int as isize)\n        + *intervals.offset(0 as c_int as isize))\n        / 2 as int32_t;\n    interval = (*intervals.offset(1 as c_int as isize)\n        - *intervals.offset(0 as c_int as isize))\n        * (-((sample_difference < 0 as int32_t) as c_int) | 1 as int32_t);\n    dithered_sample = rshift64_clip24(\n        dither as int64_t * interval as int64_t\n            + ((clip_intp2(mean + d, 23 as c_uint) as int64_t)\n                << 32 as c_int),\n        32 as c_uint,\n    );\n    error = ((sample_difference_abs as int64_t) << 20 as c_int)\n        - dithered_sample as int64_t * quantization_factor as int64_t;\n    quantize_view.error = rshift64(error, 23 as c_uint) as int32_t;\n    if quantize_view.error < 0 as int32_t {\n        quantize_view.error = -quantize_view.error;\n    }\n    parity_change = quantized_sample;\n    if error < 0 as int64_t {\n        quantized_sample -= 1;\n    } else {\n        parity_change -= 1;\n    }\n    inv = -((sample_difference < 0 as int32_t) as c_int) as int32_t;\n    quantize_view.quantized_sample = quantized_sample ^ inv;\n    quantize_view.quantized_sample_parity_change = parity_change ^ inv;\n}",
+    "signature": "unsafe fn aptx_quantize_difference(\n    mut quantize: *mut aptx_quantize,\n    mut sample_difference: int32_t,\n    mut dither: int32_t,\n    mut quantization_factor: int32_t,\n    mut tables: *const aptx_tables,\n)",
+    "profile": {
+      "self_time_ratio": 0.064,
+      "call_count": null,
+      "retired_instructions": 864012327,
+      "instructions_per_call": null,
+      "cpi": 0.368,
+      "tma": {
+        "scope": "process",
+        "retiring": 69.37784461586449,
+        "frontend_bound": 4.877394984020484,
+        "bad_speculation": 9.747172335731003,
+        "backend_bound": 15.997588064384024,
+        "memory_bound": 5.024749837848258,
+        "core_bound": 10.972838226535766,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0266
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2205,
+        "message": "'_ZN19libopenaptx_cleaned3src8openaptx15aptx_bin_search17hbe1d2de25a9ff1e6E' inlined into '_ZN19libopenaptx_cleaned3src8openaptx24aptx_quantize_difference17h9c6f24a08c79cafcE' with (cost=-14980, threshold=325) at callsite _ZN19libopenaptx_cleaned3src8openaptx24aptx_quantize_difference17h9c6f24a08c79cafcE:28:24;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2211,
+        "message": "'_ZN19libopenaptx_cleaned3src8openaptx15rshift32_clip2417h5f8cf7d2425f78f8E' inlined into '_ZN19libopenaptx_cleaned3src8openaptx24aptx_quantize_difference17h9c6f24a08c79cafcE' with (cost=-15000, threshold=487) at callsite _ZN19libopenaptx_cleaned3src8openaptx24aptx_quantize_difference17h9c6f24a08c79cafcE:34:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2229,
+        "message": "'_ZN19libopenaptx_cleaned3src8openaptx15rshift64_clip2417h5d6c729228f230ceE' inlined into '_ZN19libopenaptx_cleaned3src8openaptx24aptx_quantize_difference17h9c6f24a08c79cafcE' with (cost=0, threshold=487) at callsite _ZN19libopenaptx_cleaned3src8openaptx24aptx_quantize_difference17h9c6f24a08c79cafcE:52:23;"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2185,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2212,
+        "message": "BasicBlock: _ZN19libopenaptx_cleaned3src8openaptx24aptx_quantize_difference17h9c6f24a08c79cafcE.exit.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2206,
+        "message": "BasicBlock: bb2.lr.ph.i.i.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

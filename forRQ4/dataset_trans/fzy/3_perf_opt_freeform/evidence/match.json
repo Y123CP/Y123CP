@@ -1,0 +1,242 @@
+{
+  "hot_function": {
+    "symbol": "match",
+    "location": "src/match.rs:227-264",
+    "workload": "choices_fread_search",
+    "hot_region": "src/match.rs:227-264",
+    "rust_source": "pub unsafe extern \"C\" fn match_0(\n    mut needle: *const c_char,\n    mut haystack: *const c_char,\n) -> score_t {\n    if *needle == 0 {\n        return -::core::f32::INFINITY as score_t;\n    }\n    let mut match_1: match_struct = match_struct {\n        needle_len: 0,\n        haystack_len: 0,\n        lower_needle: [0; 1024],\n        lower_haystack: [0; 1024],\n        match_bonus: [0.; 1024],\n    };\n    setup_match_struct(&raw mut match_1, needle, haystack);\n    let mut n: c_int = match_1.needle_len;\n    let mut m: c_int = match_1.haystack_len;\n    if m > MATCH_MAX_LEN || n > m {\n        return -::core::f32::INFINITY as score_t;\n    } else if n == m {\n        return ::core::f32::INFINITY as score_t;\n    }\n    let mut D: [score_t; 1024] = [0.; 1024];\n    let mut M: [score_t; 1024] = [0.; 1024];\n    let mut i: c_int = 0 as c_int;\n    while i < n {\n        match_row(\n            &raw mut match_1,\n            i,\n            &raw mut D as *mut score_t,\n            &raw mut M as *mut score_t,\n            &raw mut D as *mut score_t,\n            &raw mut M as *mut score_t,\n        );\n        i += 1;\n    }\n    return M[(m - 1 as c_int) as usize];\n}",
+    "signature": "pub unsafe extern \"C\" fn match_0(\n    mut needle: *const c_char,\n    mut haystack: *const c_char,\n) -> score_t",
+    "profile": {
+      "self_time_ratio": 0.1812,
+      "call_count": null,
+      "retired_instructions": 285836043,
+      "instructions_per_call": null,
+      "cpi": 3.691,
+      "tma": {
+        "scope": "process",
+        "retiring": 50.508372063434564,
+        "frontend_bound": 15.015493383448977,
+        "bad_speculation": 1.9529713876381205,
+        "backend_bound": 32.52316316547833,
+        "memory_bound": 20.22131524105909,
+        "core_bound": 12.301847924419237,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0022
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {},
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 263,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into match because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 241,
+        "message": "'_ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE' not inlined into 'match' because too costly to inline (cost=460, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 253,
+        "message": "'_ZN11fzy_cleaned3src5match9match_row17hd2d6fdaee9ffecf0E' inlined into 'match' with (cost=225, threshold=325) at callsite match:26:9;"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 252,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 242,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 243,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 263,
+        "message": "load of type double not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 227,
+        "message": "X86 DAG->DAG Instruction Selection: Function: match: MI Instruction count changed from 0 to 208; Delta: 208"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 227,
+        "message": "Merge disjoint stack slots: Function: match: MI Instruction count changed from 208 to 202; Delta: -6"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 227,
+        "message": "Remove dead machine instructions: Function: match: MI Instruction count changed from 202 to 199; Delta: -3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 227,
+        "message": "Early Machine Loop Invariant Code Motion: Function: match: MI Instruction count changed from 199 to 197; Delta: -2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 227,
+        "message": "Peephole Optimizations: Function: match: MI Instruction count changed from 197 to 198; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 227,
+        "message": "X86 Fixup SetCC: Function: match: MI Instruction count changed from 198 to 200; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 227,
+        "message": "Eliminate PHI nodes for register allocation: Function: match: MI Instruction count changed from 200 to 235; Delta: 35"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 227,
+        "message": "Two-Address instruction pass: Function: match: MI Instruction count changed from 235 to 258; Delta: 23"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 227,
+        "message": "Register Coalescer: Function: match: MI Instruction count changed from 258 to 167; Delta: -91"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 227,
+        "message": "14 virtual registers copies 6.546191e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 227,
+        "message": "Virtual Register Rewriter: Function: match: MI Instruction count changed from 167 to 162; Delta: -5"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 227,
+        "message": "26664 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 227,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: match: MI Instruction count changed from 162 to 189; Delta: 27"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 227,
+        "message": "Control Flow Optimizer: Function: match: MI Instruction count changed from 189 to 174; Delta: -15"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 227,
+        "message": "Branch Probability Basic Block Placement: Function: match: MI Instruction count changed from 174 to 176; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 227,
+        "message": "BreakFalseDeps: Function: match: MI Instruction count changed from 176 to 177; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 227,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: match: MI Instruction count changed from 177 to 178; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 231,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 246,
+        "message": "BasicBlock: bb6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 261,
+        "message": "BasicBlock: _ZN11fzy_cleaned3src5match9match_row17hd2d6fdaee9ffecf0E.exit.us"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 263,
+        "message": "BasicBlock: bb12"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 263,
+        "message": "BasicBlock: bb12.bb13_crit_edge"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 264,
+        "message": "BasicBlock: bb16"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 252,
+        "message": "BasicBlock: _ZN11fzy_cleaned3src5match9match_row17hd2d6fdaee9ffecf0E.exit.us.us.peel"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 263,
+        "message": "BasicBlock: panic"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 227,
+        "message": "160 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

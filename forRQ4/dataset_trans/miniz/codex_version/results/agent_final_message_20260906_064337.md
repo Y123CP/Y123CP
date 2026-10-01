@@ -1,0 +1,5 @@
+已完成，最终保留的源码优化只有一处：[`code/src/miniz_tinfl.rs`](/home/anonymous/artifact/PerfTrans/dataset_trans/miniz/codex_version/code/src/miniz_tinfl.rs)。我把解压时的 LZ 回拷热点从转译后的逐小段复制改成了更接近批量内存操作的快路径，同时保留了 `dist < len` 时 deflate 回引用需要的重叠语义；收益主要来自减少热点循环里的分支和逐字节复制。压缩端我也试过优化匹配扫描，但本地基准显示会拖慢压缩，所以已经撤回，没有留在最终版本里。
+
+辅助文件新增了 [`work/bench/src/main.rs`](/home/anonymous/artifact/PerfTrans/dataset_trans/miniz/codex_version/work/bench/src/main.rs)、[`work/bench/Cargo.toml`](/home/anonymous/artifact/PerfTrans/dataset_trans/miniz/codex_version/work/bench/Cargo.toml)、[`work/bench/rust-toolchain.toml`](/home/anonymous/artifact/PerfTrans/dataset_trans/miniz/codex_version/work/bench/rust-toolchain.toml) 用于本地自测，并把记录写到了 [`results/agent_report.md`](/home/anonymous/artifact/PerfTrans/dataset_trans/miniz/codex_version/results/agent_report.md)。`code/` 下执行 `cargo build --release` 已通过；本地同口径基准中，压缩基本持平（`49.999 -> 49.523 MB/s`），解压提升明显（`758.663 -> 1056.597 MB/s`，约 `+39.3%`），round-trip 校验通过。
+
+Agent 自测数据仅供参考；我们一定会在拿到你的优化结果后，使用外部后验脚本重新编译并统一测量，以外部测量结果作为最终性能结论。

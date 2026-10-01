@@ -1,0 +1,193 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -22.46721202302543,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -22.444391660806318,
+            "aggregate_ci_low_pct": -22.49003238524454,
+            "aggregate_pct": -22.46721202302543,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -6.2107,
+                "ci_low_pct": -6.3026,
+                "insns_delta_pct": -2.993,
+                "mean_delta_pct": -6.2566,
+                "op": "mz_stream_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.0281,
+                "ci_low_pct": -0.0374,
+                "insns_delta_pct": -0.0364,
+                "mean_delta_pct": -0.0046,
+                "op": "tdefl_encode_blob",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -31.2585,
+                "ci_low_pct": -31.4147,
+                "insns_delta_pct": -11.8198,
+                "mean_delta_pct": -31.3366,
+                "op": "tinfl_decode_blob",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -52.2483,
+                "ci_low_pct": -52.2937,
+                "insns_delta_pct": -17.2128,
+                "mean_delta_pct": -52.271,
+                "op": "zip_reader_blob",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.054609452317951786,
+            "aggregate_ci_low_pct": -0.11215251833041365,
+            "aggregate_pct": -0.028771533006230927,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.0546,
+                "ci_low_pct": -0.1122,
+                "insns_delta_pct": 0.0035,
+                "mean_delta_pct": -0.0288,
+                "op": "tinfl_decode_blob",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "tinfl_decode_blob"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "tdefl_encode_blob"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "c77e2d46baa4cac7d17f9e59bbf8e58889011317",
+      "changeset_id": "legacy-88606d29c17ffe21",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-e2d0b9abb72f117f",
+          "replacement_function_source": "// Applied rules: [III②, C3, C6]\n// Skipped rules: [C12: Subsumed by III② on hit [0]: the oversized eager zero-init is the heap dictionary buffer, and replacing manual malloc/free with an owned Rust buffer removes the original eager-zero-init/memset shape from consideration more cleanly than a separate MaybeUninit prefix rewrite.; III③: Hit [8] is a memset in the decompression setup/boundary path, but once III② rewrites the allocation to an owned Rust buffer, the zero-initialization idiom should be expressed through the container construction instead of a separate libc-mem rewrite. Applying III③ independently would be redundant and risks fighting the container choice.; III①: Although hit [5] is a callback parameter indirect call, this is a public unsafe function and the generic monomorphization route would require cross-function signature/caller rewrites. For this plan, C3+C6 provide an intra-function devirtualization/hoisting path with lower risk; III① is therefore intentionally not applied.]\n#[inline]\npub unsafe fn tinfl_decompress_mem_to_callback(\n    mut pIn_buf: *const c_void,\n    mut pIn_buf_size: *mut size_t,\n    mut pPut_buf_func: tinfl_put_buf_func_ptr,\n    mut pPut_buf_user: *mut c_void,\n    mut flags: c_int,\n) -> c_int {\n    let mut result: c_int = 0 as c_int;\n    let mut decomp: tinfl_decompressor = tinfl_decompressor_tag {\n        m_state: 0,\n        m_num_bits: 0,\n        m_zhdr0: 0,\n        m_zhdr1: 0,\n        m_z_adler32: 0,\n        m_final: 0,\n        m_type: 0,\n        m_check_adler32: 0,\n        m_dist: 0,\n        m_counter: 0,\n        m_num_extra: 0,\n        m_table_sizes: [0; 3],\n        m_bit_buf: 0,\n        m_dist_from_out_buf_start: 0,\n        m_look_up: [[0; 1024]; 3],\n        m_tree_0: [0; 576],\n        m_tree_1: [0; 64],\n        m_tree_2: [0; 38],\n        m_code_size_0: [0; 288],\n        m_code_size_1: [0; 32],\n        m_code_size_2: [0; 19],\n        m_raw_header: [0; 4],\n        m_len_codes: [0; 457],\n    };\n    let mut dict = vec![0 as mz_uint8; 32768usize];\n    let pDict: *mut mz_uint8 = dict.as_mut_ptr();\n    let mut in_buf_ofs: size_t = 0 as size_t;\n    let mut dict_ofs: size_t = 0 as size_t;\n    let total_in_size: size_t = *pIn_buf_size;\n    let put_buf_func = pPut_buf_func.expect(\"non-null function pointer\");\n    let put_buf_user = pPut_buf_user;\n    let decomp_flags: mz_uint32 = (flags\n        & !(TINFL_FLAG_HAS_MORE_INPUT as c_int\n            | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF as c_int)) as mz_uint32;\n    decomp.m_state = 0 as mz_uint32;\n    loop {\n        let mut in_buf_size: size_t = total_in_size.wrapping_sub(in_buf_ofs);\n        let mut dst_buf_size: size_t = (TINFL_LZ_DICT_SIZE as size_t).wrapping_sub(dict_ofs);\n        let status: tinfl_status = tinfl_decompress(\n            &raw mut decomp,\n            (pIn_buf as *const mz_uint8).offset(in_buf_ofs as isize),\n            &raw mut in_buf_size,\n            pDict,\n            pDict.offset(dict_ofs as isize),\n            &raw mut dst_buf_size,\n            decomp_flags,\n        );\n        in_buf_ofs = in_buf_ofs.wrapping_add(in_buf_size);\n        if dst_buf_size != 0\n            && put_buf_func(\n                pDict.offset(dict_ofs as isize) as *const c_void,\n                dst_buf_size as c_int,\n                put_buf_user,\n            ) == 0\n        {\n            break;\n        }\n        if status as c_int != TINFL_STATUS_HAS_MORE_OUTPUT as c_int {\n            result = (status as c_int == TINFL_STATUS_DONE as c_int) as c_int;\n            break;\n        } else {\n            dict_ofs = dict_ofs.wrapping_add(dst_buf_size)\n                & (TINFL_LZ_DICT_SIZE - 1 as c_int) as size_t;\n        }\n    }\n    *pIn_buf_size = in_buf_ofs;\n    return result;\n}",
+          "rule_id": "III②,C3,C6",
+          "target": {
+            "declaration_hash": "22cb6bd1fdf55cd43cd4747b69ec4a9de8dd6718309f7ed14564173a53336612",
+            "file_hint": "src/miniz_tinfl.rs",
+            "qualified_name": "crate::tinfl_decompress_mem_to_callback",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "tinfl_decompress_mem_to_callback-ef13d7080a1d",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "tinfl_decompress_mem_to_callback",
+        "rule_id": "III②,C3,C6"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "95cd7dc6fbb3f7ac22420f5601e0fc7373027a13d3d697e81f92a3a760aa4a7c",
+            "edit_id": "edit-replace-e2d0b9abb72f117f",
+            "end_byte": 101905,
+            "operation_id": "replace-e2d0b9abb72f117f",
+            "relative_path": "src/miniz_tinfl.rs",
+            "replacement_text": "// Applied rules: [III②, C3, C6]\n// Skipped rules: [C12: Subsumed by III② on hit [0]: the oversized eager zero-init is the heap dictionary buffer, and replacing manual malloc/free with an owned Rust buffer removes the original eager-zero-init/memset shape from consideration more cleanly than a separate MaybeUninit prefix rewrite.; III③: Hit [8] is a memset in the decompression setup/boundary path, but once III② rewrites the allocation to an owned Rust buffer, the zero-initialization idiom should be expressed through the container construction instead of a separate libc-mem rewrite. Applying III③ independently would be redundant and risks fighting the container choice.; III①: Although hit [5] is a callback parameter indirect call, this is a public unsafe function and the generic monomorphization route would require cross-function signature/caller rewrites. For this plan, C3+C6 provide an intra-function devirtualization/hoisting path with lower risk; III① is therefore intentionally not applied.]\n#[inline]\npub unsafe fn tinfl_decompress_mem_to_callback(\n    mut pIn_buf: *const c_void,\n    mut pIn_buf_size: *mut size_t,\n    mut pPut_buf_func: tinfl_put_buf_func_ptr,\n    mut pPut_buf_user: *mut c_void,\n    mut flags: c_int,\n) -> c_int {\n    let mut result: c_int = 0 as c_int;\n    let mut decomp: tinfl_decompressor = tinfl_decompressor_tag {\n        m_state: 0,\n        m_num_bits: 0,\n        m_zhdr0: 0,\n        m_zhdr1: 0,\n        m_z_adler32: 0,\n        m_final: 0,\n        m_type: 0,\n        m_check_adler32: 0,\n        m_dist: 0,\n        m_counter: 0,\n        m_num_extra: 0,\n        m_table_sizes: [0; 3],\n        m_bit_buf: 0,\n        m_dist_from_out_buf_start: 0,\n        m_look_up: [[0; 1024]; 3],\n        m_tree_0: [0; 576],\n        m_tree_1: [0; 64],\n        m_tree_2: [0; 38],\n        m_code_size_0: [0; 288],\n        m_code_size_1: [0; 32],\n        m_code_size_2: [0; 19],\n        m_raw_header: [0; 4],\n        m_len_codes: [0; 457],\n    };\n    let mut dict = vec![0 as mz_uint8; 32768usize];\n    let pDict: *mut mz_uint8 = dict.as_mut_ptr();\n    let mut in_buf_ofs: size_t = 0 as size_t;\n    let mut dict_ofs: size_t = 0 as size_t;\n    let total_in_size: size_t = *pIn_buf_size;\n    let put_buf_func = pPut_buf_func.expect(\"non-null function pointer\");\n    let put_buf_user = pPut_buf_user;\n    let decomp_flags: mz_uint32 = (flags\n        & !(TINFL_FLAG_HAS_MORE_INPUT as c_int\n            | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF as c_int)) as mz_uint32;\n    decomp.m_state = 0 as mz_uint32;\n    loop {\n        let mut in_buf_size: size_t = total_in_size.wrapping_sub(in_buf_ofs);\n        let mut dst_buf_size: size_t = (TINFL_LZ_DICT_SIZE as size_t).wrapping_sub(dict_ofs);\n        let status: tinfl_status = tinfl_decompress(\n            &raw mut decomp,\n            (pIn_buf as *const mz_uint8).offset(in_buf_ofs as isize),\n            &raw mut in_buf_size,\n            pDict,\n            pDict.offset(dict_ofs as isize),\n            &raw mut dst_buf_size,\n            decomp_flags,\n        );\n        in_buf_ofs = in_buf_ofs.wrapping_add(in_buf_size);\n        if dst_buf_size != 0\n            && put_buf_func(\n                pDict.offset(dict_ofs as isize) as *const c_void,\n                dst_buf_size as c_int,\n                put_buf_user,\n            ) == 0\n        {\n            break;\n        }\n        if status as c_int != TINFL_STATUS_HAS_MORE_OUTPUT as c_int {\n            result = (status as c_int == TINFL_STATUS_DONE as c_int) as c_int;\n            break;\n        } else {\n            dict_ofs = dict_ofs.wrapping_add(dst_buf_size)\n                & (TINFL_LZ_DICT_SIZE - 1 as c_int) as size_t;\n        }\n    }\n    *pIn_buf_size = in_buf_ofs;\n    return result;\n}",
+            "start_byte": 99064
+          }
+        ],
+        "facts": {
+          "fn_name": "tinfl_decompress_mem_to_callback",
+          "target_span_hash": "22cb6bd1fdf55cd43cd4747b69ec4a9de8dd6718309f7ed14564173a53336612"
+        },
+        "operation_id": "replace-e2d0b9abb72f117f"
+      }
+    ],
+    "resolved_head": "c77e2d46baa4cac7d17f9e59bbf8e58889011317"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/miniz_tinfl.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

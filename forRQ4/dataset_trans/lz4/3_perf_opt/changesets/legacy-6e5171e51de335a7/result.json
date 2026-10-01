@@ -1,0 +1,184 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.010927915682811484,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.06824135898332251,
+            "aggregate_ci_low_pct": -0.04638552761769955,
+            "aggregate_pct": 0.010927915682811484,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.4681,
+                "ci_low_pct": 0.4131,
+                "insns_delta_pct": 2.3326,
+                "mean_delta_pct": 0.4406,
+                "op": "decompress_fast_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 1.627,
+                "ci_low_pct": 1.1945,
+                "insns_delta_pct": -0.0139,
+                "mean_delta_pct": 1.4107,
+                "op": "extdict_decompress",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              },
+              {
+                "ci_high_pct": -1.2567,
+                "ci_low_pct": -1.3989,
+                "insns_delta_pct": 0.6527,
+                "mean_delta_pct": -1.3278,
+                "op": "legacy_compress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.1817,
+                "ci_low_pct": -0.2153,
+                "insns_delta_pct": 1.2454,
+                "mean_delta_pct": -0.0168,
+                "op": "prefix64k_decompress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.3763,
+                "ci_low_pct": -0.5279,
+                "insns_delta_pct": 1.2027,
+                "mean_delta_pct": -0.4521,
+                "op": "streaming_decode",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "decompress_fast_roundtrip",
+          "extdict_decompress",
+          "legacy_compress",
+          "prefix64k_decompress",
+          "streaming_decode"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "extdict_decompress"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "16de7f5ea5abc6681d8443ec15a5b6cc8ac05d71",
+      "changeset_id": "legacy-6e5171e51de335a7",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-363731e11e55b9a5",
+          "replacement_function_source": "// Applied rules: [III④, III③]\n// Skipped rules: [III④: Hits [2,5,6,7,8,9] are on the output/match-copy side of an LZ4 decode loop with data-dependent backward/overlapping reads from `op - offset`; III④ explicitly says to abstain when no forward iterator form exists, and §5.1 forbids replacing the forward bytewise propagation loop with slice/memmove-style copying.; III③: Do not rewrite the in-loop `libc::memmove` calls in this hot decompression kernel; the card's hot decode/compress loop perf abstain applies, and overlap tolerance is semantically required for some copies.]\n#[inline(always)]\nunsafe fn LZ4_decompress_unsafe_generic(\n    istart: *const BYTE,\n    ostart: *mut BYTE,\n    mut decompressedSize: c_int,\n    mut prefixSize: size_t,\n    dictStart: *const BYTE,\n    dictSize: size_t,\n) -> c_int {\n    let mut ip: *const BYTE = istart;\n    let mut op: *mut BYTE = ostart;\n    let oend: *mut BYTE = ostart.offset(decompressedSize as isize);\n    let prefixStart: *const BYTE = ostart.offset(-(prefixSize as isize));\n    dictStart.is_null();\n    loop {\n        let token: c_uint = {\n            // SAFETY: `ip` is the current input cursor into the caller-provided compressed buffer;\n            // this function's existing decode invariants permit consuming one token byte here,\n            // `ip` is non-null as derived from `istart`, and this shared slice reborrow does not\n            // alias the mutable output region.\n            let in1 = unsafe { core::slice::from_raw_parts(ip, 1) };\n            ip = ip.offset(1);\n            in1[0] as c_uint\n        };\n        let mut ll: size_t = (token >> ML_BITS) as size_t;\n        if ll == 15 as size_t {\n            ll = ll.wrapping_add(read_long_length_no_check(&raw mut ip));\n        }\n        if (oend.offset_from(op) as c_long as size_t) < ll {\n            return -(1 as c_int);\n        }\n        ::libc::memmove(\n            op as *mut c_void,\n            ip as *const c_void,\n            ll as ::libc::size_t,\n        );\n        op = op.offset(ll as isize);\n        ip = ip.offset(ll as isize);\n        if (oend.offset_from(op) as c_long as size_t) < MFLIMIT as size_t {\n            if op == oend {\n                break;\n            }\n            return -(1 as c_int);\n        } else {\n            let mut ml: size_t = (token & 15 as c_uint) as size_t;\n            let offset: size_t = {\n                // SAFETY: `ip` is the current input cursor and the existing decode invariants\n                // permit consuming the 2-byte little-endian offset here; `ip` is non-null as\n                // derived from `istart`, and this shared slice reborrow does not alias the\n                // mutable output region.\n                let in2 = unsafe { core::slice::from_raw_parts(ip, 2) };\n                ip = ip.offset(2 as c_int as isize);\n                u16::from_le_bytes([in2[0], in2[1]]) as size_t\n            };\n            if ml == 15 as size_t {\n                ml = ml.wrapping_add(read_long_length_no_check(&raw mut ip));\n            }\n            ml = ml.wrapping_add(MINMATCH as size_t);\n            if (oend.offset_from(op) as c_long as size_t) < ml {\n                return -(1 as c_int);\n            }\n            let mut match_0: *const BYTE = op.offset(-(offset as isize));\n            if offset\n                > (op.offset_from(prefixStart) as c_long as size_t)\n                    .wrapping_add(dictSize)\n            {\n                return -(1 as c_int);\n            }\n            if offset > op.offset_from(prefixStart) as c_long as size_t {\n                let dictEnd: *const BYTE = dictStart.offset(dictSize as isize);\n                let mut extMatch: *const BYTE = dictEnd.offset(\n                    -(offset\n                        .wrapping_sub(op.offset_from(prefixStart) as c_long as size_t)\n                        as isize),\n                );\n                let extml: size_t = dictEnd.offset_from(extMatch) as c_long as size_t;\n                if extml > ml {\n                    ::libc::memmove(\n                        op as *mut c_void,\n                        extMatch as *const c_void,\n                        ml as ::libc::size_t,\n                    );\n                    op = op.offset(ml as isize);\n                    ml = 0 as size_t;\n                } else {\n                    ::libc::memmove(\n                        op as *mut c_void,\n                        extMatch as *const c_void,\n                        extml as ::libc::size_t,\n                    );\n                    op = op.offset(extml as isize);\n                    ml = ml.wrapping_sub(extml);\n                }\n                match_0 = prefixStart;\n            }\n            let mut u: size_t = 0;\n            u = 0 as size_t;\n            while u < ml {\n                *op.offset(u as isize) = *match_0.offset(u as isize);\n                u = u.wrapping_add(1);\n            }\n            op = op.offset(ml as isize);\n            if (oend.offset_from(op) as c_long as size_t) < LASTLITERALS as size_t {\n                return -(1 as c_int);\n            }\n        }\n    }\n    return ip.offset_from(istart) as c_long as c_int;\n}",
+          "rule_id": "III④,III③",
+          "target": {
+            "declaration_hash": "59d6a3f544f43fca128d3b8c50e0b62c5017ab78ee5268046b7ca9daf5dbb7e5",
+            "file_hint": "src/lz4.rs",
+            "qualified_name": "crate::LZ4_decompress_unsafe_generic",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "LZ4_decompress_unsafe_generic-60d4c4c87f75",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "LZ4_decompress_unsafe_generic",
+        "rule_id": "III④,III③"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "38d54649d8d8ecae6ce7f2b80653a8e726347d14b47a6d2945fe72e4cadce005",
+            "edit_id": "edit-replace-363731e11e55b9a5",
+            "end_byte": 80612,
+            "operation_id": "replace-363731e11e55b9a5",
+            "relative_path": "src/lz4.rs",
+            "replacement_text": "// Applied rules: [III④, III③]\n// Skipped rules: [III④: Hits [2,5,6,7,8,9] are on the output/match-copy side of an LZ4 decode loop with data-dependent backward/overlapping reads from `op - offset`; III④ explicitly says to abstain when no forward iterator form exists, and §5.1 forbids replacing the forward bytewise propagation loop with slice/memmove-style copying.; III③: Do not rewrite the in-loop `libc::memmove` calls in this hot decompression kernel; the card's hot decode/compress loop perf abstain applies, and overlap tolerance is semantically required for some copies.]\n#[inline(always)]\nunsafe fn LZ4_decompress_unsafe_generic(\n    istart: *const BYTE,\n    ostart: *mut BYTE,\n    mut decompressedSize: c_int,\n    mut prefixSize: size_t,\n    dictStart: *const BYTE,\n    dictSize: size_t,\n) -> c_int {\n    let mut ip: *const BYTE = istart;\n    let mut op: *mut BYTE = ostart;\n    let oend: *mut BYTE = ostart.offset(decompressedSize as isize);\n    let prefixStart: *const BYTE = ostart.offset(-(prefixSize as isize));\n    dictStart.is_null();\n    loop {\n        let token: c_uint = {\n            // SAFETY: `ip` is the current input cursor into the caller-provided compressed buffer;\n            // this function's existing decode invariants permit consuming one token byte here,\n            // `ip` is non-null as derived from `istart`, and this shared slice reborrow does not\n            // alias the mutable output region.\n            let in1 = unsafe { core::slice::from_raw_parts(ip, 1) };\n            ip = ip.offset(1);\n            in1[0] as c_uint\n        };\n        let mut ll: size_t = (token >> ML_BITS) as size_t;\n        if ll == 15 as size_t {\n            ll = ll.wrapping_add(read_long_length_no_check(&raw mut ip));\n        }\n        if (oend.offset_from(op) as c_long as size_t) < ll {\n            return -(1 as c_int);\n        }\n        ::libc::memmove(\n            op as *mut c_void,\n            ip as *const c_void,\n            ll as ::libc::size_t,\n        );\n        op = op.offset(ll as isize);\n        ip = ip.offset(ll as isize);\n        if (oend.offset_from(op) as c_long as size_t) < MFLIMIT as size_t {\n            if op == oend {\n                break;\n            }\n            return -(1 as c_int);\n        } else {\n            let mut ml: size_t = (token & 15 as c_uint) as size_t;\n            let offset: size_t = {\n                // SAFETY: `ip` is the current input cursor and the existing decode invariants\n                // permit consuming the 2-byte little-endian offset here; `ip` is non-null as\n                // derived from `istart`, and this shared slice reborrow does not alias the\n                // mutable output region.\n                let in2 = unsafe { core::slice::from_raw_parts(ip, 2) };\n                ip = ip.offset(2 as c_int as isize);\n                u16::from_le_bytes([in2[0], in2[1]]) as size_t\n            };\n            if ml == 15 as size_t {\n                ml = ml.wrapping_add(read_long_length_no_check(&raw mut ip));\n            }\n            ml = ml.wrapping_add(MINMATCH as size_t);\n            if (oend.offset_from(op) as c_long as size_t) < ml {\n                return -(1 as c_int);\n            }\n            let mut match_0: *const BYTE = op.offset(-(offset as isize));\n            if offset\n                > (op.offset_from(prefixStart) as c_long as size_t)\n                    .wrapping_add(dictSize)\n            {\n                return -(1 as c_int);\n            }\n            if offset > op.offset_from(prefixStart) as c_long as size_t {\n                let dictEnd: *const BYTE = dictStart.offset(dictSize as isize);\n                let mut extMatch: *const BYTE = dictEnd.offset(\n                    -(offset\n                        .wrapping_sub(op.offset_from(prefixStart) as c_long as size_t)\n                        as isize),\n                );\n                let extml: size_t = dictEnd.offset_from(extMatch) as c_long as size_t;\n                if extml > ml {\n                    ::libc::memmove(\n                        op as *mut c_void,\n                        extMatch as *const c_void,\n                        ml as ::libc::size_t,\n                    );\n                    op = op.offset(ml as isize);\n                    ml = 0 as size_t;\n                } else {\n                    ::libc::memmove(\n                        op as *mut c_void,\n                        extMatch as *const c_void,\n                        extml as ::libc::size_t,\n                    );\n                    op = op.offset(extml as isize);\n                    ml = ml.wrapping_sub(extml);\n                }\n                match_0 = prefixStart;\n            }\n            let mut u: size_t = 0;\n            u = 0 as size_t;\n            while u < ml {\n                *op.offset(u as isize) = *match_0.offset(u as isize);\n                u = u.wrapping_add(1);\n            }\n            op = op.offset(ml as isize);\n            if (oend.offset_from(op) as c_long as size_t) < LASTLITERALS as size_t {\n                return -(1 as c_int);\n            }\n        }\n    }\n    return ip.offset_from(istart) as c_long as c_int;\n}",
+            "start_byte": 76920
+          }
+        ],
+        "facts": {
+          "fn_name": "LZ4_decompress_unsafe_generic",
+          "target_span_hash": "59d6a3f544f43fca128d3b8c50e0b62c5017ab78ee5268046b7ca9daf5dbb7e5"
+        },
+        "operation_id": "replace-363731e11e55b9a5"
+      }
+    ],
+    "resolved_head": "16de7f5ea5abc6681d8443ec15a5b6cc8ac05d71"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/lz4.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

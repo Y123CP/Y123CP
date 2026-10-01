@@ -1,0 +1,271 @@
+# ============================================================================
+                                                    
+#
+                                     
+#   c / raw(0_raw) / cleaned(1_cleaned) / stage_a(2_stage_a)
+                                                        
+                                                                      
+                                                    
+#
+                                           
+#   bash perf_run.sh script_c2rust/.venv/bin/python \
+#       dataset_trans/run_validation.py \
+#       dataset_trans/lz4/validation_workload/purebin/study.toml --wait-quiet
+# ============================================================================
+
+[study]
+project     = "lz4"
+compare     = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+report_mode = "per_input"
+
+[builds.c]
+binary_path = "dataset_trans/lz4/validation_workload/purebin/bin/lz4_c"
+[builds.raw]
+binary_path = "dataset_trans/lz4/validation_workload/purebin/bin/lz4_raw"
+[builds.stage_a]                                 # E1 + intra_ptr(struct&mut)+ deunsafe
+binary_path = "dataset_trans/lz4/validation_workload/purebin/bin/lz4_stage_a"
+
+[builds.codex]
+binary_path = "dataset_trans/lz4/validation_workload/purebin/bin/lz4_codex"
+[builds.freeform]
+binary_path = "dataset_trans/lz4/validation_workload/purebin/bin/lz4_freeform"
+[builds.full]                                  # full arm = 3_perf_opt (rule-guided)
+binary_path = "dataset_trans/lz4/validation_workload/purebin/bin/lz4_full"
+
+[measure]
+warmup_runs  = 5
+measure_runs = 30
+required_cv  = 0.03
+max_load     = 1.0                                               
+cv_retries   = 2                            
+pin_cpu      = 16
+order        = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+
+[gates]
+equivalence = "stdout_sha256"
+
+                                                                            
+[[operations]]
+name = "compress_fast"
+args = ["compress_fast", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-xml"
+  iters = 50
+  stdout_sha256 = "b53c42595f0bb25c5d6bb5aa1dcf6a90026e6e29924333c3abf3507bd7395c01"
+  [[operations.inputs]]
+  name = "silesia-dickens"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-dickens"
+  iters = 15
+  stdout_sha256 = "24cc3539e47a80911b9e1db9b97cc5047a2eb9b88e6e3893ad088f8148b201a9"
+  [[operations.inputs]]
+  name = "xml-48k"                  # <64KB: byU16 hash-table variant
+  path = "dataset_trans/lz4/validation_workload/inputs/xml-48k.bin"
+  iters = 20000
+  stdout_sha256 = "0f384442288a40d8db0fc4cf6038563926f9e5a006aa1031af8692458e8e4dd5"
+
+[[operations]]
+name = "compress_hc"
+args = ["compress_hc", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-xml"
+  iters = 6
+  stdout_sha256 = "cde67707debf18d1937749d315f1bfa26931e680b364ab46f6ea9794c99c5d27"
+  [[operations.inputs]]
+  name = "silesia-dickens"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-dickens"
+  iters = 3
+  stdout_sha256 = "36eaf01f509b0a4bba9e256334916d75240d1ec9127e5d0ca1aa087c69947dac"
+
+[[operations]]
+name = "compress_hc_min"          # level 2 -> LZ4MID kernel (lz4 1.10)
+args = ["compress_hc_min", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-xml"
+  iters = 15
+  stdout_sha256 = "44b0991e54740ef378871192f4b8aabbc14c6597ee71e77c23ab5f82f5d811aa"
+  [[operations.inputs]]
+  name = "silesia-dickens"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-dickens"
+  iters = 8
+  stdout_sha256 = "90be6bd2ab57d4b4cd17bdde24d5fd1f6c771143ea32319eb873c4ce8194ed05"
+
+[[operations]]
+name = "compress_hc_max"          # level 12 -> optimal-parser kernel
+args = ["compress_hc_max", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-xml"
+  iters = 2
+  stdout_sha256 = "2a9eb02e3ed7dd6168dae6b51098713ec16b31edca49429a389e7607fff94ccf"
+  [[operations.inputs]]
+  name = "silesia-dickens"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-dickens"
+  iters = 1
+  stdout_sha256 = "67722711d5e3d8b5e0245951c778faf56676944203c490063459bc84060dbd16"
+
+[[operations]]
+name = "decompress"
+args = ["decompress", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml.lz4b"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-xml.lz4b"
+  iters = 150
+  stdout_sha256 = "90d0f51b0e3d9adff8398eef7cfdc72d5ae77e9f5bf3f57fdb5c4e9a19a43982"
+  [[operations.inputs]]
+  name = "silesia-dickens.lz4b"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-dickens.lz4b"
+  iters = 55
+  stdout_sha256 = "e82ae07c4aa846ac5e1f2389694e6d59b33af104cb78981c7f281b68603a75d7"
+  [[operations.inputs]]
+  name = "zeros-1m.lz4b"            # degenerate high-redundancy: RLE decode paths
+  path = "dataset_trans/lz4/validation_workload/inputs/zeros-1m.lz4b"
+  iters = 3000
+  stdout_sha256 = "87a63871685ff252880e5eb4d3d6d369f795f5faa0674d75ac06999b68a23e46"
+
+[[operations]]
+name = "compress_stream"          # 64KB chunks, LZ4_compress_fast_continue
+args = ["compress_stream", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-xml"
+  iters = 50
+  stdout_sha256 = "c6c486236aacf238b2ff58446bad99fdf8c48706e6ab5af076f431e37f75af6a"
+  [[operations.inputs]]
+  name = "silesia-dickens"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-dickens"
+  iters = 15
+  stdout_sha256 = "0fd1ace8fdc11e6aca1ddbbcd9ef838f703148d3ffcbffce75c8d499e86a30d9"
+
+[[operations]]
+name = "compress_stream_hc"       # 64KB chunks, LZ4_compress_HC_continue
+args = ["compress_stream_hc", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-xml"
+  iters = 6
+  stdout_sha256 = "e7c655416f807b484cf886baf47cd6997f0d5971f2c60ff5b97ff550d243ce03"
+  [[operations.inputs]]
+  name = "silesia-dickens"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-dickens"
+  iters = 3
+  stdout_sha256 = "b671f7b85a356a9a36c2a1eaa6f444c4cef44fdc29e6b66b66b206b7c140412e"
+
+[[operations]]
+name = "decompress_stream"        # LZ4_decompress_safe_continue over .lz4s
+args = ["decompress_stream", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml.lz4s"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-xml.lz4s"
+  iters = 200
+  stdout_sha256 = "2220007cbe57f8db8cdda9c549c9ac3f5a6c1ba56028bd2cee81342d453f824a"
+  [[operations.inputs]]
+  name = "silesia-dickens.lz4s"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-dickens.lz4s"
+  iters = 60
+  stdout_sha256 = "05e9637509134867d5993b5bdf1032335a385e4084035de5bcd4cf2ad084aec1"
+
+[[operations]]
+name = "compress_dict"            # 4KB msgs vs 64KB preset dict (attach_dictionary)
+args = ["compress_dict", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-xml"
+  iters = 30
+  stdout_sha256 = "e11bddf775ba4561e69c98e409fc72d174bc7b56b346bfbd0e8b5d38739c13ab"
+  [[operations.inputs]]
+  name = "silesia-dickens"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-dickens"
+  iters = 12
+  stdout_sha256 = "291c1f0738616209103fec4f66f91a966c553d5a15286b88e6a3e6f456d67e86"
+
+[[operations]]
+name = "decompress_dict"          # LZ4_decompress_safe_usingDict over .lz4d
+args = ["decompress_dict", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml.lz4d"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-xml.lz4d"
+  iters = 150
+  stdout_sha256 = "06e2df1b121d6087d1c4c912c746835b11709d3c94ba933b465e249520f82bea"
+  [[operations.inputs]]
+  name = "silesia-dickens.lz4d"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-dickens.lz4d"
+  iters = 50
+  stdout_sha256 = "811c6d3f6412ee04b8280eb0d8bdd8df3514019ae89c7fc3c2ff3c01fbf0c13e"
+
+[[operations]]
+name = "compress_dict_hc"         # HC preset-dict (loadDictHC/attach_HC/dictCtx)
+args = ["compress_dict_hc", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-xml"
+  iters = 8
+  stdout_sha256 = "49085fca0a31e86c735404cfd50ddc2181a065fa23f91dd585526c9bf63adaa9"
+  [[operations.inputs]]
+  name = "silesia-dickens"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-dickens"
+  iters = 1
+  stdout_sha256 = "50c32b795bf5c14b76ac01835fd12712ac5015d8dce85b5e3d95ed389b36ed13"
+
+[[operations]]
+name = "compress_destsize"        # fill fixed 4KB output pages (fast)
+args = ["compress_destsize", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-xml"
+  iters = 50
+  stdout_sha256 = "67fc8e887d0054120f165edeb7a5f2bd4bc5a9d8a2d06a3681332cad93fe01b4"
+
+[[operations]]
+name = "compress_destsize_hc"     # fill fixed 4KB output pages (HC L9)
+args = ["compress_destsize_hc", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-xml"
+  iters = 10
+  stdout_sha256 = "40ecfeab3acfb3f3b083acfb0f88f8bf75fb0e1d9a3286f94458787c8d055708"
+
+[[operations]]
+name = "compress_extstate"        # caller-managed state, fastReset variant
+args = ["compress_extstate", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-xml"
+  iters = 50
+  stdout_sha256 = "e8c1456fe445e76bcc20fe426e6d057350be9ac57c5e7aafea9825334f4c8c47"
+
+[[operations]]
+name = "decompress_partial"       # decode first half only (peek pattern)
+args = ["decompress_partial", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml.lz4b"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-xml.lz4b"
+  iters = 350
+  stdout_sha256 = "7c8f34861b0ee3e4fae77f82beb2f75e3040e59afa2c927082b4b73aaaaa19c3"
+
+[[operations]]
+name = "decompress_partial_dict"  # partial decode with external dict
+args = ["decompress_partial_dict", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "silesia-xml.lz4d"
+  path = "dataset_trans/lz4/validation_workload/inputs/silesia-xml.lz4d"
+  iters = 300
+  stdout_sha256 = "204c73b3dcfb3f72c2e48d9ccedebd7ccd381b7bcf3031d004e3c53c74132088"

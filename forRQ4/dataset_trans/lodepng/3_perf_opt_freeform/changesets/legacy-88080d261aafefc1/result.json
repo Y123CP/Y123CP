@@ -1,0 +1,89 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": "error[E0530]: let bindings cannot shadow statics\n    --> /perf-build/crate/src/lodepng.rs:5886:9\n     |\n300  | static mut mask: c_uint = 0;\n     | ---------------------------- the static `mask` is defined here\n...\n5886 |     let mask = ((1u32) << bit_index) as c_uchar;\n     |         ^^^^ cannot be named the same as a static\nerror: could not compile `lodepng_cleaned` (lib) due to 1 previous error; 8 warnings emitted"
+      },
+      "gate": "build",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "ccc2dc00c960bae828a5ab4049c81f2966b83a74",
+      "changeset_id": "legacy-88080d261aafefc1",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-0298d3ff4e8260ec",
+          "replacement_function_source": "unsafe fn setBitOfReversedStream(\n    mut bitpointer: *mut size_t,\n    mut bitstream: *mut c_uchar,\n    mut bit: c_uchar,\n) {\n    let bp = unsafe { &mut *bitpointer }; // SAFETY: caller provides a valid, writable pointer to size_t as required by the original function.\n    let byte_index = (*bp >> 3usize) as isize;\n    let bit_index = (7usize).wrapping_sub(*bp & 7usize);\n    let mask = ((1u32) << bit_index) as c_uchar;\n    let p = unsafe { bitstream.offset(byte_index) }; // SAFETY: caller guarantees bitstream points to writable storage for the addressed byte, matching the original offset-based access.\n    let cur = unsafe { *p }; // SAFETY: p points to the same valid byte location computed above.\n    unsafe {\n        // SAFETY: p is a valid writable pointer to the target byte, established above.\n        *p = if bit == 0 { cur & !mask } else { cur | mask };\n    }\n    *bp = (*bp).wrapping_add(1);\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "db52c956bbccf8ce3934f29721c60a493964ec865aa87d35c58fcc0cb2a5343a",
+            "file_hint": "src/lodepng.rs",
+            "qualified_name": "crate::setBitOfReversedStream",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "setBitOfReversedStream-3c55f92eb789",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "setBitOfReversedStream",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "8572585bbdae2ac9eff0fdd6def30813e19897f2e1fb568b0395beec9d5b8407",
+            "edit_id": "edit-replace-0298d3ff4e8260ec",
+            "end_byte": 194815,
+            "operation_id": "replace-0298d3ff4e8260ec",
+            "relative_path": "src/lodepng.rs",
+            "replacement_text": "unsafe fn setBitOfReversedStream(\n    mut bitpointer: *mut size_t,\n    mut bitstream: *mut c_uchar,\n    mut bit: c_uchar,\n) {\n    let bp = unsafe { &mut *bitpointer }; // SAFETY: caller provides a valid, writable pointer to size_t as required by the original function.\n    let byte_index = (*bp >> 3usize) as isize;\n    let bit_index = (7usize).wrapping_sub(*bp & 7usize);\n    let mask = ((1u32) << bit_index) as c_uchar;\n    let p = unsafe { bitstream.offset(byte_index) }; // SAFETY: caller guarantees bitstream points to writable storage for the addressed byte, matching the original offset-based access.\n    let cur = unsafe { *p }; // SAFETY: p points to the same valid byte location computed above.\n    unsafe {\n        // SAFETY: p is a valid writable pointer to the target byte, established above.\n        *p = if bit == 0 { cur & !mask } else { cur | mask };\n    }\n    *bp = (*bp).wrapping_add(1);\n}",
+            "start_byte": 193977
+          }
+        ],
+        "facts": {
+          "fn_name": "setBitOfReversedStream",
+          "target_span_hash": "db52c956bbccf8ce3934f29721c60a493964ec865aa87d35c58fcc0cb2a5343a"
+        },
+        "operation_id": "replace-0298d3ff4e8260ec"
+      }
+    ],
+    "resolved_head": "ccc2dc00c960bae828a5ab4049c81f2966b83a74"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_build",
+  "touched_paths": [
+    "src/lodepng.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,311 @@
+{
+  "hot_function": {
+    "symbol": "setup_match_struct",
+    "location": "src/match.rs:100-163",
+    "workload": "choices_fread_search",
+    "hot_region": "src/match.rs:100-163",
+    "rust_source": "unsafe fn setup_match_struct(\n    mut match_1: *mut match_struct,\n    mut needle: *const c_char,\n    mut haystack: *const c_char,\n) {\n    (*match_1).needle_len = strlen(needle) as c_int;\n    (*match_1).haystack_len = strlen(haystack) as c_int;\n    if (*match_1).haystack_len > MATCH_MAX_LEN || (*match_1).needle_len > (*match_1).haystack_len {\n        return;\n    }\n    let mut i: c_int = 0 as c_int;\n    while i < (*match_1).needle_len {\n        (*match_1).lower_needle[i as usize] = ({\n            let mut __res: c_int = 0;\n            if ::core::mem::size_of::<c_char>() as usize > 1 as usize {\n                if 0 != 0 {\n                    let mut __c: c_int =\n                        *needle.offset(i as isize) as c_int;\n                    __res =\n                        (if __c < -(128 as c_int) || __c > 255 as c_int {\n                            __c as __int32_t\n                        } else {\n                            *(*__ctype_tolower_loc()).offset(__c as isize)\n                        }) as c_int;\n                } else {\n                    __res = tolower(*needle.offset(i as isize) as c_int);\n                }\n            } else {\n                __res = *(*__ctype_tolower_loc())\n                    .offset(*needle.offset(i as isize) as c_int as isize)\n                    as c_int;\n            }\n            __res\n        }) as c_char;\n        i += 1;\n    }\n    let mut i_0: c_int = 0 as c_int;\n    while i_0 < (*match_1).haystack_len {\n        (*match_1).lower_haystack[i_0 as usize] = ({\n            let mut __res: c_int = 0;\n            if ::core::mem::size_of::<c_char>() as usize > 1 as usize {\n                if 0 != 0 {\n                    let mut __c: c_int =\n                        *haystack.offset(i_0 as isize) as c_int;\n                    __res =\n                        (if __c < -(128 as c_int) || __c > 255 as c_int {\n                            __c as __int32_t\n                        } else {\n                            *(*__ctype_tolower_loc()).offset(__c as isize)\n                        }) as c_int;\n                } else {\n                    __res = tolower(*haystack.offset(i_0 as isize) as c_int);\n                }\n            } else {\n                __res = *(*__ctype_tolower_loc())\n                    .offset(*haystack.offset(i_0 as isize) as c_int as isize)\n                    as c_int;\n            }\n            __res\n        }) as c_char;\n        i_0 += 1;\n    }\n    precompute_bonus(haystack, &raw mut (*match_1).match_bonus as *mut score_t);\n}",
+    "signature": "unsafe fn setup_match_struct(\n    mut match_1: *mut match_struct,\n    mut needle: *const c_char,\n    mut haystack: *const c_char,\n)",
+    "profile": {
+      "self_time_ratio": 0.0921,
+      "call_count": null,
+      "retired_instructions": 1666500407,
+      "instructions_per_call": null,
+      "cpi": 0.322,
+      "tma": {
+        "scope": "process",
+        "retiring": 50.508372063434564,
+        "frontend_bound": 15.015493383448977,
+        "bad_speculation": 1.9529713876381205,
+        "backend_bound": 32.52316316547833,
+        "memory_bound": 20.22131524105909,
+        "core_bound": 12.301847924419237,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0022
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C1": 2,
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 105,
+        "message": "strlen will not be inlined into _ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 106,
+        "message": "strlen will not be inlined into _ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 128,
+        "message": "__ctype_tolower_loc will not be inlined into _ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 154,
+        "message": "__ctype_tolower_loc will not be inlined into _ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 138,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 112,
+        "message": "_ZN4core9panicking18panic_bounds_check17h08f341524a959a98E will not be inlined into _ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 162,
+        "message": "'_ZN11fzy_cleaned3src5match16precompute_bonus17h8ca72576748c55beE' inlined into '_ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE' with (cost=-14910, threshold=250) at callsite _ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE:62:5;"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 111,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 137,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 112,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 138,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 111,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 128,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 129,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 111,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 137,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 137,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 154,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 155,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 100,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE: MI Instruction count changed from 0 to 130; Delta: 130"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 100,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE: MI Instruction count changed from 130 to 133; Delta: 3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 100,
+        "message": "Peephole Optimizations: Function: _ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE: MI Instruction count changed from 133 to 134; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 100,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE: MI Instruction count changed from 134 to 148; Delta: 14"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 100,
+        "message": "Two-Address instruction pass: Function: _ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE: MI Instruction count changed from 148 to 153; Delta: 5"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 100,
+        "message": "Register Coalescer: Function: _ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE: MI Instruction count changed from 153 to 116; Delta: -37"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 100,
+        "message": "8 virtual registers copies 2.530519e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 100,
+        "message": "Virtual Register Rewriter: Function: _ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE: MI Instruction count changed from 116 to 109; Delta: -7"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 100,
+        "message": "40 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 100,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE: MI Instruction count changed from 109 to 120; Delta: 11"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 100,
+        "message": "Control Flow Optimizer: Function: _ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE: MI Instruction count changed from 120 to 105; Delta: -15"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 100,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE: MI Instruction count changed from 105 to 107; Delta: 2"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 100,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN11fzy_cleaned3src5match18setup_match_struct17hc1500e6567b0951aE: MI Instruction count changed from 107 to 108; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 107,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 111,
+        "message": "BasicBlock: bb7.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 128,
+        "message": "BasicBlock: bb8"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 128,
+        "message": "BasicBlock: bb10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 137,
+        "message": "BasicBlock: bb12.preheader.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 137,
+        "message": "BasicBlock: bb12.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 154,
+        "message": "BasicBlock: bb13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 154,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 163,
+        "message": "BasicBlock: bb18"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 112,
+        "message": "BasicBlock: panic6"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 138,
+        "message": "BasicBlock: panic"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 100,
+        "message": "92 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

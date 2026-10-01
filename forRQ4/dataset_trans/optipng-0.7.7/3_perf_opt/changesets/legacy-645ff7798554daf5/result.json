@@ -1,0 +1,94 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "b6f8c23e0fc09320293503937a18a8658d729732",
+      "changeset_id": "legacy-645ff7798554daf5",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-cc7a3747b22b2f10",
+          "replacement_function_source": "// Applied rules: [III④, C3, C1]\n// Skipped rules: []\nunsafe fn gen_codes(\n    mut tree: *mut ct_data,\n    mut max_code: c_int,\n    mut bl_count: *mut ushf,\n) {\n    let mut next_code: [ush; 16] = [0; 16];\n    let mut code: c_uint = 0 as c_uint;\n    let mut bits: c_int = 0;\n\n    // SAFETY: `bl_count` is read for indices 0..=MAX_BITS-1 in this loop; by caller\n    // contract it points to a valid count table covering those entries, is non-null,\n    // and no Rust reference aliases that memory for the duration of this view.\n    let bl_count = unsafe { core::slice::from_raw_parts(bl_count, MAX_BITS as usize) };\n    // SAFETY: the loop walks tree entries 0..=max_code; by caller contract `tree`\n    // points to at least `max_code + 1` contiguous `ct_data` entries, is non-null,\n    // and no other Rust reference aliases that region while this mutable view is live.\n    let tree = unsafe { core::slice::from_raw_parts_mut(tree, max_code.wrapping_add(1) as usize) };\n\n    bits = 1 as c_int;\n    while bits <= MAX_BITS {\n        code = code.wrapping_add(bl_count[(bits - 1 as c_int) as usize] as c_uint) << 1 as c_int;\n        next_code[bits as usize] = code as ush;\n        bits += 1;\n    }\n\n    for node in tree.iter_mut() {\n        let len: c_int = unsafe { node.dl.len as c_int };\n        if len != 0 as c_int {\n            // SAFETY: nonzero code lengths in `tree` satisfy the deflate invariant\n            // `1 <= len <= MAX_BITS`, and `next_code` has length 16 with indices 0..=15,\n            // so `len as usize` is in-bounds here.\n            let slot = unsafe { next_code.get_unchecked_mut(len as usize) };\n            let code_for_len = *slot;\n            *slot = slot.wrapping_add(1);\n            unsafe { node.fc.code = bi_reverse(code_for_len as c_uint, len) as ush };\n        }\n    }\n}",
+          "rule_id": "III④,C3,C1",
+          "target": {
+            "declaration_hash": "d4a322f571b29d7bded696b146c864855dfd6c2b846b6a3bf910308f2188e575",
+            "file_hint": "src/zlib/trees.rs",
+            "qualified_name": "crate::gen_codes",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "gen_codes-967d5413ecd2",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "gen_codes",
+        "rule_id": "III④,C3,C1"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "e8cc86eb23908d9fb7acb6b3c19a096596e8ec6037505772dc16687666ca8ecf",
+            "edit_id": "edit-replace-cc7a3747b22b2f10",
+            "end_byte": 96403,
+            "operation_id": "replace-cc7a3747b22b2f10",
+            "relative_path": "src/zlib/trees.rs",
+            "replacement_text": "// Applied rules: [III④, C3, C1]\n// Skipped rules: []\nunsafe fn gen_codes(\n    mut tree: *mut ct_data,\n    mut max_code: c_int,\n    mut bl_count: *mut ushf,\n) {\n    let mut next_code: [ush; 16] = [0; 16];\n    let mut code: c_uint = 0 as c_uint;\n    let mut bits: c_int = 0;\n\n    // SAFETY: `bl_count` is read for indices 0..=MAX_BITS-1 in this loop; by caller\n    // contract it points to a valid count table covering those entries, is non-null,\n    // and no Rust reference aliases that memory for the duration of this view.\n    let bl_count = unsafe { core::slice::from_raw_parts(bl_count, MAX_BITS as usize) };\n    // SAFETY: the loop walks tree entries 0..=max_code; by caller contract `tree`\n    // points to at least `max_code + 1` contiguous `ct_data` entries, is non-null,\n    // and no other Rust reference aliases that region while this mutable view is live.\n    let tree = unsafe { core::slice::from_raw_parts_mut(tree, max_code.wrapping_add(1) as usize) };\n\n    bits = 1 as c_int;\n    while bits <= MAX_BITS {\n        code = code.wrapping_add(bl_count[(bits - 1 as c_int) as usize] as c_uint) << 1 as c_int;\n        next_code[bits as usize] = code as ush;\n        bits += 1;\n    }\n\n    for node in tree.iter_mut() {\n        let len: c_int = unsafe { node.dl.len as c_int };\n        if len != 0 as c_int {\n            // SAFETY: nonzero code lengths in `tree` satisfy the deflate invariant\n            // `1 <= len <= MAX_BITS`, and `next_code` has length 16 with indices 0..=15,\n            // so `len as usize` is in-bounds here.\n            let slot = unsafe { next_code.get_unchecked_mut(len as usize) };\n            let code_for_len = *slot;\n            *slot = slot.wrapping_add(1);\n            unsafe { node.fc.code = bi_reverse(code_for_len as c_uint, len) as ush };\n        }\n    }\n}",
+            "start_byte": 95480
+          }
+        ],
+        "facts": {
+          "fn_name": "gen_codes",
+          "target_span_hash": "d4a322f571b29d7bded696b146c864855dfd6c2b846b6a3bf910308f2188e575"
+        },
+        "operation_id": "replace-cc7a3747b22b2f10"
+      }
+    ],
+    "resolved_head": "b6f8c23e0fc09320293503937a18a8658d729732"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_post_validation",
+  "touched_paths": [
+    "src/zlib/trees.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "added_bounds_check_in_loop",
+      "detail": "rewrite adds a bounds check inside a loop the original indexed unchecked (1 site(s)): bl_count[(bits - 1 as c_int) as usize]",
+      "ok": false
+    }
+  ]
+}

@@ -1,0 +1,162 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.5919054520327769,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.8935653503449734,
+            "aggregate_ci_low_pct": 0.2902455537205804,
+            "aggregate_pct": 0.5919054520327769,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.8106,
+                "ci_low_pct": -0.711,
+                "insns_delta_pct": 0.0741,
+                "mean_delta_pct": 0.0498,
+                "op": "entities_tree_valid",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 1.9638,
+                "ci_low_pct": 1.0942,
+                "insns_delta_pct": 0.5838,
+                "mean_delta_pct": 1.529,
+                "op": "html_push_parse",
+                "samples": 10,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              },
+              {
+                "ci_high_pct": 0.6392,
+                "ci_low_pct": -0.2453,
+                "insns_delta_pct": 0.0171,
+                "mean_delta_pct": 0.1969,
+                "op": "writer_save",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "entities_tree_valid",
+          "html_push_parse",
+          "writer_save"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "html_push_parse"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "e393711b52ff56b5d2f6e5a3b897c96c5e15c440",
+      "changeset_id": "legacy-c790016c7c187737",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-6737d51adff6952b",
+          "replacement_function_source": "unsafe fn htmlCurrentChar(\n    mut ctxt: xmlParserCtxtPtr,\n    mut len: *mut c_int,\n) -> c_int {\n    // SAFETY: `ctxt` is assumed valid by the original function contract.\n    if unsafe { (*ctxt).instate as c_int } == XML_PARSER_EOF as c_int {\n        return 0;\n    }\n\n    // SAFETY: `ctxt` is assumed valid by the original function contract.\n    let token = unsafe { (*ctxt).token };\n    if token != 0 {\n        // SAFETY: caller provides a valid `len` out-pointer as required by the original API.\n        unsafe { *len = 0 };\n        return token;\n    }\n\n    // SAFETY: `ctxt` and nested input pointers are assumed valid by the original function contract.\n    let input = unsafe { (*ctxt).input };\n    // SAFETY: `input` is valid and its pointers belong to the same allocation as in the original code.\n    if unsafe { ((*input).end.offset_from((*input).cur) as c_long) } < INPUT_CHUNK as c_long {\n        // SAFETY: same preconditions as original function.\n        unsafe { xmlParserGrow(ctxt) };\n        // SAFETY: `ctxt` is valid.\n        if unsafe { (*ctxt).instate as c_int } == XML_PARSER_EOF as c_int {\n            return 0;\n        }\n    }\n\n    // SAFETY: `input` is valid.\n    if unsafe { (*input).flags as c_uint & XML_INPUT_HAS_ENCODING } == 0 {\n        // SAFETY: `input` is valid and `cur` points to readable input.\n        let first = unsafe { *(*input).cur as c_int };\n        if first < 0x80 {\n            // SAFETY: caller provides a valid `len` out-pointer.\n            unsafe { *len = 1 };\n            // SAFETY: `input` is valid and pointer comparison matches original semantics.\n            if first == 0 && unsafe { (*input).cur < (*input).end } {\n                // SAFETY: same preconditions as original function.\n                unsafe {\n                    htmlParseErrInt(\n                        ctxt,\n                        XML_ERR_INVALID_CHAR,\n                        b\"Char 0x%X out of allowed range\\n\\0\" as *const u8 as *const c_char,\n                        0,\n                    )\n                };\n                return ' ' as i32;\n            }\n            return first;\n        }\n\n        let guess = unsafe { htmlFindEncoding(ctxt) };\n        if guess.is_null() {\n            // SAFETY: same preconditions as original function.\n            unsafe { xmlSwitchEncoding(ctxt, XML_CHAR_ENCODING_8859_1) };\n        } else {\n            // SAFETY: `guess` is a valid C string returned by the library.\n            let handler = unsafe { xmlFindCharEncodingHandler(guess as *const c_char) };\n            if !handler.is_null() {\n                // SAFETY: pointers are valid C strings as in original code.\n                if unsafe {\n                    xmlStrEqual(\n                        (*handler).name as *mut xmlChar,\n                        b\"UTF-8\\0\" as *const u8 as *const c_char as *mut xmlChar,\n                    )\n                } == 0\n                {\n                    // SAFETY: handler was returned by the library and is valid.\n                    unsafe { xmlSwitchToEncoding(ctxt, handler) };\n                }\n            } else {\n                // SAFETY: same preconditions as original function.\n                unsafe {\n                    htmlParseErr(\n                        ctxt,\n                        XML_ERR_INVALID_ENCODING,\n                        b\"Unsupported encoding %s\\0\" as *const u8 as *const c_char,\n                        guess,\n                        ::core::ptr::null::<xmlChar>(),\n                    )\n                };\n            }\n            // SAFETY: `guess` was allocated by the library and must be freed with `xmlFree`.\n            unsafe { xmlFree.expect(\"non-null function pointer\")(guess as *mut c_void) };\n        }\n        // SAFETY: `input` is valid.\n        unsafe {\n            (*input).flags = ((*input).flags as c_uint | XML_INPUT_HAS_ENCODING) as c_int;\n        }\n    }\n\n    // SAFETY: `input` is valid and `cur` points to readable input.\n    let cur = unsafe { (*input).cur as *const c_uchar };\n    // SAFETY: `cur` is readable.\n    let c = unsafe { *cur };\n\n    if (c as c_int & 0x80) == 0 {\n        let ch = c as c_int;\n        // SAFETY: `input` is valid and pointer comparison matches original semantics.\n        if ch == 0 && unsafe { (*input).cur < (*input).end } {\n            // SAFETY: same preconditions as original function.\n            unsafe {\n                htmlParseErrInt(\n                    ctxt,\n                    XML_ERR_INVALID_CHAR,\n                    b\"Char 0x%X out of allowed range\\n\\0\" as *const u8 as *const c_char,\n                    0,\n                )\n            };\n            // SAFETY: caller provides a valid `len` out-pointer.\n            unsafe { *len = 1 };\n            return ' ' as i32;\n        }\n        // SAFETY: caller provides a valid `len` out-pointer.\n        unsafe { *len = 1 };\n        return ch;\n    }\n\n    let mut val: c_uint = 0;\n    // SAFETY: `input` is valid and its pointers belong to the same allocation as in the original code.\n    let avail = unsafe { (*input).end.offset_from((*input).cur) as c_long as size_t };\n\n    if (c as c_int & 0x40) != 0 && avail >= 2 {\n        // SAFETY: `avail >= 2`, so byte 1 is readable.\n        let b1 = unsafe { *cur.add(1) };\n        if (b1 as c_int & 0xc0) == 0x80 {\n            if (c as c_int & 0xe0) == 0xe0 {\n                if avail >= 3 {\n                    // SAFETY: `avail >= 3`, so byte 2 is readable.\n                    let b2 = unsafe { *cur.add(2) };\n                    if (b2 as c_int & 0xc0) == 0x80 {\n                        if (c as c_int & 0xf0) == 0xf0 {\n                            if (c as c_int & 0xf8) == 0xf0 && avail >= 4 {\n                                // SAFETY: `avail >= 4`, so byte 3 is readable.\n                                let b3 = unsafe { *cur.add(3) };\n                                if (b3 as c_int & 0xc0) == 0x80 {\n                                    // SAFETY: caller provides a valid `len` out-pointer.\n                                    unsafe { *len = 4 };\n                                    val = (((c as c_int & 0x7) << 18) as c_uint)\n                                        | (((b1 as c_int & 0x3f) << 12) as c_uint)\n                                        | (((b2 as c_int & 0x3f) << 6) as c_uint)\n                                        | ((b3 as c_int & 0x3f) as c_uint);\n                                    if val >= 0x10000 {\n                                        if (if val < 0x100 {\n                                            (0x9 as c_uint <= val && val <= 0xa as c_uint\n                                                || val == 0xd as c_uint\n                                                || 0x20 as c_uint <= val)\n                                                as c_int\n                                        } else {\n                                            (0x100 as c_uint <= val && val <= 0xd7ff as c_uint\n                                                || 0xe000 as c_uint <= val\n                                                    && val <= 0xfffd as c_uint\n                                                || 0x10000 as c_uint <= val\n                                                    && val <= 0x10ffff as c_uint)\n                                                as c_int\n                                        }) == 0\n                                        {\n                                            // SAFETY: same preconditions as original function.\n                                            unsafe {\n                                                htmlParseErrInt(\n                                                    ctxt,\n                                                    XML_ERR_INVALID_CHAR,\n                                                    b\"Char 0x%X out of allowed range\\n\\0\"\n                                                        as *const u8\n                                                        as *const c_char,\n                                                    val as c_int,\n                                                )\n                                            };\n                                        }\n                                        return val as c_int;\n                                    }\n                                }\n                            }\n                        } else {\n                            // SAFETY: caller provides a valid `len` out-pointer.\n                            unsafe { *len = 3 };\n                            val = (((c as c_int & 0xf) << 12) as c_uint)\n                                | (((b1 as c_int & 0x3f) << 6) as c_uint)\n                                | ((b2 as c_int & 0x3f) as c_uint);\n                            if val >= 0x800 {\n                                if (if val < 0x100 {\n                                    (0x9 as c_uint <= val && val <= 0xa as c_uint\n                                        || val == 0xd as c_uint\n                                        || 0x20 as c_uint <= val)\n                                        as c_int\n                                } else {\n                                    (0x100 as c_uint <= val && val <= 0xd7ff as c_uint\n                                        || 0xe000 as c_uint <= val\n                                            && val <= 0xfffd as c_uint\n                                        || 0x10000 as c_uint <= val\n                                            && val <= 0x10ffff as c_uint)\n                                        as c_int\n                                }) == 0\n                                {\n                                    // SAFETY: same preconditions as original function.\n                                    unsafe {\n                                        htmlParseErrInt(\n                                            ctxt,\n                                            XML_ERR_INVALID_CHAR,\n                                            b\"Char 0x%X out of allowed range\\n\\0\" as *const u8\n                                                as *const c_char,\n                                            val as c_int,\n                                        )\n                                    };\n                                }\n                                return val as c_int;\n                            }\n                        }\n                    }\n                }\n            } else {\n                // SAFETY: caller provides a valid `len` out-pointer.\n                unsafe { *len = 2 };\n                val = (((c as c_int & 0x1f) << 6) as c_uint) | ((b1 as c_int & 0x3f) as c_uint);\n                if val >= 0x80 {\n                    if (if val < 0x100 {\n                        (0x9 as c_uint <= val && val <= 0xa as c_uint\n                            || val == 0xd as c_uint\n                            || 0x20 as c_uint <= val)\n                            as c_int\n                    } else {\n                        (0x100 as c_uint <= val && val <= 0xd7ff as c_uint\n                            || 0xe000 as c_uint <= val && val <= 0xfffd as c_uint\n                            || 0x10000 as c_uint <= val && val <= 0x10ffff as c_uint)\n                            as c_int\n                    }) == 0\n                    {\n                        // SAFETY: same preconditions as original function.\n                        unsafe {\n                            htmlParseErrInt(\n                                ctxt,\n                                XML_ERR_INVALID_CHAR,\n                                b\"Char 0x%X out of allowed range\\n\\0\" as *const u8\n                                    as *const c_char,\n                                val as c_int,\n                            )\n                        };\n                    }\n                    return val as c_int;\n                }\n            }\n        }\n    }\n\n    let mut buffer: [c_char; 150] = [0; 150];\n    if avail >= 4 {\n        // SAFETY: `avail >= 4`, so bytes 0..=3 are readable; destination buffer is valid.\n        unsafe {\n            snprintf(\n                buffer.as_mut_ptr(),\n                149 as size_t,\n                b\"Bytes: 0x%02X 0x%02X 0x%02X 0x%02X\\n\\0\" as *const u8 as *const c_char,\n                *cur.add(0) as c_int,\n                *cur.add(1) as c_int,\n                *cur.add(2) as c_int,\n                *cur.add(3) as c_int,\n            )\n        };\n    } else {\n        // SAFETY: byte 0 is readable because the original function dereferences it here as well; destination buffer is valid.\n        unsafe {\n            snprintf(\n                buffer.as_mut_ptr(),\n                149 as size_t,\n                b\"Bytes: 0x%02X\\n\\0\" as *const u8 as *const c_char,\n                *cur.add(0) as c_int,\n            )\n        };\n    }\n\n    // SAFETY: same preconditions as original function; `buffer` is a valid NUL-terminated C string after `snprintf`.\n    unsafe {\n        htmlParseErr(\n            ctxt,\n            XML_ERR_INVALID_ENCODING,\n            b\"Input is not proper UTF-8, indicate encoding !\\n\\0\" as *const u8 as *const c_char,\n            buffer.as_mut_ptr() as *mut xmlChar,\n            ::core::ptr::null::<xmlChar>(),\n        )\n    };\n\n    // SAFETY: `input` is valid.\n    if unsafe { (*input).flags as c_uint & XML_INPUT_HAS_ENCODING } == 0 {\n        // SAFETY: same preconditions as original function.\n        unsafe { xmlSwitchEncoding(ctxt, XML_CHAR_ENCODING_8859_1) };\n    }\n    // SAFETY: caller provides a valid `len` out-pointer.\n    unsafe { *len = 1 };\n    // SAFETY: `cur` is readable.\n    unsafe { *cur as c_int }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "fcabe43ed4e6e6ca8b61903171410e4abe3c45f1f9ba5db0e692e836ce00e9c7",
+            "file_hint": "src/HTMLparser.rs",
+            "qualified_name": "crate::htmlCurrentChar",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "htmlCurrentChar-54e0f7807460",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "htmlCurrentChar",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "4d5f456647edd13f988823e39bbffd67d57ea31353a4fc711ab98ba7423d9f58",
+            "edit_id": "edit-replace-6737d51adff6952b",
+            "end_byte": 89512,
+            "operation_id": "replace-6737d51adff6952b",
+            "relative_path": "src/HTMLparser.rs",
+            "replacement_text": "unsafe fn htmlCurrentChar(\n    mut ctxt: xmlParserCtxtPtr,\n    mut len: *mut c_int,\n) -> c_int {\n    // SAFETY: `ctxt` is assumed valid by the original function contract.\n    if unsafe { (*ctxt).instate as c_int } == XML_PARSER_EOF as c_int {\n        return 0;\n    }\n\n    // SAFETY: `ctxt` is assumed valid by the original function contract.\n    let token = unsafe { (*ctxt).token };\n    if token != 0 {\n        // SAFETY: caller provides a valid `len` out-pointer as required by the original API.\n        unsafe { *len = 0 };\n        return token;\n    }\n\n    // SAFETY: `ctxt` and nested input pointers are assumed valid by the original function contract.\n    let input = unsafe { (*ctxt).input };\n    // SAFETY: `input` is valid and its pointers belong to the same allocation as in the original code.\n    if unsafe { ((*input).end.offset_from((*input).cur) as c_long) } < INPUT_CHUNK as c_long {\n        // SAFETY: same preconditions as original function.\n        unsafe { xmlParserGrow(ctxt) };\n        // SAFETY: `ctxt` is valid.\n        if unsafe { (*ctxt).instate as c_int } == XML_PARSER_EOF as c_int {\n            return 0;\n        }\n    }\n\n    // SAFETY: `input` is valid.\n    if unsafe { (*input).flags as c_uint & XML_INPUT_HAS_ENCODING } == 0 {\n        // SAFETY: `input` is valid and `cur` points to readable input.\n        let first = unsafe { *(*input).cur as c_int };\n        if first < 0x80 {\n            // SAFETY: caller provides a valid `len` out-pointer.\n            unsafe { *len = 1 };\n            // SAFETY: `input` is valid and pointer comparison matches original semantics.\n            if first == 0 && unsafe { (*input).cur < (*input).end } {\n                // SAFETY: same preconditions as original function.\n                unsafe {\n                    htmlParseErrInt(\n                        ctxt,\n                        XML_ERR_INVALID_CHAR,\n                        b\"Char 0x%X out of allowed range\\n\\0\" as *const u8 as *const c_char,\n                        0,\n                    )\n                };\n                return ' ' as i32;\n            }\n            return first;\n        }\n\n        let guess = unsafe { htmlFindEncoding(ctxt) };\n        if guess.is_null() {\n            // SAFETY: same preconditions as original function.\n            unsafe { xmlSwitchEncoding(ctxt, XML_CHAR_ENCODING_8859_1) };\n        } else {\n            // SAFETY: `guess` is a valid C string returned by the library.\n            let handler = unsafe { xmlFindCharEncodingHandler(guess as *const c_char) };\n            if !handler.is_null() {\n                // SAFETY: pointers are valid C strings as in original code.\n                if unsafe {\n                    xmlStrEqual(\n                        (*handler).name as *mut xmlChar,\n                        b\"UTF-8\\0\" as *const u8 as *const c_char as *mut xmlChar,\n                    )\n                } == 0\n                {\n                    // SAFETY: handler was returned by the library and is valid.\n                    unsafe { xmlSwitchToEncoding(ctxt, handler) };\n                }\n            } else {\n                // SAFETY: same preconditions as original function.\n                unsafe {\n                    htmlParseErr(\n                        ctxt,\n                        XML_ERR_INVALID_ENCODING,\n                        b\"Unsupported encoding %s\\0\" as *const u8 as *const c_char,\n                        guess,\n                        ::core::ptr::null::<xmlChar>(),\n                    )\n                };\n            }\n            // SAFETY: `guess` was allocated by the library and must be freed with `xmlFree`.\n            unsafe { xmlFree.expect(\"non-null function pointer\")(guess as *mut c_void) };\n        }\n        // SAFETY: `input` is valid.\n        unsafe {\n            (*input).flags = ((*input).flags as c_uint | XML_INPUT_HAS_ENCODING) as c_int;\n        }\n    }\n\n    // SAFETY: `input` is valid and `cur` points to readable input.\n    let cur = unsafe { (*input).cur as *const c_uchar };\n    // SAFETY: `cur` is readable.\n    let c = unsafe { *cur };\n\n    if (c as c_int & 0x80) == 0 {\n        let ch = c as c_int;\n        // SAFETY: `input` is valid and pointer comparison matches original semantics.\n        if ch == 0 && unsafe { (*input).cur < (*input).end } {\n            // SAFETY: same preconditions as original function.\n            unsafe {\n                htmlParseErrInt(\n                    ctxt,\n                    XML_ERR_INVALID_CHAR,\n                    b\"Char 0x%X out of allowed range\\n\\0\" as *const u8 as *const c_char,\n                    0,\n                )\n            };\n            // SAFETY: caller provides a valid `len` out-pointer.\n            unsafe { *len = 1 };\n            return ' ' as i32;\n        }\n        // SAFETY: caller provides a valid `len` out-pointer.\n        unsafe { *len = 1 };\n        return ch;\n    }\n\n    let mut val: c_uint = 0;\n    // SAFETY: `input` is valid and its pointers belong to the same allocation as in the original code.\n    let avail = unsafe { (*input).end.offset_from((*input).cur) as c_long as size_t };\n\n    if (c as c_int & 0x40) != 0 && avail >= 2 {\n        // SAFETY: `avail >= 2`, so byte 1 is readable.\n        let b1 = unsafe { *cur.add(1) };\n        if (b1 as c_int & 0xc0) == 0x80 {\n            if (c as c_int & 0xe0) == 0xe0 {\n                if avail >= 3 {\n                    // SAFETY: `avail >= 3`, so byte 2 is readable.\n                    let b2 = unsafe { *cur.add(2) };\n                    if (b2 as c_int & 0xc0) == 0x80 {\n                        if (c as c_int & 0xf0) == 0xf0 {\n                            if (c as c_int & 0xf8) == 0xf0 && avail >= 4 {\n                                // SAFETY: `avail >= 4`, so byte 3 is readable.\n                                let b3 = unsafe { *cur.add(3) };\n                                if (b3 as c_int & 0xc0) == 0x80 {\n                                    // SAFETY: caller provides a valid `len` out-pointer.\n                                    unsafe { *len = 4 };\n                                    val = (((c as c_int & 0x7) << 18) as c_uint)\n                                        | (((b1 as c_int & 0x3f) << 12) as c_uint)\n                                        | (((b2 as c_int & 0x3f) << 6) as c_uint)\n                                        | ((b3 as c_int & 0x3f) as c_uint);\n                                    if val >= 0x10000 {\n                                        if (if val < 0x100 {\n                                            (0x9 as c_uint <= val && val <= 0xa as c_uint\n                                                || val == 0xd as c_uint\n                                                || 0x20 as c_uint <= val)\n                                                as c_int\n                                        } else {\n                                            (0x100 as c_uint <= val && val <= 0xd7ff as c_uint\n                                                || 0xe000 as c_uint <= val\n                                                    && val <= 0xfffd as c_uint\n                                                || 0x10000 as c_uint <= val\n                                                    && val <= 0x10ffff as c_uint)\n                                                as c_int\n                                        }) == 0\n                                        {\n                                            // SAFETY: same preconditions as original function.\n                                            unsafe {\n                                                htmlParseErrInt(\n                                                    ctxt,\n                                                    XML_ERR_INVALID_CHAR,\n                                                    b\"Char 0x%X out of allowed range\\n\\0\"\n                                                        as *const u8\n                                                        as *const c_char,\n                                                    val as c_int,\n                                                )\n                                            };\n                                        }\n                                        return val as c_int;\n                                    }\n                                }\n                            }\n                        } else {\n                            // SAFETY: caller provides a valid `len` out-pointer.\n                            unsafe { *len = 3 };\n                            val = (((c as c_int & 0xf) << 12) as c_uint)\n                                | (((b1 as c_int & 0x3f) << 6) as c_uint)\n                                | ((b2 as c_int & 0x3f) as c_uint);\n                            if val >= 0x800 {\n                                if (if val < 0x100 {\n                                    (0x9 as c_uint <= val && val <= 0xa as c_uint\n                                        || val == 0xd as c_uint\n                                        || 0x20 as c_uint <= val)\n                                        as c_int\n                                } else {\n                                    (0x100 as c_uint <= val && val <= 0xd7ff as c_uint\n                                        || 0xe000 as c_uint <= val\n                                            && val <= 0xfffd as c_uint\n                                        || 0x10000 as c_uint <= val\n                                            && val <= 0x10ffff as c_uint)\n                                        as c_int\n                                }) == 0\n                                {\n                                    // SAFETY: same preconditions as original function.\n                                    unsafe {\n                                        htmlParseErrInt(\n                                            ctxt,\n                                            XML_ERR_INVALID_CHAR,\n                                            b\"Char 0x%X out of allowed range\\n\\0\" as *const u8\n                                                as *const c_char,\n                                            val as c_int,\n                                        )\n                                    };\n                                }\n                                return val as c_int;\n                            }\n                        }\n                    }\n                }\n            } else {\n                // SAFETY: caller provides a valid `len` out-pointer.\n                unsafe { *len = 2 };\n                val = (((c as c_int & 0x1f) << 6) as c_uint) | ((b1 as c_int & 0x3f) as c_uint);\n                if val >= 0x80 {\n                    if (if val < 0x100 {\n                        (0x9 as c_uint <= val && val <= 0xa as c_uint\n                            || val == 0xd as c_uint\n                            || 0x20 as c_uint <= val)\n                            as c_int\n                    } else {\n                        (0x100 as c_uint <= val && val <= 0xd7ff as c_uint\n                            || 0xe000 as c_uint <= val && val <= 0xfffd as c_uint\n                            || 0x10000 as c_uint <= val && val <= 0x10ffff as c_uint)\n                            as c_int\n                    }) == 0\n                    {\n                        // SAFETY: same preconditions as original function.\n                        unsafe {\n                            htmlParseErrInt(\n                                ctxt,\n                                XML_ERR_INVALID_CHAR,\n                                b\"Char 0x%X out of allowed range\\n\\0\" as *const u8\n                                    as *const c_char,\n                                val as c_int,\n                            )\n                        };\n                    }\n                    return val as c_int;\n                }\n            }\n        }\n    }\n\n    let mut buffer: [c_char; 150] = [0; 150];\n    if avail >= 4 {\n        // SAFETY: `avail >= 4`, so bytes 0..=3 are readable; destination buffer is valid.\n        unsafe {\n            snprintf(\n                buffer.as_mut_ptr(),\n                149 as size_t,\n                b\"Bytes: 0x%02X 0x%02X 0x%02X 0x%02X\\n\\0\" as *const u8 as *const c_char,\n                *cur.add(0) as c_int,\n                *cur.add(1) as c_int,\n                *cur.add(2) as c_int,\n                *cur.add(3) as c_int,\n            )\n        };\n    } else {\n        // SAFETY: byte 0 is readable because the original function dereferences it here as well; destination buffer is valid.\n        unsafe {\n            snprintf(\n                buffer.as_mut_ptr(),\n                149 as size_t,\n                b\"Bytes: 0x%02X\\n\\0\" as *const u8 as *const c_char,\n                *cur.add(0) as c_int,\n            )\n        };\n    }\n\n    // SAFETY: same preconditions as original function; `buffer` is a valid NUL-terminated C string after `snprintf`.\n    unsafe {\n        htmlParseErr(\n            ctxt,\n            XML_ERR_INVALID_ENCODING,\n            b\"Input is not proper UTF-8, indicate encoding !\\n\\0\" as *const u8 as *const c_char,\n            buffer.as_mut_ptr() as *mut xmlChar,\n            ::core::ptr::null::<xmlChar>(),\n        )\n    };\n\n    // SAFETY: `input` is valid.\n    if unsafe { (*input).flags as c_uint & XML_INPUT_HAS_ENCODING } == 0 {\n        // SAFETY: same preconditions as original function.\n        unsafe { xmlSwitchEncoding(ctxt, XML_CHAR_ENCODING_8859_1) };\n    }\n    // SAFETY: caller provides a valid `len` out-pointer.\n    unsafe { *len = 1 };\n    // SAFETY: `cur` is readable.\n    unsafe { *cur as c_int }\n}",
+            "start_byte": 78885
+          }
+        ],
+        "facts": {
+          "fn_name": "htmlCurrentChar",
+          "target_span_hash": "fcabe43ed4e6e6ca8b61903171410e4abe3c45f1f9ba5db0e692e836ce00e9c7"
+        },
+        "operation_id": "replace-6737d51adff6952b"
+      }
+    ],
+    "resolved_head": "e393711b52ff56b5d2f6e5a3b897c96c5e15c440"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/HTMLparser.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

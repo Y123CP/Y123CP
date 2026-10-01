@@ -1,0 +1,1198 @@
+{
+  "hot_function": {
+    "symbol": "png_read_row",
+    "location": "src/libpng/pngread.rs:378-591",
+    "workload": "png_palette_roundtrip",
+    "hot_region": "src/libpng/pngread.rs:378-591",
+    "rust_source": "pub fn png_read_row(\n    mut png_ptr: png_structrp,\n    mut row: png_bytep,\n    mut dsp_row: png_bytep,\n) { unsafe {\n    let mut row_info: png_row_info = png_row_info {\n        width: 0,\n        rowbytes: 0,\n        color_type: 0,\n        bit_depth: 0,\n        channels: 0,\n        pixel_depth: 0,\n    };\n    if png_ptr.is_null() {\n        return;\n    }\n    if (*png_ptr).flags as c_uint & PNG_FLAG_ROW_INIT == 0 as c_uint {\n        png_read_start_row(png_ptr);\n    }\n    row_info.width = (*png_ptr).iwidth;\n    row_info.color_type = (*png_ptr).color_type;\n    row_info.bit_depth = (*png_ptr).bit_depth;\n    row_info.channels = (*png_ptr).channels;\n    row_info.pixel_depth = (*png_ptr).pixel_depth;\n    row_info.rowbytes = if row_info.pixel_depth as c_int >= 8 as c_int {\n        (row_info.width as png_size_t)\n            .wrapping_mul(row_info.pixel_depth as png_size_t >> 3 as c_int)\n    } else {\n        (row_info.width as png_size_t)\n            .wrapping_mul(row_info.pixel_depth as png_size_t)\n            .wrapping_add(7 as png_size_t)\n            >> 3 as c_int\n    };\n    (*png_ptr).row_number == 0 as c_uint\n        && (*png_ptr).pass as c_int == 0 as c_int;\n    if (*png_ptr).interlaced as c_int != 0 as c_int\n        && (*png_ptr).transformations as c_uint & PNG_INTERLACE\n            != 0 as c_uint\n    {\n        match (*png_ptr).pass as c_int {\n            0 => {\n                if (*png_ptr).row_number as c_uint & 0x7 as c_uint != 0 {\n                    if !dsp_row.is_null() {\n                        png_combine_row(png_ptr, dsp_row, 1 as c_int);\n                    }\n                    png_read_finish_row(png_ptr);\n                    return;\n                }\n            }\n            1 => {\n                if (*png_ptr).row_number as c_uint & 0x7 as c_uint != 0\n                    || (*png_ptr).width < 5 as c_uint\n                {\n                    if !dsp_row.is_null() {\n                        png_combine_row(png_ptr, dsp_row, 1 as c_int);\n                    }\n                    png_read_finish_row(png_ptr);\n                    return;\n                }\n            }\n            2 => {\n                if (*png_ptr).row_number as c_uint & 0x7 as c_uint\n                    != 4 as c_uint\n                {\n                    if !dsp_row.is_null()\n                        && (*png_ptr).row_number as c_uint & 4 as c_uint\n                            != 0\n                    {\n                        png_combine_row(png_ptr, dsp_row, 1 as c_int);\n                    }\n                    png_read_finish_row(png_ptr);\n                    return;\n                }\n            }\n            3 => {\n                if (*png_ptr).row_number as c_uint & 3 as c_uint != 0\n                    || (*png_ptr).width < 3 as c_uint\n                {\n                    if !dsp_row.is_null() {\n                        png_combine_row(png_ptr, dsp_row, 1 as c_int);\n                    }\n                    png_read_finish_row(png_ptr);\n                    return;\n                }\n            }\n            4 => {\n                if (*png_ptr).row_number as c_uint & 3 as c_uint\n                    != 2 as c_uint\n                {\n                    if !dsp_row.is_null()\n                        && (*png_ptr).row_number as c_uint & 2 as c_uint\n                            != 0\n                    {\n                        png_combine_row(png_ptr, dsp_row, 1 as c_int);\n                    }\n                    png_read_finish_row(png_ptr);\n                    return;\n                }\n            }\n            5 => {\n                if (*png_ptr).row_number as c_uint & 1 as c_uint != 0\n                    || (*png_ptr).width < 2 as c_uint\n                {\n                    if !dsp_row.is_null() {\n                        png_combine_row(png_ptr, dsp_row, 1 as c_int);\n                    }\n                    png_read_finish_row(png_ptr);\n                    return;\n                }\n            }\n            6 | _ => {\n                if (*png_ptr).row_number as c_uint & 1 as c_uint\n                    == 0 as c_uint\n                {\n                    png_read_finish_row(png_ptr);\n                    return;\n                }\n            }\n        }\n    }\n    if (*png_ptr).mode as c_uint & PNG_HAVE_IDAT == 0 as c_uint {\n        png_error(\n            png_ptr,\n            b\"Invalid attempt to read row data\\0\" as *const u8 as png_const_charp,\n        );\n    }\n    *(*png_ptr).row_buf.offset(0 as c_int as isize) = 255 as png_byte;\n    png_read_IDAT_data(\n        png_ptr,\n        (*png_ptr).row_buf,\n        (row_info.rowbytes as png_alloc_size_t).wrapping_add(1 as png_alloc_size_t),\n    );\n    if *(*png_ptr).row_buf.offset(0 as c_int as isize) as c_int\n        > PNG_FILTER_VALUE_NONE\n    {\n        if (*(*png_ptr).row_buf.offset(0 as c_int as isize) as c_int)\n            < PNG_FILTER_VALUE_LAST\n        {\n            png_read_filter_row(\n                png_ptr,\n                &raw mut row_info,\n                (*png_ptr).row_buf.offset(1 as c_int as isize),\n                (*png_ptr).prev_row.offset(1 as c_int as isize) as png_const_bytep,\n                *(*png_ptr).row_buf.offset(0 as c_int as isize) as c_int,\n            );\n        } else {\n            png_error(\n                png_ptr,\n                b\"bad adaptive filter value\\0\" as *const u8 as png_const_charp,\n            );\n        }\n    }\n    memcpy(\n        (*png_ptr).prev_row as *mut c_void,\n        (*png_ptr).row_buf as *const c_void,\n        (row_info.rowbytes as size_t).wrapping_add(1 as size_t),\n    );\n    if (*png_ptr).transformations != 0 {\n        png_do_read_transformations(png_ptr, &raw mut row_info);\n    }\n    if (*png_ptr).transformed_pixel_depth as c_int == 0 as c_int {\n        (*png_ptr).transformed_pixel_depth = row_info.pixel_depth;\n        if row_info.pixel_depth as c_int\n            > (*png_ptr).maximum_pixel_depth as c_int\n        {\n            png_error(\n                png_ptr,\n                b\"sequential row overflow\\0\" as *const u8 as png_const_charp,\n            );\n        }\n    } else if (*png_ptr).transformed_pixel_depth as c_int\n        != row_info.pixel_depth as c_int\n    {\n        png_error(\n            png_ptr,\n            b\"internal sequential row size calculation error\\0\" as *const u8 as png_const_charp,\n        );\n    }\n    if (*png_ptr).interlaced as c_int != 0 as c_int\n        && (*png_ptr).transformations as c_uint & PNG_INTERLACE\n            != 0 as c_uint\n    {\n        if ((*png_ptr).pass as c_int) < 6 as c_int {\n            png_do_read_interlace(\n                &raw mut row_info,\n                (*png_ptr).row_buf.offset(1 as c_int as isize),\n                (*png_ptr).pass as c_int,\n                (*png_ptr).transformations,\n            );\n        }\n        if !dsp_row.is_null() {\n            png_combine_row(png_ptr, dsp_row, 1 as c_int);\n        }\n        if !row.is_null() {\n            png_combine_row(png_ptr, row, 0 as c_int);\n        }\n    } else {\n        if !row.is_null() {\n            png_combine_row(png_ptr, row, -(1 as c_int));\n        }\n        if !dsp_row.is_null() {\n            png_combine_row(png_ptr, dsp_row, -(1 as c_int));\n        }\n    }\n    png_read_finish_row(png_ptr);\n    if (*png_ptr).read_row_fn.is_some() {\n        Some((*png_ptr).read_row_fn.expect(\"non-null function pointer\"))\n            .expect(\"non-null function pointer\")(\n            png_ptr as png_structp,\n            (*png_ptr).row_number,\n            (*png_ptr).pass as c_int,\n        );\n    }\n} }",
+    "signature": "pub fn png_read_row(\n    mut png_ptr: png_structrp,\n    mut row: png_bytep,\n    mut dsp_row: png_bytep,\n)",
+    "profile": {
+      "self_time_ratio": 0.0315,
+      "call_count": null,
+      "retired_instructions": 697481941,
+      "instructions_per_call": null,
+      "cpi": 0.27,
+      "tma": {
+        "scope": "process",
+        "retiring": 61.96259108596522,
+        "frontend_bound": 25.706056873302018,
+        "bad_speculation": 2.303737076310097,
+        "backend_bound": 10.027614964422664,
+        "memory_bound": 7.857355224782812,
+        "core_bound": 2.170259739639852,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.002
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 395,
+        "message": "'png_read_start_row' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE' because too costly to inline (cost=1900, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 423,
+        "message": "'png_read_finish_row' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE' because too costly to inline (cost=490, threshold=45)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 434,
+        "message": "'png_read_finish_row' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE' because too costly to inline (cost=490, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 448,
+        "message": "'png_read_finish_row' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE' because too costly to inline (cost=490, threshold=45)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 459,
+        "message": "'png_read_finish_row' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE' because too costly to inline (cost=490, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 473,
+        "message": "'png_read_finish_row' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE' because too costly to inline (cost=490, threshold=45)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 484,
+        "message": "'png_read_finish_row' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE' because too costly to inline (cost=490, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 492,
+        "message": "'png_read_finish_row' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE' because too costly to inline (cost=490, threshold=45)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 499,
+        "message": "'png_error' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE' because too costly to inline (cost=25, threshold=0)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 505,
+        "message": "'png_read_IDAT_data' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE' because too costly to inline (cost=1860, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 524,
+        "message": "'png_error' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE' because too costly to inline (cost=25, threshold=0)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 516,
+        "message": "'png_read_filter_row' inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE' with (cost=100, threshold=250) at callsite _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE:138:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 536,
+        "message": "'png_do_read_transformations' inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE' with (cost=145, threshold=250) at callsite _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE:158:9;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 543,
+        "message": "'png_error' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE' because too costly to inline (cost=25, threshold=0)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 551,
+        "message": "'png_error' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE' because too costly to inline (cost=25, threshold=0)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 576,
+        "message": "'png_combine_row' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE' because too costly to inline (cost=365, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 582,
+        "message": "'png_read_finish_row' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE' because too costly to inline (cost=490, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 561,
+        "message": "'_ZN21optipng_0_7_7_cleaned3src6libpng8pngrutil21png_do_read_interlace17hf1c0203800786713E' inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE' with (cost=-14225, threshold=325) at callsite _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE:183:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 572,
+        "message": "'png_combine_row' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE' because too costly to inline (cost=1170, threshold=250)"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 397,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 398,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 399,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 400,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 401,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 413,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 414,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 417,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 478,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 479,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 464,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 453,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 454,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 439,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 428,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 429,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 419,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 489,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 498,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 504,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 507,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 508,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 510,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 510,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 520,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 531,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 532,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 532,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 533,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 533,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 535,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 538,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 549,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 539,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 541,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 556,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 557,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 560,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 563,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 587,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 588,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 582,
+        "message": "'png_read_finish_row' inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread14png_read_image17h8511a1e538602f4cE' with (cost=490, threshold=525) at callsite _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE:204:5 @ _ZN21optipng_0_7_7_cleaned3src6libpng7pngread14png_read_image17h8511a1e538602f4cE:32:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 551,
+        "message": "'png_error' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread14png_read_image17h8511a1e538602f4cE' because too costly to inline (cost=25, threshold=0)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 543,
+        "message": "'png_error' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread14png_read_image17h8511a1e538602f4cE' because too costly to inline (cost=25, threshold=0)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 524,
+        "message": "'png_error' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread14png_read_image17h8511a1e538602f4cE' because too costly to inline (cost=25, threshold=0)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 505,
+        "message": "'png_read_IDAT_data' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread14png_read_image17h8511a1e538602f4cE' because too costly to inline (cost=1860, threshold=525)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 499,
+        "message": "'png_error' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread14png_read_image17h8511a1e538602f4cE' because too costly to inline (cost=25, threshold=0)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 395,
+        "message": "'png_read_start_row' not inlined into '_ZN21optipng_0_7_7_cleaned3src6libpng7pngread14png_read_image17h8511a1e538602f4cE' because too costly to inline (cost=1900, threshold=525)"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 394,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 383,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 397,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 397,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 398,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 398,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 399,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 399,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 400,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 400,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 401,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 401,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 413,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 413,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 414,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 414,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 417,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 417,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 478,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 478,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 479,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 479,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 464,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 464,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 453,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 453,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 454,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 454,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 439,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 439,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 428,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 428,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 429,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 429,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 419,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 419,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 489,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 489,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 498,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 498,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 504,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 504,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 507,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 508,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 510,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 520,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 520,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 532,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 533,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 531,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 531,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 535,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 535,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 538,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 538,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 541,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 541,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 556,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 557,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 560,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 560,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 563,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 587,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 587,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 588,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 588,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 394,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 551,
+        "message": "'png_error' not inlined into 'png_read_png' because too costly to inline (cost=25, threshold=0)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 543,
+        "message": "'png_error' not inlined into 'png_read_png' because too costly to inline (cost=25, threshold=0)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 524,
+        "message": "'png_error' not inlined into 'png_read_png' because too costly to inline (cost=25, threshold=0)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 499,
+        "message": "'png_error' not inlined into 'png_read_png' because too costly to inline (cost=25, threshold=0)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 505,
+        "message": "'png_read_IDAT_data' not inlined into 'png_read_png' because too costly to inline (cost=1860, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 395,
+        "message": "'png_read_start_row' not inlined into 'png_read_png' because too costly to inline (cost=1900, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 395,
+        "message": "png_read_start_row will not be inlined into _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 423,
+        "message": "png_read_finish_row will not be inlined into _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 434,
+        "message": "png_read_finish_row will not be inlined into _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 448,
+        "message": "png_read_finish_row will not be inlined into _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 459,
+        "message": "png_read_finish_row will not be inlined into _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 473,
+        "message": "png_read_finish_row will not be inlined into _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 484,
+        "message": "png_read_finish_row will not be inlined into _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 492,
+        "message": "png_read_finish_row will not be inlined into _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 499,
+        "message": "png_error will not be inlined into _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 505,
+        "message": "png_read_IDAT_data will not be inlined into _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 524,
+        "message": "png_error will not be inlined into _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 516,
+        "message": "png_read_filter_row will not be inlined into _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 536,
+        "message": "png_do_read_transformations will not be inlined into _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 543,
+        "message": "png_error will not be inlined into _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 551,
+        "message": "png_error will not be inlined into _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 576,
+        "message": "png_combine_row will not be inlined into _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 582,
+        "message": "png_read_finish_row will not be inlined into _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 572,
+        "message": "png_combine_row will not be inlined into _ZN21optipng_0_7_7_cleaned3src6libpng7pngread12png_read_row17h9dcb360eef9e7f4fE because its definition is unavailable"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 395,
+        "message": "BasicBlock: bb3.i14.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 397,
+        "message": "BasicBlock: bb5.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 404,
+        "message": "BasicBlock: bb6.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 414,
+        "message": "BasicBlock: bb9.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 498,
+        "message": "BasicBlock: bb72.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 513,
+        "message": "BasicBlock: bb76.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 531,
+        "message": "BasicBlock: bb81.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 538,
+        "message": "BasicBlock: bb86.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 548,
+        "message": "BasicBlock: bb90.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 417,
+        "message": "BasicBlock: bb10.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 419,
+        "message": "BasicBlock: bb11.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 539,
+        "message": "BasicBlock: bb87.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 556,
+        "message": "BasicBlock: bb93.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 557,
+        "message": "BasicBlock: bb94.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 587,
+        "message": "BasicBlock: bb127.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 560,
+        "message": "BasicBlock: bb95.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 563,
+        "message": "BasicBlock: bb96.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 464,
+        "message": "BasicBlock: bb47.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 439,
+        "message": "BasicBlock: bb28.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 428,
+        "message": "BasicBlock: bb18.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 429,
+        "message": "BasicBlock: bb20.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 453,
+        "message": "BasicBlock: bb37.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 454,
+        "message": "BasicBlock: bb39.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 489,
+        "message": "BasicBlock: bb66.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 478,
+        "message": "BasicBlock: bb56.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 479,
+        "message": "BasicBlock: bb58.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 499,
+        "message": "BasicBlock: bb73.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 524,
+        "message": "BasicBlock: bb79.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 551,
+        "message": "BasicBlock: bb91.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 543,
+        "message": "BasicBlock: bb88.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 395,
+        "message": "BasicBlock: bb3.i5.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 531,
+        "message": "BasicBlock: bb81.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 563,
+        "message": "BasicBlock: bb96.i.us.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 499,
+        "message": "BasicBlock: bb73.i.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

@@ -1,0 +1,213 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.07912787889161979,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.21606312840509342,
+            "aggregate_ci_low_pct": -0.374318886188333,
+            "aggregate_pct": -0.07912787889161979,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.0106,
+                "ci_low_pct": -0.028,
+                "insns_delta_pct": -0.0056,
+                "mean_delta_pct": -0.0087,
+                "op": "api_sweep",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.1795,
+                "ci_low_pct": -0.4423,
+                "insns_delta_pct": 0.0392,
+                "mean_delta_pct": -0.1314,
+                "op": "decode_buffer",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.3019,
+                "ci_low_pct": -0.0423,
+                "insns_delta_pct": 0.0242,
+                "mean_delta_pct": 0.1298,
+                "op": "encode_buffer",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 1.2708,
+                "ci_low_pct": -2.1342,
+                "insns_delta_pct": -1.0293,
+                "mean_delta_pct": -0.4317,
+                "op": "lowlevel_probe",
+                "samples": 10,
+                "state": "active",
+                "stop_reason": "max_samples"
+              },
+              {
+                "ci_high_pct": 0.011,
+                "ci_low_pct": -0.0831,
+                "insns_delta_pct": -0.0004,
+                "mean_delta_pct": -0.0361,
+                "op": "shared_dict_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.5441,
+                "ci_low_pct": -0.5374,
+                "insns_delta_pct": -0.0284,
+                "mean_delta_pct": 0.0033,
+                "op": "stream_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.20628642621238874,
+            "aggregate_ci_low_pct": -0.2979802517366457,
+            "aggregate_pct": -0.04584691276212849,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.2063,
+                "ci_low_pct": -0.298,
+                "insns_delta_pct": 0.0161,
+                "mean_delta_pct": -0.0458,
+                "op": "decode_buffer",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "decode_buffer"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "encode_buffer"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be",
+      "changeset_id": "legacy-21c731dc5c12a6b3",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-545cf7c0572846bc",
+          "replacement_function_source": "#[inline(always)]\nunsafe fn ReadCommandInternal(\n    mut safe: c_int,\n    mut s: *mut BrotliDecoderStateInternal,\n    mut br: *mut BrotliBitReader,\n    mut insert_length: *mut c_int,\n) -> c_int {\n    let mut cmd_code: uint64_t;\n    let mut insert_len_extra: uint64_t = 0;\n    let mut copy_length: uint64_t = 0;\n    let mut memento: BrotliBitReaderState = BrotliBitReaderState {\n        val_: 0,\n        bit_pos_: 0,\n        next_in: ::core::ptr::null::<uint8_t>(),\n        avail_in: 0,\n    };\n\n    if safe == 0 {\n        cmd_code = ReadSymbol((*s).htree_command, br);\n    } else {\n        BrotliBitReaderSaveState(br, &raw mut memento);\n        cmd_code = 0;\n        if SafeReadSymbol((*s).htree_command, br, &raw mut cmd_code) == 0 {\n            return BROTLI_FALSE;\n        }\n    }\n\n    let v = kCmdLut[cmd_code as usize];\n    (*s).distance_code = v.distance_code as c_int;\n    let distance_context = v.context as c_int;\n    (*s).distance_context = distance_context;\n    (*s).dist_htree_index = *(*s).dist_context_map_slice.offset(distance_context as isize);\n    *insert_length = v.insert_len_offset as c_int;\n\n    if safe == 0 {\n        let insert_bits = v.insert_len_extra_bits as uint64_t;\n        if insert_bits != 0 {\n            insert_len_extra = BrotliReadBits24(br, insert_bits);\n        }\n        copy_length = BrotliReadBits24(br, v.copy_len_extra_bits as uint64_t);\n    } else {\n        if SafeReadBits(\n            br,\n            v.insert_len_extra_bits as uint64_t,\n            &raw mut insert_len_extra,\n        ) == 0\n            || SafeReadBits(br, v.copy_len_extra_bits as uint64_t, &raw mut copy_length) == 0\n        {\n            BrotliBitReaderRestoreState(br, &raw mut memento);\n            return BROTLI_FALSE;\n        }\n    }\n\n    (*s).copy_length = copy_length as c_int + v.copy_len_offset as c_int;\n    (*s).block_length[1] = (*s).block_length[1].wrapping_sub(1);\n    *insert_length += insert_len_extra as c_int;\n    BROTLI_TRUE\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "9f3d571240ebfe26472153c351fd76f376c72ec04605c5cf38cf220c79d70265",
+            "file_hint": "src/dec/decode.rs",
+            "qualified_name": "crate::ReadCommandInternal",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "ReadCommandInternal-b9743f195094",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "ReadCommandInternal",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "edafc6fb2079b4e565556d00c156d82afc8c6988ffb0988beb0552b5bcbb6c7d",
+            "edit_id": "edit-replace-545cf7c0572846bc",
+            "end_byte": 109786,
+            "operation_id": "replace-545cf7c0572846bc",
+            "relative_path": "src/dec/decode.rs",
+            "replacement_text": "#[inline(always)]\nunsafe fn ReadCommandInternal(\n    mut safe: c_int,\n    mut s: *mut BrotliDecoderStateInternal,\n    mut br: *mut BrotliBitReader,\n    mut insert_length: *mut c_int,\n) -> c_int {\n    let mut cmd_code: uint64_t;\n    let mut insert_len_extra: uint64_t = 0;\n    let mut copy_length: uint64_t = 0;\n    let mut memento: BrotliBitReaderState = BrotliBitReaderState {\n        val_: 0,\n        bit_pos_: 0,\n        next_in: ::core::ptr::null::<uint8_t>(),\n        avail_in: 0,\n    };\n\n    if safe == 0 {\n        cmd_code = ReadSymbol((*s).htree_command, br);\n    } else {\n        BrotliBitReaderSaveState(br, &raw mut memento);\n        cmd_code = 0;\n        if SafeReadSymbol((*s).htree_command, br, &raw mut cmd_code) == 0 {\n            return BROTLI_FALSE;\n        }\n    }\n\n    let v = kCmdLut[cmd_code as usize];\n    (*s).distance_code = v.distance_code as c_int;\n    let distance_context = v.context as c_int;\n    (*s).distance_context = distance_context;\n    (*s).dist_htree_index = *(*s).dist_context_map_slice.offset(distance_context as isize);\n    *insert_length = v.insert_len_offset as c_int;\n\n    if safe == 0 {\n        let insert_bits = v.insert_len_extra_bits as uint64_t;\n        if insert_bits != 0 {\n            insert_len_extra = BrotliReadBits24(br, insert_bits);\n        }\n        copy_length = BrotliReadBits24(br, v.copy_len_extra_bits as uint64_t);\n    } else {\n        if SafeReadBits(\n            br,\n            v.insert_len_extra_bits as uint64_t,\n            &raw mut insert_len_extra,\n        ) == 0\n            || SafeReadBits(br, v.copy_len_extra_bits as uint64_t, &raw mut copy_length) == 0\n        {\n            BrotliBitReaderRestoreState(br, &raw mut memento);\n            return BROTLI_FALSE;\n        }\n    }\n\n    (*s).copy_length = copy_length as c_int + v.copy_len_offset as c_int;\n    (*s).block_length[1] = (*s).block_length[1].wrapping_sub(1);\n    *insert_length += insert_len_extra as c_int;\n    BROTLI_TRUE\n}",
+            "start_byte": 107590
+          }
+        ],
+        "facts": {
+          "fn_name": "ReadCommandInternal",
+          "target_span_hash": "9f3d571240ebfe26472153c351fd76f376c72ec04605c5cf38cf220c79d70265"
+        },
+        "operation_id": "replace-545cf7c0572846bc"
+      }
+    ],
+    "resolved_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/dec/decode.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 15.939201978513589,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 16.79431139965246,
+            "aggregate_ci_low_pct": 15.084092557374717,
+            "aggregate_pct": 15.939201978513589,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 16.7943,
+                "ci_low_pct": 15.0841,
+                "insns_delta_pct": 6.7371,
+                "mean_delta_pct": 15.9392,
+                "op": "bitset_and_ratio",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "bitset_and_ratio"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "bitset_and_ratio"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "9712f882f8b2b0594f435335fe2f6680694157cf",
+      "changeset_id": "legacy-5704871b964b585c",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-ad078198e7cbba06",
+          "replacement_function_source": "// Applied rules: [III④, II_vec, III③, C3]\n// Skipped rules: [C4: The loop is a parser over a NUL-terminated C string with per-byte state-machine work, digit accumulation, delimiter handling, and whitespace classification; it is not a pure byte-scan/equality cursor loop, so word-at-a-time widening would not match the rule's safety/perf envelope. No concrete C4 hit will be addressed.; III③: __errno_location hits [14, 15] are not manual memory/string operations in scope for this rule; replacing them would be semantic/API churn rather than the intended mem/string rewrite.; C3: Signature-lift S1 is abstained because this function is #[no_mangle] pub unsafe extern \"C\" and changing pointer parameters to references/slices would break the C ABI.]\n#[no_mangle]\npub unsafe extern \"C\" fn opng_strparse_rangeset_to_bitset(\n    mut out_set: *mut opng_bitset_t,\n    mut rangeset_str: *const c_char,\n    mut mask_set: opng_bitset_t,\n) -> c_int {\n    let mut result: opng_bitset_t = OPNG_BITSET_EMPTY as opng_bitset_t;\n    let mut state: c_int = 0;\n    let mut num1: c_int = -(1 as c_int);\n    let mut num2: c_int = -(1 as c_int);\n    let mut err_invalid: c_int = 0;\n    let mut err_range: c_int = 0;\n\n    // SAFETY: caller guarantees `rangeset_str` is non-null and points to a valid\n    // NUL-terminated C string within one allocation; this function only reads it,\n    // and no Rust references to the same storage are created elsewhere here.\n    let bytes = unsafe { core::ffi::CStr::from_ptr(rangeset_str).to_bytes() };\n    let len = bytes.len();\n    let mut idx: usize = 0;\n\n    #[inline(always)]\n    fn is_space_byte(b: u8) -> bool {\n        matches!(b, b' ' | b'\\t' | b'\\n' | b'\\r' | 0x0b | 0x0c)\n    }\n\n    loop {\n        while idx < len {\n            let b = unsafe { *bytes.get_unchecked(idx) };\n            if !is_space_byte(b) {\n                break;\n            }\n            idx += 1;\n        }\n\n        let cur = if idx < len {\n            unsafe { *bytes.get_unchecked(idx) }\n        } else {\n            0\n        };\n\n        if state == 1 && cur == b'-' {\n            idx += 1;\n            num2 = OPNG_BITSET_ELT_MAX as c_int;\n            state += 1;\n            continue;\n        }\n\n        if (state == 0 || state == 2) && cur >= b'0' && cur <= b'9' {\n            let mut num: c_int = 0;\n            loop {\n                let digit = if idx < len {\n                    unsafe { *bytes.get_unchecked(idx) }\n                } else {\n                    0\n                };\n                if !(digit >= b'0' && digit <= b'9') {\n                    break;\n                }\n                num = 10 as c_int * num + (digit as c_int - '0' as i32);\n                if num > OPNG_BITSET_ELT_MAX as c_int {\n                    num = OPNG_BITSET_ELT_MAX as c_int;\n                    err_range = 1 as c_int;\n                }\n                idx += 1;\n            }\n            if !(mask_set as c_uint & (1 as c_uint) << num != 0 as c_uint) {\n                err_range = 1 as c_int;\n            }\n            if state == 0 as c_int {\n                num1 = num;\n            }\n            num2 = num;\n            state += 1;\n            continue;\n        }\n\n        if state > 0 as c_int {\n            if num1 <= num2 {\n                result |= if num1 <= num2 {\n                    ((1 as c_uint) << num2 - num1 << 1 as c_int).wrapping_sub(1 as c_uint) << num1\n                } else {\n                    0 as c_uint\n                };\n                result &= mask_set as c_uint;\n            } else {\n                err_range = 1 as c_int;\n            }\n            state = 0 as c_int;\n        }\n\n        let cur = if idx < len {\n            unsafe { *bytes.get_unchecked(idx) }\n        } else {\n            0\n        };\n        if cur == b',' || cur == b';' {\n            idx += 1;\n        } else {\n            if !(cur == b'-') {\n                break;\n            }\n            err_invalid = 1 as c_int;\n            break;\n        }\n    }\n\n    while idx < len {\n        let b = unsafe { *bytes.get_unchecked(idx) };\n        if !is_space_byte(b) {\n            break;\n        }\n        idx += 1;\n    }\n\n    if idx != len {\n        err_invalid = 1 as c_int;\n    }\n\n    if err_invalid != 0 {\n        *__errno_location() = EINVAL;\n        *out_set = OPNG_BITSET_EMPTY as opng_bitset_t;\n        return -(1 as c_int);\n    } else if err_range != 0 {\n        *__errno_location() = ERANGE;\n        *out_set = OPNG_BITSET_FULL as opng_bitset_t;\n        return -(1 as c_int);\n    } else {\n        *out_set = result;\n        return 0 as c_int;\n    };\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "1c9b8d47b3c7022944ef0c4f46759600fbe8be826f25c167c3ec05c25524e919",
+            "file_hint": "src/optipng/bitset.rs",
+            "qualified_name": "crate::opng_strparse_rangeset_to_bitset",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "opng_strparse_rangeset_to_bitset-6d8b3838f344",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "opng_strparse_rangeset_to_bitset",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "ca22d1c464075adba50a7edd38ed3d673aca3c34b5eb5da54f3df9e0438bacfc",
+            "edit_id": "edit-replace-ad078198e7cbba06",
+            "end_byte": 6226,
+            "operation_id": "replace-ad078198e7cbba06",
+            "relative_path": "src/optipng/bitset.rs",
+            "replacement_text": "// Applied rules: [III④, II_vec, III③, C3]\n// Skipped rules: [C4: The loop is a parser over a NUL-terminated C string with per-byte state-machine work, digit accumulation, delimiter handling, and whitespace classification; it is not a pure byte-scan/equality cursor loop, so word-at-a-time widening would not match the rule's safety/perf envelope. No concrete C4 hit will be addressed.; III③: __errno_location hits [14, 15] are not manual memory/string operations in scope for this rule; replacing them would be semantic/API churn rather than the intended mem/string rewrite.; C3: Signature-lift S1 is abstained because this function is #[no_mangle] pub unsafe extern \"C\" and changing pointer parameters to references/slices would break the C ABI.]\n#[no_mangle]\npub unsafe extern \"C\" fn opng_strparse_rangeset_to_bitset(\n    mut out_set: *mut opng_bitset_t,\n    mut rangeset_str: *const c_char,\n    mut mask_set: opng_bitset_t,\n) -> c_int {\n    let mut result: opng_bitset_t = OPNG_BITSET_EMPTY as opng_bitset_t;\n    let mut state: c_int = 0;\n    let mut num1: c_int = -(1 as c_int);\n    let mut num2: c_int = -(1 as c_int);\n    let mut err_invalid: c_int = 0;\n    let mut err_range: c_int = 0;\n\n    // SAFETY: caller guarantees `rangeset_str` is non-null and points to a valid\n    // NUL-terminated C string within one allocation; this function only reads it,\n    // and no Rust references to the same storage are created elsewhere here.\n    let bytes = unsafe { core::ffi::CStr::from_ptr(rangeset_str).to_bytes() };\n    let len = bytes.len();\n    let mut idx: usize = 0;\n\n    #[inline(always)]\n    fn is_space_byte(b: u8) -> bool {\n        matches!(b, b' ' | b'\\t' | b'\\n' | b'\\r' | 0x0b | 0x0c)\n    }\n\n    loop {\n        while idx < len {\n            let b = unsafe { *bytes.get_unchecked(idx) };\n            if !is_space_byte(b) {\n                break;\n            }\n            idx += 1;\n        }\n\n        let cur = if idx < len {\n            unsafe { *bytes.get_unchecked(idx) }\n        } else {\n            0\n        };\n\n        if state == 1 && cur == b'-' {\n            idx += 1;\n            num2 = OPNG_BITSET_ELT_MAX as c_int;\n            state += 1;\n            continue;\n        }\n\n        if (state == 0 || state == 2) && cur >= b'0' && cur <= b'9' {\n            let mut num: c_int = 0;\n            loop {\n                let digit = if idx < len {\n                    unsafe { *bytes.get_unchecked(idx) }\n                } else {\n                    0\n                };\n                if !(digit >= b'0' && digit <= b'9') {\n                    break;\n                }\n                num = 10 as c_int * num + (digit as c_int - '0' as i32);\n                if num > OPNG_BITSET_ELT_MAX as c_int {\n                    num = OPNG_BITSET_ELT_MAX as c_int;\n                    err_range = 1 as c_int;\n                }\n                idx += 1;\n            }\n            if !(mask_set as c_uint & (1 as c_uint) << num != 0 as c_uint) {\n                err_range = 1 as c_int;\n            }\n            if state == 0 as c_int {\n                num1 = num;\n            }\n            num2 = num;\n            state += 1;\n            continue;\n        }\n\n        if state > 0 as c_int {\n            if num1 <= num2 {\n                result |= if num1 <= num2 {\n                    ((1 as c_uint) << num2 - num1 << 1 as c_int).wrapping_sub(1 as c_uint) << num1\n                } else {\n                    0 as c_uint\n                };\n                result &= mask_set as c_uint;\n            } else {\n                err_range = 1 as c_int;\n            }\n            state = 0 as c_int;\n        }\n\n        let cur = if idx < len {\n            unsafe { *bytes.get_unchecked(idx) }\n        } else {\n            0\n        };\n        if cur == b',' || cur == b';' {\n            idx += 1;\n        } else {\n            if !(cur == b'-') {\n                break;\n            }\n            err_invalid = 1 as c_int;\n            break;\n        }\n    }\n\n    while idx < len {\n        let b = unsafe { *bytes.get_unchecked(idx) };\n        if !is_space_byte(b) {\n            break;\n        }\n        idx += 1;\n    }\n\n    if idx != len {\n        err_invalid = 1 as c_int;\n    }\n\n    if err_invalid != 0 {\n        *__errno_location() = EINVAL;\n        *out_set = OPNG_BITSET_EMPTY as opng_bitset_t;\n        return -(1 as c_int);\n    } else if err_range != 0 {\n        *__errno_location() = ERANGE;\n        *out_set = OPNG_BITSET_FULL as opng_bitset_t;\n        return -(1 as c_int);\n    } else {\n        *out_set = result;\n        return 0 as c_int;\n    };\n}",
+            "start_byte": 2172
+          }
+        ],
+        "facts": {
+          "fn_name": "opng_strparse_rangeset_to_bitset",
+          "target_span_hash": "1c9b8d47b3c7022944ef0c4f46759600fbe8be826f25c167c3ec05c25524e919"
+        },
+        "operation_id": "replace-ad078198e7cbba06"
+      }
+    ],
+    "resolved_head": "9712f882f8b2b0594f435335fe2f6680694157cf"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/optipng/bitset.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "introduced_scan",
+      "detail": "rewrite builds a view whose length must be scanned for, which the original did not do: let bytes = unsafe { core::ffi::CStr::from_ptr(rangeset_str).to_bytes(",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.7563835362837121,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 1.568692671254679,
+            "aggregate_ci_low_pct": -0.05592559868725455,
+            "aggregate_pct": 0.7563835362837121,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 1.5687,
+                "ci_low_pct": -0.0559,
+                "insns_delta_pct": 0.306,
+                "mean_delta_pct": 0.7564,
+                "op": "color_convert",
+                "samples": 40,
+                "state": "active",
+                "stop_reason": "per_op_uncertain"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "color_convert"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "color_convert"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "5bfc4d62914268a805f55c10b462300d9b3ac808",
+      "changeset_id": "legacy-002a6f5de480be3b",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-c94f48ec0d7bb161",
+          "replacement_function_source": "unsafe fn addColorBits(\n    mut out: *mut c_uchar,\n    mut index: size_t,\n    mut bits: c_uint,\n    mut in_0: c_uint,\n) {\n    let m: c_uint = if bits == 1 as c_uint {\n        7 as c_uint\n    } else if bits == 2 as c_uint {\n        3 as c_uint\n    } else {\n        1 as c_uint\n    };\n    let p: c_uint = (index & m as size_t) as c_uint;\n    let byte_index = index.wrapping_mul(bits as size_t).wrapping_div(8 as size_t);\n    in_0 &= ((1 as c_uint) << bits).wrapping_sub(1 as c_uint);\n    in_0 <<= bits.wrapping_mul(m.wrapping_sub(p));\n    let ptr = out.offset(byte_index as isize);\n    if p == 0 as c_uint {\n        // SAFETY: caller upholds that `out` is valid for writes at the computed byte offset.\n        *ptr = in_0 as c_uchar;\n    } else {\n        // SAFETY: caller upholds that `out` is valid for reads/writes at the computed byte offset.\n        *ptr = (*ptr as c_uint | in_0) as c_uchar;\n    };\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "3fc4d1e77c395526919f588f194e9cc2a898bc63251dc4d66299df4e31a57b94",
+            "file_hint": "src/lodepng.rs",
+            "qualified_name": "crate::addColorBits",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "addColorBits-55af4f9c6a21",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "addColorBits",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "7a5e9fe28ef6643edfc79f298a5bb5a174390378ed9a03938baf5dfaff149c42",
+            "edit_id": "edit-replace-c94f48ec0d7bb161",
+            "end_byte": 239535,
+            "operation_id": "replace-c94f48ec0d7bb161",
+            "relative_path": "src/lodepng.rs",
+            "replacement_text": "unsafe fn addColorBits(\n    mut out: *mut c_uchar,\n    mut index: size_t,\n    mut bits: c_uint,\n    mut in_0: c_uint,\n) {\n    let m: c_uint = if bits == 1 as c_uint {\n        7 as c_uint\n    } else if bits == 2 as c_uint {\n        3 as c_uint\n    } else {\n        1 as c_uint\n    };\n    let p: c_uint = (index & m as size_t) as c_uint;\n    let byte_index = index.wrapping_mul(bits as size_t).wrapping_div(8 as size_t);\n    in_0 &= ((1 as c_uint) << bits).wrapping_sub(1 as c_uint);\n    in_0 <<= bits.wrapping_mul(m.wrapping_sub(p));\n    let ptr = out.offset(byte_index as isize);\n    if p == 0 as c_uint {\n        // SAFETY: caller upholds that `out` is valid for writes at the computed byte offset.\n        *ptr = in_0 as c_uchar;\n    } else {\n        // SAFETY: caller upholds that `out` is valid for reads/writes at the computed byte offset.\n        *ptr = (*ptr as c_uint | in_0) as c_uchar;\n    };\n}",
+            "start_byte": 238708
+          }
+        ],
+        "facts": {
+          "fn_name": "addColorBits",
+          "target_span_hash": "3fc4d1e77c395526919f588f194e9cc2a898bc63251dc4d66299df4e31a57b94"
+        },
+        "operation_id": "replace-c94f48ec0d7bb161"
+      }
+    ],
+    "resolved_head": "5bfc4d62914268a805f55c10b462300d9b3ac808"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/lodepng.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

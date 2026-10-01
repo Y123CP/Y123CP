@@ -1,0 +1,591 @@
+{
+  "hot_function": {
+    "symbol": "LZ4HC_compress_optimal",
+    "location": "src/lz4hc.rs:2849-3296",
+    "workload": "compress_hc_decompress",
+    "hot_region": "src/lz4hc.rs:2849-3296",
+    "rust_source": "unsafe fn LZ4HC_compress_optimal(\n    mut ctx: *mut LZ4HC_CCtx_internal,\n    source: *const c_char,\n    mut dst: *mut c_char,\n    mut srcSizePtr: *mut c_int,\n    mut dstCapacity: c_int,\n    nbSearches: c_int,\n    mut sufficient_len: size_t,\n    limit: limitedOutput_directive,\n    fullUpdate: c_int,\n    dict: dictCtx_directive,\n    favorDecSpeed: HCfavor_e,\n) -> c_int {\n    let srcSizePtr_view: &mut c_int = unsafe { &mut *srcSizePtr };\n    let mut current_block: u64;\n    let mut retval: c_int = 0 as c_int;\n    let opt: *mut LZ4HC_optimal_t = malloc(\n        (::core::mem::size_of::<LZ4HC_optimal_t>() as size_t).wrapping_mul(\n            (((1 as c_int) << 12 as c_int) + 3 as c_int)\n                as size_t,\n        ),\n    ) as *mut LZ4HC_optimal_t;\n    let mut ip_0: *const BYTE = source as *const BYTE;\n    let mut anchor_0: *const BYTE = ip_0;\n    let iend: *const BYTE = ip_0.offset(*srcSizePtr_view as isize);\n    let mflimit: *const BYTE = iend.offset(-(MFLIMIT as isize));\n    let matchlimit: *const BYTE = iend.offset(-(LASTLITERALS as isize));\n    let mut op_0: *mut BYTE = dst as *mut BYTE;\n    let mut opSaved: *mut BYTE = dst as *mut BYTE;\n    let mut oend: *mut BYTE = op_0.offset(dstCapacity as isize);\n    let mut ovml: c_int = MINMATCH;\n    let mut ovoff: c_int = 0 as c_int;\n    if !opt.is_null() {\n        *srcSizePtr_view = 0 as c_int;\n        if limit as c_uint == fillOutput as c_int as c_uint {\n            oend = oend.offset(-(LASTLITERALS as isize));\n        }\n        if sufficient_len >= LZ4_OPT_NUM as size_t {\n            sufficient_len = (LZ4_OPT_NUM - 1 as c_int) as size_t;\n        }\n        's_68: loop {\n            if !(ip_0 <= mflimit) {\n                current_block = 16717036447570235413;\n                break;\n            }\n            let llen: c_int =\n                ip_0.offset_from(anchor_0) as c_long as c_int;\n            let mut best_mlen: c_int = 0;\n            let mut best_off: c_int = 0;\n            let mut cur: c_int = 0;\n            let mut last_match_pos: c_int = 0 as c_int;\n            let firstMatch: LZ4HC_match_t = LZ4HC_FindLongerMatch(\n                ctx,\n                ip_0,\n                matchlimit,\n                MINMATCH - 1 as c_int,\n                nbSearches,\n                dict,\n                favorDecSpeed,\n            ) as LZ4HC_match_t;\n            if firstMatch.len == 0 as c_int {\n                ip_0 = ip_0.offset(1);\n            } else if firstMatch.len as size_t > sufficient_len {\n                let firstML: c_int = firstMatch.len;\n                opSaved = op_0;\n                if !(LZ4HC_encodeSequence(\n                    &raw mut ip_0,\n                    &raw mut op_0,\n                    &raw mut anchor_0,\n                    firstML,\n                    firstMatch.off,\n                    limit,\n                    oend,\n                ) != 0)\n                {\n                    continue;\n                }\n                ovml = firstML;\n                ovoff = firstMatch.off;\n                current_block = 15291905670752363622;\n                break;\n            } else {\n                let mut rPos: c_int = 0;\n                rPos = 0 as c_int;\n                while rPos < MINMATCH {\n                    let cost: c_int =\n                        LZ4HC_literalsPrice(llen + rPos) as c_int;\n                    (*opt.offset(rPos as isize)).mlen = 1 as c_int;\n                    (*opt.offset(rPos as isize)).off = 0 as c_int;\n                    (*opt.offset(rPos as isize)).litlen = llen + rPos;\n                    (*opt.offset(rPos as isize)).price = cost;\n                    rPos += 1;\n                }\n                let matchML: c_int = firstMatch.len;\n                let offset: c_int = firstMatch.off;\n                let mut mlen: c_int = 0;\n                mlen = MINMATCH;\n                while mlen <= matchML {\n                    let cost_0: c_int =\n                        LZ4HC_sequencePrice(llen, mlen) as c_int;\n                    (*opt.offset(mlen as isize)).mlen = mlen;\n                    (*opt.offset(mlen as isize)).off = offset;\n                    (*opt.offset(mlen as isize)).litlen = llen;\n                    (*opt.offset(mlen as isize)).price = cost_0;\n                    mlen += 1;\n                }\n                last_match_pos = firstMatch.len;\n                let mut addLit: c_int = 0;\n                addLit = 1 as c_int;\n                while addLit <= TRAILING_LITERALS {\n                    (*opt.offset((last_match_pos + addLit) as isize)).mlen =\n                        1 as c_int;\n                    (*opt.offset((last_match_pos + addLit) as isize)).off = 0 as c_int;\n                    (*opt.offset((last_match_pos + addLit) as isize)).litlen = addLit;\n                    (*opt.offset((last_match_pos + addLit) as isize)).price =\n                        (*opt.offset(last_match_pos as isize)).price + LZ4HC_literalsPrice(addLit);\n                    addLit += 1;\n                }\n                cur = 1 as c_int;\n                loop {\n                    if !(cur < last_match_pos) {\n                        current_block = 4983594971376015098;\n                        break;\n                    }\n                    let curPtr: *const BYTE = ip_0.offset(cur as isize);\n                    let mut newMatch: LZ4HC_match_t = LZ4HC_match_t {\n                        off: 0,\n                        len: 0,\n                        back: 0,\n                    };\n                    if curPtr > mflimit {\n                        current_block = 4983594971376015098;\n                        break;\n                    }\n                    if fullUpdate != 0 {\n                        if (*opt.offset((cur + 1 as c_int) as isize)).price\n                            <= (*opt.offset(cur as isize)).price\n                            && (*opt.offset((cur + MINMATCH) as isize)).price\n                                < (*opt.offset(cur as isize)).price + 3 as c_int\n                        {\n                            current_block = 1423531122933789233;\n                        } else {\n                            current_block = 9512719473022792396;\n                        }\n                    } else if (*opt.offset((cur + 1 as c_int) as isize)).price\n                        <= (*opt.offset(cur as isize)).price\n                    {\n                        current_block = 1423531122933789233;\n                    } else {\n                        current_block = 9512719473022792396;\n                    }\n                    match current_block {\n                        9512719473022792396 => {\n                            if fullUpdate != 0 {\n                                newMatch = LZ4HC_FindLongerMatch(\n                                    ctx,\n                                    curPtr,\n                                    matchlimit,\n                                    MINMATCH - 1 as c_int,\n                                    nbSearches,\n                                    dict,\n                                    favorDecSpeed,\n                                );\n                            } else {\n                                newMatch = LZ4HC_FindLongerMatch(\n                                    ctx,\n                                    curPtr,\n                                    matchlimit,\n                                    last_match_pos - cur,\n                                    nbSearches,\n                                    dict,\n                                    favorDecSpeed,\n                                );\n                            }\n                            if !(newMatch.len == 0) {\n                                if newMatch.len as size_t > sufficient_len\n                                    || newMatch.len + cur >= LZ4_OPT_NUM\n                                {\n                                    best_mlen = newMatch.len;\n                                    best_off = newMatch.off;\n                                    last_match_pos = cur + 1 as c_int;\n                                    current_block = 15862093489155937825;\n                                    break;\n                                } else {\n                                    let baseLitlen: c_int =\n                                        (*opt.offset(cur as isize)).litlen;\n                                    let mut litlen: c_int = 0;\n                                    litlen = 1 as c_int;\n                                    while litlen < MINMATCH {\n                                        let price: c_int = (*opt.offset(cur as isize))\n                                            .price\n                                            - LZ4HC_literalsPrice(baseLitlen) as c_int\n                                            + LZ4HC_literalsPrice(baseLitlen + litlen)\n                                                as c_int;\n                                        let pos: c_int = cur + litlen;\n                                        if price < (*opt.offset(pos as isize)).price {\n                                            (*opt.offset(pos as isize)).mlen =\n                                                1 as c_int;\n                                            (*opt.offset(pos as isize)).off =\n                                                0 as c_int;\n                                            (*opt.offset(pos as isize)).litlen =\n                                                baseLitlen + litlen;\n                                            (*opt.offset(pos as isize)).price = price;\n                                        }\n                                        litlen += 1;\n                                    }\n                                    let matchML_0: c_int = newMatch.len;\n                                    let mut ml: c_int = MINMATCH;\n                                    while ml <= matchML_0 {\n                                        let pos_0: c_int = cur + ml;\n                                        let offset_0: c_int = newMatch.off;\n                                        let mut price_0: c_int = 0;\n                                        let mut ll: c_int = 0;\n                                        if (*opt.offset(cur as isize)).mlen\n                                            == 1 as c_int\n                                        {\n                                            ll = (*opt.offset(cur as isize)).litlen;\n                                            price_0 = (if cur > ll {\n                                                (*opt.offset((cur - ll) as isize)).price\n                                            } else {\n                                                0 as c_int\n                                            }) + LZ4HC_sequencePrice(ll, ml);\n                                        } else {\n                                            ll = 0 as c_int;\n                                            price_0 = (*opt.offset(cur as isize)).price\n                                                + LZ4HC_sequencePrice(0 as c_int, ml);\n                                        }\n                                        if pos_0 > last_match_pos + TRAILING_LITERALS\n                                            || price_0\n                                                <= (*opt.offset(pos_0 as isize)).price\n                                                    - favorDecSpeed as c_int\n                                        {\n                                            if ml == matchML_0 && last_match_pos < pos_0 {\n                                                last_match_pos = pos_0;\n                                            }\n                                            (*opt.offset(pos_0 as isize)).mlen = ml;\n                                            (*opt.offset(pos_0 as isize)).off = offset_0;\n                                            (*opt.offset(pos_0 as isize)).litlen = ll;\n                                            (*opt.offset(pos_0 as isize)).price = price_0;\n                                        }\n                                        ml += 1;\n                                    }\n                                    let mut addLit_0: c_int = 0;\n                                    addLit_0 = 1 as c_int;\n                                    while addLit_0 <= TRAILING_LITERALS {\n                                        (*opt.offset((last_match_pos + addLit_0) as isize)).mlen =\n                                            1 as c_int;\n                                        (*opt.offset((last_match_pos + addLit_0) as isize)).off =\n                                            0 as c_int;\n                                        (*opt.offset((last_match_pos + addLit_0) as isize))\n                                            .litlen = addLit_0;\n                                        (*opt.offset((last_match_pos + addLit_0) as isize)).price =\n                                            (*opt.offset(last_match_pos as isize)).price\n                                                + LZ4HC_literalsPrice(addLit_0);\n                                        addLit_0 += 1;\n                                    }\n                                }\n                            }\n                        }\n                        _ => {}\n                    }\n                    cur += 1;\n                }\n                match current_block {\n                    4983594971376015098 => {\n                        best_mlen = (*opt.offset(last_match_pos as isize)).mlen;\n                        best_off = (*opt.offset(last_match_pos as isize)).off;\n                        cur = last_match_pos - best_mlen;\n                    }\n                    _ => {}\n                }\n                let mut candidate_pos: c_int = cur;\n                let mut selected_matchLength: c_int = best_mlen;\n                let mut selected_offset: c_int = best_off;\n                loop {\n                    let next_matchLength: c_int =\n                        (*opt.offset(candidate_pos as isize)).mlen;\n                    let next_offset: c_int = (*opt.offset(candidate_pos as isize)).off;\n                    (*opt.offset(candidate_pos as isize)).mlen = selected_matchLength;\n                    (*opt.offset(candidate_pos as isize)).off = selected_offset;\n                    selected_matchLength = next_matchLength;\n                    selected_offset = next_offset;\n                    if next_matchLength > candidate_pos {\n                        break;\n                    }\n                    candidate_pos -= next_matchLength;\n                }\n                let mut rPos_0: c_int = 0 as c_int;\n                while rPos_0 < last_match_pos {\n                    let ml_0: c_int = (*opt.offset(rPos_0 as isize)).mlen;\n                    let offset_1: c_int = (*opt.offset(rPos_0 as isize)).off;\n                    if ml_0 == 1 as c_int {\n                        ip_0 = ip_0.offset(1);\n                        rPos_0 += 1;\n                    } else {\n                        rPos_0 += ml_0;\n                        opSaved = op_0;\n                        if !(LZ4HC_encodeSequence(\n                            &raw mut ip_0,\n                            &raw mut op_0,\n                            &raw mut anchor_0,\n                            ml_0,\n                            offset_1,\n                            limit,\n                            oend,\n                        ) != 0)\n                        {\n                            continue;\n                        }\n                        ovml = ml_0;\n                        ovoff = offset_1;\n                        current_block = 15291905670752363622;\n                        break 's_68;\n                    }\n                }\n            }\n        }\n        match current_block {\n            16717036447570235413 => {\n                current_block = 12608488225262500095;\n            }\n            _ => {\n                if limit as c_uint\n                    == fillOutput as c_int as c_uint\n                {\n                    let ll_0: size_t = ip_0.offset_from(anchor_0) as c_long as size_t;\n                    let ll_addbytes: size_t =\n                        ll_0.wrapping_add(240 as size_t).wrapping_div(255 as size_t);\n                    let ll_totalCost: size_t =\n                        (1 as size_t).wrapping_add(ll_addbytes).wrapping_add(ll_0);\n                    let maxLitPos: *mut BYTE = oend.offset(-(3 as c_int as isize));\n                    op_0 = opSaved;\n                    if op_0.offset(ll_totalCost as isize) <= maxLitPos {\n                        let bytesLeftForMl: size_t =\n                            maxLitPos.offset_from(op_0.offset(ll_totalCost as isize))\n                                as c_long as size_t;\n                        let maxMlSize: size_t = ((MINMATCH as c_uint)\n                            .wrapping_add(ML_MASK.wrapping_sub(1 as c_uint))\n                            as size_t)\n                            .wrapping_add(bytesLeftForMl.wrapping_mul(255 as size_t));\n                        if ovml as size_t > maxMlSize {\n                            ovml = maxMlSize as c_int;\n                        }\n                        if oend.offset(LASTLITERALS as isize).offset_from(\n                            op_0.offset(ll_totalCost as isize)\n                                .offset(2 as c_int as isize),\n                        ) as c_long\n                            - 1 as c_long\n                            + ovml as c_long\n                            >= MFLIMIT as c_long\n                        {\n                            LZ4HC_encodeSequence(\n                                &raw mut ip_0,\n                                &raw mut op_0,\n                                &raw mut anchor_0,\n                                ovml,\n                                ovoff,\n                                notLimited,\n                                oend,\n                            );\n                        }\n                    }\n                    current_block = 12608488225262500095;\n                } else {\n                    current_block = 13620957476428869110;\n                }\n            }\n        }\n        match current_block {\n            13620957476428869110 => {}\n            _ => {\n                let mut lastRunSize: size_t =\n                    iend.offset_from(anchor_0) as c_long as size_t;\n                let mut llAdd: size_t = lastRunSize\n                    .wrapping_add(255 as size_t)\n                    .wrapping_sub(RUN_MASK as size_t)\n                    .wrapping_div(255 as size_t);\n                let totalSize: size_t = (1 as size_t).wrapping_add(llAdd).wrapping_add(lastRunSize);\n                if limit as c_uint\n                    == fillOutput as c_int as c_uint\n                {\n                    oend = oend.offset(LASTLITERALS as isize);\n                }\n                if limit as c_uint != 0 && op_0.offset(totalSize as isize) > oend {\n                    if limit as c_uint\n                        == limitedOutput as c_int as c_uint\n                    {\n                        retval = 0 as c_int;\n                        current_block = 13620957476428869110;\n                    } else {\n                        lastRunSize = (oend.offset_from(op_0) as c_long as size_t)\n                            .wrapping_sub(1 as size_t);\n                        llAdd = lastRunSize\n                            .wrapping_add(256 as size_t)\n                            .wrapping_sub(RUN_MASK as size_t)\n                            .wrapping_div(256 as size_t);\n                        lastRunSize = lastRunSize.wrapping_sub(llAdd);\n                        current_block = 5219368551394180541;\n                    }\n                } else {\n                    current_block = 5219368551394180541;\n                }\n                match current_block {\n                    13620957476428869110 => {}\n                    _ => {\n                        ip_0 = anchor_0.offset(lastRunSize as isize);\n                        if lastRunSize >= RUN_MASK as size_t {\n                            let mut accumulator: size_t =\n                                lastRunSize.wrapping_sub(RUN_MASK as size_t);\n                            let fresh0 = op_0;\n                            op_0 = op_0.offset(1);\n                            *fresh0 = (RUN_MASK << ML_BITS) as BYTE;\n                            while accumulator >= 255 as size_t {\n                                let fresh1 = op_0;\n                                op_0 = op_0.offset(1);\n                                *fresh1 = 255 as BYTE;\n                                accumulator = accumulator.wrapping_sub(255 as size_t);\n                            }\n                            let fresh2 = op_0;\n                            op_0 = op_0.offset(1);\n                            *fresh2 = accumulator as BYTE;\n                        } else {\n                            let fresh3 = op_0;\n                            op_0 = op_0.offset(1);\n                            *fresh3 = (lastRunSize << ML_BITS) as BYTE;\n                        }\n                        ::libc::memcpy(\n                            op_0 as *mut c_void,\n                            anchor_0 as *const c_void,\n                            lastRunSize as ::libc::size_t,\n                        );\n                        op_0 = op_0.offset(lastRunSize as isize);\n                        *srcSizePtr_view = (ip_0 as *const c_char).offset_from(source)\n                            as c_long\n                            as c_int;\n                        retval = (op_0 as *mut c_char).offset_from(dst)\n                            as c_long\n                            as c_int;\n                    }\n                }\n            }\n        }\n    }\n    if !opt.is_null() {\n        free(opt as *mut c_void);\n    }\n    return retval;\n}",
+    "signature": "unsafe fn LZ4HC_compress_optimal(\n    mut ctx: *mut LZ4HC_CCtx_internal,\n    source: *const c_char,\n    mut dst: *mut c_char,\n    mut srcSizePtr: *mut c_int,\n    mut dstCapacity: c_int,\n    nbSearches: c_int,\n    mut sufficient_len: size_t,\n    limit: limitedOutput_directive,\n    fullUpdate: c_int,\n    dict: dictCtx_directive,\n    favorDecSpeed: HCfavor_e,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.1625,
+      "call_count": null,
+      "retired_instructions": 2618084785,
+      "instructions_per_call": null,
+      "cpi": 0.358,
+      "tma": {
+        "scope": "process",
+        "retiring": 47.98748697740091,
+        "frontend_bound": 12.893058778247108,
+        "bad_speculation": 17.42838488022511,
+        "backend_bound": 21.691069364126868,
+        "memory_bound": 14.307134569924518,
+        "core_bound": 7.38393479420235,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0214
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_vec": {
+        "CantComputeNumberOfIterations": 4,
+        "NonReductionValueUsedOutsideLoop": 1
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 2865,
+        "message": "malloc will not be inlined into _ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 3293,
+        "message": "free will not be inlined into _ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2900,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc21LZ4HC_FindLongerMatch17hffdefe064a923ff1E' inlined into '_ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E:51:45;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2914,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc20LZ4HC_encodeSequence17h5ed6d1d8582b16ecE' inlined into '_ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E:65:22;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2948,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc19LZ4HC_sequencePrice17h6a8904eae4624b1eE' inlined into '_ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E:99:25;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 3013,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc21LZ4HC_FindLongerMatch17hffdefe064a923ff1E' inlined into '_ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E:164:44;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 3003,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc21LZ4HC_FindLongerMatch17hffdefe064a923ff1E' inlined into '_ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E:154:44;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 3074,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc19LZ4HC_sequencePrice17h6a8904eae4624b1eE' inlined into '_ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E:225:51;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 3070,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc19LZ4HC_sequencePrice17h6a8904eae4624b1eE' inlined into '_ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E:221:50;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 3146,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc20LZ4HC_encodeSequence17h5ed6d1d8582b16ecE' inlined into '_ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E:297:30;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 3200,
+        "message": "'_ZN11lz4_cleaned3src5lz4hc20LZ4HC_encodeSequence17h5ed6d1d8582b16ecE' inlined into '_ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E': always inline attribute at callsite _ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E:351:29;"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 2964,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3038,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3073,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3065,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3062,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3062,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3101,
+        "message": "hoisting sext"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 3101,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2983,
+        "message": "hoisting icmp"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3139,
+        "message": "sinking load"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 3139,
+        "message": "sinking getelementptr"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 2958,
+        "message": "completely unrolled loop with 3 iterations"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 3037,
+        "message": "completely unrolled loop with 3 iterations"
+      },
+      {
+        "pass": "loop-unroll",
+        "status": "success",
+        "line": 3093,
+        "message": "completely unrolled loop with 3 iterations"
+      },
+      {
+        "pass": "loop-idiom",
+        "status": "success",
+        "line": 3264,
+        "message": "Transformed loop-strided store in _ZN11lz4_cleaned3src5lz4hc22LZ4HC_compress_optimal17hd2389d78be46f147E function into a call to llvm.memset.p0.i64() intrinsic"
+      },
+      {
+        "pass": "loop-delete",
+        "status": "success",
+        "line": 3261,
+        "message": "Loop deleted because it is invariant"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2964,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2984,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2985,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2993,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2994,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3034,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3038,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 3038,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3062,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3073,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3065,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 3101,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2936,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2937,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2938,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2873,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 3044,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 3137,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 3137,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 3123,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 3123,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 3057,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 3057,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 3057,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2946,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 2946,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2946,
+        "message": "1 folded reloads 4.740104e+00 total folded reloads cost 2 virtual registers copies 9.480208e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3057,
+        "message": "2 reloads 1.607339e+01 total reloads cost 1 folded reloads 4.592398e+00 total folded reloads cost 12 virtual registers copies 4.822018e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2969,
+        "message": "48 spills 3.722108e+01 total spills cost 8 folded spills 3.203067e+00 total folded spills cost 307 reloads 2.763598e+02 total reloads cost 98 folded reloads 1.128460e+02 total folded reloads cost 184 virtual registers copies 9.227472e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3123,
+        "message": "3 virtual registers copies 1.422031e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 3137,
+        "message": "8 spills 4.471874e-01 total spills cost 17 reloads 5.977855e-01 total reloads cost 3 folded reloads 2.607100e-01 total folded reloads cost 35 virtual registers copies 2.183356e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2890,
+        "message": "97 spills 5.791317e+01 total spills cost 12 folded spills 4.684350e+00 total folded spills cost 470 reloads 3.291882e+02 total reloads cost 149 folded reloads 1.659474e+02 total folded reloads cost 348 virtual registers copies 1.350866e+03 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2883,
+        "message": "BasicBlock: bb122.i128"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2935,
+        "message": "BasicBlock: bb20.preheader.bb148_crit_edge.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2937,
+        "message": "BasicBlock: bb148.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2937,
+        "message": "BasicBlock: bb148.1.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2935,
+        "message": "BasicBlock: bb148.1.i.bb148.2.i_crit_edge"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2937,
+        "message": "BasicBlock: bb148.2.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2949,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc19LZ4HC_sequencePrice17h6a8904eae4624b1eE.exit.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2969,
+        "message": "BasicBlock: bb88.i169"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2986,
+        "message": "BasicBlock: bb36.i167"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3023,
+        "message": "BasicBlock: bb51.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3024,
+        "message": "BasicBlock: bb53.i172"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3041,
+        "message": "BasicBlock: bb62.1.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3038,
+        "message": "BasicBlock: bb157.2.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3057,
+        "message": "BasicBlock: bb62.2.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3057,
+        "message": "BasicBlock: bb83.i180"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3058,
+        "message": "BasicBlock: bb65.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3065,
+        "message": "BasicBlock: bb66.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3067,
+        "message": "BasicBlock: bb67.i187"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3066,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc19LZ4HC_sequencePrice17h6a8904eae4624b1eE.exit1764.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3073,
+        "message": "BasicBlock: _ZN11lz4_cleaned3src5lz4hc19LZ4HC_sequencePrice17h6a8904eae4624b1eE.exit1749.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3114,
+        "message": "BasicBlock: bb30.i.bb91.i_crit_edge"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3114,
+        "message": "BasicBlock: bb91.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3125,
+        "message": "BasicBlock: bb93.i147"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3137,
+        "message": "BasicBlock: bb96.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3137,
+        "message": "BasicBlock: bb97.lr.ph.preheader.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3137,
+        "message": "BasicBlock: bb97.lr.ph.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3138,
+        "message": "BasicBlock: bb97.i148"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3137,
+        "message": "BasicBlock: bb98.i163"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2890,
+        "message": "BasicBlock: bb8.backedge.i.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3269,
+        "message": "BasicBlock: bb136.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 3273,
+        "message": "BasicBlock: bb137.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

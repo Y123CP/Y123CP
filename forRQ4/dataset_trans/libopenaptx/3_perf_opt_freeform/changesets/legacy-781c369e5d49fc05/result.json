@@ -1,0 +1,226 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.5913960810715585,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -0.5075898739933012,
+            "aggregate_ci_low_pct": -0.6752022881498158,
+            "aggregate_pct": -0.5913960810715585,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.1356,
+                "ci_low_pct": -0.287,
+                "insns_delta_pct": -0.0066,
+                "mean_delta_pct": -0.0757,
+                "op": "decode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2623,
+                "ci_low_pct": -0.0337,
+                "insns_delta_pct": 0.0107,
+                "mean_delta_pct": 0.1143,
+                "op": "decode_sync_hd",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.2716,
+                "ci_low_pct": -1.7681,
+                "insns_delta_pct": -0.1011,
+                "mean_delta_pct": -1.5199,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.7952,
+                "ci_low_pct": -0.9734,
+                "insns_delta_pct": 0.0823,
+                "mean_delta_pct": -0.8843,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.11199588119134263,
+            "aggregate_ci_low_pct": -0.07527502503652561,
+            "aggregate_pct": 0.018360428077408508,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.2532,
+                "ci_low_pct": -0.2378,
+                "insns_delta_pct": -0.0388,
+                "mean_delta_pct": 0.0077,
+                "op": "decode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.1452,
+                "ci_low_pct": -0.1731,
+                "insns_delta_pct": 0.0493,
+                "mean_delta_pct": -0.0139,
+                "op": "decode_sync_hd",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2882,
+                "ci_low_pct": -0.2121,
+                "insns_delta_pct": 0.0396,
+                "mean_delta_pct": 0.038,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.1964,
+                "ci_low_pct": -0.1132,
+                "insns_delta_pct": -0.0497,
+                "mean_delta_pct": 0.0416,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "decode_std",
+          "decode_sync_hd",
+          "encode_hd_reset",
+          "encode_std"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "decode_sync_hd"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "1ae54462cb293cdc84c0b2fd8ce55b1de9eb3bf2",
+      "changeset_id": "legacy-781c369e5d49fc05",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-2ce47e42487d3df9",
+          "replacement_function_source": "unsafe fn aptx_process_subband(\n    mut invert_quantize: *mut aptx_invert_quantize,\n    mut prediction: *mut aptx_prediction,\n    mut quantized_sample: int32_t,\n    mut dither: int32_t,\n    mut tables: *const aptx_tables,\n) {\n    aptx_invert_quantization(invert_quantize, quantized_sample, dither, tables);\n\n    let pred = unsafe { &mut *prediction }; // SAFETY: caller provides a valid mutable pointer to aptx_prediction for the duration of this function.\n    let iq = unsafe { &*invert_quantize }; // SAFETY: caller provides a valid pointer to aptx_invert_quantize; aptx_invert_quantization has initialized/updated its fields before this read.\n    let tables_view = unsafe { &*tables }; // SAFETY: caller provides a valid pointer to aptx_tables for the duration of this function.\n\n    let reconstructed_difference = iq.reconstructed_difference;\n    let predicted_difference = pred.predicted_difference;\n\n    let sign =\n        ((reconstructed_difference > -predicted_difference) as c_int\n            - (reconstructed_difference < -predicted_difference) as c_int) as int32_t;\n\n    let prev_sign0 = pred.prev_sign[0];\n    let prev_sign1 = pred.prev_sign[1];\n    let same_sign0 = sign * prev_sign0;\n    let same_sign1 = sign * prev_sign1;\n\n    pred.prev_sign[0] = prev_sign1;\n    pred.prev_sign[1] = sign | 1 as int32_t;\n\n    let s_weight1 = pred.s_weight[1];\n    let mut sw1 = rshift32(-same_sign1 * s_weight1, 1 as c_uint);\n    sw1 = (clip(sw1, -(0x100000 as int32_t), 0x100000 as int32_t) & !(0xf as int32_t))\n        * 16 as int32_t;\n\n    let s_weight0 = pred.s_weight[0];\n    let weight0 =\n        254 as int32_t * s_weight0 + 0x800000 as int32_t * same_sign0 + sw1;\n    pred.s_weight[0] = clip(\n        rshift32(weight0, 8 as c_uint),\n        -(0x300000 as int32_t),\n        0x300000 as int32_t,\n    );\n\n    let range1 = 0x3c0000 as int32_t - pred.s_weight[0];\n    let weight1 =\n        255 as int32_t * s_weight1 + 0xc00000 as int32_t * same_sign1;\n    pred.s_weight[1] = clip(\n        rshift32(weight1, 8 as c_uint),\n        -range1,\n        range1,\n    );\n\n    aptx_prediction_filtering(\n        prediction,\n        reconstructed_difference,\n        tables_view.prediction_order,\n    );\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "7a0b4e58b82935ad6622da7ca580d045700944466d4bb0b27d8503c660238983",
+            "file_hint": "src/openaptx.rs",
+            "qualified_name": "crate::aptx_process_subband",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "aptx_process_subband-c7c4ada9be6f",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "aptx_process_subband",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "c38f6c2c25a954e9b9fba100cfd51c7ace502396ae1defd81f613060eccce13a",
+            "edit_id": "edit-replace-2ce47e42487d3df9",
+            "end_byte": 65979,
+            "operation_id": "replace-2ce47e42487d3df9",
+            "relative_path": "src/openaptx.rs",
+            "replacement_text": "unsafe fn aptx_process_subband(\n    mut invert_quantize: *mut aptx_invert_quantize,\n    mut prediction: *mut aptx_prediction,\n    mut quantized_sample: int32_t,\n    mut dither: int32_t,\n    mut tables: *const aptx_tables,\n) {\n    aptx_invert_quantization(invert_quantize, quantized_sample, dither, tables);\n\n    let pred = unsafe { &mut *prediction }; // SAFETY: caller provides a valid mutable pointer to aptx_prediction for the duration of this function.\n    let iq = unsafe { &*invert_quantize }; // SAFETY: caller provides a valid pointer to aptx_invert_quantize; aptx_invert_quantization has initialized/updated its fields before this read.\n    let tables_view = unsafe { &*tables }; // SAFETY: caller provides a valid pointer to aptx_tables for the duration of this function.\n\n    let reconstructed_difference = iq.reconstructed_difference;\n    let predicted_difference = pred.predicted_difference;\n\n    let sign =\n        ((reconstructed_difference > -predicted_difference) as c_int\n            - (reconstructed_difference < -predicted_difference) as c_int) as int32_t;\n\n    let prev_sign0 = pred.prev_sign[0];\n    let prev_sign1 = pred.prev_sign[1];\n    let same_sign0 = sign * prev_sign0;\n    let same_sign1 = sign * prev_sign1;\n\n    pred.prev_sign[0] = prev_sign1;\n    pred.prev_sign[1] = sign | 1 as int32_t;\n\n    let s_weight1 = pred.s_weight[1];\n    let mut sw1 = rshift32(-same_sign1 * s_weight1, 1 as c_uint);\n    sw1 = (clip(sw1, -(0x100000 as int32_t), 0x100000 as int32_t) & !(0xf as int32_t))\n        * 16 as int32_t;\n\n    let s_weight0 = pred.s_weight[0];\n    let weight0 =\n        254 as int32_t * s_weight0 + 0x800000 as int32_t * same_sign0 + sw1;\n    pred.s_weight[0] = clip(\n        rshift32(weight0, 8 as c_uint),\n        -(0x300000 as int32_t),\n        0x300000 as int32_t,\n    );\n\n    let range1 = 0x3c0000 as int32_t - pred.s_weight[0];\n    let weight1 =\n        255 as int32_t * s_weight1 + 0xc00000 as int32_t * same_sign1;\n    pred.s_weight[1] = clip(\n        rshift32(weight1, 8 as c_uint),\n        -range1,\n        range1,\n    );\n\n    aptx_prediction_filtering(\n        prediction,\n        reconstructed_difference,\n        tables_view.prediction_order,\n    );\n}",
+            "start_byte": 63559
+          }
+        ],
+        "facts": {
+          "fn_name": "aptx_process_subband",
+          "target_span_hash": "7a0b4e58b82935ad6622da7ca580d045700944466d4bb0b27d8503c660238983"
+        },
+        "operation_id": "replace-2ce47e42487d3df9"
+      }
+    ],
+    "resolved_head": "1ae54462cb293cdc84c0b2fd8ce55b1de9eb3bf2"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/openaptx.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

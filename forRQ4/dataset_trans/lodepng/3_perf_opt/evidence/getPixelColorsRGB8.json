@@ -1,0 +1,868 @@
+{
+  "hot_function": {
+    "symbol": "getPixelColorsRGB8",
+    "location": "src/lodepng.rs:7863-8033",
+    "workload": "decode24_png",
+    "hot_region": "src/lodepng.rs:7863-8033",
+    "rust_source": "unsafe fn getPixelColorsRGB8(\n    mut buffer: *mut c_uchar,\n    mut numpixels: size_t,\n    mut in_0: *const c_uchar,\n    mut mode: *const LodePNGColorMode,\n) {\n    let num_channels: c_uint = 3 as c_uint;\n    let mut i: size_t = 0;\n    if (*mode).colortype as c_uint\n        == LCT_GREY as c_int as c_uint\n    {\n        if (*mode).bitdepth == 8 as c_uint {\n            i = 0 as size_t;\n            while i != numpixels {\n                let ref mut fresh11 = *buffer.offset(2 as c_int as isize);\n                *fresh11 = *in_0.offset(i as isize);\n                let ref mut fresh12 = *buffer.offset(1 as c_int as isize);\n                *fresh12 = *fresh11;\n                *buffer.offset(0 as c_int as isize) = *fresh12;\n                i = i.wrapping_add(1);\n                buffer = buffer.offset(num_channels as isize);\n            }\n        } else if (*mode).bitdepth == 16 as c_uint {\n            i = 0 as size_t;\n            while i != numpixels {\n                let ref mut fresh13 = *buffer.offset(2 as c_int as isize);\n                *fresh13 = *in_0.offset(i.wrapping_mul(2 as size_t) as isize);\n                let ref mut fresh14 = *buffer.offset(1 as c_int as isize);\n                *fresh14 = *fresh13;\n                *buffer.offset(0 as c_int as isize) = *fresh14;\n                i = i.wrapping_add(1);\n                buffer = buffer.offset(num_channels as isize);\n            }\n        } else {\n            let mut highest: c_uint = ((1 as c_uint) << (*mode).bitdepth)\n                .wrapping_sub(1 as c_uint);\n            let mut j: size_t = 0 as size_t;\n            i = 0 as size_t;\n            while i != numpixels {\n                let mut value: c_uint =\n                    readBitsFromReversedStream(&raw mut j, in_0, (*mode).bitdepth as size_t);\n                let ref mut fresh15 = *buffer.offset(2 as c_int as isize);\n                *fresh15 = value\n                    .wrapping_mul(255 as c_uint)\n                    .wrapping_div(highest) as c_uchar;\n                let ref mut fresh16 = *buffer.offset(1 as c_int as isize);\n                *fresh16 = *fresh15;\n                *buffer.offset(0 as c_int as isize) = *fresh16;\n                i = i.wrapping_add(1);\n                buffer = buffer.offset(num_channels as isize);\n            }\n        }\n    } else if (*mode).colortype as c_uint\n        == LCT_RGB as c_int as c_uint\n    {\n        if (*mode).bitdepth == 8 as c_uint {\n            lodepng_memcpy(\n                buffer as *mut c_void,\n                in_0 as *const c_void,\n                numpixels.wrapping_mul(3 as size_t),\n            );\n        } else {\n            i = 0 as size_t;\n            while i != numpixels {\n                *buffer.offset(0 as c_int as isize) =\n                    *in_0.offset(i.wrapping_mul(6 as size_t).wrapping_add(0 as size_t) as isize);\n                *buffer.offset(1 as c_int as isize) =\n                    *in_0.offset(i.wrapping_mul(6 as size_t).wrapping_add(2 as size_t) as isize);\n                *buffer.offset(2 as c_int as isize) =\n                    *in_0.offset(i.wrapping_mul(6 as size_t).wrapping_add(4 as size_t) as isize);\n                i = i.wrapping_add(1);\n                buffer = buffer.offset(num_channels as isize);\n            }\n        }\n    } else if (*mode).colortype as c_uint\n        == LCT_PALETTE as c_int as c_uint\n    {\n        if (*mode).bitdepth == 8 as c_uint {\n            i = 0 as size_t;\n            while i != numpixels {\n                let mut index: c_uint =\n                    *in_0.offset(i as isize) as c_uint;\n                lodepng_memcpy(\n                    buffer as *mut c_void,\n                    (*mode)\n                        .palette\n                        .offset(index.wrapping_mul(4 as c_uint) as isize)\n                        as *mut c_uchar\n                        as *const c_void,\n                    3 as size_t,\n                );\n                i = i.wrapping_add(1);\n                buffer = buffer.offset(num_channels as isize);\n            }\n        } else {\n            let mut j_0: size_t = 0 as size_t;\n            i = 0 as size_t;\n            while i != numpixels {\n                let mut index_0: c_uint =\n                    readBitsFromReversedStream(&raw mut j_0, in_0, (*mode).bitdepth as size_t);\n                lodepng_memcpy(\n                    buffer as *mut c_void,\n                    (*mode)\n                        .palette\n                        .offset(index_0.wrapping_mul(4 as c_uint) as isize)\n                        as *mut c_uchar\n                        as *const c_void,\n                    3 as size_t,\n                );\n                i = i.wrapping_add(1);\n                buffer = buffer.offset(num_channels as isize);\n            }\n        }\n    } else if (*mode).colortype as c_uint\n        == LCT_GREY_ALPHA as c_int as c_uint\n    {\n        if (*mode).bitdepth == 8 as c_uint {\n            i = 0 as size_t;\n            while i != numpixels {\n                let ref mut fresh17 = *buffer.offset(2 as c_int as isize);\n                *fresh17 =\n                    *in_0.offset(i.wrapping_mul(2 as size_t).wrapping_add(0 as size_t) as isize);\n                let ref mut fresh18 = *buffer.offset(1 as c_int as isize);\n                *fresh18 = *fresh17;\n                *buffer.offset(0 as c_int as isize) = *fresh18;\n                i = i.wrapping_add(1);\n                buffer = buffer.offset(num_channels as isize);\n            }\n        } else {\n            i = 0 as size_t;\n            while i != numpixels {\n                let ref mut fresh19 = *buffer.offset(2 as c_int as isize);\n                *fresh19 =\n                    *in_0.offset(i.wrapping_mul(4 as size_t).wrapping_add(0 as size_t) as isize);\n                let ref mut fresh20 = *buffer.offset(1 as c_int as isize);\n                *fresh20 = *fresh19;\n                *buffer.offset(0 as c_int as isize) = *fresh20;\n                i = i.wrapping_add(1);\n                buffer = buffer.offset(num_channels as isize);\n            }\n        }\n    } else if (*mode).colortype as c_uint\n        == LCT_RGBA as c_int as c_uint\n    {\n        if (*mode).bitdepth == 8 as c_uint {\n            i = 0 as size_t;\n            while i != numpixels {\n                lodepng_memcpy(\n                    buffer as *mut c_void,\n                    in_0.offset(i.wrapping_mul(4 as size_t) as isize) as *const c_uchar\n                        as *const c_void,\n                    3 as size_t,\n                );\n                i = i.wrapping_add(1);\n                buffer = buffer.offset(num_channels as isize);\n            }\n        } else {\n            i = 0 as size_t;\n            while i != numpixels {\n                *buffer.offset(0 as c_int as isize) =\n                    *in_0.offset(i.wrapping_mul(8 as size_t).wrapping_add(0 as size_t) as isize);\n                *buffer.offset(1 as c_int as isize) =\n                    *in_0.offset(i.wrapping_mul(8 as size_t).wrapping_add(2 as size_t) as isize);\n                *buffer.offset(2 as c_int as isize) =\n                    *in_0.offset(i.wrapping_mul(8 as size_t).wrapping_add(4 as size_t) as isize);\n                i = i.wrapping_add(1);\n                buffer = buffer.offset(num_channels as isize);\n            }\n        }\n    }\n}",
+    "signature": "unsafe fn getPixelColorsRGB8(\n    mut buffer: *mut c_uchar,\n    mut numpixels: size_t,\n    mut in_0: *const c_uchar,\n    mut mode: *const LodePNGColorMode,\n)",
+    "profile": {
+      "self_time_ratio": 0.2294,
+      "call_count": null,
+      "retired_instructions": 1921493525,
+      "instructions_per_call": null,
+      "cpi": 0.725,
+      "tma": {
+        "scope": "process",
+        "retiring": 70.32859609245338,
+        "frontend_bound": 13.689552584498069,
+        "bad_speculation": 1.5038884349713815,
+        "backend_bound": 14.477962888077164,
+        "memory_bound": 12.394476692728185,
+        "core_bound": 2.0834861953489776,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0021
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 7903,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng26readBitsFromReversedStream17hcf64dc9918a1ca07E' inlined into '_ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E' with (cost=30, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E:40:21;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 7919,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng14lodepng_memcpy17hd18f8cddee79cb2bE' inlined into '_ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E' with (cost=-10, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E:56:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 7945,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng14lodepng_memcpy17hd18f8cddee79cb2bE' inlined into '_ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E' with (cost=-20, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E:82:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 7962,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng26readBitsFromReversedStream17hcf64dc9918a1ca07E' inlined into '_ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E' with (cost=-14970, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E:99:21;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 7963,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng14lodepng_memcpy17hd18f8cddee79cb2bE' inlined into '_ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E' with (cost=-20, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E:100:17;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 8010,
+        "message": "'_ZN15lodepng_cleaned3src7lodepng14lodepng_memcpy17hd18f8cddee79cb2bE' inlined into '_ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E' with (cost=-20, threshold=250) at callsite _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E:147:17;"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 7962,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 7965,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 7965,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 7947,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 7947,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 7903,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 8025,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 8027,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7962,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7965,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7947,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7930,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7932,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 7903,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 7903,
+        "message": "load of type i32 eliminated"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 8021,
+        "message": "the cost-model indicates that vectorization is not beneficial"
+      },
+      {
+        "pass": "other",
+        "status": "missed",
+        "line": 8021,
+        "message": "the cost-model indicates that interleaving is not beneficial"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 8009,
+        "message": "the cost-model indicates that vectorization is not beneficial"
+      },
+      {
+        "pass": "other",
+        "status": "missed",
+        "line": 8009,
+        "message": "the cost-model indicates that interleaving is not beneficial"
+      },
+      {
+        "pass": "other",
+        "status": "missed",
+        "line": 7993,
+        "message": "the cost-model indicates that interleaving is not beneficial"
+      },
+      {
+        "pass": "other",
+        "status": "missed",
+        "line": 7981,
+        "message": "the cost-model indicates that interleaving is not beneficial"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 7942,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 7926,
+        "message": "the cost-model indicates that vectorization is not beneficial"
+      },
+      {
+        "pass": "other",
+        "status": "missed",
+        "line": 7926,
+        "message": "the cost-model indicates that interleaving is not beneficial"
+      },
+      {
+        "pass": "other",
+        "status": "missed",
+        "line": 7887,
+        "message": "the cost-model indicates that interleaving is not beneficial"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7863,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E: MI Instruction count changed from 0 to 1943; Delta: 1943"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7863,
+        "message": "Early Machine Loop Invariant Code Motion: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E: MI Instruction count changed from 1943 to 1942; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7863,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E: MI Instruction count changed from 1942 to 1916; Delta: -26"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7863,
+        "message": "Peephole Optimizations: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E: MI Instruction count changed from 1916 to 1909; Delta: -7"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7863,
+        "message": "Process Implicit Definitions: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E: MI Instruction count changed from 1909 to 1881; Delta: -28"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7863,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E: MI Instruction count changed from 1881 to 2207; Delta: 326"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7863,
+        "message": "Two-Address instruction pass: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E: MI Instruction count changed from 2207 to 2394; Delta: 187"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7863,
+        "message": "Register Coalescer: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E: MI Instruction count changed from 2394 to 1663; Delta: -731"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 7960,
+        "message": "9 virtual registers copies 1.109376e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 7863,
+        "message": "69 virtual registers copies 1.878873e+02 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7863,
+        "message": "Virtual Register Rewriter: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E: MI Instruction count changed from 1663 to 1656; Delta: -7"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 7863,
+        "message": "40 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7863,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E: MI Instruction count changed from 1656 to 1679; Delta: 23"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7863,
+        "message": "Control Flow Optimizer: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E: MI Instruction count changed from 1679 to 1572; Delta: -107"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7863,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E: MI Instruction count changed from 1572 to 1571; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7863,
+        "message": "X86 vzeroupper inserter: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E: MI Instruction count changed from 1571 to 1572; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7863,
+        "message": "X86 LEA Fixup: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E: MI Instruction count changed from 1572 to 1584; Delta: 12"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 7863,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN15lodepng_cleaned3src7lodepng18getPixelColorsRGB817h4dd8c6bb3fa41ca9E: MI Instruction count changed from 1584 to 1585; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7871,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7874,
+        "message": "BasicBlock: bb1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7874,
+        "message": "BasicBlock: bb1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7887,
+        "message": "BasicBlock: bb8.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7887,
+        "message": "BasicBlock: iter.check122"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7887,
+        "message": "BasicBlock: vector.memcheck113"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7887,
+        "message": "BasicBlock: vec.epilog.scalar.ph140"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7889,
+        "message": "BasicBlock: bb9.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7887,
+        "message": "BasicBlock: bb9.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7887,
+        "message": "BasicBlock: bb9.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7889,
+        "message": "BasicBlock: bb9"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7918,
+        "message": "BasicBlock: bb17"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7940,
+        "message": "BasicBlock: bb25"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7942,
+        "message": "BasicBlock: bb28.lr.ph"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7979,
+        "message": "BasicBlock: bb38"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7981,
+        "message": "BasicBlock: iter.check39"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7981,
+        "message": "BasicBlock: vector.memcheck30"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7981,
+        "message": "BasicBlock: vec.epilog.scalar.ph57"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7984,
+        "message": "BasicBlock: bb41.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7981,
+        "message": "BasicBlock: bb41.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7981,
+        "message": "BasicBlock: bb41.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7984,
+        "message": "BasicBlock: bb41"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8007,
+        "message": "BasicBlock: bb48"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8009,
+        "message": "BasicBlock: bb51.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7926,
+        "message": "BasicBlock: bb21.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7926,
+        "message": "BasicBlock: bb22.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7965,
+        "message": "BasicBlock: _ZN15lodepng_cleaned3src7lodepng26readBitsFromReversedStream17hcf64dc9918a1ca07E.exit125"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7962,
+        "message": "BasicBlock: bb33"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7993,
+        "message": "BasicBlock: iter.check"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7993,
+        "message": "BasicBlock: vector.memcheck"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7993,
+        "message": "BasicBlock: vec.epilog.scalar.ph"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7996,
+        "message": "BasicBlock: bb45.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7993,
+        "message": "BasicBlock: bb45.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7993,
+        "message": "BasicBlock: bb45.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7996,
+        "message": "BasicBlock: bb45"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8021,
+        "message": "BasicBlock: bb56.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7876,
+        "message": "BasicBlock: bb3.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7876,
+        "message": "BasicBlock: iter.check172"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7876,
+        "message": "BasicBlock: vector.memcheck163"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7876,
+        "message": "BasicBlock: vec.epilog.scalar.ph197"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7878,
+        "message": "BasicBlock: bb4.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7876,
+        "message": "BasicBlock: bb4.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7876,
+        "message": "BasicBlock: bb4.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7878,
+        "message": "BasicBlock: bb4"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7901,
+        "message": "BasicBlock: bb11"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7903,
+        "message": "BasicBlock: bb13"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7942,
+        "message": "BasicBlock: bb28.lr.ph.new"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7944,
+        "message": "BasicBlock: bb28"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7942,
+        "message": "BasicBlock: bb59.loopexit5.unr-lcssa"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7942,
+        "message": "BasicBlock: bb28.epil.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7944,
+        "message": "BasicBlock: bb28.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8009,
+        "message": "BasicBlock: bb51.preheader.new"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8009,
+        "message": "BasicBlock: bb59.loopexit9.unr-lcssa"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8009,
+        "message": "BasicBlock: bb51.epil.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7926,
+        "message": "BasicBlock: bb22.preheader.new"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7928,
+        "message": "BasicBlock: bb22"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7926,
+        "message": "BasicBlock: bb59.loopexit4.unr-lcssa"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7926,
+        "message": "BasicBlock: bb22.epil.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7928,
+        "message": "BasicBlock: bb22.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8021,
+        "message": "BasicBlock: bb56.preheader.new"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8023,
+        "message": "BasicBlock: bb56"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8021,
+        "message": "BasicBlock: bb59.loopexit10.unr-lcssa"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8021,
+        "message": "BasicBlock: bb56.epil.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8023,
+        "message": "BasicBlock: bb56.epil"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 8033,
+        "message": "BasicBlock: bb59"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7981,
+        "message": "BasicBlock: vector.main.loop.iter.check41"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7981,
+        "message": "BasicBlock: vec.epilog.middle.block56"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7993,
+        "message": "BasicBlock: vector.main.loop.iter.check"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7993,
+        "message": "BasicBlock: vec.epilog.middle.block"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7887,
+        "message": "BasicBlock: vector.main.loop.iter.check124"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7887,
+        "message": "BasicBlock: vec.epilog.middle.block139"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7876,
+        "message": "BasicBlock: vector.main.loop.iter.check174"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7981,
+        "message": "BasicBlock: vector.ph42"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7981,
+        "message": "BasicBlock: middle.block36"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7981,
+        "message": "BasicBlock: vec.epilog.iter.check58"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7993,
+        "message": "BasicBlock: vector.ph"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7993,
+        "message": "BasicBlock: middle.block"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7993,
+        "message": "BasicBlock: vec.epilog.iter.check"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7887,
+        "message": "BasicBlock: vector.ph125"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7887,
+        "message": "BasicBlock: middle.block119"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7887,
+        "message": "BasicBlock: vec.epilog.iter.check141"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7876,
+        "message": "BasicBlock: vector.ph175"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7878,
+        "message": "BasicBlock: vector.body179"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7876,
+        "message": "BasicBlock: middle.block169"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7876,
+        "message": "BasicBlock: vec.epilog.iter.check198"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7878,
+        "message": "BasicBlock: vec.epilog.vector.body210"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7876,
+        "message": "BasicBlock: vec.epilog.middle.block196"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 7863,
+        "message": "1569 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

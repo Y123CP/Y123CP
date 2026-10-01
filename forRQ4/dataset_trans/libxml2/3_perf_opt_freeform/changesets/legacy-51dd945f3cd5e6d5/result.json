@@ -1,0 +1,89 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": "error[E0433]: failed to resolve: use of undeclared crate or module `libc`\n  --> /perf-build/crate/src/xmlstring.rs:84:15\n   |\n84 |     let len = libc::strlen(cur) as c_long as c_int;\n   |               ^^^^ use of undeclared crate or module `libc`\n\nFor more information about this error, try `rustc --explain E0433`.\nerror: could not compile `libxml2_cleaned` (lib) due to 1 previous error; 85 warnings emitted"
+      },
+      "gate": "build",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "e393711b52ff56b5d2f6e5a3b897c96c5e15c440",
+      "changeset_id": "legacy-51dd945f3cd5e6d5",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-9a29125fe4188d9d",
+          "replacement_function_source": "#[inline]\npub unsafe fn xmlCharStrdup(mut cur: *const c_char) -> *mut xmlChar {\n    if cur.is_null() {\n        return ::core::ptr::null_mut::<xmlChar>();\n    }\n    let len = libc::strlen(cur) as c_long as c_int;\n    xmlCharStrndup(cur, len)\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "6a22e1f7fd22ed5759058d600f9c80b9ac7b645961dd19eee7a796a4282c5401",
+            "file_hint": "src/xmlstring.rs",
+            "qualified_name": "crate::xmlCharStrdup",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "xmlCharStrdup-ea25d5c1a739",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "xmlCharStrdup",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "1810748240add5ccaeb57bbf3e8066cf870775855201779e8e72a047cc5a7335",
+            "edit_id": "edit-replace-9a29125fe4188d9d",
+            "end_byte": 2495,
+            "operation_id": "replace-9a29125fe4188d9d",
+            "relative_path": "src/xmlstring.rs",
+            "replacement_text": "#[inline]\npub unsafe fn xmlCharStrdup(mut cur: *const c_char) -> *mut xmlChar {\n    if cur.is_null() {\n        return ::core::ptr::null_mut::<xmlChar>();\n    }\n    let len = libc::strlen(cur) as c_long as c_int;\n    xmlCharStrndup(cur, len)\n}",
+            "start_byte": 2134
+          }
+        ],
+        "facts": {
+          "fn_name": "xmlCharStrdup",
+          "target_span_hash": "6a22e1f7fd22ed5759058d600f9c80b9ac7b645961dd19eee7a796a4282c5401"
+        },
+        "operation_id": "replace-9a29125fe4188d9d"
+      }
+    ],
+    "resolved_head": "e393711b52ff56b5d2f6e5a3b897c96c5e15c440"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_build",
+  "touched_paths": [
+    "src/xmlstring.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,164 @@
+{
+  "applied_rules": [
+    "freeform"
+  ],
+  "commit_sha": "7304eb1",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.24285516717713557,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -0.03347016884173071,
+            "aggregate_ci_low_pct": -0.4522401655125404,
+            "aggregate_pct": -0.24285516717713557,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -0.3738,
+                "ci_low_pct": -0.7211,
+                "insns_delta_pct": -2.2733,
+                "mean_delta_pct": -0.5475,
+                "op": "choices_add_search",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.6422,
+                "ci_low_pct": -0.529,
+                "insns_delta_pct": -1.86,
+                "mean_delta_pct": 0.0566,
+                "op": "choices_fread_search",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.0197,
+                "ci_low_pct": -0.4951,
+                "insns_delta_pct": -2.7204,
+                "mean_delta_pct": -0.2377,
+                "op": "match_primitives",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "choices_add_search",
+          "choices_fread_search",
+          "match_primitives"
+        ],
+        "reason": "accepted",
+        "triggering_op": "choices_fread_search"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "89edb99420bcc15910bd041fb2ccb359f5fb245d",
+      "changeset_id": "legacy-0747a798b8af38d7",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-51d0ea478c2f213c",
+          "replacement_function_source": "#[inline]\nunsafe fn match_row(\n    mut match_1: *const match_struct,\n    mut row: c_int,\n    mut curr_D: *mut score_t,\n    mut curr_M: *mut score_t,\n    mut last_D: *const score_t,\n    mut last_M: *const score_t,\n) {\n    let n: c_int = (*match_1).needle_len;\n    let m: c_int = (*match_1).haystack_len;\n    let i: c_int = row;\n\n    let needle_ch = (*match_1).lower_needle[i as usize] as c_int;\n    let lower_haystack: *const c_char =\n        (&raw const (*match_1).lower_haystack) as *const c_char;\n    let match_bonus: *const score_t = (&raw const (*match_1).match_bonus) as *const score_t;\n\n    let neg_inf: score_t = -::core::f32::INFINITY as score_t;\n    let gap_score: score_t = if i == n - 1 {\n        SCORE_GAP_TRAILING\n    } else {\n        SCORE_GAP_INNER\n    };\n\n    let mut prev_score: score_t = neg_inf;\n    let mut prev_M: score_t = neg_inf;\n    let mut prev_D: score_t = neg_inf;\n\n    let mut j: isize = 0;\n    let m_isize = m as isize;\n\n    while j < m_isize {\n        // SAFETY: j is in 0..m, and callers provide valid arrays/buffers for all row accesses.\n        let hay = unsafe { *lower_haystack.offset(j) as c_int };\n        // SAFETY: j is in 0..m, and callers provide valid arrays/buffers for all row accesses.\n        let last_d_j = unsafe { *last_D.offset(j) };\n        // SAFETY: j is in 0..m, and callers provide valid arrays/buffers for all row accesses.\n        let last_m_j = unsafe { *last_M.offset(j) };\n\n        if needle_ch == hay {\n            let score = if i == 0 {\n                // SAFETY: j is in 0..m, and match_bonus has at least m initialized elements.\n                unsafe { j as score_t * SCORE_GAP_LEADING + *match_bonus.offset(j) }\n            } else if j != 0 {\n                // SAFETY: j is in 0..m, and match_bonus has at least m initialized elements.\n                let bonus = unsafe { *match_bonus.offset(j) };\n                let a = prev_M + bonus;\n                let b = (prev_D as c_double + 1.0f64) as score_t;\n                if a > b { a } else { b }\n            } else {\n                neg_inf\n            };\n\n            prev_D = last_d_j;\n            prev_M = last_m_j;\n            // SAFETY: j is in 0..m, and callers provide valid writable buffers for curr_D/curr_M.\n            unsafe { *curr_D.offset(j) = score };\n            let extended = prev_score + gap_score;\n            prev_score = if score > extended { score } else { extended };\n            // SAFETY: j is in 0..m, and callers provide valid writable buffers for curr_D/curr_M.\n            unsafe { *curr_M.offset(j) = prev_score };\n        } else {\n            prev_D = last_d_j;\n            prev_M = last_m_j;\n            // SAFETY: j is in 0..m, and callers provide valid writable buffers for curr_D/curr_M.\n            unsafe { *curr_D.offset(j) = neg_inf };\n            prev_score += gap_score;\n            // SAFETY: j is in 0..m, and callers provide valid writable buffers for curr_D/curr_M.\n            unsafe { *curr_M.offset(j) = prev_score };\n        }\n\n        j += 1;\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "c13e1b6ce50900f036baa6a780ba206c6f0b482fd8d56df159e2914afdd817c7",
+            "file_hint": "src/match.rs",
+            "qualified_name": "crate::match_row",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "match_row-8ecaead7de75",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "match_row",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "a5aee822067990edd9540f876964e4ad081f297d6d79db149d3193ef87a1a86a",
+            "edit_id": "edit-replace-51d0ea478c2f213c",
+            "end_byte": 7812,
+            "operation_id": "replace-51d0ea478c2f213c",
+            "relative_path": "src/match.rs",
+            "replacement_text": "#[inline]\nunsafe fn match_row(\n    mut match_1: *const match_struct,\n    mut row: c_int,\n    mut curr_D: *mut score_t,\n    mut curr_M: *mut score_t,\n    mut last_D: *const score_t,\n    mut last_M: *const score_t,\n) {\n    let n: c_int = (*match_1).needle_len;\n    let m: c_int = (*match_1).haystack_len;\n    let i: c_int = row;\n\n    let needle_ch = (*match_1).lower_needle[i as usize] as c_int;\n    let lower_haystack: *const c_char =\n        (&raw const (*match_1).lower_haystack) as *const c_char;\n    let match_bonus: *const score_t = (&raw const (*match_1).match_bonus) as *const score_t;\n\n    let neg_inf: score_t = -::core::f32::INFINITY as score_t;\n    let gap_score: score_t = if i == n - 1 {\n        SCORE_GAP_TRAILING\n    } else {\n        SCORE_GAP_INNER\n    };\n\n    let mut prev_score: score_t = neg_inf;\n    let mut prev_M: score_t = neg_inf;\n    let mut prev_D: score_t = neg_inf;\n\n    let mut j: isize = 0;\n    let m_isize = m as isize;\n\n    while j < m_isize {\n        // SAFETY: j is in 0..m, and callers provide valid arrays/buffers for all row accesses.\n        let hay = unsafe { *lower_haystack.offset(j) as c_int };\n        // SAFETY: j is in 0..m, and callers provide valid arrays/buffers for all row accesses.\n        let last_d_j = unsafe { *last_D.offset(j) };\n        // SAFETY: j is in 0..m, and callers provide valid arrays/buffers for all row accesses.\n        let last_m_j = unsafe { *last_M.offset(j) };\n\n        if needle_ch == hay {\n            let score = if i == 0 {\n                // SAFETY: j is in 0..m, and match_bonus has at least m initialized elements.\n                unsafe { j as score_t * SCORE_GAP_LEADING + *match_bonus.offset(j) }\n            } else if j != 0 {\n                // SAFETY: j is in 0..m, and match_bonus has at least m initialized elements.\n                let bonus = unsafe { *match_bonus.offset(j) };\n                let a = prev_M + bonus;\n                let b = (prev_D as c_double + 1.0f64) as score_t;\n                if a > b { a } else { b }\n            } else {\n                neg_inf\n            };\n\n            prev_D = last_d_j;\n            prev_M = last_m_j;\n            // SAFETY: j is in 0..m, and callers provide valid writable buffers for curr_D/curr_M.\n            unsafe { *curr_D.offset(j) = score };\n            let extended = prev_score + gap_score;\n            prev_score = if score > extended { score } else { extended };\n            // SAFETY: j is in 0..m, and callers provide valid writable buffers for curr_D/curr_M.\n            unsafe { *curr_M.offset(j) = prev_score };\n        } else {\n            prev_D = last_d_j;\n            prev_M = last_m_j;\n            // SAFETY: j is in 0..m, and callers provide valid writable buffers for curr_D/curr_M.\n            unsafe { *curr_D.offset(j) = neg_inf };\n            prev_score += gap_score;\n            // SAFETY: j is in 0..m, and callers provide valid writable buffers for curr_D/curr_M.\n            unsafe { *curr_M.offset(j) = prev_score };\n        }\n\n        j += 1;\n    }\n}",
+            "start_byte": 5399
+          }
+        ],
+        "facts": {
+          "fn_name": "match_row",
+          "target_span_hash": "c13e1b6ce50900f036baa6a780ba206c6f0b482fd8d56df159e2914afdd817c7"
+        },
+        "operation_id": "replace-51d0ea478c2f213c"
+      }
+    ],
+    "resolved_head": "89edb99420bcc15910bd041fb2ccb359f5fb245d"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/match.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

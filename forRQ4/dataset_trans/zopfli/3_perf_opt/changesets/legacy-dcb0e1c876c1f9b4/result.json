@@ -1,0 +1,227 @@
+{
+  "applied_rules": [
+    "C3"
+  ],
+  "commit_sha": "69c9e53",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -1.3261875844274509,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -1.2224796051449554,
+            "aggregate_ci_low_pct": -1.4298955637099464,
+            "aggregate_pct": -1.3261875844274509,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -1.3107,
+                "ci_low_pct": -1.7091,
+                "insns_delta_pct": 4.4674,
+                "mean_delta_pct": -1.5099,
+                "op": "lz77_blocksplit_analysis",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -1.1373,
+                "ci_low_pct": -1.4573,
+                "insns_delta_pct": 1.8297,
+                "mean_delta_pct": -1.2973,
+                "op": "raw_deflate",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.9444,
+                "ci_low_pct": -1.3983,
+                "insns_delta_pct": 1.8671,
+                "mean_delta_pct": -1.1714,
+                "op": "zlib_compress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -12.481338671110358,
+            "aggregate_ci_low_pct": -12.751504027829714,
+            "aggregate_pct": -12.616421349470036,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -9.6048,
+                "ci_low_pct": -10.7482,
+                "insns_delta_pct": -0.0223,
+                "mean_delta_pct": -10.1765,
+                "op": "cache_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -9.5406,
+                "ci_low_pct": -10.1827,
+                "insns_delta_pct": 3.7478,
+                "mean_delta_pct": -9.8616,
+                "op": "lz77_blocksplit_analysis",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -5.6871,
+                "ci_low_pct": -5.8666,
+                "insns_delta_pct": -1.9888,
+                "mean_delta_pct": -5.7768,
+                "op": "raw_deflate",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -31.2418,
+                "ci_low_pct": -31.8381,
+                "insns_delta_pct": -16.6757,
+                "mean_delta_pct": -31.54,
+                "op": "tree_codegen",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -5.6279,
+                "ci_low_pct": -5.8263,
+                "insns_delta_pct": -2.0099,
+                "mean_delta_pct": -5.7271,
+                "op": "zlib_compress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "lz77_blocksplit_analysis",
+          "raw_deflate",
+          "zlib_compress"
+        ],
+        "reason": "accepted",
+        "triggering_op": "zlib_compress"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "443a03c5edc7cba2936b7b05e828a841f152d826",
+      "changeset_id": "legacy-dcb0e1c876c1f9b4",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-9618b97136a2b611",
+          "replacement_function_source": "// Applied rules: [III④, C3]\n// Skipped rules: [III③: Hits [4, 5] name ZopfliMaxCachedSublen, but this function is not a manual memory operation/string wrapper site under III③ semantics; it is a project helper query, so rewriting it under the memory-op card would be misclassified.]\nunsafe fn TryGetFromLongestMatchCache(\n    mut s: *mut ZopfliBlockState,\n    mut pos: size_t,\n    mut limit: *mut size_t,\n    mut sublen: *mut c_ushort,\n    mut distance: *mut c_ushort,\n    mut length: *mut c_ushort,\n) -> c_int {\n    let s_view: &ZopfliBlockState = unsafe { &*s };\n    let mut lmcpos: size_t = pos.wrapping_sub(s_view.blockstart);\n    let lmc = s_view.lmc;\n\n    let mut cache_available: c_uchar = 0;\n    let mut limit_ok_for_cache: c_uchar = 0;\n\n    if !lmc.is_null() {\n        let lmc_ref: &ZopfliLongestMatchCache = unsafe { &*lmc };\n        let length_ptr = lmc_ref.length;\n        let dist_ptr = lmc_ref.dist;\n\n        let cached_length: c_ushort = unsafe {\n            // SAFETY: `lmc` is non-null in this branch, and `lmcpos` is the same\n            // in-bounds cache index used by the original raw-pointer offset loads.\n            *length_ptr.offset(lmcpos as isize)\n        };\n        let cached_dist: c_ushort = unsafe {\n            // SAFETY: `lmc` is non-null in this branch, and `lmcpos` is the same\n            // in-bounds cache index used by the original raw-pointer offset loads.\n            *dist_ptr.offset(lmcpos as isize)\n        };\n\n        cache_available =\n            (cached_length as c_int == 0 as c_int || cached_dist as c_int != 0 as c_int) as c_int\n                as c_uchar;\n\n        limit_ok_for_cache = (cache_available as c_int != 0\n            && (*limit == ZOPFLI_MAX_MATCH as size_t\n                || cached_length as size_t <= *limit\n                || !sublen.is_null()\n                    && ZopfliMaxCachedSublen(lmc, lmcpos, cached_length as size_t) as size_t\n                        >= *limit)) as c_int as c_uchar;\n\n        if limit_ok_for_cache as c_int != 0 && cache_available as c_int != 0 {\n            if sublen.is_null()\n                || cached_length as c_uint\n                    <= ZopfliMaxCachedSublen(lmc, lmcpos, cached_length as size_t)\n            {\n                *length = cached_length;\n                if *length as size_t > *limit {\n                    *length = *limit as c_ushort;\n                }\n                if !sublen.is_null() {\n                    ZopfliCacheToSublen(lmc, lmcpos, *length as size_t, sublen);\n                    *distance = unsafe {\n                        // SAFETY: `sublen` is non-null in this branch, and the original\n                        // code reads the element at `*length` via the same unchecked offset.\n                        *sublen.offset(*length as isize)\n                    };\n                    *limit == ZOPFLI_MAX_MATCH as size_t\n                        && *length as c_int >= ZOPFLI_MIN_MATCH;\n                } else {\n                    *distance = cached_dist;\n                }\n                return 1 as c_int;\n            }\n            *limit = cached_length as size_t;\n        }\n    }\n    return 0 as c_int;\n}",
+          "rule_id": "C3",
+          "target": {
+            "declaration_hash": "d4fa9df3e8a1d9c29c7420349ae2e21f6dfda2c4dafd1bb33bb8fe072fb4c5e4",
+            "file_hint": "src/lz77.rs",
+            "qualified_name": "crate::TryGetFromLongestMatchCache",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "TryGetFromLongestMatchCache-26e064474c98",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "TryGetFromLongestMatchCache",
+        "rule_id": "C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "b6909fead7ec2de5f1e6ec420806d9b0f37a766cc3a8d38c6a5bed4d17b9e046",
+            "edit_id": "edit-replace-9618b97136a2b611",
+            "end_byte": 23560,
+            "operation_id": "replace-9618b97136a2b611",
+            "relative_path": "src/lz77.rs",
+            "replacement_text": "// Applied rules: [III④, C3]\n// Skipped rules: [III③: Hits [4, 5] name ZopfliMaxCachedSublen, but this function is not a manual memory operation/string wrapper site under III③ semantics; it is a project helper query, so rewriting it under the memory-op card would be misclassified.]\nunsafe fn TryGetFromLongestMatchCache(\n    mut s: *mut ZopfliBlockState,\n    mut pos: size_t,\n    mut limit: *mut size_t,\n    mut sublen: *mut c_ushort,\n    mut distance: *mut c_ushort,\n    mut length: *mut c_ushort,\n) -> c_int {\n    let s_view: &ZopfliBlockState = unsafe { &*s };\n    let mut lmcpos: size_t = pos.wrapping_sub(s_view.blockstart);\n    let lmc = s_view.lmc;\n\n    let mut cache_available: c_uchar = 0;\n    let mut limit_ok_for_cache: c_uchar = 0;\n\n    if !lmc.is_null() {\n        let lmc_ref: &ZopfliLongestMatchCache = unsafe { &*lmc };\n        let length_ptr = lmc_ref.length;\n        let dist_ptr = lmc_ref.dist;\n\n        let cached_length: c_ushort = unsafe {\n            // SAFETY: `lmc` is non-null in this branch, and `lmcpos` is the same\n            // in-bounds cache index used by the original raw-pointer offset loads.\n            *length_ptr.offset(lmcpos as isize)\n        };\n        let cached_dist: c_ushort = unsafe {\n            // SAFETY: `lmc` is non-null in this branch, and `lmcpos` is the same\n            // in-bounds cache index used by the original raw-pointer offset loads.\n            *dist_ptr.offset(lmcpos as isize)\n        };\n\n        cache_available =\n            (cached_length as c_int == 0 as c_int || cached_dist as c_int != 0 as c_int) as c_int\n                as c_uchar;\n\n        limit_ok_for_cache = (cache_available as c_int != 0\n            && (*limit == ZOPFLI_MAX_MATCH as size_t\n                || cached_length as size_t <= *limit\n                || !sublen.is_null()\n                    && ZopfliMaxCachedSublen(lmc, lmcpos, cached_length as size_t) as size_t\n                        >= *limit)) as c_int as c_uchar;\n\n        if limit_ok_for_cache as c_int != 0 && cache_available as c_int != 0 {\n            if sublen.is_null()\n                || cached_length as c_uint\n                    <= ZopfliMaxCachedSublen(lmc, lmcpos, cached_length as size_t)\n            {\n                *length = cached_length;\n                if *length as size_t > *limit {\n                    *length = *limit as c_ushort;\n                }\n                if !sublen.is_null() {\n                    ZopfliCacheToSublen(lmc, lmcpos, *length as size_t, sublen);\n                    *distance = unsafe {\n                        // SAFETY: `sublen` is non-null in this branch, and the original\n                        // code reads the element at `*length` via the same unchecked offset.\n                        *sublen.offset(*length as isize)\n                    };\n                    *limit == ZOPFLI_MAX_MATCH as size_t\n                        && *length as c_int >= ZOPFLI_MIN_MATCH;\n                } else {\n                    *distance = cached_dist;\n                }\n                return 1 as c_int;\n            }\n            *limit = cached_length as size_t;\n        }\n    }\n    return 0 as c_int;\n}",
+            "start_byte": 21233
+          }
+        ],
+        "facts": {
+          "fn_name": "TryGetFromLongestMatchCache",
+          "target_span_hash": "d4fa9df3e8a1d9c29c7420349ae2e21f6dfda2c4dafd1bb33bb8fe072fb4c5e4"
+        },
+        "operation_id": "replace-9618b97136a2b611"
+      }
+    ],
+    "resolved_head": "443a03c5edc7cba2936b7b05e828a841f152d826"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/lz77.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

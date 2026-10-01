@@ -1,0 +1,143 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 24.816107184647297,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 25.136937041866464,
+            "aggregate_ci_low_pct": 24.49527732742813,
+            "aggregate_pct": 24.816107184647297,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 25.1369,
+                "ci_low_pct": 24.4953,
+                "insns_delta_pct": 8.4426,
+                "mean_delta_pct": 24.8161,
+                "op": "encoding_suite",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encoding_suite",
+          "entities_tree_valid",
+          "html_push_parse",
+          "writer_save"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "encoding_suite"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "3fa6c8a021b679439f56f9f595d6bd15f7198346",
+      "changeset_id": "legacy-4afcaf61434c900d",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-d9bcce3db242ffda",
+          "replacement_function_source": "// Applied rules: [III④, C3]\n// Skipped rules: [C3.S1: Changing `pub unsafe extern \"C\"` raw-pointer parameters to references/slices would break the published C ABI; use S2/local hoists only.]\n#[no_mangle]\npub unsafe extern \"C\" fn isolat1ToUTF8(\n    mut out: *mut c_uchar,\n    mut outlen: *mut c_int,\n    mut in_0: *const c_uchar,\n    mut inlen: *mut c_int,\n) -> c_int {\n    if out.is_null() || in_0.is_null() || outlen.is_null() || inlen.is_null() {\n        return XML_ENC_ERR_INTERNAL as c_int;\n    }\n\n    let out_cap_i32 = *outlen;\n    let in_cap_i32 = *inlen;\n\n    let out_cap = out_cap_i32 as usize;\n    let in_cap = in_cap_i32 as usize;\n\n    let outstart = out;\n    let base = in_0;\n\n    // SAFETY: the pointers were checked non-null above; lengths come from the\n    // caller-provided `*outlen`/`*inlen` and are treated as stable for this\n    // region; this creates one mutable output view and one immutable input view,\n    // matching the original function's assumptions that these buffers are valid\n    // for the stated lengths and not aliased in a way that violates Rust refs.\n    let out_buf = unsafe { core::slice::from_raw_parts_mut(out, out_cap) };\n    // SAFETY: the pointer was checked non-null above; length comes from the\n    // caller-provided `*inlen` and is stable for this region; the resulting\n    // shared slice matches the original read-only use of the input buffer.\n    let in_buf = unsafe { core::slice::from_raw_parts(in_0, in_cap) };\n\n    let mut in_pos = 0usize;\n    let mut out_pos = 0usize;\n\n    while in_pos < in_buf.len() && out_pos + 1 < out_buf.len() {\n        let b = in_buf[in_pos];\n        if b >= 0x80 {\n            out_buf[out_pos] = (((b as c_int >> 6) & 0x1f) | 0xc0) as c_uchar;\n            out_buf[out_pos + 1] = ((b as c_int & 0x3f) | 0x80) as c_uchar;\n            out_pos += 2;\n            in_pos += 1;\n        }\n\n        let remaining_out = out_buf.len() - out_pos;\n        let remaining_in = in_buf.len() - in_pos;\n        let ascii_stop = in_pos + core::cmp::min(remaining_in, remaining_out);\n\n        while in_pos < ascii_stop {\n            let b = in_buf[in_pos];\n            if b >= 0x80 {\n                break;\n            }\n            out_buf[out_pos] = b;\n            in_pos += 1;\n            out_pos += 1;\n        }\n    }\n\n    if in_pos < in_buf.len() && out_pos < out_buf.len() {\n        let b = in_buf[in_pos];\n        if b < 0x80 {\n            out_buf[out_pos] = b;\n            in_pos += 1;\n            out_pos += 1;\n        }\n    }\n\n    out = outstart.wrapping_add(out_pos);\n    in_0 = base.wrapping_add(in_pos);\n\n    *outlen = out.offset_from(outstart) as c_int;\n    *inlen = in_0.offset_from(base) as c_int;\n    *outlen\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "7693aae8c55829cef4ae4c8a0b435d3031f2657487a81e4b22d8d44758cd5145",
+            "file_hint": "src/encoding.rs",
+            "qualified_name": "crate::isolat1ToUTF8",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "isolat1ToUTF8-b65518378715",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "isolat1ToUTF8",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "1c031c9da2ae5bab94e53a6c17d0b41a61935825383a1ffd5ad1dd2faab3736d",
+            "edit_id": "edit-replace-d9bcce3db242ffda",
+            "end_byte": 72533,
+            "operation_id": "replace-d9bcce3db242ffda",
+            "relative_path": "src/encoding.rs",
+            "replacement_text": "// Applied rules: [III④, C3]\n// Skipped rules: [C3.S1: Changing `pub unsafe extern \"C\"` raw-pointer parameters to references/slices would break the published C ABI; use S2/local hoists only.]\n#[no_mangle]\npub unsafe extern \"C\" fn isolat1ToUTF8(\n    mut out: *mut c_uchar,\n    mut outlen: *mut c_int,\n    mut in_0: *const c_uchar,\n    mut inlen: *mut c_int,\n) -> c_int {\n    if out.is_null() || in_0.is_null() || outlen.is_null() || inlen.is_null() {\n        return XML_ENC_ERR_INTERNAL as c_int;\n    }\n\n    let out_cap_i32 = *outlen;\n    let in_cap_i32 = *inlen;\n\n    let out_cap = out_cap_i32 as usize;\n    let in_cap = in_cap_i32 as usize;\n\n    let outstart = out;\n    let base = in_0;\n\n    // SAFETY: the pointers were checked non-null above; lengths come from the\n    // caller-provided `*outlen`/`*inlen` and are treated as stable for this\n    // region; this creates one mutable output view and one immutable input view,\n    // matching the original function's assumptions that these buffers are valid\n    // for the stated lengths and not aliased in a way that violates Rust refs.\n    let out_buf = unsafe { core::slice::from_raw_parts_mut(out, out_cap) };\n    // SAFETY: the pointer was checked non-null above; length comes from the\n    // caller-provided `*inlen` and is stable for this region; the resulting\n    // shared slice matches the original read-only use of the input buffer.\n    let in_buf = unsafe { core::slice::from_raw_parts(in_0, in_cap) };\n\n    let mut in_pos = 0usize;\n    let mut out_pos = 0usize;\n\n    while in_pos < in_buf.len() && out_pos + 1 < out_buf.len() {\n        let b = in_buf[in_pos];\n        if b >= 0x80 {\n            out_buf[out_pos] = (((b as c_int >> 6) & 0x1f) | 0xc0) as c_uchar;\n            out_buf[out_pos + 1] = ((b as c_int & 0x3f) | 0x80) as c_uchar;\n            out_pos += 2;\n            in_pos += 1;\n        }\n\n        let remaining_out = out_buf.len() - out_pos;\n        let remaining_in = in_buf.len() - in_pos;\n        let ascii_stop = in_pos + core::cmp::min(remaining_in, remaining_out);\n\n        while in_pos < ascii_stop {\n            let b = in_buf[in_pos];\n            if b >= 0x80 {\n                break;\n            }\n            out_buf[out_pos] = b;\n            in_pos += 1;\n            out_pos += 1;\n        }\n    }\n\n    if in_pos < in_buf.len() && out_pos < out_buf.len() {\n        let b = in_buf[in_pos];\n        if b < 0x80 {\n            out_buf[out_pos] = b;\n            in_pos += 1;\n            out_pos += 1;\n        }\n    }\n\n    out = outstart.wrapping_add(out_pos);\n    in_0 = base.wrapping_add(in_pos);\n\n    *outlen = out.offset_from(outstart) as c_int;\n    *inlen = in_0.offset_from(base) as c_int;\n    *outlen\n}",
+            "start_byte": 70508
+          }
+        ],
+        "facts": {
+          "fn_name": "isolat1ToUTF8",
+          "target_span_hash": "7693aae8c55829cef4ae4c8a0b435d3031f2657487a81e4b22d8d44758cd5145"
+        },
+        "operation_id": "replace-d9bcce3db242ffda"
+      }
+    ],
+    "resolved_head": "3fa6c8a021b679439f56f9f595d6bd15f7198346"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/encoding.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

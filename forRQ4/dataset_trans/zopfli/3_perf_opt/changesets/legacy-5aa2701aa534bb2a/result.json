@@ -1,0 +1,143 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 8.168325614635608,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 9.759450727989334,
+            "aggregate_ci_low_pct": 6.57720050128188,
+            "aggregate_pct": 8.168325614635608,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 9.7595,
+                "ci_low_pct": 6.5772,
+                "insns_delta_pct": 2.1991,
+                "mean_delta_pct": 8.1683,
+                "op": "tree_codegen",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "lz77_blocksplit_analysis",
+          "raw_deflate",
+          "tree_codegen",
+          "zlib_compress"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "tree_codegen"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "1d4fc0e88c78c869ec150e1201c590830480db5b",
+      "changeset_id": "legacy-5aa2701aa534bb2a",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-e9dd3454e435aa42",
+          "replacement_function_source": "// Applied rules: [III④, C3]\n// Skipped rules: [C3.S1: Not chosen initially because changing `BoundaryPM` to `&mut`/slice parameters would require caller analysis across recursive and external call sites; body-local III④ + C3 hoists can address the concrete hits without cross-function rewrite.]\nunsafe fn BoundaryPM(\n    mut lists: *mut [*mut Node; 2],\n    mut leaves: *mut Node,\n    mut numsymbols: c_int,\n    mut pool: *mut NodePool,\n    mut index: c_int,\n) {\n    // SAFETY: `lists` is indexed by `index` and, on the nonzero path, `index - 1`;\n    // the algorithm/caller guarantees those entries exist, `lists` is non-null, and\n    // no other references to this region are live while this body mutates through it.\n    let lists_view = unsafe { ::core::slice::from_raw_parts_mut(lists, index as usize + 1) };\n    // SAFETY: `leaves` is accessed at `lastcount`, where `lastcount < numsymbols` on every\n    // path that reads it; the caller provides a non-null buffer of at least `numsymbols`\n    // `Node`s, and no other references to the same region are live across this reborrow.\n    let leaves_view = unsafe { ::core::slice::from_raw_parts(leaves, numsymbols as usize) };\n\n    let current = &mut lists_view[index as usize];\n    let old_last = current[1];\n    let lastcount: c_int = (*old_last).count;\n    if index == 0 as c_int && lastcount >= numsymbols {\n        return;\n    }\n\n    let fresh4 = (*pool).next;\n    (*pool).next = (*pool).next.offset(1);\n    let newchain: *mut Node = fresh4;\n    let oldchain: *mut Node = old_last;\n\n    current[0] = oldchain;\n    current[1] = newchain;\n\n    if index == 0 as c_int {\n        let leaf = &leaves_view[lastcount as usize];\n        InitNode(\n            leaf.weight,\n            lastcount + 1 as c_int,\n            ::core::ptr::null_mut::<Node>(),\n            newchain,\n        );\n    } else {\n        let prev = &lists_view[(index - 1 as c_int) as usize];\n        let prev0 = prev[0];\n        let prev1 = prev[1];\n        let sum: size_t = (*prev0).weight.wrapping_add((*prev1).weight);\n\n        if lastcount < numsymbols && sum > leaves_view[lastcount as usize].weight {\n            let leaf = &leaves_view[lastcount as usize];\n            InitNode(\n                leaf.weight,\n                lastcount + 1 as c_int,\n                (*oldchain).tail,\n                newchain,\n            );\n        } else {\n            InitNode(sum, lastcount, prev1, newchain);\n            BoundaryPM(lists, leaves, numsymbols, pool, index - 1 as c_int);\n            BoundaryPM(lists, leaves, numsymbols, pool, index - 1 as c_int);\n        }\n    };\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "7f8ccaed2d68150b6cadf565baabc92af12974e22c91ab54e195f9044732c5c9",
+            "file_hint": "src/katajainen.rs",
+            "qualified_name": "crate::BoundaryPM",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "BoundaryPM-1489ef092876",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "BoundaryPM",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "2ee3550a6c151f8b974dc0610ece2bdf904464347231f455c2902bb405f21a69",
+            "edit_id": "edit-replace-e9dd3454e435aa42",
+            "end_byte": 3083,
+            "operation_id": "replace-e9dd3454e435aa42",
+            "relative_path": "src/katajainen.rs",
+            "replacement_text": "// Applied rules: [III④, C3]\n// Skipped rules: [C3.S1: Not chosen initially because changing `BoundaryPM` to `&mut`/slice parameters would require caller analysis across recursive and external call sites; body-local III④ + C3 hoists can address the concrete hits without cross-function rewrite.]\nunsafe fn BoundaryPM(\n    mut lists: *mut [*mut Node; 2],\n    mut leaves: *mut Node,\n    mut numsymbols: c_int,\n    mut pool: *mut NodePool,\n    mut index: c_int,\n) {\n    // SAFETY: `lists` is indexed by `index` and, on the nonzero path, `index - 1`;\n    // the algorithm/caller guarantees those entries exist, `lists` is non-null, and\n    // no other references to this region are live while this body mutates through it.\n    let lists_view = unsafe { ::core::slice::from_raw_parts_mut(lists, index as usize + 1) };\n    // SAFETY: `leaves` is accessed at `lastcount`, where `lastcount < numsymbols` on every\n    // path that reads it; the caller provides a non-null buffer of at least `numsymbols`\n    // `Node`s, and no other references to the same region are live across this reborrow.\n    let leaves_view = unsafe { ::core::slice::from_raw_parts(leaves, numsymbols as usize) };\n\n    let current = &mut lists_view[index as usize];\n    let old_last = current[1];\n    let lastcount: c_int = (*old_last).count;\n    if index == 0 as c_int && lastcount >= numsymbols {\n        return;\n    }\n\n    let fresh4 = (*pool).next;\n    (*pool).next = (*pool).next.offset(1);\n    let newchain: *mut Node = fresh4;\n    let oldchain: *mut Node = old_last;\n\n    current[0] = oldchain;\n    current[1] = newchain;\n\n    if index == 0 as c_int {\n        let leaf = &leaves_view[lastcount as usize];\n        InitNode(\n            leaf.weight,\n            lastcount + 1 as c_int,\n            ::core::ptr::null_mut::<Node>(),\n            newchain,\n        );\n    } else {\n        let prev = &lists_view[(index - 1 as c_int) as usize];\n        let prev0 = prev[0];\n        let prev1 = prev[1];\n        let sum: size_t = (*prev0).weight.wrapping_add((*prev1).weight);\n\n        if lastcount < numsymbols && sum > leaves_view[lastcount as usize].weight {\n            let leaf = &leaves_view[lastcount as usize];\n            InitNode(\n                leaf.weight,\n                lastcount + 1 as c_int,\n                (*oldchain).tail,\n                newchain,\n            );\n        } else {\n            InitNode(sum, lastcount, prev1, newchain);\n            BoundaryPM(lists, leaves, numsymbols, pool, index - 1 as c_int);\n            BoundaryPM(lists, leaves, numsymbols, pool, index - 1 as c_int);\n        }\n    };\n}",
+            "start_byte": 803
+          }
+        ],
+        "facts": {
+          "fn_name": "BoundaryPM",
+          "target_span_hash": "7f8ccaed2d68150b6cadf565baabc92af12974e22c91ab54e195f9044732c5c9"
+        },
+        "operation_id": "replace-e9dd3454e435aa42"
+      }
+    ],
+    "resolved_head": "1d4fc0e88c78c869ec150e1201c590830480db5b"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/katajainen.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

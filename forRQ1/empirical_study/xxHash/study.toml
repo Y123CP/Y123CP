@@ -1,0 +1,114 @@
+# =============================================================================
+# Empirical-study measurement manifest — xxHash  (LIBRARY project, hashing)
+# =============================================================================
+# C vs c2rust_raw(0_raw). xxHash freshly STAGED 2026-07-01 (clone Cyan4973/xxHash
+# → c2rust 0.22.1 transpile → 0_raw [xxhash_raw]).
+#   C  side : xxh_bench.c + xxhash.c from the ORIGINAL xxhash.h   (single-shot clang-17 LTO, scalar)
+#   raw side: workloads/harness/xxh_bench (main.rs) → path-dep 0_raw (xxhash_raw)
+# Both: XXH64 over a fixed 64 KiB buffer, N=50000 times with varying seed, XOR the
+# digests. Exercises xxHash's SCALAR hash kernel. Input ignored (self-contained).
+# Equivalence VERIFIED 2026-07-01: both = "hashes=50000 acc=171df7c9c4fe772e".
+# RESULT: +0.32% (PRESERVED). C 550ms/IPC2.80, Rust 552ms/IPC3.29 (Rust more insns
+# but higher IPC → same wall-time).
+#
+# ★★ FAIRNESS — CRITICAL, learned the hard way (an earlier "−52% c2rust faster"
+# was a full ARTIFACT and is RETRACTED):
+#   The two c2rust source patches below are needed ONLY for the RUST (c2rust) side
+#   to compile — the C does NOT need them. So:
+#     - C  builds from the ORIGINAL xxhash.h (guard + assume INTACT) = real xxHash.
+#     - Rust is c2rust output, which necessarily LACKS them (c2rust can't translate
+#       them). 0_raw was transpiled from a patched xxhash.h (kept as
+#       dataset_source/xxHash/xxhash.h.patched_for_c2rust for re-transpile).
+#   NEVER apply these patches to the C: XXH_COMPILER_GUARD is a DELIBERATE barrier
+#   xxHash uses to keep 4 accumulator lanes parallel — removing it cripples C to
+#   IPC 0.96 / 1163ms (that was the fake −52%). The asymmetry (C has the barrier,
+#   c2rust output can't) is FAIR = "real C vs what c2rust produces".
+#   The two Rust-only patches (in xxhash.h.patched_for_c2rust):
+#     1. XXH_ASSUME(c) → ((void)0)          : c2rust 0.22.1 has NO __builtin_assume
+#        → silently dropped 34 helper fns (calls emitted, defs missing). ROOT CAUSE.
+#     2. XXH_COMPILER_GUARD(var) → ((void)0): c2rust mistranslates its barrier asm.
+#     + -DXXH_VECTOR=0 (scalar both sides — c2rust can't do SIMD; XXH64 is scalar
+#       anyway so this is a no-op for XXH64). NOT a SIMD issue.
+# =============================================================================
+
+[study]
+project      = "xxHash"
+binary       = "xxh_bench"
+compare      = ["c", "c2rust_raw"]
+report_mode  = "per_input"
+
+[builds.c]
+kind        = "c_reference"
+compiler    = "clang-17"
+source_dir  = "empirical_study/xxHash/c_ref"     # self-contained (copied from dataset_source/xxHash)
+build_cmd   = "bash empirical_study/xxHash/c_ref/build.sh"
+binary_path = "empirical_study/xxHash/bin/xxh_cref17"
+
+[builds.c2rust_raw]
+kind        = "cargo_harness"    # harness pins nightly-2024-01-15 (1.77/LLVM17)
+crate_dir   = "empirical_study/xxHash/rust_harness"          # self-contained; path-dep -> ../rust_raw (0_raw snapshot)
+build_cmd   = "( cd empirical_study/xxHash/rust_harness && cargo build --release )"
+flags       = "opt-level=3, lto=fat, codegen-units=1, target-cpu=native; rustc 1.77-nightly / LLVM 17.0.6"
+binary_path = "empirical_study/xxHash/rust_harness/target/release/xxh_bench"
+
+[measure]
+warmup_runs    = 5
+measure_runs   = 30
+metric         = "median"
+outlier_rule   = "drop >1.5*IQR"
+required_cv    = 0.03
+min_runtime_ms = 100
+timeout_s      = 300
+pin_cpu        = 16
+order          = ["c", "c2rust_raw"]
+paired         = true
+freq_pin       = true
+
+[profile]
+call_graph_mode = "dwarf"
+frequency       = 99
+
+# Three hash workloads over the SAME 64 KiB buffer × 50000 (scalar, -DXXH_VECTOR=0):
+# XXH64 (legacy 64-bit), XXH3-64 (the flagship, scalar path), XXH32 (32-bit).
+# argv[1] selects the variant; input file ignored (buffer built in-harness).
+[[operations]]
+name = "xxh64_scalar"
+args = ["$INPUT"]
+
+  [[operations.inputs]]
+  name = "hash64k"
+  path = "empirical_study/xxHash/inputs/ignored.txt"
+  size = "64KiB buffer x 50000 hashes"
+  character = "scalar XXH64 kernel (round/avalanche/mergeAccs)"
+  stdout_sha256 = "a5a99a2fcf9f2db1737feac8730abc73a913f683b3174a2c808498e5deed2097"
+
+[[operations]]
+name = "xxh3_scalar"
+args = ["xxh3"]
+
+  [[operations.inputs]]
+  name = "hash64k"
+  path = "empirical_study/xxHash/inputs/ignored.txt"
+  size = "64KiB buffer x 50000 hashes"
+  character = "scalar XXH3-64 kernel (flagship; accumulate/scramble)"
+  stdout_sha256 = "87209126bd62b9592b1db720fb5ee1178b8b3e3cd97da4d28d215d5e971e7860"
+
+[[operations]]
+name = "xxh32_scalar"
+args = ["xxh32"]
+
+  [[operations.inputs]]
+  name = "hash64k"
+  path = "empirical_study/xxHash/inputs/ignored.txt"
+  size = "64KiB buffer x 50000 hashes"
+  character = "scalar XXH32 kernel (32-bit round/avalanche)"
+  stdout_sha256 = "b4149d3a70987a60bf0d1a38da0018c94c9611c0a7c368b87819fefe61c9fc6f"
+
+[oracle]
+exit_code = 0
+correctness_manifests = []
+
+[gates]
+coverage_line_min = 50
+coverage_fn_min   = 60
+self_time_own_min = 70   # XXH64 kernel should dominate — verify + report

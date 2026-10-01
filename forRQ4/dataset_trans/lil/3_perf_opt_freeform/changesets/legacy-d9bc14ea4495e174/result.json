@@ -1,0 +1,162 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.3211293816054781,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.48346906917758636,
+            "aggregate_ci_low_pct": 0.15878969403336984,
+            "aggregate_pct": 0.3211293816054781,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.1717,
+                "ci_low_pct": -0.1655,
+                "insns_delta_pct": 0.0384,
+                "mean_delta_pct": 0.0031,
+                "op": "expr_embedded_builtins",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 1.3045,
+                "ci_low_pct": 0.4788,
+                "insns_delta_pct": -0.0457,
+                "mean_delta_pct": 0.8917,
+                "op": "native_call_state",
+                "samples": 40,
+                "state": "active",
+                "stop_reason": "per_op_uncertain"
+              },
+              {
+                "ci_high_pct": 0.2816,
+                "ci_low_pct": -0.1443,
+                "insns_delta_pct": -0.0169,
+                "mean_delta_pct": 0.0686,
+                "op": "subst_list_pipeline",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "expr_embedded_builtins",
+          "native_call_state",
+          "subst_list_pipeline"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "native_call_state"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "3fc6eb04c82f4e5e37dd4a8552d95248112a62e7",
+      "changeset_id": "legacy-d9bc14ea4495e174",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-fb9bc3ff20bba3f2",
+          "replacement_function_source": "#[inline]\npub fn lil_free(mut lil: lil_t) { unsafe {\n    if lil.is_null() {\n        return;\n    }\n\n    let lilp = &mut *lil;\n\n    free(lilp.err_msg as *mut c_void);\n    lil_free_value(lilp.empty);\n\n    let mut env = lilp.env;\n    while !env.is_null() {\n        let next = (*env).parent as lil_env_t;\n        lil_free_env(env);\n        env = next;\n    }\n\n    let cmd = lilp.cmd;\n    let cmds = lilp.cmds;\n    let mut i: size_t = 0;\n    while i < cmds {\n        let func = *cmd.add(i);\n        if !(*func).argnames.is_null() {\n            lil_free_list((*func).argnames);\n        }\n        lil_free_value((*func).code);\n        free((*func).name as *mut c_void);\n        free(func as *mut c_void);\n        i = i.wrapping_add(1);\n    }\n\n    hm_destroy(&raw mut lilp.cmdmap);\n    free(cmd as *mut c_void);\n    free(lilp.dollarprefix as *mut c_void);\n    free(lilp.catcher as *mut c_void);\n    free(lil as *mut c_void);\n} }",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "3a445d7c3652136b4bb7a82b4b5f3c33ad8adc5c99c3c8dfdfb6c44954cb6e1c",
+            "file_hint": "src/lil.rs",
+            "qualified_name": "crate::lil_free",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "lil_free-4e53bd379c5e",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "lil_free",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "a1175c4553361b0b4ac3fa10966c24e10f242ea7ecfb3615a8263e74e4434cae",
+            "edit_id": "edit-replace-fb9bc3ff20bba3f2",
+            "end_byte": 108362,
+            "operation_id": "replace-fb9bc3ff20bba3f2",
+            "relative_path": "src/lil.rs",
+            "replacement_text": "#[inline]\npub fn lil_free(mut lil: lil_t) { unsafe {\n    if lil.is_null() {\n        return;\n    }\n\n    let lilp = &mut *lil;\n\n    free(lilp.err_msg as *mut c_void);\n    lil_free_value(lilp.empty);\n\n    let mut env = lilp.env;\n    while !env.is_null() {\n        let next = (*env).parent as lil_env_t;\n        lil_free_env(env);\n        env = next;\n    }\n\n    let cmd = lilp.cmd;\n    let cmds = lilp.cmds;\n    let mut i: size_t = 0;\n    while i < cmds {\n        let func = *cmd.add(i);\n        if !(*func).argnames.is_null() {\n            lil_free_list((*func).argnames);\n        }\n        lil_free_value((*func).code);\n        free((*func).name as *mut c_void);\n        free(func as *mut c_void);\n        i = i.wrapping_add(1);\n    }\n\n    hm_destroy(&raw mut lilp.cmdmap);\n    free(cmd as *mut c_void);\n    free(lilp.dollarprefix as *mut c_void);\n    free(lilp.catcher as *mut c_void);\n    free(lil as *mut c_void);\n} }",
+            "start_byte": 107367
+          }
+        ],
+        "facts": {
+          "fn_name": "lil_free",
+          "target_span_hash": "3a445d7c3652136b4bb7a82b4b5f3c33ad8adc5c99c3c8dfdfb6c44954cb6e1c"
+        },
+        "operation_id": "replace-fb9bc3ff20bba3f2"
+      }
+    ],
+    "resolved_head": "3fc6eb04c82f4e5e37dd4a8552d95248112a62e7"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/lil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

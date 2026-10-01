@@ -1,0 +1,94 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be",
+      "changeset_id": "legacy-f1b9ed5f5450853d",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-723475829d7b1cfe",
+          "replacement_function_source": "#[inline(always)]\nunsafe fn FindAllMatchesH10(\n    mut self_0: *mut H10,\n    mut dictionary: *const BrotliEncoderDictionary,\n    mut data: *const uint8_t,\n    ring_buffer_mask: size_t,\n    cur_ix: size_t,\n    max_length: size_t,\n    max_backward: size_t,\n    dictionary_distance: size_t,\n    mut params: *const BrotliEncoderParams,\n    mut matches: *mut BackwardMatch,\n) -> size_t {\n    let orig_matches: *mut BackwardMatch = matches;\n    let cur_ix_masked: size_t = cur_ix & ring_buffer_mask;\n    let mut best_len: size_t = 1;\n    let short_match_max_backward: size_t =\n        (if (*params).quality != HQ_ZOPFLIFICATION_QUALITY { 16 } else { 64 }) as size_t;\n    let stop: size_t = if cur_ix < short_match_max_backward {\n        0\n    } else {\n        cur_ix.wrapping_sub(short_match_max_backward)\n    };\n\n    // SAFETY: cur_ix_masked is masked into the ring buffer range; caller guarantees data points\n    // to a valid ring buffer with enough readable bytes for the accesses performed by this routine.\n    let cur_ptr = unsafe { data.add(cur_ix_masked) };\n    // SAFETY: same preconditions as above for reading the first two bytes at cur_ptr.\n    let cur0 = unsafe { *cur_ptr };\n    // SAFETY: same preconditions as above; original code also reads cur_ix_masked + 1 directly.\n    let cur1 = unsafe { *cur_ptr.add(1) };\n\n    let mut i: size_t = cur_ix.wrapping_sub(1);\n    while i > stop && best_len <= 2 {\n        let backward: size_t = cur_ix.wrapping_sub(i);\n        if backward > max_backward {\n            break;\n        }\n        let prev_ix: size_t = i & ring_buffer_mask;\n        // SAFETY: prev_ix is masked into the ring buffer range; caller guarantees readable bytes.\n        let prev_ptr = unsafe { data.add(prev_ix) };\n        // SAFETY: same preconditions as above.\n        if unsafe { *prev_ptr == cur0 && *prev_ptr.add(1) == cur1 } {\n            let len: size_t =\n                FindMatchLengthWithLimit(prev_ptr as *const uint8_t, cur_ptr as *const uint8_t, max_length)\n                    as size_t;\n            if len > best_len {\n                best_len = len;\n                let out = matches;\n                // SAFETY: matches points into writable output space provided by caller; advancing by 1\n                // mirrors the original code and stays within that reserved space.\n                matches = unsafe { matches.add(1) };\n                InitBackwardMatch(out, backward, len);\n            }\n        }\n        i = i.wrapping_sub(1);\n    }\n\n    if best_len < max_length {\n        matches = StoreAndFindMatchesH10(\n            self_0,\n            data,\n            cur_ix,\n            ring_buffer_mask,\n            max_length,\n            max_backward,\n            &raw mut best_len,\n            matches,\n        );\n    }\n\n    let mut dict_matches: [uint32_t; 38] = [kInvalidMatch; 38];\n    let minlen: size_t = brotli_max_size_t(4, best_len.wrapping_add(1));\n    if BrotliFindAllStaticDictionaryMatches(\n        dictionary,\n        cur_ptr as *const uint8_t,\n        minlen,\n        max_length,\n        dict_matches.as_mut_ptr(),\n    ) != 0\n    {\n        let maxlen: size_t = brotli_min_size_t(37, max_length);\n        let max_distance = (*params).dist.max_distance;\n        let mut l: size_t = minlen;\n        while l <= maxlen {\n            let dict_id: uint32_t = dict_matches[l as usize];\n            if dict_id < kInvalidMatch {\n                let distance: size_t =\n                    dictionary_distance.wrapping_add((dict_id >> 5) as size_t).wrapping_add(1);\n                if distance <= max_distance {\n                    let out = matches;\n                    // SAFETY: matches points into writable output space provided by caller; advancing by 1\n                    // mirrors the original code and stays within that reserved space.\n                    matches = unsafe { matches.add(1) };\n                    InitDictionaryBackwardMatch(out, distance, l, (dict_id & 31) as size_t);\n                }\n            }\n            l = l.wrapping_add(1);\n        }\n    }\n\n    // SAFETY: matches and orig_matches are derived from the same output slice/base pointer.\n    unsafe { matches.offset_from(orig_matches) as size_t }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "98d4be9dec794eee69f0b6b5c8300e48db9742a1df41e84d1fddea6bc27d4c2c",
+            "file_hint": "src/enc/backward_references_hq.rs",
+            "qualified_name": "crate::FindAllMatchesH10",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "FindAllMatchesH10-f7b0ccf8702f",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "FindAllMatchesH10",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "5f6e937fff859451f9b9a3d43e9a6848124aae582e157c9042191ef1139080e6",
+            "edit_id": "edit-replace-723475829d7b1cfe",
+            "end_byte": 25167,
+            "operation_id": "replace-723475829d7b1cfe",
+            "relative_path": "src/enc/backward_references_hq.rs",
+            "replacement_text": "#[inline(always)]\nunsafe fn FindAllMatchesH10(\n    mut self_0: *mut H10,\n    mut dictionary: *const BrotliEncoderDictionary,\n    mut data: *const uint8_t,\n    ring_buffer_mask: size_t,\n    cur_ix: size_t,\n    max_length: size_t,\n    max_backward: size_t,\n    dictionary_distance: size_t,\n    mut params: *const BrotliEncoderParams,\n    mut matches: *mut BackwardMatch,\n) -> size_t {\n    let orig_matches: *mut BackwardMatch = matches;\n    let cur_ix_masked: size_t = cur_ix & ring_buffer_mask;\n    let mut best_len: size_t = 1;\n    let short_match_max_backward: size_t =\n        (if (*params).quality != HQ_ZOPFLIFICATION_QUALITY { 16 } else { 64 }) as size_t;\n    let stop: size_t = if cur_ix < short_match_max_backward {\n        0\n    } else {\n        cur_ix.wrapping_sub(short_match_max_backward)\n    };\n\n    // SAFETY: cur_ix_masked is masked into the ring buffer range; caller guarantees data points\n    // to a valid ring buffer with enough readable bytes for the accesses performed by this routine.\n    let cur_ptr = unsafe { data.add(cur_ix_masked) };\n    // SAFETY: same preconditions as above for reading the first two bytes at cur_ptr.\n    let cur0 = unsafe { *cur_ptr };\n    // SAFETY: same preconditions as above; original code also reads cur_ix_masked + 1 directly.\n    let cur1 = unsafe { *cur_ptr.add(1) };\n\n    let mut i: size_t = cur_ix.wrapping_sub(1);\n    while i > stop && best_len <= 2 {\n        let backward: size_t = cur_ix.wrapping_sub(i);\n        if backward > max_backward {\n            break;\n        }\n        let prev_ix: size_t = i & ring_buffer_mask;\n        // SAFETY: prev_ix is masked into the ring buffer range; caller guarantees readable bytes.\n        let prev_ptr = unsafe { data.add(prev_ix) };\n        // SAFETY: same preconditions as above.\n        if unsafe { *prev_ptr == cur0 && *prev_ptr.add(1) == cur1 } {\n            let len: size_t =\n                FindMatchLengthWithLimit(prev_ptr as *const uint8_t, cur_ptr as *const uint8_t, max_length)\n                    as size_t;\n            if len > best_len {\n                best_len = len;\n                let out = matches;\n                // SAFETY: matches points into writable output space provided by caller; advancing by 1\n                // mirrors the original code and stays within that reserved space.\n                matches = unsafe { matches.add(1) };\n                InitBackwardMatch(out, backward, len);\n            }\n        }\n        i = i.wrapping_sub(1);\n    }\n\n    if best_len < max_length {\n        matches = StoreAndFindMatchesH10(\n            self_0,\n            data,\n            cur_ix,\n            ring_buffer_mask,\n            max_length,\n            max_backward,\n            &raw mut best_len,\n            matches,\n        );\n    }\n\n    let mut dict_matches: [uint32_t; 38] = [kInvalidMatch; 38];\n    let minlen: size_t = brotli_max_size_t(4, best_len.wrapping_add(1));\n    if BrotliFindAllStaticDictionaryMatches(\n        dictionary,\n        cur_ptr as *const uint8_t,\n        minlen,\n        max_length,\n        dict_matches.as_mut_ptr(),\n    ) != 0\n    {\n        let maxlen: size_t = brotli_min_size_t(37, max_length);\n        let max_distance = (*params).dist.max_distance;\n        let mut l: size_t = minlen;\n        while l <= maxlen {\n            let dict_id: uint32_t = dict_matches[l as usize];\n            if dict_id < kInvalidMatch {\n                let distance: size_t =\n                    dictionary_distance.wrapping_add((dict_id >> 5) as size_t).wrapping_add(1);\n                if distance <= max_distance {\n                    let out = matches;\n                    // SAFETY: matches points into writable output space provided by caller; advancing by 1\n                    // mirrors the original code and stays within that reserved space.\n                    matches = unsafe { matches.add(1) };\n                    InitDictionaryBackwardMatch(out, distance, l, (dict_id & 31) as size_t);\n                }\n            }\n            l = l.wrapping_add(1);\n        }\n    }\n\n    // SAFETY: matches and orig_matches are derived from the same output slice/base pointer.\n    unsafe { matches.offset_from(orig_matches) as size_t }\n}",
+            "start_byte": 21240
+          }
+        ],
+        "facts": {
+          "fn_name": "FindAllMatchesH10",
+          "target_span_hash": "98d4be9dec794eee69f0b6b5c8300e48db9742a1df41e84d1fddea6bc27d4c2c"
+        },
+        "operation_id": "replace-723475829d7b1cfe"
+      }
+    ],
+    "resolved_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_post_validation",
+  "touched_paths": [
+    "src/enc/backward_references_hq.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "added_bounds_check_in_loop",
+      "detail": "rewrite adds a bounds check inside a loop the original indexed unchecked (1 site(s)): dict_matches[l as usize]",
+      "ok": false
+    }
+  ]
+}

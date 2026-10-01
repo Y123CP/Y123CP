@@ -1,0 +1,244 @@
+{
+  "hot_function": {
+    "symbol": "DecodeSymbol",
+    "location": "src/dec/decode.rs:1004-1022",
+    "workload": "decode_buffer",
+    "hot_region": "src/dec/decode.rs:1004-1022",
+    "rust_source": "unsafe fn DecodeSymbol(\n    mut bits: uint64_t,\n    mut table: *const HuffmanCode,\n    mut br: *mut BrotliBitReader,\n) -> uint64_t {\n    table = table.offset((bits & 0xff as uint64_t) as isize);\n    if (*table).bits as c_uint > HUFFMAN_TABLE_BITS {\n        let mut nbits: uint64_t =\n            ((*table).bits as c_uint).wrapping_sub(HUFFMAN_TABLE_BITS) as uint64_t;\n        BrotliDropBits(br, HUFFMAN_TABLE_BITS as uint64_t);\n        table = table.offset(\n            ((*table).value as uint64_t)\n                .wrapping_add(bits >> 8 as c_uint & BitMask(nbits))\n                as isize,\n        );\n    }\n    BrotliDropBits(br, (*table).bits as uint64_t);\n    return (*table).value as uint64_t;\n}",
+    "signature": "unsafe fn DecodeSymbol(\n    mut bits: uint64_t,\n    mut table: *const HuffmanCode,\n    mut br: *mut BrotliBitReader,\n) -> uint64_t",
+    "profile": {
+      "self_time_ratio": 0.1176,
+      "call_count": null,
+      "retired_instructions": 1564055286,
+      "instructions_per_call": null,
+      "cpi": 0.442,
+      "tma": {
+        "scope": "process",
+        "retiring": 38.677591635193444,
+        "frontend_bound": 18.198563980247126,
+        "bad_speculation": 15.353539187202726,
+        "backend_bound": 27.7703051973567,
+        "memory_bound": 15.814465898792585,
+        "core_bound": 11.955839298564113,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0294
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1015,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 1020,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1021,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1016,
+        "message": "BasicBlock: bb4.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1020,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3dec6decode14SafeReadSymbol17hce56b66181853a6aE.exit.thread.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1016,
+        "message": "BasicBlock: bb4.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1020,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3dec6decode14SafeReadSymbol17hce56b66181853a6aE.exit.thread"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1015,
+        "message": "BasicBlock: bb4.i.i243.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1020,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3dec6decode12DecodeSymbol17he8d697f9c4866f6dE.exit.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1009,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3dec6decode19BrotliFillBitWindow17hf87b91fe26d323e6E.exit.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1015,
+        "message": "BasicBlock: bb4.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1020,
+        "message": "BasicBlock: bb6.thread.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1009,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3dec6decode19BrotliFillBitWindow17hf87b91fe26d323e6E.exit.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1015,
+        "message": "BasicBlock: bb4.i403.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1020,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3dec6decode12DecodeSymbol17he8d697f9c4866f6dE.exit.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1016,
+        "message": "BasicBlock: bb4.i.i.i325.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1020,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3dec6decode14SafeReadSymbol17hce56b66181853a6aE.exit.thread.i266.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1016,
+        "message": "BasicBlock: bb4.i.i448.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1020,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3dec6decode14SafeReadSymbol17hce56b66181853a6aE.exit474.thread.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1016,
+        "message": "BasicBlock: bb4.i.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1020,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3dec6decode14SafeReadSymbol17hce56b66181853a6aE.exit.thread.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1016,
+        "message": "BasicBlock: bb4.i.i369.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1016,
+        "message": "BasicBlock: bb4.i.i39.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1016,
+        "message": "BasicBlock: bb4.i.i.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1020,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3dec6decode14SafeReadSymbol17hce56b66181853a6aE.exit.thread.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1016,
+        "message": "BasicBlock: bb4.i.i39.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1020,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3dec6decode14SafeReadSymbol17hce56b66181853a6aE.exit.thread.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1020,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3dec6decode14SafeReadSymbol17hce56b66181853a6aE.exit.thread.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1009,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3dec6decode19BrotliFillBitWindow17hf87b91fe26d323e6E.exit.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1015,
+        "message": "BasicBlock: bb4.i.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1020,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3dec6decode12DecodeSymbol17he8d697f9c4866f6dE.exit.i.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1015,
+        "message": "BasicBlock: bb4.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1020,
+        "message": "BasicBlock: _ZN14brotli_cleaned3src3dec6decode12DecodeSymbol17he8d697f9c4866f6dE.exit.i"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

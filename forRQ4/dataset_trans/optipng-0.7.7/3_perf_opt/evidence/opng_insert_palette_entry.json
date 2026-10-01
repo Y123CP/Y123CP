@@ -1,0 +1,628 @@
+{
+  "hot_function": {
+    "symbol": "opng_insert_palette_entry",
+    "location": "src/opngreduc/opngreduc.rs:146-326",
+    "workload": "png_write_read_roundtrip",
+    "hot_region": "src/opngreduc/opngreduc.rs:146-326",
+    "rust_source": "unsafe fn opng_insert_palette_entry(\n    mut palette: png_colorp,\n    mut num_palette: *mut c_int,\n    mut trans_alpha: png_bytep,\n    mut num_trans: *mut c_int,\n    mut max_tuples: c_int,\n    mut red: c_uint,\n    mut green: c_uint,\n    mut blue: c_uint,\n    mut alpha: c_uint,\n    mut index: *mut c_int,\n) -> c_int {\n    let mut low: c_int = 0;\n    let mut high: c_int = 0;\n    let mut mid: c_int = 0;\n    let mut cmp: c_int = 0;\n    let mut i: c_int = 0;\n    '_c2rust_label: {\n        if *num_palette >= 0 as c_int && *num_palette <= max_tuples {\n        } else {\n            __assert_fail(\n                b\"*num_palette >= 0 && *num_palette <= max_tuples\\0\" as *const u8\n                    as *const c_char,\n                b\"opngreduc.c\\0\" as *const u8 as *const c_char,\n                109 as c_uint,\n                b\"int opng_insert_palette_entry(png_colorp, int *, png_bytep, int *, int, unsigned int, unsigned int, unsigned int, unsigned int, int *)\\0\"\n                    as *const u8 as *const c_char,\n            );\n        }\n    };\n    '_c2rust_label_0: {\n        if *num_trans >= 0 as c_int && *num_trans <= *num_palette {\n        } else {\n            __assert_fail(\n                b\"*num_trans >= 0 && *num_trans <= *num_palette\\0\" as *const u8\n                    as *const c_char,\n                b\"opngreduc.c\\0\" as *const u8 as *const c_char,\n                110 as c_uint,\n                b\"int opng_insert_palette_entry(png_colorp, int *, png_bytep, int *, int, unsigned int, unsigned int, unsigned int, unsigned int, int *)\\0\"\n                    as *const u8 as *const c_char,\n            );\n        }\n    };\n    if alpha < 255 as c_uint {\n        low = 0 as c_int;\n        high = *num_trans - 1 as c_int;\n        while low <= high {\n            mid = (low + high) / 2 as c_int;\n            cmp = if alpha as c_int\n                != *trans_alpha.offset(mid as isize) as c_int\n            {\n                alpha as c_int\n                    - *trans_alpha.offset(mid as isize) as c_int\n            } else if red as c_int\n                != (*palette.offset(mid as isize)).red as c_int\n            {\n                red as c_int\n                    - (*palette.offset(mid as isize)).red as c_int\n            } else if green as c_int\n                != (*palette.offset(mid as isize)).green as c_int\n            {\n                green as c_int\n                    - (*palette.offset(mid as isize)).green as c_int\n            } else {\n                blue as c_int\n                    - (*palette.offset(mid as isize)).blue as c_int\n            };\n            if cmp < 0 as c_int {\n                high = mid - 1 as c_int;\n            } else if cmp > 0 as c_int {\n                low = mid + 1 as c_int;\n            } else {\n                *index = mid;\n                return 0 as c_int;\n            }\n        }\n    } else {\n        low = *num_trans;\n        high = *num_palette - 1 as c_int;\n        while low <= high {\n            mid = (low + high) / 2 as c_int;\n            cmp = if red as c_int\n                != (*palette.offset(mid as isize)).red as c_int\n            {\n                red as c_int\n                    - (*palette.offset(mid as isize)).red as c_int\n            } else if green as c_int\n                != (*palette.offset(mid as isize)).green as c_int\n            {\n                green as c_int\n                    - (*palette.offset(mid as isize)).green as c_int\n            } else {\n                blue as c_int\n                    - (*palette.offset(mid as isize)).blue as c_int\n            };\n            if cmp < 0 as c_int {\n                high = mid - 1 as c_int;\n            } else if cmp > 0 as c_int {\n                low = mid + 1 as c_int;\n            } else {\n                *index = mid;\n                return 0 as c_int;\n            }\n        }\n    }\n    if alpha > 255 as c_uint {\n        i = 0 as c_int;\n        while i < *num_trans {\n            cmp = if red as c_int\n                != (*palette.offset(i as isize)).red as c_int\n            {\n                red as c_int - (*palette.offset(i as isize)).red as c_int\n            } else if green as c_int\n                != (*palette.offset(i as isize)).green as c_int\n            {\n                green as c_int\n                    - (*palette.offset(i as isize)).green as c_int\n            } else {\n                blue as c_int\n                    - (*palette.offset(i as isize)).blue as c_int\n            };\n            if cmp == 0 as c_int {\n                *index = i;\n                return 0 as c_int;\n            }\n            i += 1;\n        }\n    }\n    if *num_palette >= max_tuples {\n        *index = -(1 as c_int);\n        *num_trans = *index;\n        *num_palette = *num_trans;\n        return -(1 as c_int);\n    }\n    '_c2rust_label_1: {\n        if low >= 0 as c_int && low <= *num_palette {\n        } else {\n            __assert_fail(\n                b\"low >= 0 && low <= *num_palette\\0\" as *const u8\n                    as *const c_char,\n                b\"opngreduc.c\\0\" as *const u8 as *const c_char,\n                179 as c_uint,\n                b\"int opng_insert_palette_entry(png_colorp, int *, png_bytep, int *, int, unsigned int, unsigned int, unsigned int, unsigned int, int *)\\0\"\n                    as *const u8 as *const c_char,\n            );\n        }\n    };\n    i = *num_palette;\n    while i > low {\n        *palette.offset(i as isize) = *palette.offset((i - 1 as c_int) as isize);\n        i -= 1;\n    }\n    (*palette.offset(low as isize)).red = red as png_byte;\n    (*palette.offset(low as isize)).green = green as png_byte;\n    (*palette.offset(low as isize)).blue = blue as png_byte;\n    *num_palette += 1;\n    if alpha < 255 as c_uint {\n        '_c2rust_label_2: {\n            if low <= *num_trans {\n            } else {\n                __assert_fail(\n                    b\"low <= *num_trans\\0\" as *const u8 as *const c_char,\n                    b\"opngreduc.c\\0\" as *const u8 as *const c_char,\n                    188 as c_uint,\n                    b\"int opng_insert_palette_entry(png_colorp, int *, png_bytep, int *, int, unsigned int, unsigned int, unsigned int, unsigned int, int *)\\0\"\n                        as *const u8 as *const c_char,\n                );\n            }\n        };\n        i = *num_trans;\n        while i > low {\n            *trans_alpha.offset(i as isize) =\n                *trans_alpha.offset((i - 1 as c_int) as isize);\n            i -= 1;\n        }\n        *trans_alpha.offset(low as isize) = alpha as png_byte;\n        *num_trans += 1;\n    }\n    *index = low;\n    return 1 as c_int;\n}",
+    "signature": "unsafe fn opng_insert_palette_entry(\n    mut palette: png_colorp,\n    mut num_palette: *mut c_int,\n    mut trans_alpha: png_bytep,\n    mut num_trans: *mut c_int,\n    mut max_tuples: c_int,\n    mut red: c_uint,\n    mut green: c_uint,\n    mut blue: c_uint,\n    mut alpha: c_uint,\n    mut index: *mut c_int,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.3867,
+      "call_count": null,
+      "retired_instructions": 4781053012,
+      "instructions_per_call": null,
+      "cpi": 0.479,
+      "tma": {
+        "scope": "process",
+        "retiring": 51.425930929611255,
+        "frontend_bound": 25.707339535339,
+        "bad_speculation": 13.429234291527084,
+        "backend_bound": 9.437495243522658,
+        "memory_bound": 3.33716759412876,
+        "core_bound": 6.100327649393898,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0162
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_vec": {
+        "NonReductionValueUsedOutsideLoop": 2,
+        "CantComputeNumberOfIterations": 3,
+        "CantVectorizeLibcall": 1
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 166,
+        "message": "__assert_fail will not be inlined into _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 179,
+        "message": "__assert_fail will not be inlined into _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 283,
+        "message": "__assert_fail will not be inlined into _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E because its definition is unavailable"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 306,
+        "message": "__assert_fail will not be inlined into _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E because its definition is unavailable"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 301,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 304,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 322,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 227,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 227,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 227,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 194,
+        "message": "loop not vectorized: value that could not be identified as reduction is used outside the loop"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 194,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 194,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 254,
+        "message": "loop not vectorized: could not determine number of loop iterations"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 254,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 295,
+        "message": "loop not vectorized: call instruction cannot be vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 294,
+        "message": "loop not vectorized: instruction cannot be vectorized"
+      },
+      {
+        "pass": "loop-vectorize",
+        "status": "missed",
+        "line": 294,
+        "message": "loop not vectorized"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 146,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E: MI Instruction count changed from 0 to 417; Delta: 417"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 146,
+        "message": "Early Tail Duplication: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E: MI Instruction count changed from 417 to 416; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 146,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E: MI Instruction count changed from 416 to 396; Delta: -20"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 146,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E: MI Instruction count changed from 396 to 467; Delta: 71"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 146,
+        "message": "Two-Address instruction pass: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E: MI Instruction count changed from 467 to 525; Delta: 58"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 146,
+        "message": "Register Coalescer: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E: MI Instruction count changed from 525 to 377; Delta: -148"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 316,
+        "message": "1 virtual registers copies 2.338944e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 294,
+        "message": "1 virtual registers copies 3.151422e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 254,
+        "message": "2 virtual registers copies 7.235300e+00 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 194,
+        "message": "6 virtual registers copies 2.323597e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 227,
+        "message": "4 virtual registers copies 1.236007e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 146,
+        "message": "35 virtual registers copies 4.995958e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 146,
+        "message": "Greedy Register Allocator: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E: MI Instruction count changed from 377 to 394; Delta: 17"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 146,
+        "message": "Virtual Register Rewriter: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E: MI Instruction count changed from 394 to 364; Delta: -30"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 146,
+        "message": "56 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 146,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E: MI Instruction count changed from 364 to 390; Delta: 26"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 146,
+        "message": "Control Flow Optimizer: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E: MI Instruction count changed from 390 to 329; Delta: -61"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 146,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E: MI Instruction count changed from 329 to 330; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 146,
+        "message": "X86 vzeroupper inserter: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E: MI Instruction count changed from 330 to 331; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 146,
+        "message": "X86 LEA Fixup: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E: MI Instruction count changed from 331 to 332; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 146,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN21optipng_0_7_7_cleaned3src9opngreduc9opngreduc25opng_insert_palette_entry17h8249462449cf4b15E: MI Instruction count changed from 332 to 333; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 164,
+        "message": "BasicBlock: start"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 177,
+        "message": "BasicBlock: bb2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 177,
+        "message": "BasicBlock: bb2"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 192,
+        "message": "BasicBlock: bb11"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 191,
+        "message": "BasicBlock: bb15.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 214,
+        "message": "BasicBlock: bb25"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 193,
+        "message": "BasicBlock: bb15"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 205,
+        "message": "BasicBlock: bb19"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 211,
+        "message": "BasicBlock: bb21"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 213,
+        "message": "BasicBlock: bb24"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 215,
+        "message": "BasicBlock: bb26"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 216,
+        "message": "BasicBlock: bb27"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 224,
+        "message": "BasicBlock: bb33.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 242,
+        "message": "BasicBlock: bb40"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 226,
+        "message": "BasicBlock: bb33"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 233,
+        "message": "BasicBlock: bb35"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 239,
+        "message": "BasicBlock: bb37"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 241,
+        "message": "BasicBlock: bb39"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 243,
+        "message": "BasicBlock: bb41"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 244,
+        "message": "BasicBlock: bb42"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 251,
+        "message": "BasicBlock: bb46"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 254,
+        "message": "BasicBlock: bb49.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 255,
+        "message": "BasicBlock: bb49"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 259,
+        "message": "BasicBlock: bb51"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 265,
+        "message": "BasicBlock: bb53"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 267,
+        "message": "BasicBlock: bb55"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 271,
+        "message": "BasicBlock: bb57"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 275,
+        "message": "BasicBlock: bb60"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 281,
+        "message": "BasicBlock: bb61"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 281,
+        "message": "BasicBlock: bb61"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 294,
+        "message": "BasicBlock: bb67.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 294,
+        "message": "BasicBlock: bb68.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 295,
+        "message": "BasicBlock: bb68.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 294,
+        "message": "BasicBlock: bb68.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 304,
+        "message": "BasicBlock: bb70"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 316,
+        "message": "BasicBlock: bb73.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 316,
+        "message": "BasicBlock: iter.check"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 316,
+        "message": "BasicBlock: vector.scevcheck"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 316,
+        "message": "BasicBlock: vector.memcheck"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 321,
+        "message": "BasicBlock: bb75"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 324,
+        "message": "BasicBlock: bb76"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 268,
+        "message": "BasicBlock: bb56"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 218,
+        "message": "BasicBlock: bb28"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 246,
+        "message": "BasicBlock: bb43"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 326,
+        "message": "BasicBlock: bb77"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 316,
+        "message": "BasicBlock: vector.ph"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 318,
+        "message": "BasicBlock: vector.body"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 316,
+        "message": "BasicBlock: middle.block"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 316,
+        "message": "BasicBlock: vec.epilog.iter.check"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 316,
+        "message": "BasicBlock: vec.epilog.ph"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 318,
+        "message": "BasicBlock: vec.epilog.vector.body"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 316,
+        "message": "BasicBlock: vec.epilog.middle.block"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 166,
+        "message": "BasicBlock: bb5"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 179,
+        "message": "BasicBlock: bb10"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 283,
+        "message": "BasicBlock: bb66"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 306,
+        "message": "BasicBlock: bb72"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 146,
+        "message": "312 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

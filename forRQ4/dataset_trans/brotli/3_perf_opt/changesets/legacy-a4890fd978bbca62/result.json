@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.09135020129120487,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.6493566247381134,
+            "aggregate_ci_low_pct": -0.8320570273205231,
+            "aggregate_pct": -0.09135020129120487,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.6494,
+                "ci_low_pct": -0.8321,
+                "insns_delta_pct": -0.3272,
+                "mean_delta_pct": -0.0914,
+                "op": "lowlevel_probe",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "lowlevel_probe"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "lowlevel_probe"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "38a86afe2c07912247c1a768a5d817b53d44f6ef",
+      "changeset_id": "legacy-a4890fd978bbca62",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-bd4cef84ec951c06",
+          "replacement_function_source": "// Applied rules: [C3, III③]\n// Skipped rules: [C3.S1: Would require changing the `pub unsafe` raw-pointer signature to references/slices and auditing all callers for aliasing, nullability, and exact lengths; not necessary because the concrete hits can be addressed with S2.]\n#[inline]\npub unsafe fn BrotliStoreUncompressedMetaBlock(\n    mut is_final_block: c_int,\n    mut input: *const uint8_t,\n    mut position: size_t,\n    mut mask: size_t,\n    mut len: size_t,\n    mut storage_ix: *mut size_t,\n    mut storage: *mut uint8_t,\n) {\n    let mut masked_pos: size_t = position & mask;\n    BrotliStoreUncompressedMetaBlockHeader(len, storage_ix, storage);\n    JumpToByteBoundary(storage_ix, storage);\n\n    let mut storage_ix_local: size_t = *storage_ix;\n    if masked_pos.wrapping_add(len) > mask.wrapping_add(1 as size_t) {\n        let mut len1: size_t = mask.wrapping_add(1 as size_t).wrapping_sub(masked_pos);\n        let dst = storage.offset((storage_ix_local >> 3 as c_int) as isize);\n        let src = input.offset(masked_pos as isize);\n        // SAFETY: caller guarantees `storage` and `input` are valid for these byte ranges; overlap is not ruled out here, so use overlap-tolerant copy semantics.\n        unsafe { core::ptr::copy(src, dst, len1) };\n        storage_ix_local = (storage_ix_local as c_ulong)\n            .wrapping_add((len1 << 3 as c_int) as c_ulong)\n            as size_t as size_t;\n        *storage_ix = storage_ix_local;\n        len = (len as c_ulong).wrapping_sub(len1 as c_ulong) as size_t as size_t;\n        masked_pos = 0 as size_t;\n    }\n\n    let dst = storage.offset((storage_ix_local >> 3 as c_int) as isize);\n    let src = input.offset(masked_pos as isize);\n    // SAFETY: caller guarantees `storage` and `input` are valid for these byte ranges; overlap is not ruled out here, so use overlap-tolerant copy semantics.\n    unsafe { core::ptr::copy(src, dst, len) };\n    storage_ix_local = (storage_ix_local as c_ulong)\n        .wrapping_add((len << 3 as c_int) as c_ulong)\n        as size_t as size_t;\n    *storage_ix = storage_ix_local;\n\n    BrotliWriteBitsPrepareStorage(storage_ix_local, storage);\n    if is_final_block != 0 {\n        BrotliWriteBits(1 as size_t, 1 as uint64_t, storage_ix, storage);\n        BrotliWriteBits(1 as size_t, 1 as uint64_t, storage_ix, storage);\n        JumpToByteBoundary(storage_ix, storage);\n    }\n}",
+          "rule_id": "C3,III③",
+          "target": {
+            "declaration_hash": "7f42eefc75aa1712c943bf6b01d78c5ba01a32b0bfc9c96f92fc1c90ca5221d4",
+            "file_hint": "src/enc/brotli_bit_stream.rs",
+            "qualified_name": "crate::BrotliStoreUncompressedMetaBlock",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "BrotliStoreUncompressedMetaBlock-ff090bdc3d4b",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "BrotliStoreUncompressedMetaBlock",
+        "rule_id": "C3,III③"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "faf712f55d193a9571b8f4ac5d5fadcbdd6c758db85b8569335d06831ca8f679",
+            "edit_id": "edit-replace-bd4cef84ec951c06",
+            "end_byte": 86474,
+            "operation_id": "replace-bd4cef84ec951c06",
+            "relative_path": "src/enc/brotli_bit_stream.rs",
+            "replacement_text": "// Applied rules: [C3, III③]\n// Skipped rules: [C3.S1: Would require changing the `pub unsafe` raw-pointer signature to references/slices and auditing all callers for aliasing, nullability, and exact lengths; not necessary because the concrete hits can be addressed with S2.]\n#[inline]\npub unsafe fn BrotliStoreUncompressedMetaBlock(\n    mut is_final_block: c_int,\n    mut input: *const uint8_t,\n    mut position: size_t,\n    mut mask: size_t,\n    mut len: size_t,\n    mut storage_ix: *mut size_t,\n    mut storage: *mut uint8_t,\n) {\n    let mut masked_pos: size_t = position & mask;\n    BrotliStoreUncompressedMetaBlockHeader(len, storage_ix, storage);\n    JumpToByteBoundary(storage_ix, storage);\n\n    let mut storage_ix_local: size_t = *storage_ix;\n    if masked_pos.wrapping_add(len) > mask.wrapping_add(1 as size_t) {\n        let mut len1: size_t = mask.wrapping_add(1 as size_t).wrapping_sub(masked_pos);\n        let dst = storage.offset((storage_ix_local >> 3 as c_int) as isize);\n        let src = input.offset(masked_pos as isize);\n        // SAFETY: caller guarantees `storage` and `input` are valid for these byte ranges; overlap is not ruled out here, so use overlap-tolerant copy semantics.\n        unsafe { core::ptr::copy(src, dst, len1) };\n        storage_ix_local = (storage_ix_local as c_ulong)\n            .wrapping_add((len1 << 3 as c_int) as c_ulong)\n            as size_t as size_t;\n        *storage_ix = storage_ix_local;\n        len = (len as c_ulong).wrapping_sub(len1 as c_ulong) as size_t as size_t;\n        masked_pos = 0 as size_t;\n    }\n\n    let dst = storage.offset((storage_ix_local >> 3 as c_int) as isize);\n    let src = input.offset(masked_pos as isize);\n    // SAFETY: caller guarantees `storage` and `input` are valid for these byte ranges; overlap is not ruled out here, so use overlap-tolerant copy semantics.\n    unsafe { core::ptr::copy(src, dst, len) };\n    storage_ix_local = (storage_ix_local as c_ulong)\n        .wrapping_add((len << 3 as c_int) as c_ulong)\n        as size_t as size_t;\n    *storage_ix = storage_ix_local;\n\n    BrotliWriteBitsPrepareStorage(storage_ix_local, storage);\n    if is_final_block != 0 {\n        BrotliWriteBits(1 as size_t, 1 as uint64_t, storage_ix, storage);\n        BrotliWriteBits(1 as size_t, 1 as uint64_t, storage_ix, storage);\n        JumpToByteBoundary(storage_ix, storage);\n    }\n}",
+            "start_byte": 84749
+          }
+        ],
+        "facts": {
+          "fn_name": "BrotliStoreUncompressedMetaBlock",
+          "target_span_hash": "7f42eefc75aa1712c943bf6b01d78c5ba01a32b0bfc9c96f92fc1c90ca5221d4"
+        },
+        "operation_id": "replace-bd4cef84ec951c06"
+      }
+    ],
+    "resolved_head": "38a86afe2c07912247c1a768a5d817b53d44f6ef"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/enc/brotli_bit_stream.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

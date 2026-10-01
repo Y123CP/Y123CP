@@ -1,0 +1,12 @@
+# perf_opt canonical fair-build flags — see script_c2rust/docs/perf_tree_design.md §2.8.
+#
+# Pinned at the driving crate so EVERY `cargo build` (perf_opt verify,
+# manual, perf record, future tools) gets the same ISA. Do NOT rely on
+# upstream RUSTFLAGS env — they vary by caller and have silently broken
+# three-way comparison runs in the past.
+#
+# Pairs with [profile.release] in Cargo.toml (opt-level=3, lto="fat",
+# codegen-units=1, panic="abort", debug=false). Together these match
+# the C-side `clang-14 -O3 -flto -march=native -DNDEBUG` line-for-line.
+[build]
+rustflags = ["-Ctarget-cpu=native", "-Ctarget-feature=-avx512f"]

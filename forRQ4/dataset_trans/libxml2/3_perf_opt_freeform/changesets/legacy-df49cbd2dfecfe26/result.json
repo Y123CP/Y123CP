@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.7638932152673338,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 1.2156791885677867,
+            "aggregate_ci_low_pct": 0.31210724196688083,
+            "aggregate_pct": 0.7638932152673338,
+            "checkpoint": 20,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 1.2157,
+                "ci_low_pct": 0.3121,
+                "insns_delta_pct": -0.589,
+                "mean_delta_pct": 0.7639,
+                "op": "regexp_pattern",
+                "samples": 20,
+                "state": "active",
+                "stop_reason": "per_op_uncertain"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "regexp_pattern"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "regexp_pattern"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "f641ddb542886e9de485798667a5f27c342ab788",
+      "changeset_id": "legacy-df49cbd2dfecfe26",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-ee2f139da57d91a7",
+          "replacement_function_source": "fn xmlFAEliminateEpsilonTransitions(mut ctxt: xmlRegParserCtxtPtr) { unsafe {\n    // SAFETY: caller provides a valid parser context pointer per original function contract.\n    if (*ctxt).states.is_null() {\n        return;\n    }\n\n    xmlFAEliminateSimpleEpsilonTransitions(ctxt);\n\n    let states = (*ctxt).states;\n    let nb_states = (*ctxt).nbStates;\n\n    let mut statenr: c_int = 0;\n    while statenr < nb_states {\n        // SAFETY: states points to an array of nb_states entries.\n        let state = *states.offset(statenr as isize);\n        if !state.is_null()\n            && (*state).type_0 as c_uint == XML_REGEXP_UNREACH_STATE as c_int as c_uint\n        {\n            xmlRegFreeState(state);\n            // SAFETY: same indexed slot as read above.\n            *states.offset(statenr as isize) = ::core::ptr::null_mut::<xmlRegState>();\n        }\n        statenr += 1;\n    }\n\n    let mut has_epsilon: c_int = 0;\n    statenr = nb_states - 1;\n    while statenr >= 0 {\n        // SAFETY: states points to an array of nb_states entries.\n        let state = *states.offset(statenr as isize);\n        if !state.is_null() {\n            if (*state).nbTrans == 0\n                && (*state).type_0 as c_uint != XML_REGEXP_FINAL_STATE as c_int as c_uint\n            {\n                (*state).type_0 = XML_REGEXP_SINK_STATE;\n            }\n\n            let trans_base = (*state).trans;\n            let nb_trans = (*state).nbTrans;\n            let mut transnr: c_int = 0;\n            while transnr < nb_trans {\n                // SAFETY: trans_base points to nb_trans transitions.\n                let trans = trans_base.offset(transnr as isize);\n                if (*trans).atom.is_null() && (*trans).to >= 0 {\n                    if (*trans).to == statenr {\n                        (*trans).to = -1;\n                    } else if (*trans).count < 0 {\n                        let newto = (*trans).to;\n                        has_epsilon = 1;\n                        (*trans).to = -2;\n                        (*state).mark = XML_REGEXP_MARK_START;\n                        xmlFAReduceEpsilonTransitions(ctxt, statenr, newto, (*trans).counter);\n                        xmlFAFinishReduceEpsilonTransitions(ctxt, newto);\n                        (*state).mark = XML_REGEXP_MARK_NORMAL;\n                    }\n                }\n                transnr += 1;\n            }\n        }\n        statenr -= 1;\n    }\n\n    if has_epsilon != 0 {\n        statenr = 0;\n        while statenr < nb_states {\n            // SAFETY: states points to an array of nb_states entries.\n            let state = *states.offset(statenr as isize);\n            if !state.is_null() {\n                let trans_base = (*state).trans;\n                let nb_trans = (*state).nbTrans;\n                let mut transnr: c_int = 0;\n                while transnr < nb_trans {\n                    // SAFETY: trans_base points to nb_trans transitions.\n                    let trans = trans_base.offset(transnr as isize);\n                    if (*trans).atom.is_null() && (*trans).count < 0 && (*trans).to >= 0 {\n                        (*trans).to = -1;\n                    }\n                    transnr += 1;\n                }\n            }\n            statenr += 1;\n        }\n    }\n\n    statenr = 0;\n    while statenr < nb_states {\n        // SAFETY: states points to an array of nb_states entries.\n        let state = *states.offset(statenr as isize);\n        if !state.is_null() {\n            (*state).reached = XML_REGEXP_MARK_NORMAL;\n        }\n        statenr += 1;\n    }\n\n    // SAFETY: original code assumes state 0 exists when states is non-null.\n    let mut state = *states.offset(0);\n    if !state.is_null() {\n        (*state).reached = XML_REGEXP_MARK_START;\n    }\n\n    while !state.is_null() {\n        let mut target: xmlRegStatePtr = ::core::ptr::null_mut::<xmlRegState>();\n        (*state).reached = XML_REGEXP_MARK_VISITED;\n\n        let trans_base = (*state).trans;\n        let nb_trans = (*state).nbTrans;\n        let mut transnr: c_int = 0;\n        while transnr < nb_trans {\n            // SAFETY: trans_base points to nb_trans transitions.\n            let trans = trans_base.offset(transnr as isize);\n            let to = (*trans).to;\n            if to >= 0 && (!(*trans).atom.is_null() || (*trans).count >= 0) {\n                // SAFETY: to is a valid state index by automaton invariants preserved by original code.\n                let dst_slot = states.offset(to as isize);\n                let dst = *dst_slot;\n                if !dst.is_null()\n                    && (*dst).reached as c_uint == XML_REGEXP_MARK_NORMAL as c_int as c_uint\n                {\n                    (*dst).reached = XML_REGEXP_MARK_START;\n                    target = dst;\n                }\n            }\n            transnr += 1;\n        }\n\n        if target.is_null() {\n            statenr = 1;\n            while statenr < nb_states {\n                // SAFETY: states points to an array of nb_states entries.\n                let cand = *states.offset(statenr as isize);\n                if !cand.is_null()\n                    && (*cand).reached as c_uint == XML_REGEXP_MARK_START as c_int as c_uint\n                {\n                    target = cand;\n                    break;\n                }\n                statenr += 1;\n            }\n        }\n        state = target;\n    }\n\n    statenr = 0;\n    while statenr < nb_states {\n        // SAFETY: states points to an array of nb_states entries.\n        let state = *states.offset(statenr as isize);\n        if !state.is_null()\n            && (*state).reached as c_uint == XML_REGEXP_MARK_NORMAL as c_int as c_uint\n        {\n            xmlRegFreeState(state);\n            // SAFETY: same indexed slot as read above.\n            *states.offset(statenr as isize) = ::core::ptr::null_mut::<xmlRegState>();\n        }\n        statenr += 1;\n    }\n} }",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "9d6cd3662b6b1601ae3d9ce137d771fcdc253045e853c9880dce1f2b4541049c",
+            "file_hint": "src/xmlregexp.rs",
+            "qualified_name": "crate::xmlFAEliminateEpsilonTransitions",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "xmlFAEliminateEpsilonTransitions-e965f9d5f9b1",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "xmlFAEliminateEpsilonTransitions",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "76a22ecef2f0059743daf7e6f4f4fc8f130f6953f8fbe3dee2d5ae7b189e879e",
+            "edit_id": "edit-replace-ee2f139da57d91a7",
+            "end_byte": 140485,
+            "operation_id": "replace-ee2f139da57d91a7",
+            "relative_path": "src/xmlregexp.rs",
+            "replacement_text": "fn xmlFAEliminateEpsilonTransitions(mut ctxt: xmlRegParserCtxtPtr) { unsafe {\n    // SAFETY: caller provides a valid parser context pointer per original function contract.\n    if (*ctxt).states.is_null() {\n        return;\n    }\n\n    xmlFAEliminateSimpleEpsilonTransitions(ctxt);\n\n    let states = (*ctxt).states;\n    let nb_states = (*ctxt).nbStates;\n\n    let mut statenr: c_int = 0;\n    while statenr < nb_states {\n        // SAFETY: states points to an array of nb_states entries.\n        let state = *states.offset(statenr as isize);\n        if !state.is_null()\n            && (*state).type_0 as c_uint == XML_REGEXP_UNREACH_STATE as c_int as c_uint\n        {\n            xmlRegFreeState(state);\n            // SAFETY: same indexed slot as read above.\n            *states.offset(statenr as isize) = ::core::ptr::null_mut::<xmlRegState>();\n        }\n        statenr += 1;\n    }\n\n    let mut has_epsilon: c_int = 0;\n    statenr = nb_states - 1;\n    while statenr >= 0 {\n        // SAFETY: states points to an array of nb_states entries.\n        let state = *states.offset(statenr as isize);\n        if !state.is_null() {\n            if (*state).nbTrans == 0\n                && (*state).type_0 as c_uint != XML_REGEXP_FINAL_STATE as c_int as c_uint\n            {\n                (*state).type_0 = XML_REGEXP_SINK_STATE;\n            }\n\n            let trans_base = (*state).trans;\n            let nb_trans = (*state).nbTrans;\n            let mut transnr: c_int = 0;\n            while transnr < nb_trans {\n                // SAFETY: trans_base points to nb_trans transitions.\n                let trans = trans_base.offset(transnr as isize);\n                if (*trans).atom.is_null() && (*trans).to >= 0 {\n                    if (*trans).to == statenr {\n                        (*trans).to = -1;\n                    } else if (*trans).count < 0 {\n                        let newto = (*trans).to;\n                        has_epsilon = 1;\n                        (*trans).to = -2;\n                        (*state).mark = XML_REGEXP_MARK_START;\n                        xmlFAReduceEpsilonTransitions(ctxt, statenr, newto, (*trans).counter);\n                        xmlFAFinishReduceEpsilonTransitions(ctxt, newto);\n                        (*state).mark = XML_REGEXP_MARK_NORMAL;\n                    }\n                }\n                transnr += 1;\n            }\n        }\n        statenr -= 1;\n    }\n\n    if has_epsilon != 0 {\n        statenr = 0;\n        while statenr < nb_states {\n            // SAFETY: states points to an array of nb_states entries.\n            let state = *states.offset(statenr as isize);\n            if !state.is_null() {\n                let trans_base = (*state).trans;\n                let nb_trans = (*state).nbTrans;\n                let mut transnr: c_int = 0;\n                while transnr < nb_trans {\n                    // SAFETY: trans_base points to nb_trans transitions.\n                    let trans = trans_base.offset(transnr as isize);\n                    if (*trans).atom.is_null() && (*trans).count < 0 && (*trans).to >= 0 {\n                        (*trans).to = -1;\n                    }\n                    transnr += 1;\n                }\n            }\n            statenr += 1;\n        }\n    }\n\n    statenr = 0;\n    while statenr < nb_states {\n        // SAFETY: states points to an array of nb_states entries.\n        let state = *states.offset(statenr as isize);\n        if !state.is_null() {\n            (*state).reached = XML_REGEXP_MARK_NORMAL;\n        }\n        statenr += 1;\n    }\n\n    // SAFETY: original code assumes state 0 exists when states is non-null.\n    let mut state = *states.offset(0);\n    if !state.is_null() {\n        (*state).reached = XML_REGEXP_MARK_START;\n    }\n\n    while !state.is_null() {\n        let mut target: xmlRegStatePtr = ::core::ptr::null_mut::<xmlRegState>();\n        (*state).reached = XML_REGEXP_MARK_VISITED;\n\n        let trans_base = (*state).trans;\n        let nb_trans = (*state).nbTrans;\n        let mut transnr: c_int = 0;\n        while transnr < nb_trans {\n            // SAFETY: trans_base points to nb_trans transitions.\n            let trans = trans_base.offset(transnr as isize);\n            let to = (*trans).to;\n            if to >= 0 && (!(*trans).atom.is_null() || (*trans).count >= 0) {\n                // SAFETY: to is a valid state index by automaton invariants preserved by original code.\n                let dst_slot = states.offset(to as isize);\n                let dst = *dst_slot;\n                if !dst.is_null()\n                    && (*dst).reached as c_uint == XML_REGEXP_MARK_NORMAL as c_int as c_uint\n                {\n                    (*dst).reached = XML_REGEXP_MARK_START;\n                    target = dst;\n                }\n            }\n            transnr += 1;\n        }\n\n        if target.is_null() {\n            statenr = 1;\n            while statenr < nb_states {\n                // SAFETY: states points to an array of nb_states entries.\n                let cand = *states.offset(statenr as isize);\n                if !cand.is_null()\n                    && (*cand).reached as c_uint == XML_REGEXP_MARK_START as c_int as c_uint\n                {\n                    target = cand;\n                    break;\n                }\n                statenr += 1;\n            }\n        }\n        state = target;\n    }\n\n    statenr = 0;\n    while statenr < nb_states {\n        // SAFETY: states points to an array of nb_states entries.\n        let state = *states.offset(statenr as isize);\n        if !state.is_null()\n            && (*state).reached as c_uint == XML_REGEXP_MARK_NORMAL as c_int as c_uint\n        {\n            xmlRegFreeState(state);\n            // SAFETY: same indexed slot as read above.\n            *states.offset(statenr as isize) = ::core::ptr::null_mut::<xmlRegState>();\n        }\n        statenr += 1;\n    }\n} }",
+            "start_byte": 134515
+          }
+        ],
+        "facts": {
+          "fn_name": "xmlFAEliminateEpsilonTransitions",
+          "target_span_hash": "9d6cd3662b6b1601ae3d9ce137d771fcdc253045e853c9880dce1f2b4541049c"
+        },
+        "operation_id": "replace-ee2f139da57d91a7"
+      }
+    ],
+    "resolved_head": "f641ddb542886e9de485798667a5f27c342ab788"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/xmlregexp.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

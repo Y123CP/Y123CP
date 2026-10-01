@@ -1,0 +1,101 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": "decode_buffer:3f855c67: sha256 ff43bfa42f40… ≠ b8fca460aa0e…"
+      },
+      "gate": "w1",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be",
+      "changeset_id": "legacy-97d811e0e85e1a6a",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-824cdbfea079c40a",
+          "replacement_function_source": "#[inline(always)]\nunsafe fn DecodeSymbol(\n    mut bits: uint64_t,\n    mut table: *const HuffmanCode,\n    mut br: *mut BrotliBitReader,\n) -> uint64_t {\n    let idx = (bits & 0xffu64) as isize;\n    // SAFETY: `table` points to a valid Huffman decoding table and `idx` is the same in-bounds offset used by the original code.\n    let entry = unsafe { &*table.offset(idx) };\n    let entry_bits = entry.bits as c_uint;\n\n    if entry_bits > HUFFMAN_TABLE_BITS {\n        let nbits = entry_bits.wrapping_sub(HUFFMAN_TABLE_BITS) as uint64_t;\n        BrotliDropBits(br, HUFFMAN_TABLE_BITS as uint64_t);\n        let sub_idx = (entry.value as uint64_t).wrapping_add((bits >> 8) & BitMask(nbits)) as isize;\n        // SAFETY: For second-level lookup, `table.offset(idx)` is a valid first-level entry whose `value` encodes a valid subtable base; `sub_idx` matches the original computation.\n        let sub_entry = unsafe { &*table.offset(sub_idx) };\n        BrotliDropBits(br, sub_entry.bits as uint64_t);\n        sub_entry.value as uint64_t\n    } else {\n        BrotliDropBits(br, entry.bits as uint64_t);\n        entry.value as uint64_t\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "655ef9c174760ad8190cc7b268bc3ff1b42bcca97e8396ddda82120c6db189fc",
+            "file_hint": "src/dec/decode.rs",
+            "qualified_name": "crate::DecodeSymbol",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "DecodeSymbol-42d01c2bd18a",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "DecodeSymbol",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "edafc6fb2079b4e565556d00c156d82afc8c6988ffb0988beb0552b5bcbb6c7d",
+            "edit_id": "edit-replace-824cdbfea079c40a",
+            "end_byte": 37898,
+            "operation_id": "replace-824cdbfea079c40a",
+            "relative_path": "src/dec/decode.rs",
+            "replacement_text": "#[inline(always)]\nunsafe fn DecodeSymbol(\n    mut bits: uint64_t,\n    mut table: *const HuffmanCode,\n    mut br: *mut BrotliBitReader,\n) -> uint64_t {\n    let idx = (bits & 0xffu64) as isize;\n    // SAFETY: `table` points to a valid Huffman decoding table and `idx` is the same in-bounds offset used by the original code.\n    let entry = unsafe { &*table.offset(idx) };\n    let entry_bits = entry.bits as c_uint;\n\n    if entry_bits > HUFFMAN_TABLE_BITS {\n        let nbits = entry_bits.wrapping_sub(HUFFMAN_TABLE_BITS) as uint64_t;\n        BrotliDropBits(br, HUFFMAN_TABLE_BITS as uint64_t);\n        let sub_idx = (entry.value as uint64_t).wrapping_add((bits >> 8) & BitMask(nbits)) as isize;\n        // SAFETY: For second-level lookup, `table.offset(idx)` is a valid first-level entry whose `value` encodes a valid subtable base; `sub_idx` matches the original computation.\n        let sub_entry = unsafe { &*table.offset(sub_idx) };\n        BrotliDropBits(br, sub_entry.bits as uint64_t);\n        sub_entry.value as uint64_t\n    } else {\n        BrotliDropBits(br, entry.bits as uint64_t);\n        entry.value as uint64_t\n    }\n}",
+            "start_byte": 37180
+          }
+        ],
+        "facts": {
+          "fn_name": "DecodeSymbol",
+          "target_span_hash": "655ef9c174760ad8190cc7b268bc3ff1b42bcca97e8396ddda82120c6db189fc"
+        },
+        "operation_id": "replace-824cdbfea079c40a"
+      }
+    ],
+    "resolved_head": "92de2471fbfbf42f0802b0de3a111ac94ea383be"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w1",
+  "touched_paths": [
+    "src/dec/decode.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

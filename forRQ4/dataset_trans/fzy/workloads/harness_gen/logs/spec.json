@@ -1,0 +1,57 @@
+{
+  "harness_name": "fzy_raw_harness",
+  "operations": [
+    {
+      "name": "match_primitives",
+      "needs_input": true,
+      "summary": "Exercises the low-level fuzzy matching API on one query/haystack pair. It drives case-insensitive character lookup, boolean match testing, score computation, and matched-position extraction.",
+      "api_calls": [
+        "strcasechr",
+        "has_match",
+        "match_0",
+        "match_positions"
+      ],
+      "input_format": "Two UTF-8-ish byte strings separated by the first NUL byte: <needle>\\0<haystack>. The runner copies each side into owned NUL-terminated buffers, tolerating arbitrary bytes by treating missing separators as empty fields.",
+      "digest": "Fold whether strcasechr found the first needle byte, the integer result of has_match, the score_t results from match_0 and match_positions via integer bit-pattern folding, and a checksum of the reported positions array up to needle length."
+    },
+    {
+      "name": "choices_add_search",
+      "needs_input": true,
+      "summary": "Builds a choices database incrementally with choices_add, runs a fuzzy search, then inspects ranking and cursor movement. This is a realistic end-to-end path for the crate's main search workload.",
+      "api_calls": [
+        "options_init",
+        "choices_init",
+        "choices_add",
+        "choices_search",
+        "choices_available",
+        "choices_get",
+        "choices_getscore",
+        "choices_prev",
+        "choices_next",
+        "choices_destroy"
+      ],
+      "input_format": "Text records separated by LF. The first line is the search query; each subsequent non-empty line is one candidate choice string. The runner converts lines to individual NUL-terminated C strings and adds them one by one.",
+      "digest": "Fold the number of available matches, the top few result strings by content checksum, their scores via integer bit-pattern folding, and content-derived facts observed before/after choices_prev and choices_next."
+    },
+    {
+      "name": "choices_fread_search",
+      "needs_input": true,
+      "summary": "Exercises file-backed ingestion with choices_fread, then performs the same ranking/query path as the interactive finder. This covers the bulk-loading path and the search kernel over a larger candidate set.",
+      "api_calls": [
+        "options_init",
+        "choices_init",
+        "choices_fread",
+        "choices_search",
+        "choices_available",
+        "choices_get",
+        "choices_getscore",
+        "choices_prev",
+        "choices_next",
+        "choices_destroy"
+      ],
+      "input_format": "LF-delimited text where the first line is the search query and the remaining bytes are the exact candidate-list payload to feed through a temporary FILE stream into choices_fread with '\\n' as the delimiter.",
+      "digest": "Fold the candidate count accepted by choices_fread indirectly through search results, the number of available matches, checksums of several returned choice strings, and their corresponding scores."
+    }
+  ],
+  "seed_strategy": "Generate deterministic, human-realistic candidate lists resembling file paths, symbol names, and command/history entries with strong substring overlap so fuzzy scoring does real work. For match_primitives, emit two distinct valid pairs such as `src/mat\\0src/match.rs` and `ttyint\\0src/tty_interface.rs`. For choices_add_search and choices_fread_search, emit two distinct LF-delimited corpora each with a first-line query and dozens to hundreds of candidate lines; one corpus can focus on Rust source paths (`src/match.rs`, `src/tty_interface.rs`, etc.) and the other on shell/history-style commands and project filenames. For perf, write a large multi-megabyte candidate corpus with many repeated prefixes/directories and varied suffixes, plus a query that matches a substantial fraction of entries, so choices_search traverses and scores the full dataset rather than bailing out early."
+}

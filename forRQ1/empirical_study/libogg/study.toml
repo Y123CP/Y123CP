@@ -1,0 +1,91 @@
+# =============================================================================
+# Empirical-study measurement manifest — libogg  (LIBRARY project, Ogg framing)
+# =============================================================================
+# C vs c2rust_raw(0_raw). libogg freshly STAGED 2026-07-01 (clone xiph/ogg →
+# cmake compile_commands → c2rust 0.22.1 transpile → 0_raw [libogg_raw]).
+#   C  side : ogg_encode.c + src/bitwise.c + src/framing.c   (single-shot clang-17 LTO)
+#   raw side: workloads/harness/ogg_encode (main.rs) → path-dep 0_raw (libogg_raw)
+# Both: init an ogg stream, feed M=300k fixed packets, flush each into an ogg page,
+# fold the page bytes (header w/ CRC + body) into a checksum. Exercises libogg's
+# page framing + CRC (its compute kernel). Input ignored (self-contained).
+# Equivalence VERIFIED 2026-07-01: both = "packets=300000 checksum=0800cc4010014ac0".
+#
+# ★ TOOLCHAIN (fairness, learned the hard way): the c2rust 0_raw's own
+# rust-toolchain.toml pins nightly-2023-04-15 = rustc 1.70 / LLVM 16 — which would
+# MISMATCH the clang-17/LLVM17 C side. The harness pins nightly-2024-01-15 =
+# rustc 1.77 / LLVM 17.0.6, and rust-toolchain.toml resolves from the cargo
+# invocation dir (the harness), so the whole build (incl the 0_raw dep) uses
+# LLVM 17. Backend parity confirmed.
+# =============================================================================
+
+[study]
+project      = "libogg"
+binary       = "ogg_encode"
+compare      = ["c", "c2rust_raw"]
+report_mode  = "per_input"
+
+[builds.c]
+kind        = "c_reference"
+compiler    = "clang-17"
+source_dir  = "empirical_study/libogg/c_ref"     # self-contained (copied from dataset_source/libogg)
+build_cmd   = "bash empirical_study/libogg/c_ref/build.sh"
+binary_path = "empirical_study/libogg/bin/ogg_cref17"
+
+[builds.c2rust_raw]
+kind        = "cargo_harness"    # harness pins nightly-2024-01-15 (1.77/LLVM17)
+crate_dir   = "empirical_study/libogg/rust_harness"
+build_cmd   = "( cd empirical_study/libogg/rust_harness && cargo build --release )"
+flags       = "opt-level=3, lto=fat, codegen-units=1, target-cpu=native (harness Cargo.toml + .cargo/config); rustc 1.77-nightly / LLVM 17.0.6"
+binary_path = "empirical_study/libogg/rust_harness/target/release/ogg_encode"
+
+[measure]
+warmup_runs    = 5
+measure_runs   = 30
+metric         = "median"
+outlier_rule   = "drop >1.5*IQR"
+required_cv    = 0.03
+min_runtime_ms = 100
+timeout_s      = 300
+pin_cpu        = 16
+order          = ["c", "c2rust_raw"]
+paired         = true
+freq_pin       = true
+
+[profile]
+call_graph_mode = "dwarf"
+frequency       = 99
+
+# OPERATION 1 — ENCODE: 300k packets → pages + CRC, ~1s. Input ignored (dummy).
+[[operations]]
+name = "encode_300k"
+args = ["$INPUT"]
+
+  [[operations.inputs]]
+  name = "enc300k"
+  path = "empirical_study/libogg/inputs/ignored.txt"
+  size = "300k packets x 1024B, page framing + CRC"
+  character = "ogg stream encode (framing + CRC kernel)"
+  stdout_sha256 = "f684f20de045379bd4eb8f03afc7bf9c2e456aa3584cf65d4b7dcf0e821fb6d1"
+
+# OPERATION 2 — DECODE: build 30k-packet buffer once, then loop 60x through
+# ogg_sync_pageout + ogg_stream_pagein + ogg_stream_packetout (~1s). args=["decode"].
+# Adds libogg's READ path (sync/page-split/packet-reassembly; was encode-only 18%).
+[[operations]]
+name = "decode_30k"
+args = ["decode"]
+
+  [[operations.inputs]]
+  name = "dec30k"
+  path = "empirical_study/libogg/inputs/ignored.txt"
+  size = "30k packets x 10 iters, sync + pagein + packetout"
+  character = "ogg stream decode (sync/page-split/packet reassembly)"
+  stdout_sha256 = "f41f07eb5ebe16031e0cca6a6840a16e16c36b2a2f9b267d2d97943afca89486"
+
+[oracle]
+exit_code = 0
+correctness_manifests = []
+
+[gates]
+coverage_line_min = 50
+coverage_fn_min   = 60
+self_time_own_min = 70   # framing/CRC should dominate — verify + report

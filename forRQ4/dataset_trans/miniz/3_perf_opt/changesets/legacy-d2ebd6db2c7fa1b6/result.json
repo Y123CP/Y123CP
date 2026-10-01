@@ -1,0 +1,217 @@
+{
+  "applied_rules": [
+    "III④,C5"
+  ],
+  "commit_sha": "9f09c2e",
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -1.890864854409047,
+        "detail": "accepted",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -1.8461796390352163,
+            "aggregate_ci_low_pct": -1.9355500697828776,
+            "aggregate_pct": -1.890864854409047,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": -0.9655,
+                "ci_low_pct": -1.0536,
+                "insns_delta_pct": 0.1427,
+                "mean_delta_pct": -1.0096,
+                "op": "mz_stream_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.5615,
+                "ci_low_pct": -0.6677,
+                "insns_delta_pct": -0.5459,
+                "mean_delta_pct": -0.6146,
+                "op": "tdefl_encode_blob",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -3.925,
+                "ci_low_pct": -4.1719,
+                "insns_delta_pct": -2.2329,
+                "mean_delta_pct": -4.0484,
+                "op": "tinfl_decode_blob",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -23.644958173299557,
+            "aggregate_ci_low_pct": -23.71256494500257,
+            "aggregate_pct": -23.678761559151063,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -7.3977,
+                "ci_low_pct": -7.5152,
+                "insns_delta_pct": -2.9619,
+                "mean_delta_pct": -7.4564,
+                "op": "mz_stream_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.7589,
+                "ci_low_pct": -0.8735,
+                "insns_delta_pct": -0.7668,
+                "mean_delta_pct": -0.8162,
+                "op": "tdefl_encode_blob",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -34.109,
+                "ci_low_pct": -34.2226,
+                "insns_delta_pct": -14.4751,
+                "mean_delta_pct": -34.1658,
+                "op": "tinfl_decode_blob",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -52.167,
+                "ci_low_pct": -52.3862,
+                "insns_delta_pct": -17.2015,
+                "mean_delta_pct": -52.2766,
+                "op": "zip_reader_blob",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "mz_stream_roundtrip",
+          "tdefl_encode_blob",
+          "tinfl_decode_blob"
+        ],
+        "reason": "accepted",
+        "triggering_op": "tdefl_encode_blob"
+      },
+      "gate": "w2",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "4c21f5e348594ac5c7693366a8e4279889b33c37",
+      "changeset_id": "legacy-d2ebd6db2c7fa1b6",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-7cbd88a3083195dd",
+          "replacement_function_source": "// Applied rules: [III④, C5]\n// Skipped rules: [C3: The concrete C3 hits [0,1] are raw-byte loads from the advancing input cursor, not repeated invariant field/addr-chain reloads suitable for S2 hoisting. A body-local III④ slice view removes the raw-pointer cursor form that caused the aliasing gap at these sites, and S1 signature lift to references/slices would require caller-proof cross-function analysis on a `pub unsafe` API with lower payoff than the in-body rewrite.]\n#[inline]\npub unsafe fn mz_adler32(\n    mut adler: mz_ulong,\n    mut ptr: *const c_uchar,\n    mut buf_len: size_t,\n) -> mz_ulong {\n    let mut s1: mz_uint32 = (adler & 0xffff as mz_ulong) as mz_uint32;\n    let mut s2: mz_uint32 = (adler >> 16 as c_int) as mz_uint32;\n    let mut block_len: size_t = buf_len.wrapping_rem(5552 as size_t);\n    if ptr.is_null() {\n        return MZ_ADLER32_INIT as mz_ulong;\n    }\n    while buf_len != 0 {\n        // SAFETY: `block_len` is derived from the explicit remaining input length (`buf_len`)\n        // and is stable for this iteration; `ptr` is non-null due to the early return above;\n        // this creates an immutable view only, and no mutable/reference alias to the same\n        // memory is introduced across this region.\n        let block = unsafe { core::slice::from_raw_parts(ptr, block_len) };\n\n        let n = block.len() as u64;\n        let mut bsum: u64 = 0;\n        let mut bwsum: u64 = 0;\n\n        for (j, &byte) in block.iter().enumerate() {\n            let v = byte as u64;\n            bsum = bsum.wrapping_add(v);\n            bwsum = bwsum.wrapping_add((j as u64).wrapping_mul(v));\n        }\n\n        let s1u = (s1 as u64).wrapping_add(bsum);\n        let s2u = (s2 as u64)\n            .wrapping_add(n.wrapping_mul(s1 as u64))\n            .wrapping_add(n.wrapping_mul(bsum))\n            .wrapping_sub(bwsum);\n\n        s1 = (s1u.wrapping_rem(65521_u64)) as mz_uint32;\n        s2 = (s2u.wrapping_rem(65521_u64)) as mz_uint32;\n\n        // SAFETY: advancing by exactly `block_len` stays within the same caller-provided\n        // input region for this iteration because `block_len` was used to form `block`.\n        ptr = unsafe { ptr.add(block_len) };\n        buf_len = buf_len.wrapping_sub(block_len);\n        block_len = 5552 as size_t;\n    }\n    (s2 << 16 as c_int).wrapping_add(s1) as mz_ulong\n}",
+          "rule_id": "III④,C5",
+          "target": {
+            "declaration_hash": "d48e7a2d683f2f637b5f60afade317758f5de626cf0fdf786bd9da5da005762f",
+            "file_hint": "src/miniz.rs",
+            "qualified_name": "crate::mz_adler32",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "mz_adler32-0928ab502a4d",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "mz_adler32",
+        "rule_id": "III④,C5"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "8f921995d8d21ee279a65a7a85a215e4048945861122ddd5524e3c1ad1d226db",
+            "edit_id": "edit-replace-7cbd88a3083195dd",
+            "end_byte": 6193,
+            "operation_id": "replace-7cbd88a3083195dd",
+            "relative_path": "src/miniz.rs",
+            "replacement_text": "// Applied rules: [III④, C5]\n// Skipped rules: [C3: The concrete C3 hits [0,1] are raw-byte loads from the advancing input cursor, not repeated invariant field/addr-chain reloads suitable for S2 hoisting. A body-local III④ slice view removes the raw-pointer cursor form that caused the aliasing gap at these sites, and S1 signature lift to references/slices would require caller-proof cross-function analysis on a `pub unsafe` API with lower payoff than the in-body rewrite.]\n#[inline]\npub unsafe fn mz_adler32(\n    mut adler: mz_ulong,\n    mut ptr: *const c_uchar,\n    mut buf_len: size_t,\n) -> mz_ulong {\n    let mut s1: mz_uint32 = (adler & 0xffff as mz_ulong) as mz_uint32;\n    let mut s2: mz_uint32 = (adler >> 16 as c_int) as mz_uint32;\n    let mut block_len: size_t = buf_len.wrapping_rem(5552 as size_t);\n    if ptr.is_null() {\n        return MZ_ADLER32_INIT as mz_ulong;\n    }\n    while buf_len != 0 {\n        // SAFETY: `block_len` is derived from the explicit remaining input length (`buf_len`)\n        // and is stable for this iteration; `ptr` is non-null due to the early return above;\n        // this creates an immutable view only, and no mutable/reference alias to the same\n        // memory is introduced across this region.\n        let block = unsafe { core::slice::from_raw_parts(ptr, block_len) };\n\n        let n = block.len() as u64;\n        let mut bsum: u64 = 0;\n        let mut bwsum: u64 = 0;\n\n        for (j, &byte) in block.iter().enumerate() {\n            let v = byte as u64;\n            bsum = bsum.wrapping_add(v);\n            bwsum = bwsum.wrapping_add((j as u64).wrapping_mul(v));\n        }\n\n        let s1u = (s1 as u64).wrapping_add(bsum);\n        let s2u = (s2 as u64)\n            .wrapping_add(n.wrapping_mul(s1 as u64))\n            .wrapping_add(n.wrapping_mul(bsum))\n            .wrapping_sub(bwsum);\n\n        s1 = (s1u.wrapping_rem(65521_u64)) as mz_uint32;\n        s2 = (s2u.wrapping_rem(65521_u64)) as mz_uint32;\n\n        // SAFETY: advancing by exactly `block_len` stays within the same caller-provided\n        // input region for this iteration because `block_len` was used to form `block`.\n        ptr = unsafe { ptr.add(block_len) };\n        buf_len = buf_len.wrapping_sub(block_len);\n        block_len = 5552 as size_t;\n    }\n    (s2 << 16 as c_int).wrapping_add(s1) as mz_ulong\n}",
+            "start_byte": 3975
+          }
+        ],
+        "facts": {
+          "fn_name": "mz_adler32",
+          "target_span_hash": "d48e7a2d683f2f637b5f60afade317758f5de626cf0fdf786bd9da5da005762f"
+        },
+        "operation_id": "replace-7cbd88a3083195dd"
+      }
+    ],
+    "resolved_head": "4c21f5e348594ac5c7693366a8e4279889b33c37"
+  },
+  "rollback_verified": false,
+  "terminal_status": "committed",
+  "touched_paths": [
+    "src/miniz.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

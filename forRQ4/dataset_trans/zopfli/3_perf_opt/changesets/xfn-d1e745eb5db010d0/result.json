@@ -1,0 +1,123 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": "error[E0425]: cannot find value `hash` in this scope\n   --> /perf-build/crate/src/squeeze.rs:593:10\n    |\n593 |     &mut hash,\n    |          ^^^^ not found in this scope\n    |\nhelp: consider importing one of these items\n    |\n1   + use core::ptr::hash;\n    |\n1   + use std::ptr::hash;\n    |\nerror[E0308]: mismatched types\n   --> /perf-build/crate/src/squeeze.rs:326:58\n    |\n299 | unsafe fn GetBestLengths<CM>(\n    |                          -- found this type parameter\n...\n326 |     let mut mincost: c_double = GetCostModelMinCost(Some(costmodel), costcontext);\n    |                                                     ---- ^^^^^^^^^ expected fn pointer, found type parameter `CM`\n    |                                                     |\n    |                                                     arguments to this enum variant are incorrect\n    |\n    = note:  expected fn pointer `unsafe extern \"C\" fn(u32, u32, *mut std::ffi::c_void) -> f64`\n            found type parameter `CM`\nhelp: the type constructed contains `CM` due to the type of the argument passed\n   --> /perf-build/crate/src/squeeze.rs:326:53\n    |\n326 |     let mut mincost: c_double = GetCostModelMinCost(Some(costmodel), costcontext);\n    |                                                     ^^^^^---------^\n    |                                                          |\n    |                                                          this argument influences the type of `Some`\nnote: tuple variant defined here\n   --> /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library/core/src/option.rs:578:5\n    |\n578 |     Some(#[stable(feature = \"rust1\", since = \"1.0.0\")] T),\n    |     ^^^^\nerror[E0308]: mismatched types\n   --> /perf-build/crate/src/squeeze.rs:586:5\n    |\n585 |     let mut cost: c_double = GetBestLengths(\n    |                              -------------- arguments to this function are incorrect\n586 |     &mut s,\n    |     ^^^^^^ expected `*mut ZopfliBlockState`, found `&mut *mut ZopfliBlockState`\n    |\n    = note:    expected raw pointer `_`\n            found mutable reference `&mut _`\nnote: function defined here\n   --> /perf-build/crate/src/squeeze.rs:299:11\n    |\n299 | unsafe fn GetBestLengths<CM>(\n    |           ^^^^^^^^^^^^^^\n300 |     mut s: *mut ZopfliBlockState,\n    |     ----------------------------\nhelp: consider removing the borrow\n    |\n586 -     &mut s,\n586 +     s,\n    |\n\nSome errors have detailed explanations: E0308, E0425.\nFor more information about an error, try `rustc --explain E0308`.\nerror: could not compile `zopfli_cleaned` (lib) due to 3 previous errors; 26 warnings emitted"
+      },
+      "gate": "build",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "4dafb3a114e712811ca8eec62e9966e77dc97a16",
+      "changeset_id": "xfn-d1e745eb5db010d0",
+      "impact_scope": "crate_global",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "xfn-tgt-f8c40fcde2e934ab",
+          "replacement_function_source": "unsafe fn GetBestLengths<CM>(\n    mut s: *mut ZopfliBlockState,\n    mut in_0: *const c_uchar,\n    mut instart: size_t,\n    mut inend: size_t,\n    mut costmodel: CM,\n    mut costcontext: *mut c_void,\n    mut length_array: *mut c_ushort,\n    mut h: *mut ZopfliHash,\n    mut costs: *mut c_float,\n) -> c_double\nwhere\n    CM: Fn(c_uint, c_uint, *mut c_void) -> c_double,\n{\n    let mut blocksize: size_t = inend.wrapping_sub(instart);\n    let mut i: size_t = 0 as size_t;\n    let mut k: size_t = 0;\n    let mut kend: size_t = 0;\n    let mut leng: c_ushort = 0;\n    let mut dist: c_ushort = 0;\n    let mut sublen: [c_ushort; 259] = [0; 259];\n    let mut windowstart: size_t = if instart > ZOPFLI_WINDOW_SIZE as size_t {\n        instart.wrapping_sub(ZOPFLI_WINDOW_SIZE as size_t)\n    } else {\n        0 as size_t\n    };\n    let mut result: c_double = 0.;\n    let mut mincost: c_double = GetCostModelMinCost(Some(costmodel), costcontext);\n    let mut mincostaddcostj: c_double = 0.;\n    if instart == inend {\n        return 0 as c_int as c_double;\n    }\n    ZopfliResetHash(ZOPFLI_WINDOW_SIZE as size_t, h);\n    ZopfliWarmupHash(in_0, windowstart, inend, h);\n    i = windowstart;\n    while i < instart {\n        ZopfliUpdateHash(in_0, i, inend, h);\n        i = i.wrapping_add(1);\n    }\n    i = 1 as size_t;\n    while i < blocksize.wrapping_add(1 as size_t) {\n        *costs.offset(i as isize) = ZOPFLI_LARGE_FLOAT as c_float;\n        i = i.wrapping_add(1);\n    }\n    *costs.offset(0 as c_int as isize) = 0 as c_int as c_float;\n    *length_array.offset(0 as c_int as isize) = 0 as c_ushort;\n    i = instart;\n    while i < inend {\n        let mut j: size_t = i.wrapping_sub(instart);\n        ZopfliUpdateHash(in_0, i, inend, h);\n        if *(*h)\n            .same\n            .offset((i & ZOPFLI_WINDOW_MASK as size_t) as isize) as c_int\n            > ZOPFLI_MAX_MATCH * 2 as c_int\n            && i > instart\n                .wrapping_add(ZOPFLI_MAX_MATCH as size_t)\n                .wrapping_add(1 as size_t)\n            && i.wrapping_add((ZOPFLI_MAX_MATCH * 2 as c_int) as size_t)\n                .wrapping_add(1 as size_t)\n                < inend\n            && *(*h).same.offset(\n                (i.wrapping_sub(ZOPFLI_MAX_MATCH as size_t) & ZOPFLI_WINDOW_MASK as size_t)\n                    as isize,\n            ) as c_int\n                > ZOPFLI_MAX_MATCH\n        {\n            let mut symbolcost: c_double =\n                costmodel(ZOPFLI_MAX_MATCH as c_uint, 1 as c_uint, costcontext);\n            k = 0 as size_t;\n            while k < ZOPFLI_MAX_MATCH as size_t {\n                *costs.offset(j.wrapping_add(ZOPFLI_MAX_MATCH as size_t) as isize) =\n                    (*costs.offset(j as isize) as c_double + symbolcost) as c_float;\n                *length_array.offset(j.wrapping_add(ZOPFLI_MAX_MATCH as size_t) as isize) =\n                    ZOPFLI_MAX_MATCH as c_ushort;\n                i = i.wrapping_add(1);\n                j = j.wrapping_add(1);\n                ZopfliUpdateHash(in_0, i, inend, h);\n                k = k.wrapping_add(1);\n            }\n        }\n        ZopfliFindLongestMatch(\n            s,\n            h,\n            in_0,\n            i,\n            inend,\n            ZOPFLI_MAX_MATCH as size_t,\n            &raw mut sublen as *mut c_ushort,\n            &raw mut dist,\n            &raw mut leng,\n        );\n        if i.wrapping_add(1 as size_t) <= inend {\n            let mut newCost: c_double =\n                costmodel(*in_0.offset(i as isize) as c_uint, 0 as c_uint, costcontext)\n                    + *costs.offset(j as isize) as c_double;\n            if newCost < *costs.offset(j.wrapping_add(1 as size_t) as isize) as c_double {\n                *costs.offset(j.wrapping_add(1 as size_t) as isize) = newCost as c_float;\n                *length_array.offset(j.wrapping_add(1 as size_t) as isize) = 1 as c_ushort;\n            }\n        }\n        kend = zopfli_min(leng as size_t, inend.wrapping_sub(i));\n        mincostaddcostj = mincost + *costs.offset(j as isize) as c_double;\n        k = 3 as size_t;\n        while k <= kend {\n            let mut newCost_0: c_double = 0.;\n            if !(*costs.offset(j.wrapping_add(k) as isize) as c_double <= mincostaddcostj) {\n                newCost_0 =\n                    costmodel(k as c_uint, sublen[k as usize] as c_uint, costcontext)\n                        + *costs.offset(j as isize) as c_double;\n                if newCost_0 < *costs.offset(j.wrapping_add(k) as isize) as c_double {\n                    *costs.offset(j.wrapping_add(k) as isize) = newCost_0 as c_float;\n                    *length_array.offset(j.wrapping_add(k) as isize) = k as c_ushort;\n                }\n            }\n            k = k.wrapping_add(1);\n        }\n        i = i.wrapping_add(1);\n    }\n    result = *costs.offset(blocksize as isize) as c_double;\n    return result;\n}",
+          "rule_id": "III①",
+          "target": {
+            "declaration_hash": "f12a9ab9a8926542b68935955251f24e3deb20623340c6b4652b215ecd49a6a6",
+            "file_hint": "src/squeeze.rs",
+            "qualified_name": "crate::GetBestLengths",
+            "symbol_kind": "function"
+          }
+        },
+        {
+          "end_byte": 21280,
+          "evidence_hit_ids": [],
+          "expected_span_hash": "255384975d15d3c7c2093447771b95f9add75e7cab528fc28ce4d4e5df7ba17e",
+          "operation_id": "xfn-call-e72679429efb7d5d",
+          "relative_path": "src/squeeze.rs",
+          "replacement_text": "GetBestLengths(\n    &mut s,\n    in_0,\n    instart,\n    inend,\n    |a, b, c| costmodel.expect(\"non-null function pointer\")(a, b, c),\n    costcontext,\n    length_array,\n    &mut hash,\n    costs,\n)",
+          "rule_id": "III①",
+          "start_byte": 21114
+        }
+      ],
+      "trigger": {
+        "candidate_id": "GetBestLengths-xfn-1e9443727f87",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "GetBestLengths",
+        "rule_id": "III①"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "776be2a8e300a9f93ffb0f6eb543ca7c5477cdbfc0457c2555d3d45f8d41109e",
+            "edit_id": "edit-xfn-tgt-f8c40fcde2e934ab",
+            "end_byte": 15018,
+            "operation_id": "xfn-tgt-f8c40fcde2e934ab",
+            "relative_path": "src/squeeze.rs",
+            "replacement_text": "unsafe fn GetBestLengths<CM>(\n    mut s: *mut ZopfliBlockState,\n    mut in_0: *const c_uchar,\n    mut instart: size_t,\n    mut inend: size_t,\n    mut costmodel: CM,\n    mut costcontext: *mut c_void,\n    mut length_array: *mut c_ushort,\n    mut h: *mut ZopfliHash,\n    mut costs: *mut c_float,\n) -> c_double\nwhere\n    CM: Fn(c_uint, c_uint, *mut c_void) -> c_double,\n{\n    let mut blocksize: size_t = inend.wrapping_sub(instart);\n    let mut i: size_t = 0 as size_t;\n    let mut k: size_t = 0;\n    let mut kend: size_t = 0;\n    let mut leng: c_ushort = 0;\n    let mut dist: c_ushort = 0;\n    let mut sublen: [c_ushort; 259] = [0; 259];\n    let mut windowstart: size_t = if instart > ZOPFLI_WINDOW_SIZE as size_t {\n        instart.wrapping_sub(ZOPFLI_WINDOW_SIZE as size_t)\n    } else {\n        0 as size_t\n    };\n    let mut result: c_double = 0.;\n    let mut mincost: c_double = GetCostModelMinCost(Some(costmodel), costcontext);\n    let mut mincostaddcostj: c_double = 0.;\n    if instart == inend {\n        return 0 as c_int as c_double;\n    }\n    ZopfliResetHash(ZOPFLI_WINDOW_SIZE as size_t, h);\n    ZopfliWarmupHash(in_0, windowstart, inend, h);\n    i = windowstart;\n    while i < instart {\n        ZopfliUpdateHash(in_0, i, inend, h);\n        i = i.wrapping_add(1);\n    }\n    i = 1 as size_t;\n    while i < blocksize.wrapping_add(1 as size_t) {\n        *costs.offset(i as isize) = ZOPFLI_LARGE_FLOAT as c_float;\n        i = i.wrapping_add(1);\n    }\n    *costs.offset(0 as c_int as isize) = 0 as c_int as c_float;\n    *length_array.offset(0 as c_int as isize) = 0 as c_ushort;\n    i = instart;\n    while i < inend {\n        let mut j: size_t = i.wrapping_sub(instart);\n        ZopfliUpdateHash(in_0, i, inend, h);\n        if *(*h)\n            .same\n            .offset((i & ZOPFLI_WINDOW_MASK as size_t) as isize) as c_int\n            > ZOPFLI_MAX_MATCH * 2 as c_int\n            && i > instart\n                .wrapping_add(ZOPFLI_MAX_MATCH as size_t)\n                .wrapping_add(1 as size_t)\n            && i.wrapping_add((ZOPFLI_MAX_MATCH * 2 as c_int) as size_t)\n                .wrapping_add(1 as size_t)\n                < inend\n            && *(*h).same.offset(\n                (i.wrapping_sub(ZOPFLI_MAX_MATCH as size_t) & ZOPFLI_WINDOW_MASK as size_t)\n                    as isize,\n            ) as c_int\n                > ZOPFLI_MAX_MATCH\n        {\n            let mut symbolcost: c_double =\n                costmodel(ZOPFLI_MAX_MATCH as c_uint, 1 as c_uint, costcontext);\n            k = 0 as size_t;\n            while k < ZOPFLI_MAX_MATCH as size_t {\n                *costs.offset(j.wrapping_add(ZOPFLI_MAX_MATCH as size_t) as isize) =\n                    (*costs.offset(j as isize) as c_double + symbolcost) as c_float;\n                *length_array.offset(j.wrapping_add(ZOPFLI_MAX_MATCH as size_t) as isize) =\n                    ZOPFLI_MAX_MATCH as c_ushort;\n                i = i.wrapping_add(1);\n                j = j.wrapping_add(1);\n                ZopfliUpdateHash(in_0, i, inend, h);\n                k = k.wrapping_add(1);\n            }\n        }\n        ZopfliFindLongestMatch(\n            s,\n            h,\n            in_0,\n            i,\n            inend,\n            ZOPFLI_MAX_MATCH as size_t,\n            &raw mut sublen as *mut c_ushort,\n            &raw mut dist,\n            &raw mut leng,\n        );\n        if i.wrapping_add(1 as size_t) <= inend {\n            let mut newCost: c_double =\n                costmodel(*in_0.offset(i as isize) as c_uint, 0 as c_uint, costcontext)\n                    + *costs.offset(j as isize) as c_double;\n            if newCost < *costs.offset(j.wrapping_add(1 as size_t) as isize) as c_double {\n                *costs.offset(j.wrapping_add(1 as size_t) as isize) = newCost as c_float;\n                *length_array.offset(j.wrapping_add(1 as size_t) as isize) = 1 as c_ushort;\n            }\n        }\n        kend = zopfli_min(leng as size_t, inend.wrapping_sub(i));\n        mincostaddcostj = mincost + *costs.offset(j as isize) as c_double;\n        k = 3 as size_t;\n        while k <= kend {\n            let mut newCost_0: c_double = 0.;\n            if !(*costs.offset(j.wrapping_add(k) as isize) as c_double <= mincostaddcostj) {\n                newCost_0 =\n                    costmodel(k as c_uint, sublen[k as usize] as c_uint, costcontext)\n                        + *costs.offset(j as isize) as c_double;\n                if newCost_0 < *costs.offset(j.wrapping_add(k) as isize) as c_double {\n                    *costs.offset(j.wrapping_add(k) as isize) = newCost_0 as c_float;\n                    *length_array.offset(j.wrapping_add(k) as isize) = k as c_ushort;\n                }\n            }\n            k = k.wrapping_add(1);\n        }\n        i = i.wrapping_add(1);\n    }\n    result = *costs.offset(blocksize as isize) as c_double;\n    return result;\n}",
+            "start_byte": 9854
+          }
+        ],
+        "facts": {
+          "fn_name": "GetBestLengths",
+          "target_span_hash": "f12a9ab9a8926542b68935955251f24e3deb20623340c6b4652b215ecd49a6a6"
+        },
+        "operation_id": "xfn-tgt-f8c40fcde2e934ab"
+      },
+      {
+        "edits": [
+          {
+            "before_hash": "776be2a8e300a9f93ffb0f6eb543ca7c5477cdbfc0457c2555d3d45f8d41109e",
+            "edit_id": "edit-xfn-call-e72679429efb7d5d",
+            "end_byte": 21280,
+            "operation_id": "xfn-call-e72679429efb7d5d",
+            "relative_path": "src/squeeze.rs",
+            "replacement_text": "GetBestLengths(\n    &mut s,\n    in_0,\n    instart,\n    inend,\n    |a, b, c| costmodel.expect(\"non-null function pointer\")(a, b, c),\n    costcontext,\n    length_array,\n    &mut hash,\n    costs,\n)",
+            "start_byte": 21114
+          }
+        ],
+        "facts": {
+          "original_span": "GetBestLengths(\n        s,\n        in_0,\n        instart,\n        inend,\n        costmodel,\n        costcontext,\n        length_array,\n        h,\n        costs,\n    )",
+          "relative_path": "src/squeeze.rs",
+          "replacement_text": "GetBestLengths(\n    &mut s,\n    in_0,\n    instart,\n    inend,\n    |a, b, c| costmodel.expect(\"non-null function pointer\")(a, b, c),\n    costcontext,\n    length_array,\n    &mut hash,\n    costs,\n)"
+        },
+        "operation_id": "xfn-call-e72679429efb7d5d"
+      }
+    ],
+    "resolved_head": "4dafb3a114e712811ca8eec62e9966e77dc97a16"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_build",
+  "touched_paths": [
+    "src/squeeze.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "call_site_span_fresh",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

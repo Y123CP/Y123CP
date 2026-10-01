@@ -1,0 +1,225 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -11.698340731571498,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -11.538685436454246,
+            "aggregate_ci_low_pct": -11.85799602668875,
+            "aggregate_pct": -11.698340731571498,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -9.2636,
+                "ci_low_pct": -10.6891,
+                "insns_delta_pct": -0.0162,
+                "mean_delta_pct": -9.9764,
+                "op": "cache_roundtrip",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -8.0522,
+                "ci_low_pct": -8.5316,
+                "insns_delta_pct": -1.0544,
+                "mean_delta_pct": -8.2919,
+                "op": "lz77_blocksplit_analysis",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -4.176,
+                "ci_low_pct": -4.4239,
+                "insns_delta_pct": -3.764,
+                "mean_delta_pct": -4.2999,
+                "op": "raw_deflate",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -31.198,
+                "ci_low_pct": -31.9254,
+                "insns_delta_pct": -16.7356,
+                "mean_delta_pct": -31.5617,
+                "op": "tree_codegen",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -4.2478,
+                "ci_low_pct": -4.4759,
+                "insns_delta_pct": -3.6973,
+                "mean_delta_pct": -4.3618,
+                "op": "zlib_compress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.18016448673386404,
+            "aggregate_ci_low_pct": -0.051676408332307175,
+            "aggregate_pct": 0.06424403920077844,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.3242,
+                "ci_low_pct": -0.0787,
+                "insns_delta_pct": -0.0088,
+                "mean_delta_pct": 0.1227,
+                "op": "raw_deflate",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2364,
+                "ci_low_pct": -0.3633,
+                "insns_delta_pct": -0.0223,
+                "mean_delta_pct": -0.0634,
+                "op": "tree_codegen",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2262,
+                "ci_low_pct": 0.0406,
+                "insns_delta_pct": -0.0286,
+                "mean_delta_pct": 0.1334,
+                "op": "zlib_compress",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "raw_deflate",
+          "tree_codegen",
+          "zlib_compress"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "raw_deflate"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "443a03c5edc7cba2936b7b05e828a841f152d826",
+      "changeset_id": "legacy-884f95e4cbf69a14",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-7cbaf97ea22773ae",
+          "replacement_function_source": "// Applied rules: [III④, C3]\n// Skipped rules: [III③: Hits [4, 5, 6] are `libm::log` calls, not manual memory operations covered by Rule III③'s rewrite templates; no concrete III③-eligible memory-op site exists in this function.]\n#[inline]\npub unsafe fn ZopfliCalculateEntropy(\n    mut count: *const size_t,\n    mut n: size_t,\n    mut bitlengths: *mut c_double,\n) {\n    static mut kInvLog2: c_double = 1.4426950408889f64;\n    let mut sum: c_uint = 0 as c_uint;\n    let mut log2sum: c_double = 0.;\n\n    // SAFETY: `n` is the explicit L1 length parameter for `count`; the caller of\n    // this unsafe function guarantees `count` is non-null, points to at least `n`\n    // readable `size_t` elements, and no mutable reference to the same region is\n    // live for the duration of this shared reborrow.\n    let count = unsafe { core::slice::from_raw_parts(count, n) };\n    // SAFETY: `n` is the explicit L1 length parameter for `bitlengths`; the caller\n    // guarantees `bitlengths` is non-null, points to at least `n` writable\n    // `c_double` elements, and no other reference aliases this region during this\n    // mutable reborrow.\n    let bitlengths = unsafe { core::slice::from_raw_parts_mut(bitlengths, n) };\n\n    for &c in count.iter() {\n        sum = (sum as size_t).wrapping_add(c) as c_uint;\n    }\n\n    log2sum = (if sum == 0 as c_uint {\n        log(n as c_double)\n    } else {\n        log(sum as c_double)\n    }) * kInvLog2;\n\n    for (dst, &c) in bitlengths.iter_mut().zip(count.iter()) {\n        let mut bitlength = if c == 0 as size_t {\n            log2sum\n        } else {\n            log2sum - log(c as c_double) * kInvLog2\n        };\n        if bitlength < 0 as c_int as c_double && bitlength > -1e-5f64 {\n            bitlength = 0 as c_int as c_double;\n        }\n        *dst = bitlength;\n    }\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "4722ac85e756d6cc7a5e406dcd7ebd35c4f5050371a9b81c80029aa3d879dd38",
+            "file_hint": "src/tree.rs",
+            "qualified_name": "crate::ZopfliCalculateEntropy",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "ZopfliCalculateEntropy-dd8697913ff3",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "ZopfliCalculateEntropy",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "05a645cd563f429e96059cf84a35668cef57d34fc33ff4d4da3b54520d307c5e",
+            "edit_id": "edit-replace-7cbaf97ea22773ae",
+            "end_byte": 3302,
+            "operation_id": "replace-7cbaf97ea22773ae",
+            "relative_path": "src/tree.rs",
+            "replacement_text": "// Applied rules: [III④, C3]\n// Skipped rules: [III③: Hits [4, 5, 6] are `libm::log` calls, not manual memory operations covered by Rule III③'s rewrite templates; no concrete III③-eligible memory-op site exists in this function.]\n#[inline]\npub unsafe fn ZopfliCalculateEntropy(\n    mut count: *const size_t,\n    mut n: size_t,\n    mut bitlengths: *mut c_double,\n) {\n    static mut kInvLog2: c_double = 1.4426950408889f64;\n    let mut sum: c_uint = 0 as c_uint;\n    let mut log2sum: c_double = 0.;\n\n    // SAFETY: `n` is the explicit L1 length parameter for `count`; the caller of\n    // this unsafe function guarantees `count` is non-null, points to at least `n`\n    // readable `size_t` elements, and no mutable reference to the same region is\n    // live for the duration of this shared reborrow.\n    let count = unsafe { core::slice::from_raw_parts(count, n) };\n    // SAFETY: `n` is the explicit L1 length parameter for `bitlengths`; the caller\n    // guarantees `bitlengths` is non-null, points to at least `n` writable\n    // `c_double` elements, and no other reference aliases this region during this\n    // mutable reborrow.\n    let bitlengths = unsafe { core::slice::from_raw_parts_mut(bitlengths, n) };\n\n    for &c in count.iter() {\n        sum = (sum as size_t).wrapping_add(c) as c_uint;\n    }\n\n    log2sum = (if sum == 0 as c_uint {\n        log(n as c_double)\n    } else {\n        log(sum as c_double)\n    }) * kInvLog2;\n\n    for (dst, &c) in bitlengths.iter_mut().zip(count.iter()) {\n        let mut bitlength = if c == 0 as size_t {\n            log2sum\n        } else {\n            log2sum - log(c as c_double) * kInvLog2\n        };\n        if bitlength < 0 as c_int as c_double && bitlength > -1e-5f64 {\n            bitlength = 0 as c_int as c_double;\n        }\n        *dst = bitlength;\n    }\n}",
+            "start_byte": 2127
+          }
+        ],
+        "facts": {
+          "fn_name": "ZopfliCalculateEntropy",
+          "target_span_hash": "4722ac85e756d6cc7a5e406dcd7ebd35c4f5050371a9b81c80029aa3d879dd38"
+        },
+        "operation_id": "replace-7cbaf97ea22773ae"
+      }
+    ],
+    "resolved_head": "443a03c5edc7cba2936b7b05e828a841f152d826"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/tree.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

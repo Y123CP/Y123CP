@@ -1,0 +1,142 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 8.895782647748911,
+        "detail": "per_op_regress",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 10.465366792684323,
+            "aggregate_ci_low_pct": 7.326198502813499,
+            "aggregate_pct": 8.895782647748911,
+            "checkpoint": 5,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 10.4654,
+                "ci_low_pct": 7.3262,
+                "insns_delta_pct": 4.5149,
+                "mean_delta_pct": 8.8958,
+                "op": "tree_codegen",
+                "samples": 5,
+                "state": "regressed",
+                "stop_reason": "per_op_regress"
+              }
+            ],
+            "reason": "per_op_regress",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "raw_deflate",
+          "tree_codegen",
+          "zlib_compress"
+        ],
+        "reason": "per_op_regress",
+        "triggering_op": "tree_codegen"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "443a03c5edc7cba2936b7b05e828a841f152d826",
+      "changeset_id": "legacy-ad643d83a9e52c92",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-5ccdd5d1ac92cc94",
+          "replacement_function_source": "// Applied rules: [III③]\n// Skipped rules: [III④: dispatcher override requested applying III③ alone this time and not reproducing the previous slice/iterator rewrite; C3: dispatcher override requested applying III③ alone this time and not reproducing the previous caching/slice rewrite]\n#[inline]\npub unsafe fn ZopfliCalculateEntropy(\n    mut count: *const size_t,\n    mut n: size_t,\n    mut bitlengths: *mut c_double,\n) {\n    static mut kInvLog2: c_double = 1.4426950408889f64;\n    let mut sum: c_uint = 0 as c_uint;\n    let mut i: c_uint = 0;\n    let mut log2sum: c_double = 0.;\n    i = 0 as c_uint;\n    while (i as size_t) < n {\n        sum = (sum as size_t).wrapping_add(*count.offset(i as isize)) as c_uint\n            as c_uint;\n        i = i.wrapping_add(1);\n    }\n    log2sum = (if sum == 0 as c_uint {\n        (n as c_double).ln()\n    } else {\n        (sum as c_double).ln()\n    }) * kInvLog2;\n    i = 0 as c_uint;\n    while (i as size_t) < n {\n        if *count.offset(i as isize) == 0 as size_t {\n            *bitlengths.offset(i as isize) = log2sum;\n        } else {\n            *bitlengths.offset(i as isize) =\n                log2sum - ((*count.offset(i as isize)) as c_double).ln() * kInvLog2;\n        }\n        if *bitlengths.offset(i as isize) < 0 as c_int as c_double\n            && *bitlengths.offset(i as isize) > -1e-5f64\n        {\n            *bitlengths.offset(i as isize) = 0 as c_int as c_double;\n        }\n        i = i.wrapping_add(1);\n    }\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "4722ac85e756d6cc7a5e406dcd7ebd35c4f5050371a9b81c80029aa3d879dd38",
+            "file_hint": "src/tree.rs",
+            "qualified_name": "crate::ZopfliCalculateEntropy",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "ZopfliCalculateEntropy-9b57875bb463",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "ZopfliCalculateEntropy",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "05a645cd563f429e96059cf84a35668cef57d34fc33ff4d4da3b54520d307c5e",
+            "edit_id": "edit-replace-5ccdd5d1ac92cc94",
+            "end_byte": 3302,
+            "operation_id": "replace-5ccdd5d1ac92cc94",
+            "relative_path": "src/tree.rs",
+            "replacement_text": "// Applied rules: [III③]\n// Skipped rules: [III④: dispatcher override requested applying III③ alone this time and not reproducing the previous slice/iterator rewrite; C3: dispatcher override requested applying III③ alone this time and not reproducing the previous caching/slice rewrite]\n#[inline]\npub unsafe fn ZopfliCalculateEntropy(\n    mut count: *const size_t,\n    mut n: size_t,\n    mut bitlengths: *mut c_double,\n) {\n    static mut kInvLog2: c_double = 1.4426950408889f64;\n    let mut sum: c_uint = 0 as c_uint;\n    let mut i: c_uint = 0;\n    let mut log2sum: c_double = 0.;\n    i = 0 as c_uint;\n    while (i as size_t) < n {\n        sum = (sum as size_t).wrapping_add(*count.offset(i as isize)) as c_uint\n            as c_uint;\n        i = i.wrapping_add(1);\n    }\n    log2sum = (if sum == 0 as c_uint {\n        (n as c_double).ln()\n    } else {\n        (sum as c_double).ln()\n    }) * kInvLog2;\n    i = 0 as c_uint;\n    while (i as size_t) < n {\n        if *count.offset(i as isize) == 0 as size_t {\n            *bitlengths.offset(i as isize) = log2sum;\n        } else {\n            *bitlengths.offset(i as isize) =\n                log2sum - ((*count.offset(i as isize)) as c_double).ln() * kInvLog2;\n        }\n        if *bitlengths.offset(i as isize) < 0 as c_int as c_double\n            && *bitlengths.offset(i as isize) > -1e-5f64\n        {\n            *bitlengths.offset(i as isize) = 0 as c_int as c_double;\n        }\n        i = i.wrapping_add(1);\n    }\n}",
+            "start_byte": 2127
+          }
+        ],
+        "facts": {
+          "fn_name": "ZopfliCalculateEntropy",
+          "target_span_hash": "4722ac85e756d6cc7a5e406dcd7ebd35c4f5050371a9b81c80029aa3d879dd38"
+        },
+        "operation_id": "replace-5ccdd5d1ac92cc94"
+      }
+    ],
+    "resolved_head": "443a03c5edc7cba2936b7b05e828a841f152d826"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_regress",
+  "touched_paths": [
+    "src/tree.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

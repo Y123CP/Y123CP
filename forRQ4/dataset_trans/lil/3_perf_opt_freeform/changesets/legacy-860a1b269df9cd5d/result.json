@@ -1,0 +1,215 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -0.24503463571019793,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -0.06562962878684725,
+            "aggregate_ci_low_pct": -0.4244396426335486,
+            "aggregate_pct": -0.24503463571019793,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": 0.1592,
+                "ci_low_pct": -0.2929,
+                "insns_delta_pct": -0.0091,
+                "mean_delta_pct": -0.0668,
+                "op": "builtin_script_matrix",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.5461,
+                "ci_low_pct": -0.2914,
+                "insns_delta_pct": -0.0676,
+                "mean_delta_pct": 0.1274,
+                "op": "expr_embedded_builtins",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.283,
+                "ci_low_pct": -1.4564,
+                "insns_delta_pct": 0.5454,
+                "mean_delta_pct": -0.8697,
+                "op": "native_call_state",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.0345,
+                "ci_low_pct": -0.3763,
+                "insns_delta_pct": 0.0881,
+                "mean_delta_pct": -0.1709,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -0.0014920324276853358,
+            "aggregate_ci_low_pct": -0.25763318362997045,
+            "aggregate_pct": -0.1295626080288279,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.1897,
+                "ci_low_pct": -0.4198,
+                "insns_delta_pct": -0.1828,
+                "mean_delta_pct": -0.115,
+                "op": "builtin_script_matrix",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.2425,
+                "ci_low_pct": -0.1882,
+                "insns_delta_pct": 0.0749,
+                "mean_delta_pct": 0.0272,
+                "op": "expr_embedded_builtins",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -0.11,
+                "ci_low_pct": -0.4917,
+                "insns_delta_pct": -0.0528,
+                "mean_delta_pct": -0.3008,
+                "op": "subst_list_pipeline",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "builtin_script_matrix",
+          "expr_embedded_builtins",
+          "subst_list_pipeline"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "expr_embedded_builtins"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "3fc6eb04c82f4e5e37dd4a8552d95248112a62e7",
+      "changeset_id": "legacy-860a1b269df9cd5d",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-6387e254748eed48",
+          "replacement_function_source": "#[inline]\npub fn lil_append_val(\n    mut val: lil_value_t,\n    mut v: lil_value_t,\n) -> c_int { unsafe {\n    // SAFETY: `v` is checked for null before dereference; `val` and `v` are expected valid per original function contract.\n    if v.is_null() || (*v).l == 0 {\n        return 1 as c_int;\n    }\n\n    let val_l = (*val).l;\n    let v_l = (*v).l;\n    let new_len = val_l.wrapping_add(v_l);\n    let new = realloc(\n        (*val).d as *mut c_void,\n        new_len.wrapping_add(1 as size_t),\n    ) as *mut c_char;\n\n    if new.is_null() {\n        return 0 as c_int;\n    }\n\n    memcpy(\n        new.add(val_l) as *mut c_void,\n        (*v).d as *const c_void,\n        v_l.wrapping_add(1 as size_t),\n    );\n    (*val).d = new;\n    (*val).l = new_len;\n    1 as c_int\n} }",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "f8138beea6984c7e7be7aadd33d994b27ce05148aecac990bb164efa2cc38bbf",
+            "file_hint": "src/lil.rs",
+            "qualified_name": "crate::lil_append_val",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "lil_append_val-02c18a1b92b2",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "lil_append_val",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "a1175c4553361b0b4ac3fa10966c24e10f242ea7ecfb3615a8263e74e4434cae",
+            "edit_id": "edit-replace-6387e254748eed48",
+            "end_byte": 13656,
+            "operation_id": "replace-6387e254748eed48",
+            "relative_path": "src/lil.rs",
+            "replacement_text": "#[inline]\npub fn lil_append_val(\n    mut val: lil_value_t,\n    mut v: lil_value_t,\n) -> c_int { unsafe {\n    // SAFETY: `v` is checked for null before dereference; `val` and `v` are expected valid per original function contract.\n    if v.is_null() || (*v).l == 0 {\n        return 1 as c_int;\n    }\n\n    let val_l = (*val).l;\n    let v_l = (*v).l;\n    let new_len = val_l.wrapping_add(v_l);\n    let new = realloc(\n        (*val).d as *mut c_void,\n        new_len.wrapping_add(1 as size_t),\n    ) as *mut c_char;\n\n    if new.is_null() {\n        return 0 as c_int;\n    }\n\n    memcpy(\n        new.add(val_l) as *mut c_void,\n        (*v).d as *const c_void,\n        v_l.wrapping_add(1 as size_t),\n    );\n    (*val).d = new;\n    (*val).l = new_len;\n    1 as c_int\n} }",
+            "start_byte": 12929
+          }
+        ],
+        "facts": {
+          "fn_name": "lil_append_val",
+          "target_span_hash": "f8138beea6984c7e7be7aadd33d994b27ce05148aecac990bb164efa2cc38bbf"
+        },
+        "operation_id": "replace-6387e254748eed48"
+      }
+    ],
+    "resolved_head": "3fc6eb04c82f4e5e37dd4a8552d95248112a62e7"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/lil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

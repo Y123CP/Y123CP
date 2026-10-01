@@ -1,0 +1,162 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.25180138506400046,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.43790787993985236,
+            "aggregate_ci_low_pct": 0.06569489018814859,
+            "aggregate_pct": 0.25180138506400046,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.27,
+                "ci_low_pct": -0.1092,
+                "insns_delta_pct": 0.0016,
+                "mean_delta_pct": 0.0804,
+                "op": "expr_embedded_builtins",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              },
+              {
+                "ci_high_pct": 1.1476,
+                "ci_low_pct": 0.1159,
+                "insns_delta_pct": 0.0379,
+                "mean_delta_pct": 0.6318,
+                "op": "native_call_state",
+                "samples": 40,
+                "state": "active",
+                "stop_reason": "per_op_uncertain"
+              },
+              {
+                "ci_high_pct": 0.1667,
+                "ci_low_pct": -0.0803,
+                "insns_delta_pct": 0.0148,
+                "mean_delta_pct": 0.0432,
+                "op": "subst_list_pipeline",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "expr_embedded_builtins",
+          "native_call_state",
+          "subst_list_pipeline"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "native_call_state"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "3fc6eb04c82f4e5e37dd4a8552d95248112a62e7",
+      "changeset_id": "legacy-1c92a69cafa84764",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-e1c5b92142585205",
+          "replacement_function_source": "unsafe fn add_func(mut lil: lil_t, mut name: *const c_char) -> lil_func_t {\n    let cmd = find_cmd(lil, name);\n    if !cmd.is_null() {\n        if !(*cmd).argnames.is_null() {\n            lil_free_list((*cmd).argnames);\n        }\n        lil_free_value((*cmd).code);\n        (*cmd).argnames = ::core::ptr::null_mut::<_lil_list_t>();\n        (*cmd).code = ::core::ptr::null_mut::<_lil_value_t>();\n        (*cmd).proc_0 = None;\n        return cmd;\n    }\n\n    let cmd = calloc(1 as size_t, ::core::mem::size_of::<_lil_func_t>() as size_t) as lil_func_t;\n    if cmd.is_null() {\n        return ::core::ptr::null_mut::<_lil_func_t>();\n    }\n\n    (*cmd).name = strclone(name);\n\n    let lilp = &mut *lil;\n    let old_cmds = lilp.cmds;\n    let new_cmd = realloc(\n        lilp.cmd as *mut c_void,\n        (::core::mem::size_of::<lil_func_t>() as size_t).wrapping_mul(old_cmds.wrapping_add(1)),\n    ) as *mut lil_func_t;\n\n    if new_cmd.is_null() {\n        free(cmd as *mut c_void);\n        return ::core::ptr::null_mut::<_lil_func_t>();\n    }\n\n    lilp.cmd = new_cmd;\n    lilp.cmds = old_cmds.wrapping_add(1);\n    // SAFETY: `new_cmd` points to an allocation large enough for `old_cmds + 1` elements after successful realloc.\n    *new_cmd.add(old_cmds) = cmd;\n\n    hm_put(&raw mut lilp.cmdmap, name, cmd as *mut c_void);\n    cmd\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "b9ff6543122e8dcca1bc71b96bd4de5c4c34addea73065568f64531c16a76ed2",
+            "file_hint": "src/lil.rs",
+            "qualified_name": "crate::add_func",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "add_func-d7074cb83395",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "add_func",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "a1175c4553361b0b4ac3fa10966c24e10f242ea7ecfb3615a8263e74e4434cae",
+            "edit_id": "edit-replace-e1c5b92142585205",
+            "end_byte": 21044,
+            "operation_id": "replace-e1c5b92142585205",
+            "relative_path": "src/lil.rs",
+            "replacement_text": "unsafe fn add_func(mut lil: lil_t, mut name: *const c_char) -> lil_func_t {\n    let cmd = find_cmd(lil, name);\n    if !cmd.is_null() {\n        if !(*cmd).argnames.is_null() {\n            lil_free_list((*cmd).argnames);\n        }\n        lil_free_value((*cmd).code);\n        (*cmd).argnames = ::core::ptr::null_mut::<_lil_list_t>();\n        (*cmd).code = ::core::ptr::null_mut::<_lil_value_t>();\n        (*cmd).proc_0 = None;\n        return cmd;\n    }\n\n    let cmd = calloc(1 as size_t, ::core::mem::size_of::<_lil_func_t>() as size_t) as lil_func_t;\n    if cmd.is_null() {\n        return ::core::ptr::null_mut::<_lil_func_t>();\n    }\n\n    (*cmd).name = strclone(name);\n\n    let lilp = &mut *lil;\n    let old_cmds = lilp.cmds;\n    let new_cmd = realloc(\n        lilp.cmd as *mut c_void,\n        (::core::mem::size_of::<lil_func_t>() as size_t).wrapping_mul(old_cmds.wrapping_add(1)),\n    ) as *mut lil_func_t;\n\n    if new_cmd.is_null() {\n        free(cmd as *mut c_void);\n        return ::core::ptr::null_mut::<_lil_func_t>();\n    }\n\n    lilp.cmd = new_cmd;\n    lilp.cmds = old_cmds.wrapping_add(1);\n    // SAFETY: `new_cmd` points to an allocation large enough for `old_cmds + 1` elements after successful realloc.\n    *new_cmd.add(old_cmds) = cmd;\n\n    hm_put(&raw mut lilp.cmdmap, name, cmd as *mut c_void);\n    cmd\n}",
+            "start_byte": 19712
+          }
+        ],
+        "facts": {
+          "fn_name": "add_func",
+          "target_span_hash": "b9ff6543122e8dcca1bc71b96bd4de5c4c34addea73065568f64531c16a76ed2"
+        },
+        "operation_id": "replace-e1c5b92142585205"
+      }
+    ],
+    "resolved_head": "3fc6eb04c82f4e5e37dd4a8552d95248112a62e7"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/lil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

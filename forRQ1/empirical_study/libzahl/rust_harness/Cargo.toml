@@ -1,0 +1,22 @@
+# Workload harness for libzahl (W1/W2/W3 in libzahl/workloads/*.toml).
+#
+# Reads pairs of length-prefixed big-int byte strings from a .bin file,
+# runs the full op suite (add/sub/mul/divmod/gcd/modpow), accumulates
+# results, emits a final summary line.
+#
+# Path-dep is rewired by Stage A to point at 2_stage_a/.
+[package]
+name = "libzahl_opsuite"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+libzahl_cleaned = { path = "../rust_raw", package = "libzahl_raw" }
+
+[profile.release]
+opt-level     = 3
+lto           = "fat"
+codegen-units = 1
+panic         = "abort"
+debug         = false

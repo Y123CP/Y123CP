@@ -1,0 +1,101 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": "decode_buffer:3f855c67: sha256 ff43bfa42f40… ≠ b8fca460aa0e…"
+      },
+      "gate": "w1",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "791de8b0df254298473a7553150265f8f0f4e3bc",
+      "changeset_id": "legacy-7498a3b15cf02e2b",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-b1178654a8b89217",
+          "replacement_function_source": "// Applied rules: [C3, III④]\n// Skipped rules: []\n#[inline(always)]\nunsafe fn DecodeSymbol(\n    mut bits: uint64_t,\n    mut table: *const HuffmanCode,\n    mut br: *mut BrotliBitReader,\n) -> uint64_t {\n    // SAFETY: `table` points to a Huffman decoding table whose first-level\n    // region has at least 256 entries; this function probes entry `bits & 0xff`\n    // exactly as the original raw-pointer code did, and no Rust references to\n    // the same memory are created elsewhere in this region.\n    let table_slice = unsafe { core::slice::from_raw_parts(table, 256) };\n    let first = unsafe { table_slice.get_unchecked((bits & 0xff as uint64_t) as usize) };\n    let first_bits = first.bits;\n    let first_value = first.value;\n\n    if first_bits as c_uint > HUFFMAN_TABLE_BITS {\n        let nbits: uint64_t =\n            (first_bits as c_uint).wrapping_sub(HUFFMAN_TABLE_BITS) as uint64_t;\n        BrotliDropBits(br, HUFFMAN_TABLE_BITS as uint64_t);\n        let second_index =\n            (first_value as uint64_t).wrapping_add(bits >> 8 as c_uint & BitMask(nbits)) as isize;\n        table = table.offset(second_index);\n    } else {\n        table = first as *const HuffmanCode;\n    }\n\n    let final_bits = (*table).bits;\n    let final_value = (*table).value;\n    BrotliDropBits(br, final_bits as uint64_t);\n    final_value as uint64_t\n}",
+          "rule_id": "C3,III④",
+          "target": {
+            "declaration_hash": "655ef9c174760ad8190cc7b268bc3ff1b42bcca97e8396ddda82120c6db189fc",
+            "file_hint": "src/dec/decode.rs",
+            "qualified_name": "crate::DecodeSymbol",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "DecodeSymbol-70eea760139c",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "DecodeSymbol",
+        "rule_id": "C3,III④"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "aee77e87e2e6f1c149a8349188e90cdae73bfd9937bc4df5920c257285915d53",
+            "edit_id": "edit-replace-b1178654a8b89217",
+            "end_byte": 37898,
+            "operation_id": "replace-b1178654a8b89217",
+            "relative_path": "src/dec/decode.rs",
+            "replacement_text": "// Applied rules: [C3, III④]\n// Skipped rules: []\n#[inline(always)]\nunsafe fn DecodeSymbol(\n    mut bits: uint64_t,\n    mut table: *const HuffmanCode,\n    mut br: *mut BrotliBitReader,\n) -> uint64_t {\n    // SAFETY: `table` points to a Huffman decoding table whose first-level\n    // region has at least 256 entries; this function probes entry `bits & 0xff`\n    // exactly as the original raw-pointer code did, and no Rust references to\n    // the same memory are created elsewhere in this region.\n    let table_slice = unsafe { core::slice::from_raw_parts(table, 256) };\n    let first = unsafe { table_slice.get_unchecked((bits & 0xff as uint64_t) as usize) };\n    let first_bits = first.bits;\n    let first_value = first.value;\n\n    if first_bits as c_uint > HUFFMAN_TABLE_BITS {\n        let nbits: uint64_t =\n            (first_bits as c_uint).wrapping_sub(HUFFMAN_TABLE_BITS) as uint64_t;\n        BrotliDropBits(br, HUFFMAN_TABLE_BITS as uint64_t);\n        let second_index =\n            (first_value as uint64_t).wrapping_add(bits >> 8 as c_uint & BitMask(nbits)) as isize;\n        table = table.offset(second_index);\n    } else {\n        table = first as *const HuffmanCode;\n    }\n\n    let final_bits = (*table).bits;\n    let final_value = (*table).value;\n    BrotliDropBits(br, final_bits as uint64_t);\n    final_value as uint64_t\n}",
+            "start_byte": 37180
+          }
+        ],
+        "facts": {
+          "fn_name": "DecodeSymbol",
+          "target_span_hash": "655ef9c174760ad8190cc7b268bc3ff1b42bcca97e8396ddda82120c6db189fc"
+        },
+        "operation_id": "replace-b1178654a8b89217"
+      }
+    ],
+    "resolved_head": "791de8b0df254298473a7553150265f8f0f4e3bc"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w1",
+  "touched_paths": [
+    "src/dec/decode.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

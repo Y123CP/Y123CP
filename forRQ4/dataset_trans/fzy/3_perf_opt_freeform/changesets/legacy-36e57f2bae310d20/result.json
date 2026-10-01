@@ -1,0 +1,89 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": "error[E0308]: mismatched types\n    --> /perf-build/crate/src/choices.rs:383:34\n     |\n383  |           size = size.wrapping_add(fread(\n     |  _____________________------------_^\n     | |                     |\n     | |                     arguments to this method are incorrect\n384  | |             buffer.offset(size as isize) as *mut c_void,\n385  | |             1 as size_t,\n386  | |             capacity.wrapping_sub(size),\n387  | |             file,\n388  | |         ));\n     | |_________^ expected `usize`, found `u64`\n     |\nnote: method defined here\n    --> /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library/core/src/num/mod.rs:1269:5\n     |\n1269 | /     uint_impl! {\n1270 | |         Self = usize,\n1271 | |         ActualT = u64,\n1272 | |         SignedT = isize,\n...    |\n1286 | |         bound_condition = \" on 64-bit targets\",\n1287 | |     }\n     | |_____^\n     = note: this error originates in the macro `uint_impl` (in Nightly builds, run with -Z macro-backtrace for more info)\nhelp: you can convert a `u64` to a `usize` and panic if the converted value doesn't fit\n     |\n388  |         ).try_into().unwrap());\n     |          ++++++++++++++++++++\n\nFor more information about this error, try `rustc --explain E0308`.\nerror: could not compile `fzy_cleaned` (lib) due to 1 previous error; 11 warnings emitted"
+      },
+      "gate": "build",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "7304eb112acd23f8d73a3456b7965ddcf748bd3e",
+      "changeset_id": "legacy-36e57f2bae310d20",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-cc1f40ac07f28fc9",
+          "replacement_function_source": "#[inline]\npub unsafe fn choices_fread(\n    mut c: *mut choices_t,\n    mut file: *mut FILE,\n    mut input_delimiter: c_char,\n) {\n    let buffer_start: size_t = (*c).buffer_size;\n    let mut size: size_t = buffer_start;\n    let mut capacity: size_t = INITIAL_BUFFER_CAPACITY as size_t;\n\n    while capacity <= size {\n        capacity = capacity.wrapping_mul(2 as size_t);\n    }\n\n    (*c).buffer = safe_realloc((*c).buffer as *mut c_void, capacity) as *mut c_char;\n    let mut buffer: *mut c_char = (*c).buffer;\n\n    loop {\n        size = size.wrapping_add(fread(\n            buffer.offset(size as isize) as *mut c_void,\n            1 as size_t,\n            capacity.wrapping_sub(size),\n            file,\n        ));\n        if size != capacity {\n            break;\n        }\n        capacity = capacity.wrapping_mul(2 as size_t);\n        buffer = safe_realloc(buffer as *mut c_void, capacity) as *mut c_char;\n        (*c).buffer = buffer;\n    }\n\n    buffer = safe_realloc(buffer as *mut c_void, size.wrapping_add(1 as size_t)) as *mut c_char;\n    (*c).buffer = buffer;\n    (*c).buffer_size = size.wrapping_add(1 as size_t);\n    *buffer.offset(size as isize) = '\\0' as i32 as c_char;\n\n    let line_end: *mut c_char = buffer.offset((*c).buffer_size as isize);\n    let mut line: *mut c_char = buffer.offset(buffer_start as isize);\n\n    while line < line_end {\n        let mut nl: *mut c_char = strchr(line, input_delimiter as c_int);\n        if !nl.is_null() {\n            *nl = '\\0' as i32 as c_char;\n            nl = nl.offset(1);\n        }\n\n        if *line != 0 {\n            choices_add(c, line);\n        }\n\n        if nl.is_null() || nl >= line_end {\n            break;\n        }\n        line = nl;\n    }\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "c9981cf53a56936794cbdf41a0d47bf876cc3bab80aee48c900ee1c50e048cb9",
+            "file_hint": "src/choices.rs",
+            "qualified_name": "crate::choices_fread",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "choices_fread-5469c7eea26c",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "choices_fread",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "f819b8f900a5edafa096099c9d1446d12512d166db00764c0fb772b71c066cd6",
+            "edit_id": "edit-replace-cc1f40ac07f28fc9",
+            "end_byte": 16203,
+            "operation_id": "replace-cc1f40ac07f28fc9",
+            "relative_path": "src/choices.rs",
+            "replacement_text": "#[inline]\npub unsafe fn choices_fread(\n    mut c: *mut choices_t,\n    mut file: *mut FILE,\n    mut input_delimiter: c_char,\n) {\n    let buffer_start: size_t = (*c).buffer_size;\n    let mut size: size_t = buffer_start;\n    let mut capacity: size_t = INITIAL_BUFFER_CAPACITY as size_t;\n\n    while capacity <= size {\n        capacity = capacity.wrapping_mul(2 as size_t);\n    }\n\n    (*c).buffer = safe_realloc((*c).buffer as *mut c_void, capacity) as *mut c_char;\n    let mut buffer: *mut c_char = (*c).buffer;\n\n    loop {\n        size = size.wrapping_add(fread(\n            buffer.offset(size as isize) as *mut c_void,\n            1 as size_t,\n            capacity.wrapping_sub(size),\n            file,\n        ));\n        if size != capacity {\n            break;\n        }\n        capacity = capacity.wrapping_mul(2 as size_t);\n        buffer = safe_realloc(buffer as *mut c_void, capacity) as *mut c_char;\n        (*c).buffer = buffer;\n    }\n\n    buffer = safe_realloc(buffer as *mut c_void, size.wrapping_add(1 as size_t)) as *mut c_char;\n    (*c).buffer = buffer;\n    (*c).buffer_size = size.wrapping_add(1 as size_t);\n    *buffer.offset(size as isize) = '\\0' as i32 as c_char;\n\n    let line_end: *mut c_char = buffer.offset((*c).buffer_size as isize);\n    let mut line: *mut c_char = buffer.offset(buffer_start as isize);\n\n    while line < line_end {\n        let mut nl: *mut c_char = strchr(line, input_delimiter as c_int);\n        if !nl.is_null() {\n            *nl = '\\0' as i32 as c_char;\n            nl = nl.offset(1);\n        }\n\n        if *line != 0 {\n            choices_add(c, line);\n        }\n\n        if nl.is_null() || nl >= line_end {\n            break;\n        }\n        line = nl;\n    }\n}",
+            "start_byte": 14359
+          }
+        ],
+        "facts": {
+          "fn_name": "choices_fread",
+          "target_span_hash": "c9981cf53a56936794cbdf41a0d47bf876cc3bab80aee48c900ee1c50e048cb9"
+        },
+        "operation_id": "replace-cc1f40ac07f28fc9"
+      }
+    ],
+    "resolved_head": "7304eb112acd23f8d73a3456b7965ddcf748bd3e"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_build",
+  "touched_paths": [
+    "src/choices.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": "error[E0530]: let bindings cannot shadow statics\n    --> /perf-build/crate/src/lodepng.rs:5965:13\n     |\n300  | static mut mask: c_uint = 0;\n     | ---------------------------- the static `mask` is defined here\n...\n5965 |         let mask = ((1usize << take) - 1) as c_uint;\n     |             ^^^^ cannot be named the same as a static\nerror: could not compile `lodepng_cleaned` (lib) due to 1 previous error; 8 warnings emitted"
+      },
+      "gate": "build",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "3cd2cb496a089231cd31fcaa7e2973e0023fdef1",
+      "changeset_id": "legacy-32b721e0cfc73a9a",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-58d511208d439fee",
+          "replacement_function_source": "unsafe fn readBitsFromReversedStream(\n    mut bitpointer: *mut size_t,\n    mut bitstream: *const c_uchar,\n    mut nbits: size_t,\n) -> c_uint {\n    let mut result: c_uint = 0;\n    if nbits == 0 {\n        return 0;\n    }\n\n    // SAFETY: `bitpointer` is assumed valid by the original function contract; we only read and\n    // write the pointed value, and `bitstream` is assumed valid for the bytes touched by the bit range.\n    let mut bp = unsafe { *bitpointer };\n    let start_byte = bp >> 3;\n    let start_bit = bp & 7;\n\n    let mut remaining = nbits;\n    let mut p = bitstream.wrapping_add(start_byte);\n    let mut bit = start_bit;\n\n    while remaining != 0 {\n        // SAFETY: `p` points into the caller-provided bitstream at the current byte containing the\n        // next requested bit; dereferencing matches the access pattern of the original loop.\n        let byte = unsafe { *p } as c_uint;\n        let take = core::cmp::min(remaining, bit + 1);\n        let shift = bit + 1 - take;\n        let mask = ((1usize << take) - 1) as c_uint;\n        let chunk = (byte >> shift) & mask;\n\n        result = (result << take) | chunk;\n        remaining -= take;\n\n        if shift == 0 {\n            p = p.wrapping_add(1);\n            bit = 7;\n        } else {\n            bit = shift - 1;\n        }\n    }\n\n    bp = bp.wrapping_add(nbits);\n    // SAFETY: `bitpointer` is assumed valid by the original function contract; we store back the\n    // updated bit position exactly as the original function would after `nbits` single-bit reads.\n    unsafe {\n        *bitpointer = bp;\n    }\n    result\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "7fe74d8f58f1c0618160e10ccda544136e9be302d7e03d332b95995482eef958",
+            "file_hint": "src/lodepng.rs",
+            "qualified_name": "crate::readBitsFromReversedStream",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "readBitsFromReversedStream-10aaba2f6024",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "readBitsFromReversedStream",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "ea00e14d8a83f3c65287d1b9f9913fc824f87548723de093cca2b313c382a594",
+            "edit_id": "edit-replace-58d511208d439fee",
+            "end_byte": 198039,
+            "operation_id": "replace-58d511208d439fee",
+            "relative_path": "src/lodepng.rs",
+            "replacement_text": "unsafe fn readBitsFromReversedStream(\n    mut bitpointer: *mut size_t,\n    mut bitstream: *const c_uchar,\n    mut nbits: size_t,\n) -> c_uint {\n    let mut result: c_uint = 0;\n    if nbits == 0 {\n        return 0;\n    }\n\n    // SAFETY: `bitpointer` is assumed valid by the original function contract; we only read and\n    // write the pointed value, and `bitstream` is assumed valid for the bytes touched by the bit range.\n    let mut bp = unsafe { *bitpointer };\n    let start_byte = bp >> 3;\n    let start_bit = bp & 7;\n\n    let mut remaining = nbits;\n    let mut p = bitstream.wrapping_add(start_byte);\n    let mut bit = start_bit;\n\n    while remaining != 0 {\n        // SAFETY: `p` points into the caller-provided bitstream at the current byte containing the\n        // next requested bit; dereferencing matches the access pattern of the original loop.\n        let byte = unsafe { *p } as c_uint;\n        let take = core::cmp::min(remaining, bit + 1);\n        let shift = bit + 1 - take;\n        let mask = ((1usize << take) - 1) as c_uint;\n        let chunk = (byte >> shift) & mask;\n\n        result = (result << take) | chunk;\n        remaining -= take;\n\n        if shift == 0 {\n            p = p.wrapping_add(1);\n            bit = 7;\n        } else {\n            bit = shift - 1;\n        }\n    }\n\n    bp = bp.wrapping_add(nbits);\n    // SAFETY: `bitpointer` is assumed valid by the original function contract; we store back the\n    // updated bit position exactly as the original function would after `nbits` single-bit reads.\n    unsafe {\n        *bitpointer = bp;\n    }\n    result\n}",
+            "start_byte": 197617
+          }
+        ],
+        "facts": {
+          "fn_name": "readBitsFromReversedStream",
+          "target_span_hash": "7fe74d8f58f1c0618160e10ccda544136e9be302d7e03d332b95995482eef958"
+        },
+        "operation_id": "replace-58d511208d439fee"
+      }
+    ],
+    "resolved_head": "3cd2cb496a089231cd31fcaa7e2973e0023fdef1"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_build",
+  "touched_paths": [
+    "src/lodepng.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

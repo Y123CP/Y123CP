@@ -1,0 +1,204 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": -13.56724730763538,
+        "detail": "insufficient_net_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": -13.482427608530822,
+            "aggregate_ci_low_pct": -13.652067006739939,
+            "aggregate_pct": -13.56724730763538,
+            "checkpoint": 10,
+            "gate": "total",
+            "ops": [
+              {
+                "ci_high_pct": -14.7147,
+                "ci_low_pct": -15.0944,
+                "insns_delta_pct": -27.6212,
+                "mean_delta_pct": -14.9045,
+                "op": "decode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -14.6375,
+                "ci_low_pct": -15.08,
+                "insns_delta_pct": -27.8846,
+                "mean_delta_pct": -14.8587,
+                "op": "decode_sync_hd",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -11.8923,
+                "ci_low_pct": -12.1545,
+                "insns_delta_pct": -22.6466,
+                "mean_delta_pct": -12.0234,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": -12.2828,
+                "ci_low_pct": -12.6818,
+                "insns_delta_pct": -23.1467,
+                "mean_delta_pct": -12.4823,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "pristine",
+            "unmeasurable_ops": []
+          },
+          {
+            "accepted": true,
+            "aggregate_ci_high_pct": 0.12710450170849602,
+            "aggregate_ci_low_pct": -0.20448833933814758,
+            "aggregate_pct": -0.038691918814825775,
+            "checkpoint": 10,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.3113,
+                "ci_low_pct": -0.3084,
+                "insns_delta_pct": 0.1034,
+                "mean_delta_pct": 0.0014,
+                "op": "encode_hd_reset",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              },
+              {
+                "ci_high_pct": 0.0783,
+                "ci_low_pct": -0.236,
+                "insns_delta_pct": 0.0288,
+                "mean_delta_pct": -0.0788,
+                "op": "encode_std",
+                "samples": 10,
+                "state": "safe",
+                "stop_reason": "safe"
+              }
+            ],
+            "reason": "accepted",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "encode_hd_reset",
+          "encode_std"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "encode_hd_reset"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "d7120e40e30b59fde26e3d01c8b6e0a8c81ace78",
+      "changeset_id": "legacy-d451da86be4a89a6",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-eeb4c7cefbd2ccc2",
+          "replacement_function_source": "// Applied rules: [III④, C3]\n// Skipped rules: []\nunsafe fn aptx_quantize_difference(\n    mut quantize: *mut aptx_quantize,\n    mut sample_difference: int32_t,\n    mut dither: int32_t,\n    mut quantization_factor: int32_t,\n    mut tables: *const aptx_tables,\n) {\n    let quantize_view: &mut aptx_quantize = unsafe { &mut *quantize };\n    let tables_ref: &aptx_tables = unsafe { &*tables };\n    let intervals_ptr: *const int32_t = tables_ref.quantize_intervals;\n    let quantize_dither_factors_ptr: *const int32_t = tables_ref.quantize_dither_factors;\n    let tables_size: c_int = tables_ref.tables_size;\n    let mut quantized_sample: int32_t = 0;\n    let mut dithered_sample: int32_t = 0;\n    let mut parity_change: int32_t = 0;\n    let mut d: int32_t = 0;\n    let mut mean: int32_t = 0;\n    let mut interval: int32_t = 0;\n    let mut inv: int32_t = 0;\n    let mut sample_difference_abs: int32_t = 0;\n    let mut error: int64_t = 0;\n\n    sample_difference_abs = sample_difference;\n    if sample_difference_abs < 0 as int32_t {\n        sample_difference_abs = -sample_difference_abs;\n    }\n    if sample_difference_abs > ((1 as c_int as int32_t) << 23 as c_int) - 1 as int32_t {\n        sample_difference_abs = ((1 as c_int as int32_t) << 23 as c_int) - 1 as int32_t;\n    }\n\n    quantized_sample = aptx_bin_search(\n        sample_difference_abs >> 4 as c_int,\n        quantization_factor,\n        intervals_ptr,\n        tables_size,\n    );\n\n    let quantized_sample_usize = quantized_sample as usize;\n    let tables_size_usize = tables_size as usize;\n    // SAFETY: `quantize_dither_factors_ptr` comes from `tables_ref`; caller provides valid\n    // table storage with `tables_size` elements, non-null for this access pattern, and this\n    // function creates only an immutable view, so no mutable alias is introduced.\n    let quantize_dither_factors =\n        unsafe { core::slice::from_raw_parts(quantize_dither_factors_ptr, tables_size_usize) };\n    // SAFETY: `intervals_ptr` comes from `tables_ref`; caller provides valid interval table\n    // storage with at least `tables_size + 1` elements because this function reads entries\n    // at `quantized_sample` and `quantized_sample + 1`, the pointer is non-null for these\n    // accesses, and this is an immutable view only.\n    let intervals = unsafe { core::slice::from_raw_parts(intervals_ptr, tables_size_usize + 1) };\n\n    d = rshift32_clip24(\n        (dither as int64_t * dither as int64_t >> 32 as c_int) as int32_t,\n        7 as c_uint,\n    ) - ((1 as c_int as int32_t) << 23 as c_int);\n    d = rshift64(\n        d as int64_t\n            * unsafe { *quantize_dither_factors.get_unchecked(quantized_sample_usize) } as int64_t,\n        23 as c_uint,\n    ) as int32_t;\n\n    let interval_pair = unsafe {\n        // SAFETY: `aptx_bin_search(..., tables_size)` returns an index in `0..tables_size`;\n        // the interval access pattern requires elements at `quantized_sample` and\n        // `quantized_sample + 1`, and the table view was built with length `tables_size + 1`,\n        // so this 2-element subslice is in-bounds, non-null, and immutable.\n        intervals.get_unchecked(quantized_sample_usize..quantized_sample_usize + 2)\n    };\n    mean = (unsafe { *interval_pair.get_unchecked(1) } + unsafe { *interval_pair.get_unchecked(0) })\n        / 2 as int32_t;\n    interval = (unsafe { *interval_pair.get_unchecked(1) }\n        - unsafe { *interval_pair.get_unchecked(0) })\n        * (-((sample_difference < 0 as int32_t) as c_int) | 1 as int32_t);\n\n    dithered_sample = rshift64_clip24(\n        dither as int64_t * interval as int64_t\n            + ((clip_intp2(mean + d, 23 as c_uint) as int64_t) << 32 as c_int),\n        32 as c_uint,\n    );\n    error = ((sample_difference_abs as int64_t) << 20 as c_int)\n        - dithered_sample as int64_t * quantization_factor as int64_t;\n    quantize_view.error = rshift64(error, 23 as c_uint) as int32_t;\n    if quantize_view.error < 0 as int32_t {\n        quantize_view.error = -quantize_view.error;\n    }\n    parity_change = quantized_sample;\n    if error < 0 as int64_t {\n        quantized_sample -= 1;\n    } else {\n        parity_change -= 1;\n    }\n    inv = -((sample_difference < 0 as int32_t) as c_int) as int32_t;\n    quantize_view.quantized_sample = quantized_sample ^ inv;\n    quantize_view.quantized_sample_parity_change = parity_change ^ inv;\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "0aed5352ec4bb28d5085fed0b0a9e606d4a0e74fafa12584e2bc4e24730dbbb2",
+            "file_hint": "src/openaptx.rs",
+            "qualified_name": "crate::aptx_quantize_difference",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "aptx_quantize_difference-6ee013d9df75",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "aptx_quantize_difference",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "21b65bbbab1b1f87c4ad4f89b01fc8b0b881f3d93fac4b803a0b4f108cd7339d",
+            "edit_id": "edit-replace-eeb4c7cefbd2ccc2",
+            "end_byte": 56535,
+            "operation_id": "replace-eeb4c7cefbd2ccc2",
+            "relative_path": "src/openaptx.rs",
+            "replacement_text": "// Applied rules: [III④, C3]\n// Skipped rules: []\nunsafe fn aptx_quantize_difference(\n    mut quantize: *mut aptx_quantize,\n    mut sample_difference: int32_t,\n    mut dither: int32_t,\n    mut quantization_factor: int32_t,\n    mut tables: *const aptx_tables,\n) {\n    let quantize_view: &mut aptx_quantize = unsafe { &mut *quantize };\n    let tables_ref: &aptx_tables = unsafe { &*tables };\n    let intervals_ptr: *const int32_t = tables_ref.quantize_intervals;\n    let quantize_dither_factors_ptr: *const int32_t = tables_ref.quantize_dither_factors;\n    let tables_size: c_int = tables_ref.tables_size;\n    let mut quantized_sample: int32_t = 0;\n    let mut dithered_sample: int32_t = 0;\n    let mut parity_change: int32_t = 0;\n    let mut d: int32_t = 0;\n    let mut mean: int32_t = 0;\n    let mut interval: int32_t = 0;\n    let mut inv: int32_t = 0;\n    let mut sample_difference_abs: int32_t = 0;\n    let mut error: int64_t = 0;\n\n    sample_difference_abs = sample_difference;\n    if sample_difference_abs < 0 as int32_t {\n        sample_difference_abs = -sample_difference_abs;\n    }\n    if sample_difference_abs > ((1 as c_int as int32_t) << 23 as c_int) - 1 as int32_t {\n        sample_difference_abs = ((1 as c_int as int32_t) << 23 as c_int) - 1 as int32_t;\n    }\n\n    quantized_sample = aptx_bin_search(\n        sample_difference_abs >> 4 as c_int,\n        quantization_factor,\n        intervals_ptr,\n        tables_size,\n    );\n\n    let quantized_sample_usize = quantized_sample as usize;\n    let tables_size_usize = tables_size as usize;\n    // SAFETY: `quantize_dither_factors_ptr` comes from `tables_ref`; caller provides valid\n    // table storage with `tables_size` elements, non-null for this access pattern, and this\n    // function creates only an immutable view, so no mutable alias is introduced.\n    let quantize_dither_factors =\n        unsafe { core::slice::from_raw_parts(quantize_dither_factors_ptr, tables_size_usize) };\n    // SAFETY: `intervals_ptr` comes from `tables_ref`; caller provides valid interval table\n    // storage with at least `tables_size + 1` elements because this function reads entries\n    // at `quantized_sample` and `quantized_sample + 1`, the pointer is non-null for these\n    // accesses, and this is an immutable view only.\n    let intervals = unsafe { core::slice::from_raw_parts(intervals_ptr, tables_size_usize + 1) };\n\n    d = rshift32_clip24(\n        (dither as int64_t * dither as int64_t >> 32 as c_int) as int32_t,\n        7 as c_uint,\n    ) - ((1 as c_int as int32_t) << 23 as c_int);\n    d = rshift64(\n        d as int64_t\n            * unsafe { *quantize_dither_factors.get_unchecked(quantized_sample_usize) } as int64_t,\n        23 as c_uint,\n    ) as int32_t;\n\n    let interval_pair = unsafe {\n        // SAFETY: `aptx_bin_search(..., tables_size)` returns an index in `0..tables_size`;\n        // the interval access pattern requires elements at `quantized_sample` and\n        // `quantized_sample + 1`, and the table view was built with length `tables_size + 1`,\n        // so this 2-element subslice is in-bounds, non-null, and immutable.\n        intervals.get_unchecked(quantized_sample_usize..quantized_sample_usize + 2)\n    };\n    mean = (unsafe { *interval_pair.get_unchecked(1) } + unsafe { *interval_pair.get_unchecked(0) })\n        / 2 as int32_t;\n    interval = (unsafe { *interval_pair.get_unchecked(1) }\n        - unsafe { *interval_pair.get_unchecked(0) })\n        * (-((sample_difference < 0 as int32_t) as c_int) | 1 as int32_t);\n\n    dithered_sample = rshift64_clip24(\n        dither as int64_t * interval as int64_t\n            + ((clip_intp2(mean + d, 23 as c_uint) as int64_t) << 32 as c_int),\n        32 as c_uint,\n    );\n    error = ((sample_difference_abs as int64_t) << 20 as c_int)\n        - dithered_sample as int64_t * quantization_factor as int64_t;\n    quantize_view.error = rshift64(error, 23 as c_uint) as int32_t;\n    if quantize_view.error < 0 as int32_t {\n        quantize_view.error = -quantize_view.error;\n    }\n    parity_change = quantized_sample;\n    if error < 0 as int64_t {\n        quantized_sample -= 1;\n    } else {\n        parity_change -= 1;\n    }\n    inv = -((sample_difference < 0 as int32_t) as c_int) as int32_t;\n    quantize_view.quantized_sample = quantized_sample ^ inv;\n    quantize_view.quantized_sample_parity_change = parity_change ^ inv;\n}",
+            "start_byte": 53707
+          }
+        ],
+        "facts": {
+          "fn_name": "aptx_quantize_difference",
+          "target_span_hash": "0aed5352ec4bb28d5085fed0b0a9e606d4a0e74fafa12584e2bc4e24730dbbb2"
+        },
+        "operation_id": "replace-eeb4c7cefbd2ccc2"
+      }
+    ],
+    "resolved_head": "d7120e40e30b59fde26e3d01c8b6e0a8c81ace78"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/openaptx.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,826 @@
+{
+  "hot_function": {
+    "symbol": "LZ4_decompress_unsafe_generic",
+    "location": "src/lz4.rs:2163-2257",
+    "workload": "decompress_fast_roundtrip",
+    "hot_region": "src/lz4.rs:2163-2257",
+    "rust_source": "unsafe fn LZ4_decompress_unsafe_generic(\n    istart: *const BYTE,\n    ostart: *mut BYTE,\n    mut decompressedSize: c_int,\n    mut prefixSize: size_t,\n    dictStart: *const BYTE,\n    dictSize: size_t,\n) -> c_int {\n    let mut ip: *const BYTE = istart;\n    let mut op: *mut BYTE = ostart;\n    let oend: *mut BYTE = ostart.offset(decompressedSize as isize);\n    let prefixStart: *const BYTE = ostart.offset(-(prefixSize as isize));\n    dictStart.is_null();\n    loop {\n        let fresh24 = ip;\n        ip = ip.offset(1);\n        let mut token: c_uint = *fresh24 as c_uint;\n        let mut ll: size_t = (token >> ML_BITS) as size_t;\n        if ll == 15 as size_t {\n            ll = ll.wrapping_add(read_long_length_no_check(&raw mut ip));\n        }\n        if (oend.offset_from(op) as c_long as size_t) < ll {\n            return -(1 as c_int);\n        }\n        ::libc::memmove(\n            op as *mut c_void,\n            ip as *const c_void,\n            ll as ::libc::size_t,\n        );\n        op = op.offset(ll as isize);\n        ip = ip.offset(ll as isize);\n        if (oend.offset_from(op) as c_long as size_t) < MFLIMIT as size_t {\n            if op == oend {\n                break;\n            }\n            return -(1 as c_int);\n        } else {\n            let mut ml: size_t = (token & 15 as c_uint) as size_t;\n            let offset: size_t = LZ4_readLE16(ip as *const c_void) as size_t;\n            ip = ip.offset(2 as c_int as isize);\n            if ml == 15 as size_t {\n                ml = ml.wrapping_add(read_long_length_no_check(&raw mut ip));\n            }\n            ml = ml.wrapping_add(MINMATCH as size_t);\n            if (oend.offset_from(op) as c_long as size_t) < ml {\n                return -(1 as c_int);\n            }\n            let mut match_0: *const BYTE = op.offset(-(offset as isize));\n            if offset\n                > (op.offset_from(prefixStart) as c_long as size_t)\n                    .wrapping_add(dictSize)\n            {\n                return -(1 as c_int);\n            }\n            if offset > op.offset_from(prefixStart) as c_long as size_t {\n                let dictEnd: *const BYTE = dictStart.offset(dictSize as isize);\n                let mut extMatch: *const BYTE = dictEnd.offset(\n                    -(offset\n                        .wrapping_sub(op.offset_from(prefixStart) as c_long as size_t)\n                        as isize),\n                );\n                let extml: size_t = dictEnd.offset_from(extMatch) as c_long as size_t;\n                if extml > ml {\n                    ::libc::memmove(\n                        op as *mut c_void,\n                        extMatch as *const c_void,\n                        ml as ::libc::size_t,\n                    );\n                    op = op.offset(ml as isize);\n                    ml = 0 as size_t;\n                } else {\n                    ::libc::memmove(\n                        op as *mut c_void,\n                        extMatch as *const c_void,\n                        extml as ::libc::size_t,\n                    );\n                    op = op.offset(extml as isize);\n                    ml = ml.wrapping_sub(extml);\n                }\n                match_0 = prefixStart;\n            }\n            let mut u: size_t = 0;\n            u = 0 as size_t;\n            while u < ml {\n                *op.offset(u as isize) = *match_0.offset(u as isize);\n                u = u.wrapping_add(1);\n            }\n            op = op.offset(ml as isize);\n            if (oend.offset_from(op) as c_long as size_t) < LASTLITERALS as size_t {\n                return -(1 as c_int);\n            }\n        }\n    }\n    return ip.offset_from(istart) as c_long as c_int;\n}",
+    "signature": "unsafe fn LZ4_decompress_unsafe_generic(\n    istart: *const BYTE,\n    ostart: *mut BYTE,\n    mut decompressedSize: c_int,\n    mut prefixSize: size_t,\n    dictStart: *const BYTE,\n    dictSize: size_t,\n) -> c_int",
+    "profile": {
+      "self_time_ratio": 0.7602,
+      "call_count": null,
+      "retired_instructions": 8350141195,
+      "instructions_per_call": null,
+      "cpi": 0.506,
+      "tma": {
+        "scope": "process",
+        "retiring": 38.840368869568906,
+        "frontend_bound": 23.339022703253136,
+        "bad_speculation": 20.838011863341183,
+        "backend_bound": 16.982596563836776,
+        "memory_bound": 6.8369203859199255,
+        "core_bound": 10.14567617791685,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0437
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {},
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 2201,
+        "message": "'_ZN11lz4_cleaned3src3lz412LZ4_readLE1617h01f19a6b178635c7E' inlined into '_ZN11lz4_cleaned3src3lz429LZ4_decompress_unsafe_generic17hfaa319aa00ff688fE' with (cost=-15035, threshold=375) at callsite _ZN11lz4_cleaned3src3lz429LZ4_decompress_unsafe_generic17hfaa319aa00ff688fE:38:34;"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2179,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2201,
+        "message": "load of type i16 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 2247,
+        "message": "load of type i8 not eliminated"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2173,
+        "message": "hoisting and"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2173,
+        "message": "hoisting shl"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 2173,
+        "message": "hoisting ashr"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2176,
+        "message": "1 folded reloads 3.073054e+01 total folded reloads cost 19 virtual registers copies 3.802889e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2179,
+        "message": "BasicBlock: bb1.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2187,
+        "message": "BasicBlock: bb6.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2200,
+        "message": "BasicBlock: bb11.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb27.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: iter.check303"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vector.memcheck297"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb29.i.prol.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: bb29.i.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb29.i.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb29.i.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb29.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: bb29.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vector.main.loop.iter.check305"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vector.ph306"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: vector.body310"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: middle.block299"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vec.epilog.iter.check319"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: vec.epilog.vector.body328"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vec.epilog.middle.block317"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2195,
+        "message": "BasicBlock: bb8.i"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2176,
+        "message": "1 folded spills 3.275029e+01 total folded spills cost 1 folded reloads 3.073538e+01 total folded reloads cost 19 virtual registers copies 3.803488e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2176,
+        "message": "1 folded spills 3.275025e+01 total folded spills cost 19 virtual registers copies 3.803484e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2176,
+        "message": "1 folded reloads 3.073530e+01 total folded reloads cost 19 virtual registers copies 3.803479e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2200,
+        "message": "BasicBlock: bb11.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: iter.check60"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vector.memcheck55"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb29.i.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vector.main.loop.iter.check62"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vector.ph63"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: vector.body67"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: middle.block57"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vec.epilog.iter.check76"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: vec.epilog.vector.body85"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vec.epilog.middle.block74"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2195,
+        "message": "BasicBlock: bb8.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2179,
+        "message": "BasicBlock: bb1.i.i115"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2187,
+        "message": "BasicBlock: bb6.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2200,
+        "message": "BasicBlock: bb11.i.i117"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb27.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: iter.check26"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vector.memcheck21"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb29.i.i.prol.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: bb29.i.i.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb29.i.i.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb29.i.i.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb29.i.i.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: bb29.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vector.main.loop.iter.check28"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vector.ph29"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: vector.body33"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: middle.block23"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vec.epilog.iter.check42"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: vec.epilog.vector.body51"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vec.epilog.middle.block40"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2195,
+        "message": "BasicBlock: bb8.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2179,
+        "message": "BasicBlock: bb1.i24"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2187,
+        "message": "BasicBlock: bb6.i35"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2200,
+        "message": "BasicBlock: bb11.i39"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb27.i55"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: iter.check"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vector.memcheck"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb29.i60.prol.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: bb29.i60.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb29.i60.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb29.i60.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb29.i60.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: bb29.i60"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vector.main.loop.iter.check"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vector.ph"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: vector.body"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: middle.block"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vec.epilog.iter.check"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: vec.epilog.vector.body"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vec.epilog.middle.block"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2195,
+        "message": "BasicBlock: bb8.i90"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2176,
+        "message": "1 folded spills 2.046962e+01 total folded spills cost 19 virtual registers copies 2.377261e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2179,
+        "message": "BasicBlock: bb1.i.i34"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2200,
+        "message": "BasicBlock: bb11.i.i35"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vector.ph25"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: vector.body29"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: middle.block20"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2195,
+        "message": "BasicBlock: bb8.i.i"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2176,
+        "message": "1 folded spills 2.469921e+01 total folded spills cost 4 reloads 9.271853e+01 total reloads cost 1 folded reloads 2.317963e+01 total folded reloads cost 19 virtual registers copies 2.868469e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2200,
+        "message": "BasicBlock: bb11.i28"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb29.i32.prol.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: bb29.i32.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb29.i32.prol.loopexit.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb29.i32.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb29.i32.preheader"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: bb29.i32"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vector.ph113"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: vector.body117"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: middle.block108"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2195,
+        "message": "BasicBlock: bb8.i37"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2176,
+        "message": "2 folded spills 1.268212e+01 total folded spills cost 4 reloads 1.190187e+01 total reloads cost 1 folded reloads 1.228580e+01 total folded reloads cost 22 virtual registers copies 1.670992e+02 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 2181,
+        "message": "1 spills 3.838193e+00 total spills cost 1 folded spills 3.838193e+00 total folded spills cost 18 virtual registers copies 4.097320e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2179,
+        "message": "BasicBlock: bb1.i.i520"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2187,
+        "message": "BasicBlock: bb6.i.i525"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2200,
+        "message": "BasicBlock: bb11.i.i526"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vector.ph280"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: vector.body284"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: middle.block275"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2179,
+        "message": "BasicBlock: bb1.i.i20"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2187,
+        "message": "BasicBlock: bb6.i.i31"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2217,
+        "message": "BasicBlock: bb19.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2226,
+        "message": "BasicBlock: bb21.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2234,
+        "message": "BasicBlock: bb23.i.i"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: iter.check306"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: iter.check306"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vector.main.loop.iter.check308"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vector.ph309"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: vector.body313"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: middle.block302"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vec.epilog.iter.check322"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: vec.epilog.vector.body331"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vec.epilog.middle.block320"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: vec.epilog.scalar.ph321"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: bb29.i.i50.prol"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2246,
+        "message": "BasicBlock: bb29.i.i50.prol.loopexit"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2247,
+        "message": "BasicBlock: bb29.i.i50"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2195,
+        "message": "BasicBlock: bb8.i.i68"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 2195,
+        "message": "BasicBlock: bb8.i.i528"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

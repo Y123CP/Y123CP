@@ -1,0 +1,94 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "e507c3a5a3f84ac16d2d16be8b8c4cb0a18f1d31",
+      "changeset_id": "legacy-d1bdb4ea98b3be78",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-cec55fe9ae390034",
+          "replacement_function_source": "// Applied rules: [III④, C3]\n// Skipped rules: [III③: Hits [11, 12, 13, 14] are calls to project helpers `lil_append_char`, not visible libc/custom byte-copy wrappers in this function body. Replacing them would require inspecting callee semantics and likely broader API redesign; not a concrete in-body manual-memory-op rewrite from the provided evidence.; II_vec: The reported vectorization misses [5, 6, 7, 8, 9, 10] are tied to a different loop/state-machine region around line 557 in the broader file, not to the shown `lil_list_to_value` body. Within this target function there is no switch/state-machine to canonicalize, so no concrete hit can be addressed here beyond what III④ already improves structurally.]\n#[inline]\npub fn lil_list_to_value(\n    mut list: lil_list_t,\n    mut do_escape: c_int,\n) -> lil_value_t {\n    unsafe {\n        let mut val: lil_value_t = alloc_value(::core::ptr::null::<c_char>());\n        let list_len = (*list).c;\n        // SAFETY: `list` is dereferenced throughout the original function, so it must be non-null here.\n        // `(*list).v` points to at least `(*list).c` elements by the list invariant, and this function\n        // does not mutate `(*list).v` or `(*list).c` while the shared slice view is alive.\n        let values: &[lil_value_t] = unsafe { ::core::slice::from_raw_parts((*list).v, list_len) };\n\n        let mut i: size_t = 0;\n        while i < list_len {\n            let elem = values[i as usize];\n            let mut escape: c_int = if do_escape != 0 {\n                needs_escape(lil_to_string(elem))\n            } else {\n                0 as c_int\n            };\n            if i != 0 {\n                lil_append_char(val, ' ' as i32 as c_char);\n            }\n            if escape != 0 {\n                lil_append_char(val, '{' as i32 as c_char);\n                let elem_len = (*elem).l;\n                // SAFETY: `elem` is dereferenced throughout the original function, so it must be non-null here.\n                // `(*elem).d` points to at least `(*elem).l` bytes by the value invariant, and this function\n                // only reads from that buffer while the shared slice view is alive.\n                let data: &[c_char] = unsafe { ::core::slice::from_raw_parts((*elem).d, elem_len) };\n                let mut j: size_t = 0;\n                while j < elem_len {\n                    let ch = data[j as usize];\n                    if ch as c_int == '{' as i32 {\n                        lil_append_string(val, b\"}\\\"\\\\o\\\"{\\0\" as *const u8 as *const c_char);\n                    } else if ch as c_int == '}' as i32 {\n                        lil_append_string(val, b\"}\\\"\\\\c\\\"{\\0\" as *const u8 as *const c_char);\n                    } else {\n                        lil_append_char(val, ch);\n                    }\n                    j = j.wrapping_add(1);\n                }\n                lil_append_char(val, '}' as i32 as c_char);\n            } else {\n                lil_append_val(val, elem);\n            }\n            i = i.wrapping_add(1);\n        }\n        return val;\n    }\n}",
+          "rule_id": "III④,C3",
+          "target": {
+            "declaration_hash": "928ef7aaf82db44237f50fc948ca66e3f60c342c8da35608acc3afad31cd0006",
+            "file_hint": "src/lil.rs",
+            "qualified_name": "crate::lil_list_to_value",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "lil_list_to_value-81353efc54a7",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "lil_list_to_value",
+        "rule_id": "III④,C3"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "93d4f9748cb019999e3c70b17cfc222edeb9e6ecdd10b3c525bdc57993570466",
+            "edit_id": "edit-replace-cec55fe9ae390034",
+            "end_byte": 20922,
+            "operation_id": "replace-cec55fe9ae390034",
+            "relative_path": "src/lil.rs",
+            "replacement_text": "// Applied rules: [III④, C3]\n// Skipped rules: [III③: Hits [11, 12, 13, 14] are calls to project helpers `lil_append_char`, not visible libc/custom byte-copy wrappers in this function body. Replacing them would require inspecting callee semantics and likely broader API redesign; not a concrete in-body manual-memory-op rewrite from the provided evidence.; II_vec: The reported vectorization misses [5, 6, 7, 8, 9, 10] are tied to a different loop/state-machine region around line 557 in the broader file, not to the shown `lil_list_to_value` body. Within this target function there is no switch/state-machine to canonicalize, so no concrete hit can be addressed here beyond what III④ already improves structurally.]\n#[inline]\npub fn lil_list_to_value(\n    mut list: lil_list_t,\n    mut do_escape: c_int,\n) -> lil_value_t {\n    unsafe {\n        let mut val: lil_value_t = alloc_value(::core::ptr::null::<c_char>());\n        let list_len = (*list).c;\n        // SAFETY: `list` is dereferenced throughout the original function, so it must be non-null here.\n        // `(*list).v` points to at least `(*list).c` elements by the list invariant, and this function\n        // does not mutate `(*list).v` or `(*list).c` while the shared slice view is alive.\n        let values: &[lil_value_t] = unsafe { ::core::slice::from_raw_parts((*list).v, list_len) };\n\n        let mut i: size_t = 0;\n        while i < list_len {\n            let elem = values[i as usize];\n            let mut escape: c_int = if do_escape != 0 {\n                needs_escape(lil_to_string(elem))\n            } else {\n                0 as c_int\n            };\n            if i != 0 {\n                lil_append_char(val, ' ' as i32 as c_char);\n            }\n            if escape != 0 {\n                lil_append_char(val, '{' as i32 as c_char);\n                let elem_len = (*elem).l;\n                // SAFETY: `elem` is dereferenced throughout the original function, so it must be non-null here.\n                // `(*elem).d` points to at least `(*elem).l` bytes by the value invariant, and this function\n                // only reads from that buffer while the shared slice view is alive.\n                let data: &[c_char] = unsafe { ::core::slice::from_raw_parts((*elem).d, elem_len) };\n                let mut j: size_t = 0;\n                while j < elem_len {\n                    let ch = data[j as usize];\n                    if ch as c_int == '{' as i32 {\n                        lil_append_string(val, b\"}\\\"\\\\o\\\"{\\0\" as *const u8 as *const c_char);\n                    } else if ch as c_int == '}' as i32 {\n                        lil_append_string(val, b\"}\\\"\\\\c\\\"{\\0\" as *const u8 as *const c_char);\n                    } else {\n                        lil_append_char(val, ch);\n                    }\n                    j = j.wrapping_add(1);\n                }\n                lil_append_char(val, '}' as i32 as c_char);\n            } else {\n                lil_append_val(val, elem);\n            }\n            i = i.wrapping_add(1);\n        }\n        return val;\n    }\n}",
+            "start_byte": 19185
+          }
+        ],
+        "facts": {
+          "fn_name": "lil_list_to_value",
+          "target_span_hash": "928ef7aaf82db44237f50fc948ca66e3f60c342c8da35608acc3afad31cd0006"
+        },
+        "operation_id": "replace-cec55fe9ae390034"
+      }
+    ],
+    "resolved_head": "e507c3a5a3f84ac16d2d16be8b8c4cb0a18f1d31"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_post_validation",
+  "touched_paths": [
+    "src/lil.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "added_bounds_check_in_loop",
+      "detail": "rewrite adds a bounds check inside a loop the original indexed unchecked (2 site(s)): data[j as usize], values[i as usize]",
+      "ok": false
+    }
+  ]
+}

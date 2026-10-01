@@ -1,0 +1,536 @@
+{
+  "hot_function": {
+    "symbol": "LZ4F_compressUpdateImpl",
+    "location": "src/lz4frame.rs:1392-1539",
+    "workload": "frame_streaming_round_trip",
+    "hot_region": "src/lz4frame.rs:1392-1539",
+    "rust_source": "unsafe fn LZ4F_compressUpdateImpl(\n    mut cctxPtr: *mut LZ4F_cctx,\n    mut dstBuffer: *mut c_void,\n    mut dstCapacity: size_t,\n    mut srcBuffer: *const c_void,\n    mut srcSize: size_t,\n    mut compressOptionsPtr: *const LZ4F_compressOptions_t,\n    mut blockCompression: LZ4F_BlockCompressMode_e,\n) -> size_t {\n    let blockSize: size_t = (*cctxPtr).maxBlockSize;\n    let mut srcPtr: *const BYTE = srcBuffer as *const BYTE;\n    let srcEnd: *const BYTE = if srcSize != 0 {\n        srcPtr.offset(srcSize as isize)\n    } else {\n        srcPtr\n    };\n    let dstStart: *mut BYTE = dstBuffer as *mut BYTE;\n    let mut dstPtr: *mut BYTE = dstStart;\n    let mut lastBlockCompressed: LZ4F_lastBlockStatus = notDone;\n    let compress: compressFunc_t = LZ4F_selectCompression(\n        (*cctxPtr).prefs.frameInfo.blockMode,\n        (*cctxPtr).prefs.compressionLevel,\n        blockCompression,\n    ) as compressFunc_t;\n    let mut bytesWritten: size_t = 0;\n    if (*cctxPtr).cStage != 1 as U32 {\n        return LZ4F_returnErrorCode(LZ4F_ERROR_compressionState_uninitialized) as size_t;\n    }\n    if dstCapacity\n        < LZ4F_compressBound_internal(srcSize, &raw mut (*cctxPtr).prefs, (*cctxPtr).tmpInSize)\n    {\n        return LZ4F_returnErrorCode(LZ4F_ERROR_dstMaxSize_tooSmall) as size_t;\n    }\n    if blockCompression as c_uint\n        == LZ4B_UNCOMPRESSED as c_int as c_uint\n        && dstCapacity < srcSize\n    {\n        return LZ4F_returnErrorCode(LZ4F_ERROR_dstMaxSize_tooSmall) as size_t;\n    }\n    if (*cctxPtr).blockCompressMode as c_uint\n        != blockCompression as c_uint\n    {\n        bytesWritten = LZ4F_flush(cctxPtr, dstBuffer, dstCapacity, compressOptionsPtr);\n        dstPtr = dstPtr.offset(bytesWritten as isize);\n        (*cctxPtr).blockCompressMode = blockCompression;\n    }\n    if compressOptionsPtr.is_null() {\n        compressOptionsPtr = &raw const k_cOptionsNull;\n    }\n    if (*cctxPtr).tmpInSize > 0 as size_t {\n        let sizeToCopy: size_t = blockSize.wrapping_sub((*cctxPtr).tmpInSize);\n        if sizeToCopy > srcSize {\n            memcpy(\n                (*cctxPtr).tmpIn.offset((*cctxPtr).tmpInSize as isize) as *mut c_void,\n                srcBuffer,\n                srcSize,\n            );\n            srcPtr = srcEnd;\n            (*cctxPtr).tmpInSize = (*cctxPtr).tmpInSize.wrapping_add(srcSize);\n        } else {\n            lastBlockCompressed = fromTmpBuffer;\n            memcpy(\n                (*cctxPtr).tmpIn.offset((*cctxPtr).tmpInSize as isize) as *mut c_void,\n                srcBuffer,\n                sizeToCopy,\n            );\n            srcPtr = srcPtr.offset(sizeToCopy as isize);\n            dstPtr = dstPtr.offset(LZ4F_makeBlock(\n                dstPtr as *mut c_void,\n                (*cctxPtr).tmpIn as *const c_void,\n                blockSize,\n                compress,\n                (*cctxPtr).lz4CtxPtr,\n                (*cctxPtr).prefs.compressionLevel,\n                (*cctxPtr).cdict,\n                (*cctxPtr).prefs.frameInfo.blockChecksumFlag,\n            ) as isize);\n            if (*cctxPtr).prefs.frameInfo.blockMode as c_uint\n                == LZ4F_blockLinked as c_int as c_uint\n            {\n                (*cctxPtr).tmpIn = (*cctxPtr).tmpIn.offset(blockSize as isize);\n            }\n            (*cctxPtr).tmpInSize = 0 as size_t;\n        }\n    }\n    while srcEnd.offset_from(srcPtr) as c_long as size_t >= blockSize {\n        lastBlockCompressed = fromSrcBuffer;\n        dstPtr = dstPtr.offset(LZ4F_makeBlock(\n            dstPtr as *mut c_void,\n            srcPtr as *const c_void,\n            blockSize,\n            compress,\n            (*cctxPtr).lz4CtxPtr,\n            (*cctxPtr).prefs.compressionLevel,\n            (*cctxPtr).cdict,\n            (*cctxPtr).prefs.frameInfo.blockChecksumFlag,\n        ) as isize);\n        srcPtr = srcPtr.offset(blockSize as isize);\n    }\n    if (*cctxPtr).prefs.autoFlush != 0 && srcPtr < srcEnd {\n        lastBlockCompressed = fromSrcBuffer;\n        dstPtr = dstPtr.offset(LZ4F_makeBlock(\n            dstPtr as *mut c_void,\n            srcPtr as *const c_void,\n            srcEnd.offset_from(srcPtr) as c_long as size_t,\n            compress,\n            (*cctxPtr).lz4CtxPtr,\n            (*cctxPtr).prefs.compressionLevel,\n            (*cctxPtr).cdict,\n            (*cctxPtr).prefs.frameInfo.blockChecksumFlag,\n        ) as isize);\n        srcPtr = srcEnd;\n    }\n    if (*cctxPtr).prefs.frameInfo.blockMode as c_uint\n        == LZ4F_blockLinked as c_int as c_uint\n        && lastBlockCompressed as c_uint\n            == fromSrcBuffer as c_int as c_uint\n    {\n        if (*compressOptionsPtr).stableSrc != 0 {\n            (*cctxPtr).tmpIn = (*cctxPtr).tmpBuff;\n        } else {\n            LZ4F_localSaveDict(cctxPtr as *mut LZ4F_cctx_t);\n        }\n    }\n    if (*cctxPtr).prefs.autoFlush == 0\n        && (*cctxPtr).tmpIn.offset(blockSize as isize)\n            > (*cctxPtr).tmpBuff.offset((*cctxPtr).maxBufferSize as isize)\n    {\n        LZ4F_localSaveDict(cctxPtr as *mut LZ4F_cctx_t);\n    }\n    if srcPtr < srcEnd {\n        let sizeToCopy_0: size_t = srcEnd.offset_from(srcPtr) as c_long as size_t;\n        memcpy(\n            (*cctxPtr).tmpIn as *mut c_void,\n            srcPtr as *const c_void,\n            sizeToCopy_0,\n        );\n        (*cctxPtr).tmpInSize = sizeToCopy_0;\n    }\n    if (*cctxPtr).prefs.frameInfo.contentChecksumFlag as c_uint\n        == LZ4F_contentChecksumEnabled as c_int as c_uint\n    {\n        XXH32_update(&raw mut (*cctxPtr).xxh, srcBuffer, srcSize);\n    }\n    (*cctxPtr).totalInSize = ((*cctxPtr).totalInSize as c_ulong)\n        .wrapping_add(srcSize as c_ulong) as U64 as U64;\n    return dstPtr.offset_from(dstStart) as c_long as size_t;\n}",
+    "signature": "unsafe fn LZ4F_compressUpdateImpl(\n    mut cctxPtr: *mut LZ4F_cctx,\n    mut dstBuffer: *mut c_void,\n    mut dstCapacity: size_t,\n    mut srcBuffer: *const c_void,\n    mut srcSize: size_t,\n    mut compressOptionsPtr: *const LZ4F_compressOptions_t,\n    mut blockCompression: LZ4F_BlockCompressMode_e,\n) -> size_t",
+    "profile": {
+      "self_time_ratio": 0.0713,
+      "call_count": null,
+      "retired_instructions": 221782775,
+      "instructions_per_call": null,
+      "cpi": 1.777,
+      "tma": {
+        "scope": "process",
+        "retiring": 49.61910116369099,
+        "frontend_bound": 1.5253449614439047,
+        "bad_speculation": 16.1486872848207,
+        "backend_bound": 32.7068665900444,
+        "memory_bound": 14.603118670544363,
+        "core_bound": 18.103747919500037,
+        "tma_path": null,
+        "source": "perf-rawevents"
+      },
+      "branch_miss_rate": 0.0505
+    },
+    "attribution_scope": {
+      "self_time_ratio": "function",
+      "retired_instructions": "function",
+      "cpi": "function",
+      "tma": "process",
+      "branch_miss_rate": "process",
+      "call_count": "unavailable",
+      "instructions_per_call": "unavailable"
+    },
+    "tma_bottleneck": "retiring",
+    "class_i_hits": {
+      "C3": true
+    },
+    "class_ii_hits": {
+      "II_inl": {
+        "TooCostly": 3
+      }
+    },
+    "llvm_opt_remarks": [
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1411,
+        "message": "'_ZN11lz4_cleaned3src8lz4frame22LZ4F_selectCompression17hd53c327493cda294E' inlined into '_ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E' with (cost=-15010, threshold=250) at callsite _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E:19:36;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1421,
+        "message": "'_ZN11lz4_cleaned3src8lz4frame27LZ4F_compressBound_internal17h97a37636f69c6800E' inlined into '_ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E' with (cost=210, threshold=250) at callsite _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E:29:11;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1434,
+        "message": "'_ZN11lz4_cleaned3src8lz4frame10LZ4F_flush17he34de67c93244e60E' inlined into '_ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E' with (cost=-14580, threshold=325) at callsite _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E:42:24;"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1459,
+        "message": "'_ZN11lz4_cleaned3src8lz4frame14LZ4F_makeBlock17ha9ab7268a0df5ebfE' not inlined into '_ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E' because too costly to inline (cost=470, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1479,
+        "message": "'_ZN11lz4_cleaned3src8lz4frame14LZ4F_makeBlock17ha9ab7268a0df5ebfE' not inlined into '_ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E' because too costly to inline (cost=470, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "missed",
+        "line": 1493,
+        "message": "'_ZN11lz4_cleaned3src8lz4frame14LZ4F_makeBlock17ha9ab7268a0df5ebfE' not inlined into '_ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E' because too costly to inline (cost=470, threshold=250)"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1513,
+        "message": "'_ZN11lz4_cleaned3src8lz4frame18LZ4F_localSaveDict17h70d9fc5661603d6dE' inlined into '_ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E' with (cost=175, threshold=250) at callsite _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E:121:13;"
+      },
+      {
+        "pass": "inline",
+        "status": "success",
+        "line": 1520,
+        "message": "'_ZN11lz4_cleaned3src8lz4frame18LZ4F_localSaveDict17h70d9fc5661603d6dE' inlined into '_ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E' with (cost=175, threshold=250) at callsite _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E:128:9;"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1485,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1484,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1484,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1486,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1486,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "licm",
+        "status": "success",
+        "line": 1487,
+        "message": "hoisting getelementptr"
+      },
+      {
+        "pass": "licm",
+        "status": "missed",
+        "line": 1487,
+        "message": "failed to move load with loop-invariant address because the loop may invalidate its value"
+      },
+      {
+        "pass": "TTI",
+        "status": "success",
+        "line": 1477,
+        "message": "advising against unrolling the loop because it contains a call"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1441,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "success",
+        "line": 1441,
+        "message": "load eliminated by PRE"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1461,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1464,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1465,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1466,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1467,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1469,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1472,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1450,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1484,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1485,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1486,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1487,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1491,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1498,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1499,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1500,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1501,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1505,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1510,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1511,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1516,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1517,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1518,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1518,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1525,
+        "message": "load of type ptr not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1531,
+        "message": "load of type i32 not eliminated"
+      },
+      {
+        "pass": "gvn",
+        "status": "missed",
+        "line": 1536,
+        "message": "load of type i64 not eliminated"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "X86 DAG->DAG Instruction Selection: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 0 to 725; Delta: 725"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "Early Tail Duplication: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 725 to 726; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "Remove dead machine instructions: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 726 to 712; Delta: -14"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "Machine Common Subexpression Elimination: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 712 to 711; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "Peephole Optimizations: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 711 to 704; Delta: -7"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "X86 Fixup SetCC: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 704 to 705; Delta: 1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "X86 Optimize Call Frame: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 705 to 713; Delta: 8"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "Process Implicit Definitions: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 713 to 709; Delta: -4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "Eliminate PHI nodes for register allocation: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 709 to 815; Delta: 106"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "Two-Address instruction pass: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 815 to 924; Delta: 109"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "Register Coalescer: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 924 to 647; Delta: -277"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1477,
+        "message": "2 reloads 7.997011e+00 total reloads cost 6 virtual registers copies 2.399103e+01 total copies cost generated in loop"
+      },
+      {
+        "pass": "regalloc",
+        "status": "missed",
+        "line": 1392,
+        "message": "20 spills 5.463444e+00 total spills cost 57 reloads 1.140040e+01 total reloads cost 4 folded reloads 5.583655e-01 total folded reloads cost 58 virtual registers copies 3.375671e+01 total copies cost generated in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "Greedy Register Allocator: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 647 to 726; Delta: 79"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "Virtual Register Rewriter: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 726 to 685; Delta: -41"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "Machine Copy Propagation Pass: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 685 to 684; Delta: -1"
+      },
+      {
+        "pass": "prologepilog",
+        "status": "analysis",
+        "line": 1392,
+        "message": "120 stack bytes in function"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "Prologue/Epilogue Insertion & Frame Finalization: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 684 to 692; Delta: 8"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "Machine Late Instructions Cleanup Pass: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 692 to 691; Delta: -1"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "Control Flow Optimizer: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 691 to 634; Delta: -57"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "Branch Probability Basic Block Placement: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 634 to 638; Delta: 4"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "X86 LEA Fixup: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 638 to 641; Delta: 3"
+      },
+      {
+        "pass": "size-info",
+        "status": "analysis",
+        "line": 1392,
+        "message": "Check CFA info and insert CFI instructions if needed: Function: _ZN11lz4_cleaned3src8lz4frame23LZ4F_compressUpdateImpl17hbd91f3f4fa12d7e7E: MI Instruction count changed from 641 to 642; Delta: 1"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1431,
+        "message": "BasicBlock: bb12"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1472,
+        "message": "BasicBlock: bb26"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1477,
+        "message": "BasicBlock: bb33.lr.ph"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1491,
+        "message": "BasicBlock: bb35"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1498,
+        "message": "BasicBlock: bb38"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1505,
+        "message": "BasicBlock: bb41"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1511,
+        "message": "BasicBlock: bb44"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1516,
+        "message": "BasicBlock: bb48"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1522,
+        "message": "BasicBlock: bb53"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1531,
+        "message": "BasicBlock: bb57"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1536,
+        "message": "BasicBlock: bb60"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1539,
+        "message": "BasicBlock: bb61"
+      },
+      {
+        "pass": "asm-printer",
+        "status": "analysis",
+        "line": 1392,
+        "message": "608 instructions in function"
+      }
+    ],
+    "llvm_ir": null
+  }
+}

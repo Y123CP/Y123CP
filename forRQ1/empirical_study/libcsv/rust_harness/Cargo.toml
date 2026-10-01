@@ -1,0 +1,52 @@
+# Workload harness for libcsv — FN-PTR INTERFACE VARIANT.
+#
+# This harness uses the `Option<unsafe extern "C" fn(...)>` callback
+# interface, compatible with the c2rust-direct output (0_raw / 1_cleaned)
+# whose `csv_parse` / `csv_fini` signatures still take fn-ptr callbacks.
+# Stage A's E3 callback monomorphize lifts those params to `impl Fn(...)`
+# — for measuring `2_stage_a` use the sibling `csv_count/` harness
+# (closure-form calls).
+#
+# perf_compare picks this harness for the `c2rust_raw` measurement via
+# the `--raw-harness-dir` CLI flag; the regular `csv_count/` harness is
+# used for `ours` (Stage A output).
+#
+# Output format ("rows=N fields=M\n") MUST stay identical to
+# `csv_count/` so the C baseline + raw + ours all produce identical
+# stdout (W1 oracle bytes).
+
+[package]
+name = "csv_count_raw"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+# Bin name kept as `csv_count` so manifest [workload].binary = "csv_count"
+# resolves the same in both harness variants — no manifest changes.
+name = "csv_count"
+path = "src/main.rs"
+
+# op_write gates OPERATION 2 (csv_write escaping). OFF by default so the parse-only
+# binary matches the original single-op codegen — used to prove that adding op2 does
+# NOT perturb op1's measurement (isolation check). Build with --features op_write for
+# the write workload.
+[features]
+op_write = []
+
+[dependencies]
+# Path dep + package name are PLACEHOLDERS. perf_compare's
+# `_rewire_path_dep` rewrites both at stage time to point at the
+# disposable copy of 0_raw (with the actual crate name `libcsv_raw`).
+# Direct `cargo build` from this dir is only for sanity-checking the
+# fn-ptr interface against 0_raw.
+libcsv_safe = { path = "../rust_raw", package = "libcsv_raw" }
+
+# perf_opt fair-build profile — see script_c2rust/docs/perf_tree_design.md §2.8.
+# Pairs with .cargo/config.toml (target-cpu=native).
+[profile.release]
+opt-level     = 3
+lto           = "fat"
+codegen-units = 1
+panic         = "abort"
+debug         = false

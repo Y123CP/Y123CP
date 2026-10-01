@@ -1,0 +1,140 @@
+{
+  "applied_rules": [],
+  "commit_sha": null,
+  "gates": [
+    {
+      "detail": {
+        "stderr": ""
+      },
+      "gate": "build",
+      "ok": true
+    },
+    {
+      "detail": {
+        "reason": ""
+      },
+      "gate": "w1",
+      "ok": true
+    },
+    {
+      "detail": {
+        "delta_pct": 0.1355251174946907,
+        "detail": "no_gain",
+        "measured_cv": 0.0,
+        "measurements": [
+          {
+            "accepted": false,
+            "aggregate_ci_high_pct": 0.32357432193507274,
+            "aggregate_ci_low_pct": -0.052524086945691356,
+            "aggregate_pct": 0.1355251174946907,
+            "checkpoint": 40,
+            "gate": "step",
+            "ops": [
+              {
+                "ci_high_pct": 0.3236,
+                "ci_low_pct": -0.0525,
+                "insns_delta_pct": -0.1553,
+                "mean_delta_pct": 0.1355,
+                "op": "match_primitives",
+                "samples": 40,
+                "state": "safe",
+                "stop_reason": "aggregate_precision"
+              }
+            ],
+            "reason": "no_gain",
+            "reference": "parent",
+            "unmeasurable_ops": []
+          }
+        ],
+        "ops": [
+          "match_primitives"
+        ],
+        "reason": "no_gain",
+        "triggering_op": "match_primitives"
+      },
+      "gate": "w2",
+      "ok": false
+    }
+  ],
+  "resolved": {
+    "proposal": {
+      "base_head": "7304eb112acd23f8d73a3456b7965ddcf748bd3e",
+      "changeset_id": "legacy-dce91afbc530a136",
+      "impact_scope": "local_function",
+      "operations": [
+        {
+          "evidence_hit_ids": [],
+          "operation_id": "replace-9353a8b95283356c",
+          "replacement_function_source": "#[no_mangle]\npub unsafe extern \"C\" fn match_positions(\n    mut needle: *const c_char,\n    mut haystack: *const c_char,\n    mut positions: *mut size_t,\n) -> score_t {\n    let needle_view: &c_char = unsafe { // SAFETY: caller provides a valid C string pointer as required by the original API.\n        &*needle\n    };\n    if *needle_view == 0 {\n        return -::core::f32::INFINITY as score_t;\n    }\n\n    let mut match_1: match_struct = match_struct {\n        needle_len: 0,\n        haystack_len: 0,\n        lower_needle: [0; 1024],\n        lower_haystack: [0; 1024],\n        match_bonus: [0.; 1024],\n    };\n    setup_match_struct(&raw mut match_1, needle, haystack);\n\n    let n: c_int = match_1.needle_len;\n    let m: c_int = match_1.haystack_len;\n\n    if m > MATCH_MAX_LEN || n > m {\n        return -::core::f32::INFINITY as score_t;\n    } else if n == m {\n        if !positions.is_null() {\n            let mut i: c_int = 0;\n            while i < n {\n                unsafe { // SAFETY: positions is non-null here and caller is expected to provide space for n entries.\n                    *positions.add(i as usize) = i as size_t;\n                }\n                i += 1;\n            }\n        }\n        return ::core::f32::INFINITY as score_t;\n    }\n\n    let rows = n as usize;\n    let cols = MATCH_MAX_LEN as usize;\n    let total = rows.wrapping_mul(cols);\n    let bytes = total.wrapping_mul(::core::mem::size_of::<score_t>());\n\n    let m_ptr = malloc(bytes as size_t) as *mut score_t;\n    let d_ptr = malloc(bytes as size_t) as *mut score_t;\n\n    let mut i = 0usize;\n    while i < rows {\n        let d_row = unsafe { // SAFETY: d_ptr points to an allocation of at least total score_t elements; i < rows and each row has cols elements.\n            d_ptr.add(i * cols)\n        };\n        let m_row = unsafe { // SAFETY: m_ptr points to an allocation of at least total score_t elements; i < rows and each row has cols elements.\n            m_ptr.add(i * cols)\n        };\n        if i == 0 {\n            match_row(&raw mut match_1, 0, d_row, m_row, d_row, m_row);\n        } else {\n            let prev_d = unsafe { // SAFETY: i > 0, so previous row exists within the same allocation.\n                d_ptr.add((i - 1) * cols)\n            };\n            let prev_m = unsafe { // SAFETY: i > 0, so previous row exists within the same allocation.\n                m_ptr.add((i - 1) * cols)\n            };\n            match_row(&raw mut match_1, i as c_int, d_row, m_row, prev_d, prev_m);\n        }\n        i += 1;\n    }\n\n    if !positions.is_null() {\n        let mut match_required: c_int = 0;\n        let mut i_1: c_int = n - 1;\n        let mut j: c_int = m - 1;\n\n        while i_1 >= 0 {\n            let d_row = unsafe { // SAFETY: i_1 is in 0..n and each row has cols elements.\n                d_ptr.add(i_1 as usize * cols)\n            };\n            let m_row = unsafe { // SAFETY: i_1 is in 0..n and each row has cols elements.\n                m_ptr.add(i_1 as usize * cols)\n            };\n            let prev_d_row = if i_1 != 0 {\n                unsafe { // SAFETY: i_1 > 0, so previous row exists within the allocation.\n                    d_ptr.add((i_1 as usize - 1) * cols)\n                }\n            } else {\n                ::core::ptr::null()\n            };\n\n            while j >= 0 {\n                let ju = j as usize;\n                let d_val = unsafe { // SAFETY: ju < m <= MATCH_MAX_LEN <= cols, so index is within the current row.\n                    *d_row.add(ju)\n                };\n                if d_val != -::core::f32::INFINITY as score_t\n                    && (match_required != 0\n                        || d_val\n                            == unsafe { // SAFETY: ju < m <= cols, so index is within the current row.\n                                *m_row.add(ju)\n                            })\n                {\n                    match_required = (i_1 != 0\n                        && j != 0\n                        && unsafe { // SAFETY: i_1 != 0 and j != 0 ensure previous row and previous column are valid.\n                            *m_row.add(ju)\n                                == *prev_d_row.add((j - 1) as usize) + SCORE_MATCH_CONSECUTIVE\n                        }) as c_int;\n                    let fresh1 = j;\n                    j -= 1;\n                    unsafe { // SAFETY: positions is non-null here and caller is expected to provide space for n entries.\n                        *positions.add(i_1 as usize) = fresh1 as size_t;\n                    }\n                    break;\n                } else {\n                    j -= 1;\n                }\n            }\n            i_1 -= 1;\n        }\n    }\n\n    let result: score_t = unsafe { // SAFETY: n < = rows and m <= cols; n != 0 due to earlier empty-needle check.\n        *m_ptr.add((n as usize - 1) * cols + (m as usize - 1))\n    };\n\n    free(m_ptr as *mut c_void);\n    free(d_ptr as *mut c_void);\n    result\n}",
+          "rule_id": "freeform",
+          "target": {
+            "declaration_hash": "1283c24347222f64c5ba6a457d8ed1b7ca24fddd97ddb2cad54d1a8b746b5be4",
+            "file_hint": "src/match.rs",
+            "qualified_name": "crate::match_positions",
+            "symbol_kind": "function"
+          }
+        }
+      ],
+      "trigger": {
+        "candidate_id": "match_positions-8260b7e81f76",
+        "evidence_artifacts": [],
+        "hit_ids": [],
+        "hot_function": "match_positions",
+        "rule_id": "freeform"
+      }
+    },
+    "resolutions": [
+      {
+        "edits": [
+          {
+            "before_hash": "b1181cb5c8730b65be90541fd044694c4fb662dd02e53d774a3e44a58c4b02f3",
+            "edit_id": "edit-replace-9353a8b95283356c",
+            "end_byte": 13316,
+            "operation_id": "replace-9353a8b95283356c",
+            "relative_path": "src/match.rs",
+            "replacement_text": "#[no_mangle]\npub unsafe extern \"C\" fn match_positions(\n    mut needle: *const c_char,\n    mut haystack: *const c_char,\n    mut positions: *mut size_t,\n) -> score_t {\n    let needle_view: &c_char = unsafe { // SAFETY: caller provides a valid C string pointer as required by the original API.\n        &*needle\n    };\n    if *needle_view == 0 {\n        return -::core::f32::INFINITY as score_t;\n    }\n\n    let mut match_1: match_struct = match_struct {\n        needle_len: 0,\n        haystack_len: 0,\n        lower_needle: [0; 1024],\n        lower_haystack: [0; 1024],\n        match_bonus: [0.; 1024],\n    };\n    setup_match_struct(&raw mut match_1, needle, haystack);\n\n    let n: c_int = match_1.needle_len;\n    let m: c_int = match_1.haystack_len;\n\n    if m > MATCH_MAX_LEN || n > m {\n        return -::core::f32::INFINITY as score_t;\n    } else if n == m {\n        if !positions.is_null() {\n            let mut i: c_int = 0;\n            while i < n {\n                unsafe { // SAFETY: positions is non-null here and caller is expected to provide space for n entries.\n                    *positions.add(i as usize) = i as size_t;\n                }\n                i += 1;\n            }\n        }\n        return ::core::f32::INFINITY as score_t;\n    }\n\n    let rows = n as usize;\n    let cols = MATCH_MAX_LEN as usize;\n    let total = rows.wrapping_mul(cols);\n    let bytes = total.wrapping_mul(::core::mem::size_of::<score_t>());\n\n    let m_ptr = malloc(bytes as size_t) as *mut score_t;\n    let d_ptr = malloc(bytes as size_t) as *mut score_t;\n\n    let mut i = 0usize;\n    while i < rows {\n        let d_row = unsafe { // SAFETY: d_ptr points to an allocation of at least total score_t elements; i < rows and each row has cols elements.\n            d_ptr.add(i * cols)\n        };\n        let m_row = unsafe { // SAFETY: m_ptr points to an allocation of at least total score_t elements; i < rows and each row has cols elements.\n            m_ptr.add(i * cols)\n        };\n        if i == 0 {\n            match_row(&raw mut match_1, 0, d_row, m_row, d_row, m_row);\n        } else {\n            let prev_d = unsafe { // SAFETY: i > 0, so previous row exists within the same allocation.\n                d_ptr.add((i - 1) * cols)\n            };\n            let prev_m = unsafe { // SAFETY: i > 0, so previous row exists within the same allocation.\n                m_ptr.add((i - 1) * cols)\n            };\n            match_row(&raw mut match_1, i as c_int, d_row, m_row, prev_d, prev_m);\n        }\n        i += 1;\n    }\n\n    if !positions.is_null() {\n        let mut match_required: c_int = 0;\n        let mut i_1: c_int = n - 1;\n        let mut j: c_int = m - 1;\n\n        while i_1 >= 0 {\n            let d_row = unsafe { // SAFETY: i_1 is in 0..n and each row has cols elements.\n                d_ptr.add(i_1 as usize * cols)\n            };\n            let m_row = unsafe { // SAFETY: i_1 is in 0..n and each row has cols elements.\n                m_ptr.add(i_1 as usize * cols)\n            };\n            let prev_d_row = if i_1 != 0 {\n                unsafe { // SAFETY: i_1 > 0, so previous row exists within the allocation.\n                    d_ptr.add((i_1 as usize - 1) * cols)\n                }\n            } else {\n                ::core::ptr::null()\n            };\n\n            while j >= 0 {\n                let ju = j as usize;\n                let d_val = unsafe { // SAFETY: ju < m <= MATCH_MAX_LEN <= cols, so index is within the current row.\n                    *d_row.add(ju)\n                };\n                if d_val != -::core::f32::INFINITY as score_t\n                    && (match_required != 0\n                        || d_val\n                            == unsafe { // SAFETY: ju < m <= cols, so index is within the current row.\n                                *m_row.add(ju)\n                            })\n                {\n                    match_required = (i_1 != 0\n                        && j != 0\n                        && unsafe { // SAFETY: i_1 != 0 and j != 0 ensure previous row and previous column are valid.\n                            *m_row.add(ju)\n                                == *prev_d_row.add((j - 1) as usize) + SCORE_MATCH_CONSECUTIVE\n                        }) as c_int;\n                    let fresh1 = j;\n                    j -= 1;\n                    unsafe { // SAFETY: positions is non-null here and caller is expected to provide space for n entries.\n                        *positions.add(i_1 as usize) = fresh1 as size_t;\n                    }\n                    break;\n                } else {\n                    j -= 1;\n                }\n            }\n            i_1 -= 1;\n        }\n    }\n\n    let result: score_t = unsafe { // SAFETY: n < = rows and m <= cols; n != 0 due to earlier empty-needle check.\n        *m_ptr.add((n as usize - 1) * cols + (m as usize - 1))\n    };\n\n    free(m_ptr as *mut c_void);\n    free(d_ptr as *mut c_void);\n    result\n}",
+            "start_byte": 9600
+          }
+        ],
+        "facts": {
+          "fn_name": "match_positions",
+          "target_span_hash": "1283c24347222f64c5ba6a457d8ed1b7ca24fddd97ddb2cad54d1a8b746b5be4"
+        },
+        "operation_id": "replace-9353a8b95283356c"
+      }
+    ],
+    "resolved_head": "7304eb112acd23f8d73a3456b7965ddcf748bd3e"
+  },
+  "rollback_verified": true,
+  "terminal_status": "rejected_w2_no_gain",
+  "touched_paths": [
+    "src/match.rs"
+  ],
+  "validations": [
+    {
+      "code": "operation_edit_bijection",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "region_file_isolated",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "edit_ranges",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replacement_function_source",
+      "detail": "",
+      "ok": true
+    },
+    {
+      "code": "replace_function_post",
+      "detail": "",
+      "ok": true
+    }
+  ]
+}

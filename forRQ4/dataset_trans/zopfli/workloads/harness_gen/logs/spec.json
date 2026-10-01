@@ -1,0 +1,81 @@
+{
+  "harness_name": "zopfli_raw_harness",
+  "operations": [
+    {
+      "name": "raw_deflate",
+      "needs_input": true,
+      "summary": "Compresses a realistic raw byte corpus to a bare DEFLATE stream through the low-level deflate entry point. This is the main hot-path workload for profiling the translated compressor core.",
+      "api_calls": [
+        "ZopfliInitOptions",
+        "ZopfliDeflate"
+      ],
+      "input_format": "Raw uncompressed bytes: a deterministic, compressible text-like/log-like corpus with repeated records, common prefixes, and varied line lengths.",
+      "digest": "Folds the input length checksum precomputed once, the returned outsize, whether the output pointer is null, and a small fixed sample of output bytes from the produced DEFLATE stream."
+    },
+    {
+      "name": "zlib_compress",
+      "needs_input": true,
+      "summary": "Compresses the same style of realistic corpus into a full zlib container, exercising wrapper logic plus the core compressor. This gives a second end-to-end encoding path with different framing.",
+      "api_calls": [
+        "ZopfliInitOptions",
+        "ZopfliZlibCompress"
+      ],
+      "input_format": "Raw uncompressed bytes: deterministic structured text/binary-ish records chosen to be valid compressor input and strongly repetitive.",
+      "digest": "Folds the precomputed input checksum, compressed size, the first and last few bytes of the zlib stream, and a null/non-null fact for the returned buffer."
+    },
+    {
+      "name": "lz77_blocksplit_analysis",
+      "needs_input": true,
+      "summary": "Builds an LZ77 parse for the input, derives histograms and byte ranges from the store, estimates block costs, and computes split points from both raw input and the generated LZ77 stream. This is a broad structural-analysis scenario that reaches the match-finding and block-splitting machinery without reimplementing any compression logic in the harness.",
+      "api_calls": [
+        "ZopfliInitOptions",
+        "ZopfliInitBlockState",
+        "ZopfliCleanBlockState",
+        "ZopfliInitLZ77Store",
+        "ZopfliCleanLZ77Store",
+        "ZopfliLZ77Greedy",
+        "ZopfliLZ77GetByteRange",
+        "ZopfliLZ77GetHistogram",
+        "ZopfliAllocHash",
+        "ZopfliResetHash",
+        "ZopfliWarmupHash",
+        "ZopfliUpdateHash",
+        "ZopfliCleanHash",
+        "ZopfliCalculateBlockSize",
+        "ZopfliCalculateBlockSizeAutoType",
+        "ZopfliBlockSplit",
+        "ZopfliBlockSplitLZ77"
+      ],
+      "input_format": "Raw uncompressed bytes: deterministic, fairly large compressible content with recurring substrings and record structure so match finding, histogramming, and split heuristics all run to completion over the full buffer.",
+      "digest": "Folds the precomputed input checksum, LZ77 byte-range result, selected literal/dist histogram totals, block-size estimates converted with to_bits(), the number of split points from each splitter, and sums/xors of split-point offsets."
+    },
+    {
+      "name": "tree_codegen",
+      "needs_input": true,
+      "summary": "Treats the input as a byte corpus, builds deterministic frequency tables in the harness, then drives the crate's entropy and Huffman code-length/symbol generation utilities end-to-end. This covers the tree-building side of the library independently of full compression.",
+      "api_calls": [
+        "ZopfliLengthLimitedCodeLengths",
+        "ZopfliLengthsToSymbols",
+        "ZopfliCalculateEntropy",
+        "ZopfliCalculateBitLengths"
+      ],
+      "input_format": "Raw bytes whose histogram is meaningful: deterministic text-like and record-like data with skewed symbol frequencies rather than uniform random bytes.",
+      "digest": "Folds the input checksum, the length-limited-code return code, sums of produced bit lengths and symbols, and selected entropy outputs via floating-point to_bits()."
+    },
+    {
+      "name": "cache_roundtrip",
+      "needs_input": true,
+      "summary": "Exercises the longest-match cache by initializing it for an input-derived block size, storing deterministic sublen tables synthesized from the input, reading them back, querying maximum cached sublengths, and cleaning up. This is a focused state-management coverage workload for the cache API.",
+      "api_calls": [
+        "ZopfliInitCache",
+        "ZopfliSublenToCache",
+        "ZopfliCacheToSublen",
+        "ZopfliMaxCachedSublen",
+        "ZopfliCleanCache"
+      ],
+      "input_format": "Raw bytes used as a deterministic source for positions and sublen values; any byte sequence is valid because the harness derives bounded cache entries from it.",
+      "digest": "Folds the input checksum, the chosen block size, queried max-cached lengths for several positions, and checksums of the sublen arrays recovered from the cache."
+    }
+  ],
+  "seed_strategy": "For every operation, gen_seeds writes two deterministic raw-input corpora built entirely from std byte assembly: seed 1 is a medium-sized repetitive log/text corpus with recurring headers, timestamps, keys, and UTF-8 words; seed 2 is a distinct corpus mixing repeated record templates, longer copied substrings, and different frequency skew so digests differ. The same two raw corpora can be reused across raw_deflate, zlib_compress, lz77_blocksplit_analysis, and tree_codegen because those operations all accept uncompressed bytes directly. For cache_roundtrip, the files are also raw bytes, but the harness interprets them only as a deterministic source for bounded sublen/cache contents, so both files are valid by construction. For perf inputs, only raw_deflate, zlib_compress, and lz77_blocksplit_analysis should get large multi-hundred-KB to low-MB corpora with many realistic repeated records so the library's match-finding and compression loops dominate runtime."
+}

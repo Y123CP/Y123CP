@@ -1,0 +1,95 @@
+# ============================================================================
+                                                                               
+                                             
+# ============================================================================
+
+[study]
+project     = "libqrencode"
+compare     = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+report_mode = "per_input"
+
+[builds.c]
+binary_path = "dataset_trans/libqrencode/validation_workload/purebin/bin/libqrencode_c"
+[builds.raw]
+binary_path = "dataset_trans/libqrencode/validation_workload/purebin/bin/libqrencode_raw"
+[builds.stage_a]
+binary_path = "dataset_trans/libqrencode/validation_workload/purebin/bin/libqrencode_stage_a"
+
+[builds.codex]
+binary_path = "dataset_trans/libqrencode/validation_workload/purebin/bin/libqrencode_codex"
+[builds.freeform]
+binary_path = "dataset_trans/libqrencode/validation_workload/purebin/bin/libqrencode_freeform"
+[builds.full]                                  # full arm = 3_perf_opt (rule-guided)
+binary_path = "dataset_trans/libqrencode/validation_workload/purebin/bin/libqrencode_full"
+
+[measure]
+warmup_runs  = 5
+measure_runs = 30
+required_cv  = 0.03
+max_load     = 1.0
+cv_retries   = 2
+pin_cpu      = 16
+order        = ["c", "raw", "codex", "stage_a", "freeform", "full"]
+
+[gates]
+equivalence = "stdout_sha256"
+
+[[operations]]
+name = "encode_matrix"            # encodeString x EC{L,M,Q,H} x version{auto,5}
+args = ["encode_matrix", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "strings.txt"
+  path = "dataset_trans/libqrencode/validation_workload/inputs/strings.txt"
+  iters = 25
+  stdout_sha256 = "689ca9740dcbba93f791ac58bc02e89681ef80baa35183f976c749251b6d13ff"
+
+[[operations]]
+name = "encode_8bit"              # encodeString8bit + encodeData
+args = ["encode_8bit", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "strings.txt"
+  path = "dataset_trans/libqrencode/validation_workload/inputs/strings.txt"
+  iters = 60
+  stdout_sha256 = "2a59f1ad4ce1476c1822929c3802db71061f12ef3f40ebf3b6c035e203388ca1"
+
+[[operations]]
+name = "encode_mqr"               # Micro QR variants
+args = ["encode_mqr", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "strings.txt"
+  path = "dataset_trans/libqrencode/validation_workload/inputs/strings.txt"
+  iters = 1000
+  stdout_sha256 = "b9fee4dc561c8020054da18deb094d3fafffba6d8eba38dc1b0de574ae8cb30d"
+
+[[operations]]
+name = "structured"               # structured-append multi-symbol encode
+args = ["structured", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "strings.txt"
+  path = "dataset_trans/libqrencode/validation_workload/inputs/strings.txt"
+  iters = 180
+  stdout_sha256 = "840442c4cd26095c58460359c1cf67a43f71b6dea5bc04ccf31148049cde1c0a"
+
+[[operations]]
+name = "input_builder"            # QRinput_* builder surface incl. Kanji/FNC1/ECI
+args = ["input_builder", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "strings.txt"
+  path = "dataset_trans/libqrencode/validation_workload/inputs/strings.txt"
+  iters = 350
+  stdout_sha256 = "acf66daf05bb2b4a9a14e2c75de2ffaacd46e94542b3338b1f51d8b70cfe1405"
+
+[[operations]]
+name = "split_op"                 # mode-detection split (8bit/Kanji, case fold)
+args = ["split_op", "$INPUT", "$ITERS"]
+status = "ready"
+  [[operations.inputs]]
+  name = "strings.txt"
+  path = "dataset_trans/libqrencode/validation_workload/inputs/strings.txt"
+  iters = 70
+  stdout_sha256 = "004775fd22d0cba7f53862517a016989a74e48f393c8298a7ab70089cbeb336b"
