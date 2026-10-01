@@ -187,8 +187,8 @@ forRQ3/
 │   ├── class_II/<project>.md     # LLVM optimization-remark comparison
 │   ├── class_III/               # source-level inspection
 │   └── */cluster.md             # working records of evidence grouping
-├── optimization_cards/          # implementation card templates used by the approach
-│   └── README.md                # paper-issue mapping, card fields, and template scope
+├── performance_issues/          # nine findings from the final paper table
+│   └── README.md                # issue catalog; each entry has a pattern and direction
 └── scripts/                     # evidence collection and attribution utilities
     ├── opt_remarks_collector.py  # source-mapped LLVM remarks (C and Rust)
     ├── perf_annotate.py          # hot-function ranking (≥ 80% of sampled cycles)
@@ -204,9 +204,9 @@ two missed-compiler-transformation issues, and five source-level issues.
 
 In the approach, an **optimization rule** pairs an **Observed Pattern** with
 an **Optimization Direction**. Adding **Rewrite Preconditions** produces an
-**optimization card**. The `optimization_cards/` directory contains 18
-implementation templates for these cards, rather than 18 RQ3 issues. It is a
-reviewer-facing copy of the templates in PerfTrans's `Optimization_Card/`.
+**optimization card**. The `performance_issues/` directory presents the nine
+RQ3 findings. The 18 implementation card templates, including their rewrite
+preconditions, are kept in PerfTrans's `Optimization_Card/` directory.
 
 **Paper performance issues and implementation IDs**
 (`scripts/facet_coverage.py`, `RULE_OF`):
@@ -226,7 +226,7 @@ reviewer-facing copy of the templates in PerfTrans's `Optimization_Card/`.
 The mapping groups implementation IDs for attribution; it does not establish
 an additional paper issue for each template or historical variant. `C9` and
 `II_iso` have deterministic implementation paths without Markdown cards.
-See the [card-template guide](forRQ3/optimization_cards/README.md) for details.
+See the [card-template guide](PerfTrans/script_c2rust/perf_opt/agent_perf_opt/Optimization_Card/README.md) for details.
 
 ---
 
@@ -380,7 +380,7 @@ PerfTrans/
 │   │   ├── hot_probe/                # §Hotspot Localization + §Optimization Pattern Detection
 │   │   │                             #   (class_I = optimized IR, class_II = remarks, class_III = source)
 │   │   └── agent_perf_opt/           # §LLM-Based Optimization + §Validation
-│   │       ├── Optimization_Card/    #   optimization card templates (mirrored in forRQ3/optimization_cards)
+│   │       ├── Optimization_Card/    #   optimization card templates and rewrite preconditions
 │   │       ├── gates.py, measurement.py   # functional gate, incremental + cumulative performance gates
 │   │       └── ablation_freeform.py  #   RQ5 rule-free arm
 │   ├── profiling/                    # perf record / perf stat / TMA / optimization remarks

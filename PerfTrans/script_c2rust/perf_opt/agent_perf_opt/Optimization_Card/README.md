@@ -143,8 +143,9 @@ justification. Candidate rewrites still pass the implementation's build,
 functional, and performance gates; passing workload checks alone is not a
 proof of correctness for all possible inputs.
 
-The same template files and reviewer guide are mirrored in
-`forRQ3/optimization_cards/` in the artifact.
+The nine RQ3 findings are presented separately in
+`forRQ3/performance_issues/`. This directory contains the approach's
+implementation card templates, including rewrite preconditions.
 
 ## API references for the detailed checks
 
